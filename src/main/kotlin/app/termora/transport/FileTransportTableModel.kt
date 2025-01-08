@@ -74,11 +74,14 @@ class FileTransportTableModel(transportManager: TransportManager) : DefaultTable
         val speed = if (isTransporting) transport.speed else 0
         val estimatedTime = if (isTransporting && speed > 0)
             (transport.size - transport.transferredSize) / speed else 0
+        val progress = transport.progress * 100.0
 
         return when (column) {
             COLUMN_NAME -> " ${transport.name}"
             COLUMN_STATUS -> formatStatus(transport.state)
-            COLUMN_PROGRESS -> String.format("%.0f%%", transport.progress * 100.0)
+
+            // 如果进度已经完成但是状态还是传输中，那么进度显示：99%
+            COLUMN_PROGRESS -> String.format("%.0f%%", if (progress >= 100.0 && isTransporting) 99 else progress)
 
             // 大小
             COLUMN_SIZE -> if (transport.size < 0) "-"
