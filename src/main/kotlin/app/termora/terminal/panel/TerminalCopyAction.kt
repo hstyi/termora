@@ -7,12 +7,11 @@ import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
 import java.awt.datatransfer.Transferable
 import java.awt.datatransfer.UnsupportedFlavorException
+import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 import javax.swing.KeyStroke
 
-class TerminalCopyAction(private val terminalPanel: TerminalPanel) : TerminalAction(
-    KeyStroke.getKeyStroke(KeyEvent.VK_C, terminalPanel.toolkit.menuShortcutKeyMaskEx)
-) {
+class TerminalCopyAction(private val terminalPanel: TerminalPanel) : TerminalPredicateAction {
     companion object {
         private val log = LoggerFactory.getLogger(TerminalCopyAction::class.java)
     }
@@ -36,10 +35,16 @@ class TerminalCopyAction(private val terminalPanel: TerminalPanel) : TerminalAct
     }
 
     override fun test(keyStroke: KeyStroke, e: KeyEvent): Boolean {
-        if (!SystemInfo.isMacOS) {
-            return false
+        if (SystemInfo.isMacOS) {
+            return KeyStroke.getKeyStroke(KeyEvent.VK_C, terminalPanel.toolkit.menuShortcutKeyMaskEx) == keyStroke
         }
-        return super.test(keyStroke, e)
+
+        // Ctrl + Insert
+        val keyStroke1 = KeyStroke.getKeyStroke(KeyEvent.VK_INSERT, InputEvent.CTRL_DOWN_MASK)
+        // Ctrl + Shift + C
+        val keyStroke2 = KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK or InputEvent.SHIFT_DOWN_MASK)
+
+        return keyStroke == keyStroke1 || keyStroke == keyStroke2
     }
 
     private class EmptyTransferable : Transferable {

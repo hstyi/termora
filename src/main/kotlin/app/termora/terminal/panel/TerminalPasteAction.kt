@@ -3,12 +3,11 @@ package app.termora.terminal.panel
 import com.formdev.flatlaf.util.SystemInfo
 import org.slf4j.LoggerFactory
 import java.awt.datatransfer.DataFlavor
+import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 import javax.swing.KeyStroke
 
-class TerminalPasteAction(private val terminalPanel: TerminalPanel) : TerminalAction(
-    KeyStroke.getKeyStroke(KeyEvent.VK_V, terminalPanel.toolkit.menuShortcutKeyMaskEx)
-) {
+class TerminalPasteAction(private val terminalPanel: TerminalPanel) : TerminalPredicateAction {
     companion object {
         private val log = LoggerFactory.getLogger(TerminalPasteAction::class.java)
     }
@@ -28,10 +27,16 @@ class TerminalPasteAction(private val terminalPanel: TerminalPanel) : TerminalAc
     }
 
     override fun test(keyStroke: KeyStroke, e: KeyEvent): Boolean {
-        if (!SystemInfo.isMacOS) {
-            return false
+        if (SystemInfo.isMacOS) {
+            return KeyStroke.getKeyStroke(KeyEvent.VK_V, terminalPanel.toolkit.menuShortcutKeyMaskEx) == keyStroke
         }
-        return super.test(keyStroke, e)
+
+        // Shift + Insert
+        val keyStroke1 = KeyStroke.getKeyStroke(KeyEvent.VK_INSERT, InputEvent.SHIFT_DOWN_MASK)
+        // Ctrl + Shift + V
+        val keyStroke2 = KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK or InputEvent.SHIFT_DOWN_MASK)
+
+        return keyStroke == keyStroke1 || keyStroke == keyStroke2
     }
 
 }
