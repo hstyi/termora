@@ -253,12 +253,14 @@ class TerminalTabbed(
         openInNewWindow.addActionListener {
             val index = tabbedPane.selectedIndex
             if (index > 0) {
+                val title = tabbedPane.getTitleAt(index)
                 removeTabAt(index, false)
                 val dialog = TerminalTabDialog(
                     owner = SwingUtilities.getWindowAncestor(this),
                     terminalTab = tab,
                     size = Dimension(min(size.width, 1280), min(size.height, 800))
                 )
+                dialog.title = title
                 Disposer.register(dialog, tab)
                 Disposer.register(this, dialog)
                 dialog.isVisible = true
