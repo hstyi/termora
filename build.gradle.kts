@@ -107,33 +107,6 @@ tasks.register<Copy>("copy-dependencies") {
         .into("${layout.buildDirectory.get()}/libs")
 }
 
-tasks.register<Exec>("jlink") {
-    val modules = listOf(
-        "java.base",
-        "java.desktop",
-        "java.logging",
-        "java.management",
-        "java.rmi",
-        "java.security.jgss",
-        "jdk.crypto.ec",
-        "jdk.unsupported",
-    )
-
-    commandLine(
-        "${Jvm.current().javaHome}/bin/jlink",
-        "--verbose",
-        "--strip-java-debug-attributes",
-        "--strip-native-commands",
-        "--strip-debug",
-        "--compress=zip-9",
-        "--no-header-files",
-        "--no-man-pages",
-        "--add-modules",
-        modules.joinToString(","),
-        "--output",
-        "${layout.buildDirectory.get()}/jlink"
-    )
-}
 
 tasks.register<Exec>("jpackage") {
     val buildDir = layout.buildDirectory.get()
@@ -155,7 +128,6 @@ tasks.register<Exec>("jpackage") {
     }
 
     val arguments = mutableListOf("${Jvm.current().javaHome}/bin/jpackage", "--verbose")
-    arguments.addAll(listOf("--runtime-image", "${buildDir}/jlink"))
     arguments.addAll(listOf("--name", project.name.uppercaseFirstChar()))
     arguments.addAll(listOf("--app-version", "${project.version}"))
     arguments.addAll(listOf("--main-jar", tasks.jar.get().archiveFileName.get()))
@@ -181,6 +153,33 @@ tasks.register<Exec>("jpackage") {
         arguments.addAll(listOf("--icon", "${projectDir.absolutePath}/src/main/resources/icons/termora.ico"))
     }
 
+    // jlink
+    arguments.add("--add-modules")
+    arguments.add(
+        listOf(
+            "java.base",
+            "java.desktop",
+            "java.logging",
+            "java.management",
+            "java.rmi",
+            "java.security.jgss",
+            "jdk.crypto.ec",
+            "jdk.unsupported",
+        ).joinToString(",")
+    )
+    arguments.add("--jlink-options")
+    arguments.add(
+        listOf(
+            "--verbose",
+            "--strip-java-debug-attributes",
+            "--strip-native-commands",
+            "--strip-debug",
+            "--compress=zip-9",
+            "--no-header-files",
+            "--no-man-pages",
+        ).joinToString(StringUtils.SPACE)
+    )
+
 
     arguments.add("--type")
     if (os.isMacOsX) {
@@ -192,6 +191,7 @@ tasks.register<Exec>("jpackage") {
     } else {
         throw UnsupportedOperationException()
     }
+
 
     commandLine(arguments)
 
@@ -216,9 +216,6 @@ tasks.register("dist") {
 
         // 检查依赖的开源协议
         exec { commandLine(gradlew, "check-license") }
-
-        // jlink
-        exec { commandLine(gradlew, "jlink") }
 
         // 打包
         exec { commandLine(gradlew, "jpackage") }
