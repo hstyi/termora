@@ -381,7 +381,7 @@ class TermoraFrame : JFrame() {
             }
 
             override fun mousePressed(e: MouseEvent) {
-                if (e.source == toolbar) {
+                if (e.source == toolbar.getJToolBar()) {
                     if (!isWindowDecorationsSupported && SwingUtilities.isLeftMouseButton(e)) {
                         if (JBR.isWindowMoveSupported()) {
                             JBR.getWindowMove().startMovingTogetherWithMouse(this@TermoraFrame, e.button)
