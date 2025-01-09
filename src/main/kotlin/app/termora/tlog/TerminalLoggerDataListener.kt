@@ -57,7 +57,16 @@ class TerminalLoggerDataListener(private val terminal: Terminal) : DataListener 
     init {
         terminal.addTerminalListener(object : TerminalListener {
             override fun onClose(terminal: Terminal) {
-                close()
+                if (isClosed.compareAndSet(false, true)) {
+                    // 设置为已经关闭
+                    isClosed.set(true)
+
+                    // 移除变动监听
+                    terminal.getTerminalModel().removeDataListener(this@TerminalLoggerDataListener)
+
+                    // 关闭流
+                    close()
+                }
             }
         })
     }
@@ -148,15 +157,10 @@ class TerminalLoggerDataListener(private val terminal: Terminal) : DataListener 
             return
         }
 
-        // 设置为已经关闭
-        isClosed.set(true)
-
         // 移除监听
         ActionManager.getInstance().getAction(Actions.TERMINAL_LOGGER)
             ?.removePropertyChangeListener(terminalLoggerActionPropertyChangeListener)
 
-        // 移除变动监听
-        terminal.getTerminalModel().removeDataListener(this)
 
         this.channel?.close()
         this.coroutineScope?.cancel()
