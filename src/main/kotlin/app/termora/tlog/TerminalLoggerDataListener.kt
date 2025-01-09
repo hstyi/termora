@@ -34,6 +34,7 @@ class TerminalLoggerDataListener(private val terminal: Terminal) : DataListener 
     private var writer: BufferedWriter? = null
 
     private val isRecording = AtomicBoolean(false)
+    private val isClosed = AtomicBoolean(false)
 
     // 监听 Recording 变化，如果已经停止录制，那么立即关闭文件
     private val terminalLoggerActionPropertyChangeListener = PropertyChangeListener { evt ->
@@ -62,7 +63,7 @@ class TerminalLoggerDataListener(private val terminal: Terminal) : DataListener 
     }
 
     override fun onChanged(key: DataKey<*>, data: Any) {
-        if (key != VisualTerminal.Written) {
+        if (key != VisualTerminal.Written || isClosed.get()) {
             return
         }
 
@@ -147,9 +148,15 @@ class TerminalLoggerDataListener(private val terminal: Terminal) : DataListener 
             return
         }
 
+        // 设置为已经关闭
+        isClosed.set(true)
+
         // 移除监听
         ActionManager.getInstance().getAction(Actions.TERMINAL_LOGGER)
             ?.removePropertyChangeListener(terminalLoggerActionPropertyChangeListener)
+
+        // 移除变动监听
+        terminal.getTerminalModel().removeDataListener(this)
 
         this.channel?.close()
         this.coroutineScope?.cancel()
