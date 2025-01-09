@@ -7,27 +7,21 @@ import app.termora.findeverywhere.FindEverywhereResult
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
-import org.apache.commons.lang3.StringUtils
-import org.jdesktop.swingx.action.ActionContainerFactory
 import org.jdesktop.swingx.action.ActionManager
-import java.awt.BorderLayout
-import java.awt.Component
-import java.awt.Dimension
-import java.awt.event.ActionEvent
-import java.awt.event.KeyEvent
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
-import java.beans.PropertyChangeEvent
+import java.awt.*
+import java.awt.event.*
 import java.beans.PropertyChangeListener
 import javax.swing.*
 import javax.swing.JTabbedPane.SCROLL_TAB_LAYOUT
 import kotlin.math.min
 
 class TerminalTabbed(
-    private val toolbar: JToolBar,
+    private val termoraToolBar: TermoraToolBar,
     private val tabbedPane: FlatTabbedPane,
 ) : JPanel(BorderLayout()), Disposable, TerminalTabbedManager {
     private val tabs = mutableListOf<TerminalTab>()
+    private val customizeToolBarAWTEventListener = CustomizeToolBarAWTEventListener()
+    private val toolbar = termoraToolBar.getJToolBar()
 
     private val iconListener = PropertyChangeListener { e ->
         val source = e.source
@@ -53,34 +47,6 @@ class TerminalTabbed(
         tabbedPane.styleMap = mapOf(
             "focusColor" to UIManager.getColor("TabbedPane.selectedBackground")
         )
-
-        val actionManager = ActionManager.getInstance()
-        val actionContainerFactory = ActionContainerFactory(actionManager)
-        val updateBtn = actionContainerFactory.createButton(actionManager.getAction(Actions.APP_UPDATE))
-        updateBtn.isVisible = updateBtn.isEnabled
-        updateBtn.addChangeListener { updateBtn.isVisible = updateBtn.isEnabled }
-
-        toolbar.add(actionContainerFactory.createButton(object : AnAction(StringUtils.EMPTY, Icons.add) {
-            override fun actionPerformed(e: ActionEvent?) {
-                actionManager.getAction(Actions.FIND_EVERYWHERE)?.actionPerformed(e)
-            }
-
-            override fun isEnabled(): Boolean {
-                return actionManager.getAction(Actions.FIND_EVERYWHERE)?.isEnabled ?: false
-            }
-        }))
-        toolbar.add(Box.createHorizontalStrut(UIManager.getInt("TabbedPane.tabHeight")))
-        toolbar.add(Box.createHorizontalGlue())
-        toolbar.add(actionContainerFactory.createButton(actionManager.getAction(Actions.TERMINAL_LOGGER)))
-        toolbar.add(actionContainerFactory.createButton(actionManager.getAction(Actions.MACRO)))
-        toolbar.add(actionContainerFactory.createButton(actionManager.getAction(Actions.KEYWORD_HIGHLIGHT_EVERYWHERE)))
-        toolbar.add(actionContainerFactory.createButton(actionManager.getAction(Actions.KEY_MANAGER)))
-        toolbar.add(actionContainerFactory.createButton(actionManager.getAction(Actions.MULTIPLE)))
-        toolbar.add(updateBtn)
-        toolbar.add(actionContainerFactory.createButton(actionManager.getAction(Actions.FIND_EVERYWHERE)))
-        toolbar.add(actionContainerFactory.createButton(actionManager.getAction(Actions.SETTING)))
-
-
         tabbedPane.trailingComponent = toolbar
 
         add(tabbedPane, BorderLayout.CENTER)
@@ -93,18 +59,16 @@ class TerminalTabbed(
         tabbedPane.setTabCloseCallback { _, i -> removeTabAt(i, true) }
 
         // 选中变动
-        tabbedPane.addPropertyChangeListener("selectedIndex", object : PropertyChangeListener {
-            override fun propertyChange(evt: PropertyChangeEvent) {
-                val oldIndex = evt.oldValue as Int
-                val newIndex = evt.newValue as Int
-                if (oldIndex >= 0 && tabs.size > newIndex) {
-                    tabs[oldIndex].onLostFocus()
-                }
-                if (newIndex >= 0 && tabs.size > newIndex) {
-                    tabs[newIndex].onGrabFocus()
-                }
+        tabbedPane.addPropertyChangeListener("selectedIndex") { evt ->
+            val oldIndex = evt.oldValue as Int
+            val newIndex = evt.newValue as Int
+            if (oldIndex >= 0 && tabs.size > newIndex) {
+                tabs[oldIndex].onLostFocus()
             }
-        })
+            if (newIndex >= 0 && tabs.size > newIndex) {
+                tabs[newIndex].onGrabFocus()
+            }
+        }
 
         // 选择变动
         tabbedPane.addChangeListener {
@@ -209,6 +173,9 @@ class TerminalTabbed(
             }
         })
 
+        // 监听全局事件
+        toolkit.addAWTEventListener(customizeToolBarAWTEventListener, AWTEvent.MOUSE_EVENT_MASK)
+
     }
 
     private fun removeTabAt(index: Int, disposable: Boolean = true) {
@@ -274,14 +241,10 @@ class TerminalTabbed(
         // 克隆
         val clone = popupMenu.add(I18n.getString("termora.tabbed.contextmenu.clone"))
         clone.addActionListener {
-            val index = tabbedPane.selectedIndex
-            if (index > 0) {
-                val tab = tabs[index]
-                if (tab is HostTerminalTab) {
-                    ActionManager.getInstance()
-                        .getAction(Actions.OPEN_HOST)
-                        .actionPerformed(OpenHostActionEvent(this, tab.host))
-                }
+            if (tab is HostTerminalTab) {
+                ActionManager.getInstance()
+                    .getAction(Actions.OPEN_HOST)
+                    .actionPerformed(OpenHostActionEvent(this, tab.host))
             }
         }
 
@@ -369,6 +332,64 @@ class TerminalTabbed(
         tabbedPane.selectedIndex = tabbedPane.tabCount - 1
         Disposer.register(this, tab)
     }
+
+    /**
+     * 对着 ToolBar 右键
+     */
+    private inner class CustomizeToolBarAWTEventListener : AWTEventListener, Disposable {
+        init {
+            Disposer.register(this@TerminalTabbed, this)
+        }
+
+        override fun eventDispatched(event: AWTEvent) {
+            if (event !is MouseEvent || event.id != MouseEvent.MOUSE_CLICKED || !SwingUtilities.isRightMouseButton(event)) return
+            // 如果 ToolBar 没有显示
+            if (!toolbar.isShowing) return
+            // 如果不是作用于在 ToolBar 上面
+            if (!Rectangle(toolbar.locationOnScreen, toolbar.size).contains(event.locationOnScreen)) return
+
+            // 显示右键菜单
+            showContextMenu(event)
+        }
+
+        private fun showContextMenu(event: MouseEvent) {
+            val popupMenu = FlatPopupMenu()
+            popupMenu.add(I18n.getString("termora.toolbar.customize-toolbar")).addActionListener {
+                val dialog = CustomizeToolBarDialog(
+                    SwingUtilities.getWindowAncestor(this@TerminalTabbed),
+                    termoraToolBar
+                )
+                if (dialog.open()) {
+                    termoraToolBar.rebuild()
+                }
+            }
+            popupMenu.show(event.component, event.x, event.y)
+        }
+
+        override fun dispose() {
+            toolkit.removeAWTEventListener(this)
+        }
+    }
+
+    /*private inner class CustomizeToolBarDialog(owner: Window) : DialogWrapper(owner) {
+        init {
+            size = Dimension(UIManager.getInt("Dialog.width"), UIManager.getInt("Dialog.height"))
+            isModal = true
+            title = I18n.getString("termora.setting")
+            setLocationRelativeTo(null)
+
+            init()
+        }
+
+        override fun createCenterPanel(): JComponent {
+            val model = DefaultListModel<String>()
+            val checkBoxList = CheckBoxList(model)
+            checkBoxList.fixedCellHeight = UIManager.getInt("Tree.rowHeight")
+            model.addElement("Test")
+            return checkBoxList
+        }
+
+    }*/
 
     private inner class SwitchFindEverywhereResult(
         private val title: String,

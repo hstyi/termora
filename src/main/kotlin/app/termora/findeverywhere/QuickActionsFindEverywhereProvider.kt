@@ -5,7 +5,12 @@ import app.termora.I18n
 import org.jdesktop.swingx.action.ActionManager
 
 class QuickActionsFindEverywhereProvider : FindEverywhereProvider {
-    private val actions = listOf(Actions.KEY_MANAGER, Actions.KEYWORD_HIGHLIGHT_EVERYWHERE, Actions.MULTIPLE)
+    private val actions = listOf(
+        Actions.KEY_MANAGER,
+        Actions.KEYWORD_HIGHLIGHT,
+        Actions.MULTIPLE,
+    )
+
     override fun find(pattern: String): List<FindEverywhereResult> {
         val actionManager = ActionManager.getInstance()
         return actions

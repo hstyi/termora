@@ -20,7 +20,7 @@ object Actions {
     /**
      * 关键词高亮
      */
-    const val KEYWORD_HIGHLIGHT_EVERYWHERE = "KeywordHighlightAction"
+    const val KEYWORD_HIGHLIGHT = "KeywordHighlightAction"
 
     /**
      * Key manager

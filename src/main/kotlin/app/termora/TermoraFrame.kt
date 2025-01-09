@@ -44,12 +44,12 @@ class TermoraFrame : JFrame() {
         private val log = LoggerFactory.getLogger(TermoraFrame::class.java)
     }
 
-    private val toolbar = JToolBar()
+    private val titleBar = LogicCustomTitleBar.createCustomTitleBar(this)
     private val tabbedPane = MyTabbedPane()
+    private val toolbar = TermoraToolBar(titleBar, tabbedPane)
     private lateinit var terminalTabbed: TerminalTabbed
     private val disposable = Disposer.newDisposable()
     private val isWindowDecorationsSupported by lazy { JBR.isWindowDecorationsSupported() }
-    private val titleBar = LogicCustomTitleBar.createCustomTitleBar(this)
     private val updaterManager get() = UpdaterManager.instance
 
     private val preferencesHandler = object : Runnable {
@@ -80,38 +80,6 @@ class TermoraFrame : JFrame() {
     }
 
     private fun initEvents() {
-
-        // 监听窗口大小变动，然后修改边距避开控制按钮
-        addComponentListener(object : ComponentAdapter() {
-            override fun componentResized(e: ComponentEvent) {
-                if (SystemInfo.isMacOS) {
-                    val left = titleBar.leftInset.toInt()
-                    if (tabbedPane.tabAreaInsets.left != left) {
-                        tabbedPane.tabAreaInsets = Insets(0, left, 0, 0)
-                    }
-                } else if (SystemInfo.isWindows || SystemInfo.isLinux) {
-
-                    val right = titleBar.rightInset.toInt()
-
-                    for (i in 0 until toolbar.componentCount) {
-                        val c = toolbar.getComponent(i)
-                        if (c.name == "spacing") {
-                            if (c.width == right) {
-                                return
-                            }
-                            toolbar.remove(i)
-                            break
-                        }
-                    }
-
-                    if (right > 0) {
-                        val spacing = Box.createHorizontalStrut(right)
-                        spacing.name = "spacing"
-                        toolbar.add(spacing)
-                    }
-                }
-            }
-        })
 
         forceHitTest()
 
@@ -210,7 +178,7 @@ class TermoraFrame : JFrame() {
 
 
         // Keyword Highlight
-        ActionManager.getInstance().addAction(Actions.KEYWORD_HIGHLIGHT_EVERYWHERE, object : AnAction(
+        ActionManager.getInstance().addAction(Actions.KEYWORD_HIGHLIGHT, object : AnAction(
             I18n.getString("termora.highlight"),
             Icons.edit
         ) {
@@ -444,8 +412,8 @@ class TermoraFrame : JFrame() {
         tabbedPane.addMouseListener(mouseAdapter)
         tabbedPane.addMouseMotionListener(mouseAdapter)
 
-        toolbar.addMouseListener(mouseAdapter)
-        toolbar.addMouseMotionListener(mouseAdapter)
+        toolbar.getJToolBar().addMouseListener(mouseAdapter)
+        toolbar.getJToolBar().addMouseMotionListener(mouseAdapter)
     }
 
     private fun initDesktopHandler() {

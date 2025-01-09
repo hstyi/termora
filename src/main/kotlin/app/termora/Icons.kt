@@ -3,7 +3,9 @@ package app.termora
 object Icons {
     val bulletList by lazy { DynamicIcon("icons/bulletList.svg", "icons/bulletList_dark.svg") }
     val up by lazy { DynamicIcon("icons/up.svg", "icons/up_dark.svg") }
+    val moveUp by lazy { DynamicIcon("icons/moveUp.svg", "icons/moveUp_dark.svg") }
     val down by lazy { DynamicIcon("icons/down.svg", "icons/down_dark.svg") }
+    val moveDown by lazy { DynamicIcon("icons/moveDown.svg", "icons/moveDown_dark.svg") }
     val close by lazy { DynamicIcon("icons/close.svg", "icons/close_dark.svg") }
     val searchHistory by lazy { DynamicIcon("icons/searchHistory.svg", "icons/searchHistory_dark.svg") }
     val matchCase by lazy { DynamicIcon("icons/matchCase.svg", "icons/matchCase_dark.svg") }
@@ -74,9 +76,23 @@ object Icons {
     val colorPicker by lazy { DynamicIcon("icons/colorPicker.svg", "icons/colorPicker_dark.svg") }
     val folder by lazy { DynamicIcon("icons/folder.svg", "icons/folder_dark.svg") }
     val listFiles by lazy { DynamicIcon("icons/listFiles.svg", "icons/listFiles_dark.svg") }
+    val left by lazy { DynamicIcon("icons/left.svg", "icons/left_dark.svg") }
+    val right by lazy { DynamicIcon("icons/right.svg", "icons/right_dark.svg") }
     val dotListFiles by lazy { DynamicIcon("icons/dotListFiles.svg", "icons/dotListFiles_dark.svg") }
     val fileTransfer by lazy { DynamicIcon("icons/fileTransfer.svg", "icons/fileTransfer_dark.svg") }
     val help by lazy { DynamicIcon("icons/help.svg", "icons/help_dark.svg") }
+    val applyNotConflictsLeft by lazy {
+        DynamicIcon(
+            "icons/applyNotConflictsLeft.svg",
+            "icons/applyNotConflictsLeft_dark.svg"
+        )
+    }
+    val applyNotConflictsRight by lazy {
+        DynamicIcon(
+            "icons/applyNotConflictsRight.svg",
+            "icons/applyNotConflictsRight_dark.svg"
+        )
+    }
     val expand by lazy { DynamicIcon("icons/expand.svg", "icons/expand_dark.svg") }
     val collapse by lazy { DynamicIcon("icons/collapse.svg", "icons/collapse_dark.svg") }
     val expandAll by lazy { DynamicIcon("icons/expandAll.svg", "icons/expandAll_dark.svg") }
