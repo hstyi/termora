@@ -30,6 +30,7 @@ class CustomizeToolBarDialog(
 
     private val leftBtn = JButton(Icons.left)
     private val rightBtn = JButton(Icons.right)
+    private val resetBtn = JButton(Icons.refresh)
     private val allToLeftBtn = JButton(Icons.applyNotConflictsRight)
     private val allToRightBtn = JButton(Icons.applyNotConflictsLeft)
 
@@ -70,6 +71,8 @@ class CustomizeToolBarDialog(
         box.add(Box.createVerticalStrut(leftList.fixedCellHeight))
         box.add(rightBtn)
         box.add(leftBtn)
+        box.add(Box.createVerticalGlue())
+        box.add(resetBtn)
         box.add(Box.createVerticalGlue())
         box.add(allToRightBtn)
         box.add(allToLeftBtn)
@@ -139,6 +142,16 @@ class CustomizeToolBarDialog(
                 resetMoveButtons()
             }
         })
+
+        resetBtn.addActionListener {
+            leftList.model.removeAllElements()
+            rightList.model.removeAllElements()
+            for (action in toolbar.getAllActions()) {
+                actionManager.getAction(action)?.let {
+                    rightList.model.addElement(ActionHolder(action, it))
+                }
+            }
+        }
 
         // move first
         moveTopBtn.addActionListener {
@@ -247,11 +260,14 @@ class CustomizeToolBarDialog(
                 removeWindowListener(this)
 
                 val allActions = toolbar.getAllActions().toMutableList()
-                val shownActions = toolbar.getShownActions()
+                val shownActions = toolbar.getShownActions().filter { it.visible }
+                    .map { it.id }
                 allActions.removeAll(shownActions)
+
                 for (action in allActions) {
                     actionManager.getAction(action)?.let { leftList.model.addElement(ActionHolder(action, it)) }
                 }
+
                 for (action in shownActions) {
                     actionManager.getAction(action)?.let { rightList.model.addElement(ActionHolder(action, it)) }
                 }
@@ -333,11 +349,19 @@ class CustomizeToolBarDialog(
 
     override fun doOKAction() {
         isOk = true
-        val actions = mutableListOf<String>()
+
+        val rightActions = mutableSetOf<String>()
         for (i in 0 until rightList.model.size()) {
-            actions.add(rightList.model.getElementAt(i).id)
+            rightActions.add(rightList.model.getElementAt(i).id)
         }
+
+        val actions = mutableListOf<ToolBarAction>()
+        for (action in toolbar.getAllActions()) {
+            actions.add(ToolBarAction(action, rightActions.contains(action)))
+        }
+
         Database.instance.properties.putString("Termora.ToolBar.Actions", ohMyJson.encodeToString(actions))
+
         super.doOKAction()
     }
 

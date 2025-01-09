@@ -5,6 +5,7 @@ import app.termora.db.Database
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
 import com.formdev.flatlaf.util.SystemInfo
 import com.jetbrains.WindowDecorations
+import kotlinx.serialization.Serializable
 import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.action.ActionContainerFactory
 import org.jdesktop.swingx.action.ActionManager
@@ -15,6 +16,13 @@ import java.awt.event.ComponentEvent
 import javax.swing.Box
 import javax.swing.JToolBar
 
+
+@Serializable
+data class ToolBarAction(
+    val id: String,
+    val visible: Boolean,
+)
+
 class TermoraToolBar(
     private val titleBar: WindowDecorations.CustomTitleBar,
     private val tabbedPane: FlatTabbedPane
@@ -22,15 +30,25 @@ class TermoraToolBar(
     private val properties by lazy { Database.instance.properties }
     private val toolbar by lazy { MyToolBar().apply { rebuild(this) } }
 
-    private val shownActions = mutableListOf<String>()
 
     fun getJToolBar(): JToolBar {
         return toolbar
     }
 
 
-    fun getShownActions(): List<String> {
-        return shownActions
+    fun getShownActions(): List<ToolBarAction> {
+        val text = properties.getString(
+            "Termora.ToolBar.Actions",
+            StringUtils.EMPTY
+        )
+
+        if (text.isBlank()) {
+            return getAllActions().map { ToolBarAction(it, true) }
+        }
+
+        return ohMyJson.runCatching {
+            ohMyJson.decodeFromString<List<ToolBarAction>>(text)
+        }.getOrNull() ?: getAllActions().map { ToolBarAction(it, true) }
     }
 
     fun getAllActions(): List<String> {
@@ -53,7 +71,6 @@ class TermoraToolBar(
         val actionManager = ActionManager.getInstance()
         val actionContainerFactory = ActionContainerFactory(actionManager)
 
-        shownActions.clear()
         toolbar.removeAll()
 
         toolbar.add(actionContainerFactory.createButton(object : AnAction(StringUtils.EMPTY, Icons.add) {
@@ -68,15 +85,6 @@ class TermoraToolBar(
 
         toolbar.add(Box.createHorizontalGlue())
 
-        val actions = ohMyJson.runCatching {
-            ohMyJson.decodeFromString<List<String>>(
-                properties.getString(
-                    "Termora.ToolBar.Actions",
-                    StringUtils.EMPTY
-                )
-            )
-        }.getOrNull() ?: getAllActions()
-
 
         // update btn
         val updateBtn = actionContainerFactory.createButton(actionManager.getAction(Actions.APP_UPDATE))
@@ -84,10 +92,14 @@ class TermoraToolBar(
         updateBtn.addChangeListener { updateBtn.isVisible = updateBtn.isEnabled }
         toolbar.add(updateBtn)
 
-        for (action in actions) {
-            actionManager.getAction(action)?.let {
-                toolbar.add(actionContainerFactory.createButton(it))
-                shownActions.add(action)
+        // 获取显示的Action，如果不是 false 那么就是显示出来
+        val actions = getShownActions().associate { Pair(it.id, it.visible) }
+        for (action in getAllActions()) {
+            // actions[action] 有可能是 null，那么极有可能表示这个 Action 是新增的
+            if (actions[action] != false) {
+                actionManager.getAction(action)?.let {
+                    toolbar.add(actionContainerFactory.createButton(it))
+                }
             }
         }
 
