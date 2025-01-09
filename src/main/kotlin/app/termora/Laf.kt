@@ -8,6 +8,51 @@ import com.formdev.flatlaf.FlatPropertiesLaf
 import com.formdev.flatlaf.util.SystemInfo
 import java.util.*
 
+class DraculaLaf : FlatPropertiesLaf("Dracula", Properties().apply {
+    putAll(
+        mapOf(
+            "@baseTheme" to "dark",
+            "@background" to "#282935",
+            "@windowText" to "#eaeaea",
+        )
+    )
+}), ColorTheme {
+    override fun getColor(color: TerminalColor): Int {
+        return when (color) {
+            TerminalColor.Basic.BACKGROUND -> 0x282935
+            TerminalColor.Basic.FOREGROUND -> 0xeaeaea
+            TerminalColor.Basic.SELECTION_BACKGROUND -> 0x56596b
+            TerminalColor.Basic.SELECTION_FOREGROUND -> 0xfeffff
+            TerminalColor.Basic.HYPERLINK -> 0x255ab4
+
+            TerminalColor.Cursor.BACKGROUND -> 0xc7c7c7
+
+            TerminalColor.Find.BACKGROUND -> 0xffff00
+            TerminalColor.Find.FOREGROUND -> 0x282935
+
+            TerminalColor.Normal.BLACK -> 0
+            TerminalColor.Normal.RED -> 0xef766d
+            TerminalColor.Normal.GREEN -> 0x88f397
+            TerminalColor.Normal.YELLOW -> 0xf4f8a7
+            TerminalColor.Normal.BLUE -> 0xc4a9f4
+            TerminalColor.Normal.MAGENTA -> 0xf297cd
+            TerminalColor.Normal.CYAN -> 0xaceafb
+            TerminalColor.Normal.WHITE -> 0xc7c7c7
+
+            TerminalColor.Bright.BLACK -> 0x676767
+            TerminalColor.Bright.RED -> 0xef766d
+            TerminalColor.Bright.GREEN -> 0x88f397
+            TerminalColor.Bright.YELLOW -> 0xf4f8a7
+            TerminalColor.Bright.BLUE -> 0xc4a9f4
+            TerminalColor.Bright.MAGENTA -> 0xf297cd
+            TerminalColor.Bright.CYAN -> 0xaceafb
+            TerminalColor.Bright.WHITE -> 0xfeffff
+
+            else -> Int.MAX_VALUE
+        }
+    }
+
+}
 
 class LightLaf : FlatLightLaf(), ColorTheme {
     override fun getColor(color: TerminalColor): Int {
@@ -163,7 +208,7 @@ class TermiusDarkLaf : FlatPropertiesLaf("Termius Dark", Properties().apply {
             TerminalColor.Basic.SELECTION_BACKGROUND,
             TerminalColor.Cursor.BACKGROUND -> 0x21b568
 
-            TerminalColor.Basic.SELECTION_FOREGROUND ->0
+            TerminalColor.Basic.SELECTION_FOREGROUND -> 0
 
             TerminalColor.Basic.FOREGROUND -> 0x21b568
 

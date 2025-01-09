@@ -30,6 +30,7 @@ class ThemeManager private constructor() {
     val themes = mapOf(
         "Light" to LightLaf::class.java.name,
         "Dark" to DarkLaf::class.java.name,
+        "Dracula" to DraculaLaf::class.java.name,
         "iTerm2 Dark" to iTerm2DarkLaf::class.java.name,
         "Termius Dark" to TermiusDarkLaf::class.java.name,
         "Termius Light" to TermiusLightLaf::class.java.name,
