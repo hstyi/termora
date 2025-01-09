@@ -260,17 +260,16 @@ class CustomizeToolBarDialog(
                 removeWindowListener(this)
 
                 val allActions = toolbar.getAllActions().toMutableList()
-                val shownActions = toolbar.getShownActions().filter { it.visible }
-                    .map { it.id }
-                allActions.removeAll(shownActions)
+                val shownActions = toolbar.getShownActions().associate { Pair(it.id, it.visible) }
 
                 for (action in allActions) {
-                    actionManager.getAction(action)?.let { leftList.model.addElement(ActionHolder(action, it)) }
+                    if (shownActions[action] == false) {
+                        actionManager.getAction(action)?.let { leftList.model.addElement(ActionHolder(action, it)) }
+                    } else {
+                        actionManager.getAction(action)?.let { rightList.model.addElement(ActionHolder(action, it)) }
+                    }
                 }
 
-                for (action in shownActions) {
-                    actionManager.getAction(action)?.let { rightList.model.addElement(ActionHolder(action, it)) }
-                }
             }
         })
     }

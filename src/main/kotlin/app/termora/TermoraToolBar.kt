@@ -53,6 +53,7 @@ class TermoraToolBar(
 
     fun getAllActions(): List<String> {
         return listOf(
+            Actions.SFTP,
             Actions.TERMINAL_LOGGER,
             Actions.MACRO,
             Actions.KEYWORD_HIGHLIGHT,

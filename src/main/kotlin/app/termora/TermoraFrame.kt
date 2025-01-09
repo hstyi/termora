@@ -5,6 +5,7 @@ import app.termora.highlight.KeywordHighlightDialog
 import app.termora.keymgr.KeyManagerDialog
 import app.termora.macro.MacroAction
 import app.termora.tlog.TerminalLoggerAction
+import app.termora.transport.SFTPAction
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.FlatDesktop
@@ -204,6 +205,9 @@ class TermoraFrame : JFrame() {
 
         // 终端日志记录
         ActionManager.getInstance().addAction(Actions.TERMINAL_LOGGER, TerminalLoggerAction())
+
+        // SFTP
+        ActionManager.getInstance().addAction(Actions.SFTP, SFTPAction())
 
         // macro
         ActionManager.getInstance().addAction(Actions.MACRO, MacroAction())
