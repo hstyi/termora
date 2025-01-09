@@ -147,15 +147,15 @@ class CustomizeToolBarDialog(
             leftList.model.removeAllElements()
             rightList.model.removeAllElements()
             for (action in toolbar.getAllActions()) {
-                actionManager.getAction(action)?.let {
-                    rightList.model.addElement(ActionHolder(action, it))
+                actionManager.getAction(action.id)?.let {
+                    rightList.model.addElement(ActionHolder(action.id, it))
                 }
             }
         }
 
         // move first
         moveTopBtn.addActionListener {
-            val indices = rightList.selectedIndices
+            val indices = rightList.selectedIndices.sortedDescending()
             rightList.clearSelection()
             for (index in indices.indices) {
                 val ele = rightList.model.getElementAt(indices[index])
@@ -167,7 +167,7 @@ class CustomizeToolBarDialog(
 
         // move up
         upBtn.addActionListener {
-            val indices = rightList.selectedIndices
+            val indices = rightList.selectedIndices.sortedDescending()
             rightList.clearSelection()
             for (index in indices) {
                 val ele = rightList.model.getElementAt(index)
@@ -179,7 +179,7 @@ class CustomizeToolBarDialog(
 
         // move down
         downBtn.addActionListener {
-            val indices = rightList.selectedIndices
+            val indices = rightList.selectedIndices.sortedDescending()
             rightList.clearSelection()
             for (index in indices) {
                 val ele = rightList.model.getElementAt(index)
@@ -191,7 +191,7 @@ class CustomizeToolBarDialog(
 
         // move last
         moveBottomBtn.addActionListener {
-            val indices = rightList.selectedIndices
+            val indices = rightList.selectedIndices.sortedDescending()
             val size = rightList.model.size
             rightList.clearSelection()
             for (index in indices.indices) {
@@ -219,7 +219,7 @@ class CustomizeToolBarDialog(
         }
 
         leftBtn.addActionListener {
-            val indices = rightList.selectedIndices
+            val indices = rightList.selectedIndices.sortedDescending()
             for (index in indices) {
                 val ele = rightList.model.getElementAt(index)
                 rightList.model.removeElementAt(index)
@@ -233,7 +233,7 @@ class CustomizeToolBarDialog(
         }
 
         rightBtn.addActionListener {
-            val indices = leftList.selectedIndices
+            val indices = leftList.selectedIndices.sortedDescending()
             val rightSelectedIndex = if (rightList.selectedIndices.isEmpty()) rightList.model.size else
                 rightList.selectionModel.maxSelectionIndex + 1
 
@@ -259,14 +259,14 @@ class CustomizeToolBarDialog(
             override fun windowOpened(e: WindowEvent) {
                 removeWindowListener(this)
 
-                val allActions = toolbar.getAllActions().toMutableList()
-                val shownActions = toolbar.getShownActions().associate { Pair(it.id, it.visible) }
 
-                for (action in allActions) {
-                    if (shownActions[action] == false) {
-                        actionManager.getAction(action)?.let { leftList.model.addElement(ActionHolder(action, it)) }
+                for (action in toolbar.getActions()) {
+                    if (action.visible) {
+                        actionManager.getAction(action.id)
+                            ?.let { rightList.model.addElement(ActionHolder(action.id, it)) }
                     } else {
-                        actionManager.getAction(action)?.let { rightList.model.addElement(ActionHolder(action, it)) }
+                        actionManager.getAction(action.id)
+                            ?.let { leftList.model.addElement(ActionHolder(action.id, it)) }
                     }
                 }
 
@@ -349,14 +349,13 @@ class CustomizeToolBarDialog(
     override fun doOKAction() {
         isOk = true
 
-        val rightActions = mutableSetOf<String>()
+        val actions = mutableListOf<ToolBarAction>()
         for (i in 0 until rightList.model.size()) {
-            rightActions.add(rightList.model.getElementAt(i).id)
+            actions.add(ToolBarAction(rightList.model.getElementAt(i).id, true))
         }
 
-        val actions = mutableListOf<ToolBarAction>()
-        for (action in toolbar.getAllActions()) {
-            actions.add(ToolBarAction(action, rightActions.contains(action)))
+        for (i in 0 until leftList.model.size()) {
+            actions.add(ToolBarAction(leftList.model.getElementAt(i).id, false))
         }
 
         Database.instance.properties.putString("Termora.ToolBar.Actions", ohMyJson.encodeToString(actions))

@@ -35,33 +35,54 @@ class TermoraToolBar(
         return toolbar
     }
 
+    /**
+     * 获取到所有的 Action
+     */
+    fun getAllActions(): List<ToolBarAction> {
+        return listOf(
+            ToolBarAction(Actions.SFTP, true),
+            ToolBarAction(Actions.TERMINAL_LOGGER, true),
+            ToolBarAction(Actions.MACRO, true),
+            ToolBarAction(Actions.KEYWORD_HIGHLIGHT, true),
+            ToolBarAction(Actions.KEY_MANAGER, true),
+            ToolBarAction(Actions.MULTIPLE, true),
+            ToolBarAction(Actions.FIND_EVERYWHERE, true),
+            ToolBarAction(Actions.SETTING, true),
+        )
+    }
 
-    fun getShownActions(): List<ToolBarAction> {
+
+    /**
+     * 获取到所有 Action，会根据用户个性化排序/显示
+     */
+    fun getActions(): List<ToolBarAction> {
         val text = properties.getString(
             "Termora.ToolBar.Actions",
             StringUtils.EMPTY
         )
 
+        val actions = getAllActions()
+
         if (text.isBlank()) {
-            return getAllActions().map { ToolBarAction(it, true) }
+            return actions
         }
 
-        return ohMyJson.runCatching {
+        // 存储的 action
+        val storageActions = (ohMyJson.runCatching {
             ohMyJson.decodeFromString<List<ToolBarAction>>(text)
-        }.getOrNull() ?: getAllActions().map { ToolBarAction(it, true) }
-    }
+        }.getOrNull() ?: return actions).toMutableList()
 
-    fun getAllActions(): List<String> {
-        return listOf(
-            Actions.SFTP,
-            Actions.TERMINAL_LOGGER,
-            Actions.MACRO,
-            Actions.KEYWORD_HIGHLIGHT,
-            Actions.KEY_MANAGER,
-            Actions.MULTIPLE,
-            Actions.FIND_EVERYWHERE,
-            Actions.SETTING,
-        )
+        for (action in actions) {
+            // 如果存储的 action 不包含这个，那么这个可能是新增的，新增的默认显示出来
+            if (storageActions.none { it.id == action.id }) {
+                storageActions.addFirst(ToolBarAction(action.id, true))
+            }
+        }
+
+        // 如果存储的 Action 在所有 Action 里没有，那么移除
+        storageActions.removeIf { e -> actions.none { e.id == it.id } }
+
+        return storageActions
     }
 
     fun rebuild() {
@@ -93,16 +114,16 @@ class TermoraToolBar(
         updateBtn.addChangeListener { updateBtn.isVisible = updateBtn.isEnabled }
         toolbar.add(updateBtn)
 
+
         // 获取显示的Action，如果不是 false 那么就是显示出来
-        val actions = getShownActions().associate { Pair(it.id, it.visible) }
-        for (action in getAllActions()) {
-            // actions[action] 有可能是 null，那么极有可能表示这个 Action 是新增的
-            if (actions[action] != false) {
-                actionManager.getAction(action)?.let {
+        for (action in getActions()) {
+            if (action.visible) {
+                actionManager.getAction(action.id)?.let {
                     toolbar.add(actionContainerFactory.createButton(it))
                 }
             }
         }
+
 
         if (toolbar is MyToolBar) {
             toolbar.adjust()
