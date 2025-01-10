@@ -75,6 +75,7 @@ dependencies {
     implementation(libs.xodus.environment)
     implementation(libs.bip39)
     implementation(libs.colorpicker)
+    implementation(libs.mixpanel)
 }
 
 application {

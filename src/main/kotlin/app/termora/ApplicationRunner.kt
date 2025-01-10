@@ -6,20 +6,26 @@ import com.formdev.flatlaf.FlatSystemProperties
 import com.formdev.flatlaf.extras.FlatInspector
 import com.formdev.flatlaf.util.SystemInfo
 import com.jthemedetecor.OsThemeDetector
+import com.mixpanel.mixpanelapi.ClientDelivery
+import com.mixpanel.mixpanelapi.MessageBuilder
+import com.mixpanel.mixpanelapi.MixpanelAPI
 import com.sun.jna.platform.WindowUtils
 import com.sun.jna.platform.win32.User32
 import com.sun.jna.ptr.IntByReference
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.LocaleUtils
 import org.apache.commons.lang3.SystemUtils
 import org.apache.commons.lang3.math.NumberUtils
+import org.json.JSONObject
 import org.slf4j.LoggerFactory
 import org.tinylog.configuration.Configuration
 import java.io.File
 import java.io.RandomAccessFile
-import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
-import java.nio.file.StandardOpenOption
 import java.util.*
 import javax.swing.*
 import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
@@ -50,6 +56,9 @@ class ApplicationRunner {
 
             // 加载设置
             loadSettings()
+
+            // 统计
+            enableAnalytics()
 
             // 设置 LAF
             setupLaf()
@@ -249,6 +258,50 @@ class ApplicationRunner {
             )
             exitProcess(1)
         }
+    }
+
+    /**
+     * 统计 https://mixpanel.com
+     */
+    @OptIn(DelicateCoroutinesApi::class)
+    private fun enableAnalytics() {
+        if (Application.isUnknownVersion()) {
+            return
+        }
+
+        GlobalScope.launch(Dispatchers.IO) {
+            try {
+                val properties = JSONObject()
+                properties.put("os", SystemUtils.OS_NAME)
+                if (SystemInfo.isLinux) {
+                    properties.put("platform", "Linux")
+                } else if (SystemInfo.isWindows) {
+                    properties.put("platform", "Windows")
+                } else if (SystemInfo.isMacOS) {
+                    properties.put("platform", "macOS")
+                }
+                properties.put("version", Application.getVersion())
+                properties.put("language", Locale.getDefault().toString())
+                val message = MessageBuilder("0871335f59ee6d0eb246b008a20f9d1c")
+                    .event(getAnalyticsUserID(), "launch", properties)
+                val delivery = ClientDelivery()
+                delivery.addMessage(message)
+                MixpanelAPI().deliver(delivery, true)
+            } catch (e: Exception) {
+                if (log.isErrorEnabled) {
+                    log.error(e.message, e)
+                }
+            }
+        }
+    }
+
+    private fun getAnalyticsUserID(): String {
+        var id = Database.instance.properties.getString("AnalyticsUserID")
+        if (id.isNullOrBlank()) {
+            id = UUID.randomUUID().toSimpleString()
+            Database.instance.properties.putString("AnalyticsUserID", id)
+        }
+        return id
     }
 
 }

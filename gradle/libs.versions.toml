@@ -40,6 +40,7 @@ colorpicker = "2.0.1"
 rhino = "1.7.15"
 delight-rhino-sandbox = "0.0.17"
 testcontainers = "1.20.4"
+mixpanel = "1.5.3"
 
 [libraries]
 kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
@@ -95,6 +96,7 @@ bip39 = { module = "cash.z.ecc.android:kotlin-bip39-jvm", version.ref = "bip39" 
 rhino = { module = "org.mozilla:rhino", version.ref = "rhino" }
 delight-rhino-sandbox = { module = "org.javadelight:delight-rhino-sandbox", version.ref = "delight-rhino-sandbox" }
 colorpicker = { module = "org.drjekyll:colorpicker", version.ref = "colorpicker" }
+mixpanel = { module = "com.mixpanel:mixpanel-java", version.ref = "mixpanel" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
