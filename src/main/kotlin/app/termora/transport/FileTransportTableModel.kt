@@ -81,7 +81,7 @@ class FileTransportTableModel(transportManager: TransportManager) : DefaultTable
             COLUMN_STATUS -> formatStatus(transport.state)
 
             // 如果进度已经完成但是状态还是传输中，那么进度显示：99%
-            COLUMN_PROGRESS -> String.format("%.0f%%", if (progress >= 100.0 && isTransporting) 99 else progress)
+            COLUMN_PROGRESS -> String.format("%.0f%%", if (progress >= 100.0 && isTransporting) 99.0 else progress)
 
             // 大小
             COLUMN_SIZE -> if (transport.size < 0) "-"
