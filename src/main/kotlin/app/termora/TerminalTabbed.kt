@@ -4,6 +4,7 @@ import app.termora.findeverywhere.BasicFilterFindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhere
 import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereResult
+import app.termora.transport.TransportPanel
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
@@ -139,7 +140,8 @@ class TerminalTabbed(
             override fun find(pattern: String): List<FindEverywhereResult> {
                 val results = mutableListOf<FindEverywhereResult>()
                 for (i in 0 until tabbedPane.tabCount) {
-                    if (tabbedPane.getComponentAt(i) is WelcomePanel) {
+                    val c = tabbedPane.getComponentAt(i)
+                    if (c is WelcomePanel || c is TransportPanel) {
                         continue
                     }
                     results.add(

@@ -20,7 +20,7 @@ class SFTPTerminalTab : Disposable, TerminalTab {
     }
 
     override fun getIcon(): Icon {
-        return Icons.fileTransfer
+        return Icons.folder
     }
 
     override fun addPropertyChangeListener(listener: PropertyChangeListener) {

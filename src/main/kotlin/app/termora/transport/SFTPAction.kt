@@ -3,7 +3,7 @@ package app.termora.transport
 import app.termora.*
 import java.awt.event.ActionEvent
 
-class SFTPAction : AnAction("SFTP", Icons.fileTransfer) {
+class SFTPAction : AnAction("SFTP", Icons.folder) {
     override fun actionPerformed(evt: ActionEvent) {
         val terminalTabbedManager = Application.getService(TerminalTabbedManager::class)
         val tabs = terminalTabbedManager.getTerminalTabs()
