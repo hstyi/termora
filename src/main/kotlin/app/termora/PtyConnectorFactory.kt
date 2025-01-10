@@ -30,7 +30,12 @@ class PtyConnectorFactory {
         envs.putAll(env)
 
         val command = database.terminal.localShell
-        val ptyProcess = PtyProcessBuilder(arrayOf(command))
+        val commands = mutableListOf(command)
+        if (SystemUtils.IS_OS_UNIX) {
+            commands.add("-l")
+        }
+
+        val ptyProcess = PtyProcessBuilder(commands.toTypedArray())
             .setEnvironment(envs)
             .setInitialRows(rows)
             .setInitialColumns(cols)
