@@ -102,6 +102,7 @@ class TransportManager : Disposable {
                 }
 
                 if (transport == null) {
+                    needDelay = true
                     continue
                 }
 

@@ -239,7 +239,7 @@ class FileSystemPanel(
                             }
                         } else {
                             transportPanel.transport(
-                                sourceWorkdir = localFileSystemPanel.workdir,
+                                sourceWorkdir = path.path.parent,
                                 targetWorkdir = workdir,
                                 isSourceDirectory = false,
                                 sourcePath = path.path,
