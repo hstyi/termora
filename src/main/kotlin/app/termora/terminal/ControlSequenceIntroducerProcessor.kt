@@ -769,6 +769,11 @@ class ControlSequenceIntroducerProcessor(terminal: Terminal, reader: TerminalRea
             args.append("0")
         } else if (args.startsWithMoreMark()) {
             return
+        } else if (args.startsWithQuestionMark()) {
+            if (log.isWarnEnabled) {
+                log.warn("ignore SGR: {}", args)
+            }
+            return
         }
 
         val iterator = args.controlSequences().iterator()
