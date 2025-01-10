@@ -68,6 +68,7 @@ class TermoraFrame : JFrame() {
                     FlatDesktop.setPreferencesHandler(that)
                 }
             })
+            dialog.setLocationRelativeTo(owner)
             dialog.isVisible = true
         }
     }
@@ -222,7 +223,9 @@ class TermoraFrame : JFrame() {
                     val focusWindow = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusedWindow
                     val frame = this@TermoraFrame
                     if (focusWindow == frame) {
-                        FindEverywhere(frame).isVisible = true
+                        val dialog = FindEverywhere(frame)
+                        dialog.setLocationRelativeTo(frame)
+                        dialog.isVisible = true
                     }
                 }
             }
