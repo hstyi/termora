@@ -65,10 +65,11 @@ class TerminalPanelMouseTrackingAdapter(
     }
 
     override fun mouseWheelMoved(e: MouseWheelEvent) {
-        if (shouldSendMouseData) {
+        if (this.shouldSendMouseData || terminalModel.isAlternateScreenBuffer()) {
             val unitsToScroll = e.unitsToScroll
             val encode = terminal.getKeyEncoder()
                 .encode(TerminalKeyEvent(if (e.wheelRotation < 0) KeyEvent.VK_UP else KeyEvent.VK_DOWN))
+            if (encode.isBlank()) return
 
             for (i in 0 until abs(unitsToScroll)) {
                 ptyConnector.write(encode)
