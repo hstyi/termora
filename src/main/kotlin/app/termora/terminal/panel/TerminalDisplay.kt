@@ -298,7 +298,7 @@ class TerminalDisplay(
                     g.drawLine(xOffset, ly, xOffset + charWidth, ly)
                 }
 
-                // 删除线
+                // 双下划线
                 if (textStyle.doublyUnderline) {
                     if (textStyle.underline) {
                         g.drawLine(xOffset, i * lineHeight - 3, xOffset + charWidth, i * lineHeight - 3)
