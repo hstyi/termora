@@ -654,6 +654,7 @@ class SettingsOptionsPane : OptionsPane() {
                 gistTextField.isEnabled = false
                 tokenTextField.isEnabled = false
                 keysCheckBox.isEnabled = false
+                macrosCheckBox.isEnabled = false
                 keywordHighlightsCheckBox.isEnabled = false
                 hostsCheckBox.isEnabled = false
                 domainTextField.isEnabled = false
@@ -685,6 +686,7 @@ class SettingsOptionsPane : OptionsPane() {
                 keysCheckBox.isEnabled = true
                 hostsCheckBox.isEnabled = true
                 typeComboBox.isEnabled = true
+                macrosCheckBox.isEnabled = true
                 gistTextField.isEnabled = true
                 tokenTextField.isEnabled = true
                 domainTextField.isEnabled = true
