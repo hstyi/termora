@@ -1,5 +1,6 @@
 package app.termora.terminal
 
+import app.termora.ApplicationScope
 import java.awt.Color
 
 interface ColorTheme {
@@ -13,7 +14,9 @@ interface ColorTheme {
 
 open class DefaultColorTheme : ColorTheme {
     companion object {
-        val instance by lazy { DefaultColorTheme() }
+        fun getInstance(): DefaultColorTheme {
+            return ApplicationScope.forApplicationScope().getOrCreate(DefaultColorTheme::class) { DefaultColorTheme() }
+        }
     }
 
     override fun getColor(color: TerminalColor): Int {

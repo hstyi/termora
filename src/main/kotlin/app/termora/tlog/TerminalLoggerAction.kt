@@ -1,13 +1,12 @@
 package app.termora.tlog
 
 import app.termora.*
-import app.termora.db.Database
+import app.termora.Database
 import app.termora.native.FileChooser
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.util.SystemInfo
 import org.apache.commons.io.FileUtils
 import java.awt.Window
-import java.awt.event.ActionEvent
 import java.io.File
 import java.time.LocalDate
 import javax.swing.JComponent
@@ -15,7 +14,7 @@ import javax.swing.JFileChooser
 import javax.swing.SwingUtilities
 
 class TerminalLoggerAction : AnAction(I18n.getString("termora.terminal-logger"), Icons.listFiles) {
-    private val properties by lazy { Database.instance.properties }
+    private val properties by lazy { Database.getDatabase().properties }
 
     /**
      * 是否开启了记录
@@ -32,7 +31,7 @@ class TerminalLoggerAction : AnAction(I18n.getString("termora.terminal-logger"),
         smallIcon = if (isRecording) Icons.dotListFiles else Icons.listFiles
     }
 
-    override fun actionPerformed(evt: ActionEvent) {
+    override fun actionPerformed(evt: AnActionEvent) {
         val source = evt.source
         if (source !is JComponent) return
 
@@ -92,9 +91,9 @@ class TerminalLoggerAction : AnAction(I18n.getString("termora.terminal-logger"),
         fc.showOpenDialog(owner).thenAccept { files ->
             if (files.isNotEmpty()) {
                 SwingUtilities.invokeLater {
-                    val manager = Application.getService(TerminalTabbedManager::class)
+                    val manager = ApplicationScope.forWindowScope(owner).get(TerminalTabbedManager::class)
                     for (file in files) {
-                        val tab = LogViewerTerminalTab(file)
+                        val tab = LogViewerTerminalTab(ApplicationScope.forWindowScope(owner), file)
                         tab.start()
                         manager.addTerminalTab(tab)
                     }

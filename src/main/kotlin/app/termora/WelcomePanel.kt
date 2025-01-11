@@ -1,8 +1,7 @@
 package app.termora
 
-import app.termora.db.Database
+
 import app.termora.findeverywhere.BasicFilterFindEverywhereProvider
-import app.termora.findeverywhere.FindEverywhere
 import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereResult
 import com.formdev.flatlaf.FlatClientProperties
@@ -19,11 +18,10 @@ import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
 import javax.swing.*
 import javax.swing.event.DocumentEvent
-import javax.swing.tree.TreePath
 import kotlin.math.max
 
-class WelcomePanel : JPanel(BorderLayout()), Disposable, TerminalTab {
-    private val properties get() = Database.instance.properties
+class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()), Disposable, TerminalTab {
+    private val properties get() = Database.getDatabase().properties
     private val rootPanel = JPanel(BorderLayout())
     private val searchTextField = FlatTextField()
     private val hostTree = HostTree()
@@ -117,7 +115,7 @@ class WelcomePanel : JPanel(BorderLayout()), Disposable, TerminalTab {
     private fun createHostPanel(): JComponent {
         val panel = JPanel(BorderLayout())
         hostTree.actionMap.put("find", object : AnAction() {
-            override fun actionPerformed(e: ActionEvent) {
+            override fun actionPerformed(evt: AnActionEvent) {
                 searchTextField.requestFocusInWindow()
             }
         })
@@ -160,31 +158,23 @@ class WelcomePanel : JPanel(BorderLayout()), Disposable, TerminalTab {
         })
 
 
-        ActionManager.getInstance().addAction(Actions.ADD_HOST, object : AnAction() {
-            override fun actionPerformed(e: ActionEvent) {
-                if (hostTree.selectionCount < 1) {
-                    hostTree.selectionPath = TreePath(hostTree.model.root)
+        FindEverywhereProvider.getFindEverywhereProviders(windowScope)
+            .add(BasicFilterFindEverywhereProvider(object : FindEverywhereProvider {
+                override fun find(pattern: String): List<FindEverywhereResult> {
+                    return TreeUtils.children(hostTree.model, hostTree.model.root)
+                        .filterIsInstance<Host>()
+                        .filter { it.protocol != Protocol.Folder }
+                        .map { HostFindEverywhereResult(it) }
                 }
-                hostTree.showAddHostDialog()
-            }
-        })
 
-        FindEverywhere.registerProvider(BasicFilterFindEverywhereProvider(object : FindEverywhereProvider {
-            override fun find(pattern: String): List<FindEverywhereResult> {
-                return TreeUtils.children(hostTree.model, hostTree.model.root)
-                    .filterIsInstance<Host>()
-                    .filter { it.protocol != Protocol.Folder }
-                    .map { HostFindEverywhereResult(it) }
-            }
+                override fun group(): String {
+                    return I18n.getString("termora.find-everywhere.groups.open-new-hosts")
+                }
 
-            override fun group(): String {
-                return I18n.getString("termora.find-everywhere.groups.open-new-hosts")
-            }
-
-            override fun order(): Int {
-                return Integer.MIN_VALUE + 2
-            }
-        }))
+                override fun order(): Int {
+                    return Integer.MIN_VALUE + 2
+                }
+            }))
 
         searchTextField.document.addDocumentListener(object : DocumentAdaptor() {
             private var state = StringUtils.EMPTY
@@ -241,7 +231,7 @@ class WelcomePanel : JPanel(BorderLayout()), Disposable, TerminalTab {
         override fun actionPerformed(e: ActionEvent) {
             ActionManager.getInstance()
                 .getAction(Actions.OPEN_HOST)
-                ?.actionPerformed(OpenHostActionEvent(this, host))
+                ?.actionPerformed(OpenHostActionEvent(e.source, host, e))
         }
 
         override fun getIcon(isSelected: Boolean): Icon {

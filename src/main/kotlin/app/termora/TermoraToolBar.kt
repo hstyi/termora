@@ -1,16 +1,14 @@
 package app.termora
 
 import app.termora.Application.ohMyJson
-import app.termora.db.Database
+import app.termora.actions.ActionManager
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
 import com.formdev.flatlaf.util.SystemInfo
 import com.jetbrains.WindowDecorations
 import kotlinx.serialization.Serializable
 import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.action.ActionContainerFactory
-import org.jdesktop.swingx.action.ActionManager
 import java.awt.Insets
-import java.awt.event.ActionEvent
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
 import javax.swing.Box
@@ -24,10 +22,11 @@ data class ToolBarAction(
 )
 
 class TermoraToolBar(
+    private val windowScope: WindowScope,
     private val titleBar: WindowDecorations.CustomTitleBar,
     private val tabbedPane: FlatTabbedPane
 ) {
-    private val properties by lazy { Database.instance.properties }
+    private val properties by lazy { Database.getDatabase().properties }
     private val toolbar by lazy { MyToolBar().apply { rebuild(this) } }
 
 
@@ -96,8 +95,8 @@ class TermoraToolBar(
         toolbar.removeAll()
 
         toolbar.add(actionContainerFactory.createButton(object : AnAction(StringUtils.EMPTY, Icons.add) {
-            override fun actionPerformed(e: ActionEvent?) {
-                actionManager.getAction(Actions.FIND_EVERYWHERE)?.actionPerformed(e)
+            override fun actionPerformed(evt: AnActionEvent) {
+                actionManager.getAction(Actions.FIND_EVERYWHERE)?.actionPerformed(evt)
             }
 
             override fun isEnabled(): Boolean {

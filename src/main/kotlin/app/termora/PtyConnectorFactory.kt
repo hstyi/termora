@@ -1,6 +1,5 @@
 package app.termora
 
-import app.termora.db.Database
 import app.termora.macro.MacroPtyConnector
 import app.termora.terminal.PtyConnector
 import app.termora.terminal.PtyConnectorDelegate
@@ -11,15 +10,18 @@ import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.util.*
 
-class PtyConnectorFactory {
+class PtyConnectorFactory : Disposable {
     private val ptyConnectors = Collections.synchronizedList(mutableListOf<PtyConnector>())
-    private val database get() = Database.instance
+    private val database get() = Database.getDatabase()
 
     companion object {
-        val instance by lazy { PtyConnectorFactory() }
+        fun getInstance(scope: Scope): PtyConnectorFactory {
+            return scope.getOrCreate(PtyConnectorFactory::class) { PtyConnectorFactory() }
+        }
     }
 
     fun createPtyConnector(
+        scope: Scope,
         rows: Int = 24, cols: Int = 80,
         env: Map<String, String> = emptyMap(),
         charset: Charset = StandardCharsets.UTF_8
@@ -48,12 +50,12 @@ class PtyConnectorFactory {
             .setUnixOpenTtyToPreserveOutputAfterTermination(false)
             .setSpawnProcessUsingJdkOnMacIntel(true).start()
 
-        return decorate(PtyProcessConnector(ptyProcess, charset))
+        return decorate(scope, PtyProcessConnector(ptyProcess, charset))
     }
 
-    fun decorate(ptyConnector: PtyConnector): PtyConnector {
+    fun decorate(scope: Scope, ptyConnector: PtyConnector): PtyConnector {
         // 集成转发，如果PtyConnector支持转发那么应该在当前注释行前面代理
-        val multiplePtyConnector = MultiplePtyConnector(ptyConnector)
+        val multiplePtyConnector = MultiplePtyConnector(scope, ptyConnector)
         // 宏应该在转发前面执行，不然会导致重复录制
         val macroPtyConnector = MacroPtyConnector(multiplePtyConnector)
         // 集成自动删除

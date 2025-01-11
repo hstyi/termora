@@ -1,17 +1,22 @@
 package app.termora.highlight
 
+import app.termora.ApplicationScope
 import app.termora.TerminalPanelFactory
-import app.termora.db.Database
+import app.termora.Database
 import org.slf4j.LoggerFactory
 
 class KeywordHighlightManager private constructor() {
 
     companion object {
-        val instance by lazy { KeywordHighlightManager() }
+        fun getInstance(): KeywordHighlightManager {
+            return ApplicationScope.forApplicationScope()
+                .getOrCreate(KeywordHighlightManager::class) { KeywordHighlightManager() }
+        }
+
         private val log = LoggerFactory.getLogger(KeywordHighlightManager::class.java)
     }
 
-    private val database by lazy { Database.instance }
+    private val database by lazy { Database.getDatabase() }
     private val keywordHighlights = mutableMapOf<String, KeywordHighlight>()
 
     init {
@@ -22,7 +27,7 @@ class KeywordHighlightManager private constructor() {
     fun addKeywordHighlight(keywordHighlight: KeywordHighlight) {
         database.addKeywordHighlight(keywordHighlight)
         keywordHighlights[keywordHighlight.id] = keywordHighlight
-        TerminalPanelFactory.instance.repaintAll()
+        ApplicationScope.windowScopes().forEach { TerminalPanelFactory.getInstance(it).repaintAll() }
 
         if (log.isDebugEnabled) {
             log.debug("Keyword highlighter added. {}", keywordHighlight)
@@ -32,7 +37,7 @@ class KeywordHighlightManager private constructor() {
     fun removeKeywordHighlight(id: String) {
         database.removeKeywordHighlight(id)
         keywordHighlights.remove(id)
-        TerminalPanelFactory.instance.repaintAll()
+        ApplicationScope.windowScopes().forEach { TerminalPanelFactory.getInstance(it).repaintAll() }
 
         if (log.isDebugEnabled) {
             log.debug("Keyword highlighter removed. {}", id)

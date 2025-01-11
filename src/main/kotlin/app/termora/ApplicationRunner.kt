@@ -1,6 +1,6 @@
 package app.termora
 
-import app.termora.db.Database
+import app.termora.shortcut.KeyShortcutsManager
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatSystemProperties
 import com.formdev.flatlaf.extras.FlatInspector
@@ -28,8 +28,8 @@ import java.io.RandomAccessFile
 import java.nio.channels.FileLock
 import java.util.*
 import javax.swing.*
-import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 import kotlin.system.exitProcess
+import kotlin.system.measureTimeMillis
 
 class ApplicationRunner {
     private lateinit var singletonLock: FileLock
@@ -41,39 +41,59 @@ class ApplicationRunner {
     }
 
     fun run() {
-        // 覆盖 tinylog 配置
-        setupTinylog()
+        measureTimeMillis {
+            // 覆盖 tinylog 配置
+            val setupTinylog = measureTimeMillis { setupTinylog() }
 
-        // 是否单例
-        checkSingleton()
+            // 是否单例
+            val checkSingleton = measureTimeMillis { checkSingleton() }
 
-        // 打印系统信息
-        printSystemInfo()
+            // 打印系统信息
+            val printSystemInfo = measureTimeMillis { printSystemInfo() }
 
-        SwingUtilities.invokeAndWait {
             // 打开数据库
-            openDatabase()
+            val openDatabase = measureTimeMillis { openDatabase() }
 
             // 加载设置
-            loadSettings()
+            val loadSettings = measureTimeMillis { loadSettings() }
 
             // 统计
-            enableAnalytics()
+            val enableAnalytics = measureTimeMillis { enableAnalytics() }
 
             // 设置 LAF
-            setupLaf()
+            val setupLaf = measureTimeMillis { setupLaf() }
 
             // 解密数据
-            openDoor()
+            val openDoor = measureTimeMillis { openDoor() }
+
+            // key shortcuts
+            val setupKeyShortcuts = measureTimeMillis { setupKeyShortcuts() }
 
             // 启动主窗口
-            startMainFrame()
+            val startMainFrame = measureTimeMillis { startMainFrame() }
+
+            if (log.isDebugEnabled) {
+                log.debug("setupTinylog: {}ms", setupTinylog)
+                log.debug("checkSingleton: {}ms", checkSingleton)
+                log.debug("printSystemInfo: {}ms", printSystemInfo)
+                log.debug("openDatabase: {}ms", openDatabase)
+                log.debug("loadSettings: {}ms", loadSettings)
+                log.debug("enableAnalytics: {}ms", enableAnalytics)
+                log.debug("setupLaf: {}ms", setupLaf)
+                log.debug("openDoor: {}ms", openDoor)
+                log.debug("startMainFrame: {}ms", startMainFrame)
+                log.debug("setupKeyShortcuts: {}ms", setupKeyShortcuts)
+            }
+        }.let {
+            if (log.isDebugEnabled) {
+                log.debug("run: {}ms", it)
+            }
         }
     }
 
 
     private fun openDoor() {
-        if (Doorman.instance.isWorking()) {
+        if (Doorman.getInstance().isWorking()) {
             if (!DoormanDialog(null).open()) {
                 exitProcess(1)
             }
@@ -81,17 +101,15 @@ class ApplicationRunner {
     }
 
     private fun startMainFrame() {
-        val frame = TermoraFrame()
-        frame.title = if (SystemInfo.isLinux) null else Application.getName()
-        frame.defaultCloseOperation = DISPOSE_ON_CLOSE
-        frame.setSize(1280, 800)
-        frame.setLocationRelativeTo(null)
-        frame.isVisible = true
+        TermoraFrameManager.getInstance().createWindow().isVisible = true
     }
 
+    private fun setupKeyShortcuts() {
+        KeyShortcutsManager.getInstance()
+    }
 
     private fun loadSettings() {
-        val language = Database.instance.appearance.language
+        val language = Database.getDatabase().appearance.language
         val locale = runCatching { LocaleUtils.toLocale(language) }.getOrElse { Locale.getDefault() }
         if (log.isInfoEnabled) {
             log.info("Language: {} , Locale: {}", language, locale)
@@ -110,10 +128,9 @@ class ApplicationRunner {
             JDialog.setDefaultLookAndFeelDecorated(true)
         }
 
-        val themeManager = ThemeManager.instance
-        val settings = Database.instance
+        val themeManager = ThemeManager.getInstance()
+        val settings = Database.getDatabase()
         var theme = settings.appearance.theme
-
         // 如果是跟随系统或者不存在样式，那么使用默认的
         if (settings.appearance.followSystem || !themeManager.themes.containsKey(theme)) {
             theme = if (OsThemeDetector.getDetector().isDark) {
@@ -125,7 +142,8 @@ class ApplicationRunner {
 
         themeManager.change(theme, true)
 
-        FlatInspector.install("ctrl shift alt X");
+        if (Application.isUnknownVersion())
+            FlatInspector.install("ctrl shift alt X");
 
         UIManager.put(FlatClientProperties.FULL_WINDOW_CONTENT, true)
         UIManager.put(FlatClientProperties.USE_WINDOW_DECORATIONS, false)
@@ -245,9 +263,8 @@ class ApplicationRunner {
 
 
     private fun openDatabase() {
-        val dir = Application.getDatabaseFile()
         try {
-            Database.open(dir)
+            Database.getDatabase()
         } catch (e: Exception) {
             if (log.isErrorEnabled) {
                 log.error(e.message, e)
@@ -296,10 +313,10 @@ class ApplicationRunner {
     }
 
     private fun getAnalyticsUserID(): String {
-        var id = Database.instance.properties.getString("AnalyticsUserID")
+        var id = Database.getDatabase().properties.getString("AnalyticsUserID")
         if (id.isNullOrBlank()) {
             id = UUID.randomUUID().toSimpleString()
-            Database.instance.properties.putString("AnalyticsUserID", id)
+            Database.getDatabase().properties.putString("AnalyticsUserID", id)
         }
         return id
     }

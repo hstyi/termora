@@ -1,5 +1,6 @@
 package app.termora.highlight
 
+import app.termora.ApplicationScope
 import app.termora.terminal.*
 import app.termora.terminal.panel.TerminalDisplay
 import app.termora.terminal.panel.TerminalPaintListener
@@ -11,11 +12,15 @@ import kotlin.random.Random
 class KeywordHighlightPaintListener private constructor() : TerminalPaintListener {
 
     companion object {
-        val instance by lazy { KeywordHighlightPaintListener() }
+        fun getInstance(): KeywordHighlightPaintListener {
+            return ApplicationScope.forApplicationScope()
+                .getOrCreate(KeywordHighlightPaintListener::class) { KeywordHighlightPaintListener() }
+        }
+
         private val tag = Random.nextInt()
     }
 
-    private val keywordHighlightManager by lazy { KeywordHighlightManager.instance }
+    private val keywordHighlightManager by lazy { KeywordHighlightManager.getInstance() }
 
     override fun before(
         offset: Int,

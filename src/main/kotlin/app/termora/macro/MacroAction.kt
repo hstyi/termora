@@ -5,7 +5,6 @@ import app.termora.AES.encodeBase64String
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import org.apache.commons.lang3.time.DateFormatUtils
 import org.slf4j.LoggerFactory
-import java.awt.event.ActionEvent
 import java.util.*
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
@@ -24,10 +23,10 @@ class MacroAction : AnAction(I18n.getString("termora.macro"), Icons.rec) {
     var isRecording = false
         private set
 
-    private val macroManager get() = MacroManager.instance
-    private val terminalTabbedManager get() = Application.getService(TerminalTabbedManager::class)
+    private val macroManager get() = MacroManager.getInstance()
 
-    override fun actionPerformed(evt: ActionEvent) {
+
+    override fun actionPerformed(evt: AnActionEvent) {
         val source = evt.source
         if (source !is JComponent) return
 
@@ -42,6 +41,8 @@ class MacroAction : AnAction(I18n.getString("termora.macro"), Icons.rec) {
 
         val macros = macroManager.getMacros().sortedByDescending { it.sort }
 
+        val windowScope = ApplicationScope.forWindowScope(evt.window)
+
         // 播放最后一个
         menu.add(MacroPlaybackAction())
 
@@ -50,7 +51,7 @@ class MacroAction : AnAction(I18n.getString("termora.macro"), Icons.rec) {
             val count = min(macros.size, 10)
             for (i in 0 until count) {
                 val macro = macros[i]
-                menu.add(macro.name).addActionListener { runMacro(macro) }
+                menu.add(macro.name).addActionListener { runMacro(windowScope, macro) }
             }
         }
 
@@ -90,7 +91,8 @@ class MacroAction : AnAction(I18n.getString("termora.macro"), Icons.rec) {
         macroManager.addMacro(macro)
     }
 
-    fun runMacro(macro: Macro) {
+    fun runMacro(windowScope: WindowScope, macro: Macro) {
+        val terminalTabbedManager = windowScope.get(TerminalTabbedManager::class)
 
         val tab = terminalTabbedManager.getSelectedTerminalTab() ?: return
         if (tab !is PtyHostTerminalTab) {

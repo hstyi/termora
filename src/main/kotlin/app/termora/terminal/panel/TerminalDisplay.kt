@@ -2,7 +2,7 @@ package app.termora.terminal.panel
 
 import app.termora.DynamicColor
 import app.termora.assertEventDispatchThread
-import app.termora.db.Database
+import app.termora.Database
 import app.termora.terminal.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
@@ -175,8 +175,8 @@ class TerminalDisplay(
 
     private fun checkFont() {
         // 如果字体已经改变，那么这里刷新字体
-        if (font.family != Database.instance.terminal.font
-            || font.size != Database.instance.terminal.fontSize
+        if (font.family != Database.getDatabase().terminal.font
+            || font.size != Database.getDatabase().terminal.fontSize
         ) {
             font = getTerminalFont()
             monospacedFont = Font(Font.MONOSPACED, font.style, font.size)
@@ -419,7 +419,11 @@ class TerminalDisplay(
 
 
     private fun getTerminalFont(): Font {
-        return Font(Database.instance.terminal.font, Font.PLAIN, Database.instance.terminal.fontSize)
+        return Font(
+            Database.getDatabase().terminal.font,
+            Font.PLAIN,
+            Database.getDatabase().terminal.fontSize
+        )
     }
 
     fun toast(text: String, duration: Duration) {

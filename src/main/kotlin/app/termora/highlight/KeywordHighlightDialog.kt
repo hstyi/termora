@@ -19,8 +19,11 @@ class KeywordHighlightDialog(owner: Window) : DialogWrapper(owner) {
 
     private val model = KeywordHighlightTableModel()
     private val table = FlatTable()
-    private val keywordHighlightManager by lazy { KeywordHighlightManager.instance }
-    private val colorPalette by lazy { TerminalFactory.instance.createTerminal().getTerminalModel().getColorPalette() }
+    private val keywordHighlightManager by lazy { KeywordHighlightManager.getInstance() }
+    private val colorPalette by lazy {
+        TerminalFactory.getInstance(ApplicationScope.forWindowScope(this)).createTerminal().getTerminalModel()
+            .getColorPalette()
+    }
 
     private val addBtn = JButton(I18n.getString("termora.new-host.tunneling.add"))
     private val editBtn = JButton(I18n.getString("termora.keymgr.edit"))

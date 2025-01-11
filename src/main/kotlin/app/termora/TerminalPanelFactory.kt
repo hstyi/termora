@@ -13,14 +13,16 @@ class TerminalPanelFactory {
     private val terminalPanels = mutableListOf<TerminalPanel>()
 
     companion object {
-        val instance by lazy { TerminalPanelFactory() }
+        fun getInstance(scope: Scope): TerminalPanelFactory {
+            return scope.getOrCreate(TerminalPanelFactory::class) { TerminalPanelFactory() }
+        }
     }
 
     fun createTerminalPanel(terminal: Terminal, ptyConnector: PtyConnector): TerminalPanel {
         val terminalPanel = TerminalPanel(terminal, ptyConnector)
         terminalPanel.addTerminalPaintListener(MultipleTerminalListener())
-        terminalPanel.addTerminalPaintListener(KeywordHighlightPaintListener.instance)
-        terminalPanel.addTerminalPaintListener(TerminalHyperlinkPaintListener.instance)
+        terminalPanel.addTerminalPaintListener(KeywordHighlightPaintListener.getInstance())
+        terminalPanel.addTerminalPaintListener(TerminalHyperlinkPaintListener.getInstance())
         terminalPanels.add(terminalPanel)
         return terminalPanel
     }

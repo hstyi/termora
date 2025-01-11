@@ -1,6 +1,7 @@
 package app.termora.sync
 
 import app.termora.Application.ohMyJson
+import app.termora.ApplicationScope
 import app.termora.ResponseException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
@@ -11,7 +12,9 @@ import okhttp3.Response
 class GitHubSyncer private constructor() : GitSyncer() {
 
     companion object {
-        val instance by lazy { GitHubSyncer() }
+        fun getInstance(): GitHubSyncer {
+            return ApplicationScope.forApplicationScope().getOrCreate(GitHubSyncer::class) { GitHubSyncer() }
+        }
     }
 
     override fun newPullRequestBuilder(config: SyncConfig): Request.Builder {

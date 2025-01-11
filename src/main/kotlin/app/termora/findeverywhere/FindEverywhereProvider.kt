@@ -1,6 +1,20 @@
 package app.termora.findeverywhere
 
+import app.termora.Scope
+
 interface FindEverywhereProvider {
+
+    companion object {
+        @Suppress("UNCHECKED_CAST")
+        fun getFindEverywhereProviders(scope: Scope): MutableList<FindEverywhereProvider> {
+            var list = scope.getAnyOrNull("FindEverywhereProviders")
+            if (list == null) {
+                list = mutableListOf<FindEverywhereProvider>()
+                scope.putAny("FindEverywhereProviders", list)
+            }
+            return list as MutableList<FindEverywhereProvider>
+        }
+    }
 
     /**
      * 搜索

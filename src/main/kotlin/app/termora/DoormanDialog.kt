@@ -1,7 +1,6 @@
 package app.termora
 
 import app.termora.AES.decodeBase64
-import app.termora.db.Database
 import app.termora.terminal.ControlCharacters
 import cash.z.ecc.android.bip39.Mnemonics
 import com.formdev.flatlaf.FlatClientProperties
@@ -17,7 +16,6 @@ import org.slf4j.LoggerFactory
 import java.awt.Dimension
 import java.awt.Window
 import java.awt.datatransfer.DataFlavor
-import java.awt.event.ActionEvent
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import javax.imageio.ImageIO
@@ -95,7 +93,7 @@ class DoormanDialog(owner: Window?) : DialogWrapper(owner) {
             .add(safeBtn).xy(4, rows).apply { rows += step }
             .add(tip).xyw(2, rows, 4, "center, fill").apply { rows += step }
             .add(JXHyperlink(object : AnAction(I18n.getString("termora.doorman.forget-password")) {
-                override fun actionPerformed(e: ActionEvent) {
+                override fun actionPerformed(evt: AnActionEvent) {
                     val option = OptionPane.showConfirmDialog(
                         this@DoormanDialog, I18n.getString("termora.doorman.forget-password-message"),
                         options = arrayOf(
@@ -130,10 +128,11 @@ class DoormanDialog(owner: Window?) : DialogWrapper(owner) {
         }
 
         try {
-            val keyBackup = Database.instance.properties.getString("doorman-key-backup")
+            val keyBackup = Database.getDatabase()
+                .properties.getString("doorman-key-backup")
                 ?: throw IllegalStateException("doorman-key-backup is null")
             val key = AES.ECB.decrypt(entropy, keyBackup.decodeBase64())
-            Doorman.instance.work(key)
+            Doorman.getInstance().work(key)
         } catch (e: Exception) {
             OptionPane.showMessageDialog(
                 this, I18n.getString("termora.doorman.mnemonic-data-corrupted"),
@@ -157,7 +156,7 @@ class DoormanDialog(owner: Window?) : DialogWrapper(owner) {
         }
 
         try {
-            Doorman.instance.work(passwordTextField.password)
+            Doorman.getInstance().work(passwordTextField.password)
         } catch (e: Exception) {
             if (e is PasswordWrongException) {
                 OptionPane.showMessageDialog(

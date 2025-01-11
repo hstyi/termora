@@ -1,9 +1,9 @@
 package app.termora.findeverywhere
 
 import app.termora.*
+
 import com.formdev.flatlaf.FlatLaf
 import org.jdesktop.swingx.action.ActionManager
-import java.awt.event.ActionEvent
 import javax.swing.Icon
 
 class QuickCommandFindEverywhereProvider : FindEverywhereProvider {
@@ -11,22 +11,22 @@ class QuickCommandFindEverywhereProvider : FindEverywhereProvider {
 
     override fun find(pattern: String): List<FindEverywhereResult> {
         val list = mutableListOf<FindEverywhereResult>()
-        actionManager?.let {
-            list.add(CreateHostFindEverywhereResult())
-        }
+        actionManager.let { list.add(CreateHostFindEverywhereResult()) }
 
         // Local terminal
         list.add(ActionFindEverywhereResult(object : AnAction(
             I18n.getString("termora.find-everywhere.quick-command.local-terminal"),
             Icons.terminal
         ) {
-            override fun actionPerformed(evt: ActionEvent) {
+            override fun actionPerformed(evt: AnActionEvent) {
                 actionManager.getAction(Actions.OPEN_HOST)?.actionPerformed(
                     OpenHostActionEvent(
-                        this, Host(
+                        evt.source,
+                        Host(
                             name = name,
                             protocol = Protocol.Local
-                        )
+                        ),
+                        evt
                     )
                 )
             }

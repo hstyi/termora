@@ -1,6 +1,6 @@
 package app.termora.terminal.panel
 
-import app.termora.db.Database
+import app.termora.Database
 import java.awt.Toolkit
 import java.awt.event.KeyEvent
 import javax.swing.KeyStroke
@@ -15,7 +15,7 @@ class TerminalZoomOutAction : TerminalZoomAction(
 
     override fun zoom(): Boolean {
         val oldFontSize = fontSize
-        Database.instance.terminal.fontSize = max(fontSize - 2, 9)
+        Database.getDatabase().terminal.fontSize = max(fontSize - 2, 9)
         return oldFontSize != fontSize
     }
 }

@@ -1,14 +1,14 @@
 package app.termora
 
+
+import app.termora.actions.ActionManager
 import app.termora.findeverywhere.BasicFilterFindEverywhereProvider
-import app.termora.findeverywhere.FindEverywhere
 import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereResult
 import app.termora.transport.TransportPanel
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
-import org.jdesktop.swingx.action.ActionManager
 import java.awt.*
 import java.awt.event.*
 import java.beans.PropertyChangeListener
@@ -17,12 +17,14 @@ import javax.swing.JTabbedPane.SCROLL_TAB_LAYOUT
 import kotlin.math.min
 
 class TerminalTabbed(
+    private val windowScope: WindowScope,
     private val termoraToolBar: TermoraToolBar,
     private val tabbedPane: FlatTabbedPane,
 ) : JPanel(BorderLayout()), Disposable, TerminalTabbedManager {
     private val tabs = mutableListOf<TerminalTab>()
     private val customizeToolBarAWTEventListener = CustomizeToolBarAWTEventListener()
     private val toolbar = termoraToolBar.getJToolBar()
+    private val actionManager = ActionManager.getInstance()
 
     private val iconListener = PropertyChangeListener { e ->
         val source = e.source
@@ -51,6 +53,8 @@ class TerminalTabbed(
         tabbedPane.trailingComponent = toolbar
 
         add(tabbedPane, BorderLayout.CENTER)
+
+        windowScope.getOrCreate(TerminalTabbedManager::class) { this }
 
     }
 
@@ -86,7 +90,7 @@ class TerminalTabbed(
             val tabIndex = i - KeyEvent.VK_1 + 1
             val actionKey = "select_$tabIndex"
             actionMap.put(actionKey, object : AnAction() {
-                override fun actionPerformed(e: ActionEvent) {
+                override fun actionPerformed(evt: AnActionEvent) {
                     tabbedPane.selectedIndex = if (i == KeyEvent.VK_9 || tabIndex > tabbedPane.tabCount) {
                         tabbedPane.tabCount - 1
                     } else {
@@ -99,7 +103,7 @@ class TerminalTabbed(
 
         // 关闭 tab
         actionMap.put("closeTab", object : AnAction() {
-            override fun actionPerformed(e: ActionEvent) {
+            override fun actionPerformed(evt: AnActionEvent) {
                 if (tabbedPane.selectedIndex >= 0) {
                     tabbedPane.tabCloseCallback?.accept(tabbedPane, tabbedPane.selectedIndex)
                 }
@@ -136,44 +140,35 @@ class TerminalTabbed(
         })
 
         // 注册全局搜索
-        FindEverywhere.registerProvider(BasicFilterFindEverywhereProvider(object : FindEverywhereProvider {
-            override fun find(pattern: String): List<FindEverywhereResult> {
-                val results = mutableListOf<FindEverywhereResult>()
-                for (i in 0 until tabbedPane.tabCount) {
-                    val c = tabbedPane.getComponentAt(i)
-                    if (c is WelcomePanel || c is TransportPanel) {
-                        continue
-                    }
-                    results.add(
-                        SwitchFindEverywhereResult(
-                            tabbedPane.getTitleAt(i),
-                            tabbedPane.getIconAt(i),
-                            tabbedPane.getComponentAt(i)
+        FindEverywhereProvider.getFindEverywhereProviders(windowScope)
+            .add(BasicFilterFindEverywhereProvider(object : FindEverywhereProvider {
+                override fun find(pattern: String): List<FindEverywhereResult> {
+                    val results = mutableListOf<FindEverywhereResult>()
+                    for (i in 0 until tabbedPane.tabCount) {
+                        val c = tabbedPane.getComponentAt(i)
+                        if (c is WelcomePanel || c is TransportPanel) {
+                            continue
+                        }
+                        results.add(
+                            SwitchFindEverywhereResult(
+                                tabbedPane.getTitleAt(i),
+                                tabbedPane.getIconAt(i),
+                                tabbedPane.getComponentAt(i)
+                            )
                         )
-                    )
+                    }
+                    return results
                 }
-                return results
-            }
 
-            override fun group(): String {
-                return I18n.getString("termora.find-everywhere.groups.opened-hosts")
-            }
-
-            override fun order(): Int {
-                return Integer.MIN_VALUE + 1
-            }
-        }))
-
-
-        // 打开 Host
-        ActionManager.getInstance().addAction(Actions.OPEN_HOST, object : AbstractAction() {
-            override fun actionPerformed(e: ActionEvent) {
-                if (e !is OpenHostActionEvent) {
-                    return
+                override fun group(): String {
+                    return I18n.getString("termora.find-everywhere.groups.opened-hosts")
                 }
-                openHost(e.host)
-            }
-        })
+
+                override fun order(): Int {
+                    return Integer.MIN_VALUE + 1
+                }
+            }))
+
 
         // 监听全局事件
         toolkit.addAWTEventListener(customizeToolBarAWTEventListener, AWTEvent.MOUSE_EVENT_MASK)
@@ -210,7 +205,9 @@ class TerminalTabbed(
 
 
     private fun openHost(host: Host) {
-        val tab = if (host.protocol == Protocol.SSH) SSHTerminalTab(host) else LocalTerminalTab(host)
+        val tab = if (host.protocol == Protocol.SSH)
+            SSHTerminalTab(ApplicationScope.forWindowScope(this), host)
+        else LocalTerminalTab(ApplicationScope.forWindowScope(this), host)
         addTab(tab)
         tab.start()
     }
@@ -242,11 +239,11 @@ class TerminalTabbed(
 
         // 克隆
         val clone = popupMenu.add(I18n.getString("termora.tabbed.contextmenu.clone"))
-        clone.addActionListener {
+        clone.addActionListener { evt ->
             if (tab is HostTerminalTab) {
-                ActionManager.getInstance()
+                actionManager
                     .getAction(Actions.OPEN_HOST)
-                    .actionPerformed(OpenHostActionEvent(this, tab.host))
+                    .actionPerformed(OpenHostActionEvent(this, tab.host, evt))
             }
         }
 

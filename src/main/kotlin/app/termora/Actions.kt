@@ -57,4 +57,9 @@ object Actions {
      * 打开 SFTP Tab Action
      */
     const val SFTP = "SFTPAction"
+
+    /**
+     * 打开一个新的窗口
+     */
+    const val NEW_WINDOW = "NewWindowAction"
 }

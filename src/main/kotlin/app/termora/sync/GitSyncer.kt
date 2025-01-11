@@ -28,10 +28,10 @@ abstract class GitSyncer : Syncer {
 
     protected val description = "${Application.getName()} config"
     protected val httpClient get() = Application.httpClient
-    protected val hostManager get() = HostManager.instance
-    protected val keyManager get() = KeyManager.instance
-    protected val keywordHighlightManager get() = KeywordHighlightManager.instance
-    protected val macroManager get() = MacroManager.instance
+    protected val hostManager get() = HostManager.getInstance()
+    protected val keyManager get() = KeyManager.getInstance()
+    protected val keywordHighlightManager get() = KeywordHighlightManager.getInstance()
+    protected val macroManager get() = MacroManager.getInstance()
 
     override fun pull(config: SyncConfig): GistResponse {
 

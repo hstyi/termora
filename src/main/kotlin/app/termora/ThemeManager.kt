@@ -1,6 +1,5 @@
 package app.termora
 
-import app.termora.db.Database
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.FlatAnimatedLafChange
 import com.jthemedetecor.OsThemeDetector
@@ -24,7 +23,9 @@ class ThemeManager private constructor() {
 
     companion object {
         private val log = LoggerFactory.getLogger(ThemeManager::class.java)
-        val instance by lazy { ThemeManager() }
+        fun getInstance(): ThemeManager {
+            return ApplicationScope.forApplicationScope().getOrCreate(ThemeManager::class) { ThemeManager() }
+        }
     }
 
     val themes = mapOf(
@@ -78,7 +79,7 @@ class ThemeManager private constructor() {
         GlobalScope.launch(Dispatchers.IO) {
             OsThemeDetector.getDetector().registerListener(object : Consumer<Boolean> {
                 override fun accept(isDark: Boolean) {
-                    if (!Database.instance.appearance.followSystem) {
+                    if (!Database.getDatabase().appearance.followSystem) {
                         return
                     }
 

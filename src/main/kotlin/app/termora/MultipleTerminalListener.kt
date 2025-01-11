@@ -1,12 +1,13 @@
 package app.termora
 
+
+import app.termora.actions.ActionManager
 import app.termora.terminal.Terminal
 import app.termora.terminal.TerminalColor
 import app.termora.terminal.TextStyle
 import app.termora.terminal.panel.TerminalDisplay
 import app.termora.terminal.panel.TerminalPaintListener
 import app.termora.terminal.panel.TerminalPanel
-import org.jdesktop.swingx.action.ActionManager
 import java.awt.Color
 import java.awt.Graphics
 

@@ -1,11 +1,11 @@
 package app.termora.transport
 
 import app.termora.*
-import java.awt.event.ActionEvent
 
 class SFTPAction : AnAction("SFTP", Icons.folder) {
-    override fun actionPerformed(evt: ActionEvent) {
-        val terminalTabbedManager = Application.getService(TerminalTabbedManager::class)
+    override fun actionPerformed(evt: AnActionEvent) {
+
+        val terminalTabbedManager = evt.scope.get(TerminalTabbedManager::class)
         val tabs = terminalTabbedManager.getTerminalTabs()
         for (tab in tabs) {
             if (tab is SFTPTerminalTab) {

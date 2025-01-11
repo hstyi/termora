@@ -1,6 +1,6 @@
 package app.termora
 
-import app.termora.db.Database
+
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.icons.FlatTreeClosedIcon
 import com.formdev.flatlaf.icons.FlatTreeOpenIcon
@@ -24,7 +24,7 @@ import javax.swing.tree.TreeSelectionModel
 
 
 class HostTree : JTree(), Disposable {
-    private val hostManager get() = HostManager.instance
+    private val hostManager get() = HostManager.getInstance()
     private val editor = OutlineTextField(64)
 
     var contextmenu = true
@@ -83,7 +83,7 @@ class HostTree : JTree(), Disposable {
         })
 
 
-        val state = Database.instance.properties.getString("HostTreeExpansionState")
+        val state = Database.getDatabase().properties.getString("HostTreeExpansionState")
         if (state != null) {
             TreeUtils.loadExpansionState(this@HostTree, state)
         }
@@ -133,7 +133,7 @@ class HostTree : JTree(), Disposable {
                     val host = lastSelectedPathComponent
                     if (host is Host && host.protocol != Protocol.Folder) {
                         ActionManager.getInstance().getAction(Actions.OPEN_HOST)
-                            ?.actionPerformed(OpenHostActionEvent(this, host))
+                            ?.actionPerformed(OpenHostActionEvent(e.source, host, e))
                     }
                 }
             }
@@ -328,13 +328,13 @@ class HostTree : JTree(), Disposable {
         popupMenu.addSeparator()
         val property = popupMenu.add(I18n.getString("termora.welcome.contextmenu.property"))
 
-        open.addActionListener {
+        open.addActionListener { evt ->
             getSelectionNodes()
                 .filter { it.protocol != Protocol.Folder }
                 .forEach {
                     ActionManager.getInstance()
                         .getAction(Actions.OPEN_HOST)
-                        ?.actionPerformed(OpenHostActionEvent(this, it))
+                        ?.actionPerformed(OpenHostActionEvent(evt.source, it, evt))
                 }
         }
 
@@ -552,7 +552,7 @@ class HostTree : JTree(), Disposable {
     }
 
     override fun dispose() {
-        Database.instance.properties.putString(
+        Database.getDatabase().properties.putString(
             "HostTreeExpansionState",
             TreeUtils.saveExpansionState(this)
         )

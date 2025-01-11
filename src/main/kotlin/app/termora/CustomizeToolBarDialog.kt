@@ -1,7 +1,7 @@
 package app.termora
 
 import app.termora.Application.ohMyJson
-import app.termora.db.Database
+
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import kotlinx.serialization.encodeToString
@@ -358,7 +358,8 @@ class CustomizeToolBarDialog(
             actions.add(ToolBarAction(leftList.model.getElementAt(i).id, false))
         }
 
-        Database.instance.properties.putString("Termora.ToolBar.Actions", ohMyJson.encodeToString(actions))
+        Database.getDatabase()
+            .properties.putString("Termora.ToolBar.Actions", ohMyJson.encodeToString(actions))
 
         super.doOKAction()
     }

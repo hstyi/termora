@@ -1,19 +1,20 @@
 package app.termora.sync
 
+import app.termora.ApplicationScope
+
 class SyncerProvider private constructor() {
     companion object {
-        val instance by lazy { SyncerProvider() }
+        fun getInstance(): SyncerProvider {
+            return ApplicationScope.forApplicationScope().getOrCreate(SyncerProvider::class) { SyncerProvider() }
+        }
     }
 
 
     fun getSyncer(type: SyncType): Syncer {
-        if (type == SyncType.GitHub) {
-            return GitHubSyncer.instance
-        } else if (type == SyncType.Gitee) {
-            return GiteeSyncer.instance
-        }else if (type == SyncType.GitLab) {
-            return GitLabSyncer.instance
+        return when (type) {
+            SyncType.GitHub -> GitHubSyncer.getInstance()
+            SyncType.Gitee -> GiteeSyncer.getInstance()
+            SyncType.GitLab -> GitLabSyncer.getInstance()
         }
-        throw UnsupportedOperationException("Type $type is not supported.")
     }
 }

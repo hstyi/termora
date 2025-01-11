@@ -1,6 +1,6 @@
 package app.termora.terminal.panel
 
-import app.termora.db.Database
+import app.termora.Database
 import org.apache.commons.lang3.SystemUtils
 import java.awt.Toolkit
 import java.awt.event.KeyEvent
@@ -14,7 +14,7 @@ class TerminalZoomInAction : TerminalZoomAction(
 ) {
 
     override fun zoom(): Boolean {
-        Database.instance.terminal.fontSize += 2
+        Database.getDatabase().terminal.fontSize += 2
         return true
     }
 }

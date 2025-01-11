@@ -10,7 +10,7 @@ class HostTreeModel : TreeModel {
 
     val listeners = mutableListOf<TreeModelListener>()
 
-    private val hostManager get() = HostManager.instance
+    private val hostManager get() = HostManager.getInstance()
     private val hosts = mutableMapOf<String, Host>()
     private val myRoot by lazy {
         Host(

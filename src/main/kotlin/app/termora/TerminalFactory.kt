@@ -1,18 +1,20 @@
 package app.termora
 
-import app.termora.db.Database
 import app.termora.terminal.*
 import app.termora.terminal.panel.TerminalPanel
 import app.termora.tlog.TerminalLoggerDataListener
 import java.awt.Color
 import javax.swing.UIManager
 
-class TerminalFactory {
+class TerminalFactory private constructor() : Disposable {
     private val terminals = mutableListOf<Terminal>()
 
     companion object {
-        val instance by lazy { TerminalFactory() }
+        fun getInstance(scope: WindowScope): TerminalFactory {
+            return scope.getOrCreate(TerminalFactory::class) { TerminalFactory() }
+        }
     }
+
 
     fun createTerminal(): Terminal {
         val terminal = MyVisualTerminal()
@@ -38,7 +40,7 @@ class TerminalFactory {
 
     open class MyTerminalModel(terminal: Terminal) : TerminalModelImpl(terminal) {
         private val colorPalette by lazy { MyColorPalette(terminal) }
-        private val config get() = Database.instance.terminal
+        private val config get() = Database.getDatabase().terminal
 
         init {
             this.setData(DataKey.CursorStyle, config.cursor)
@@ -95,7 +97,7 @@ class TerminalFactory {
                     TerminalColor.Basic.SELECTION_FOREGROUND
                 )
 
-                else -> DefaultColorTheme.instance.getColor(color)
+                else -> DefaultColorTheme.getInstance().getColor(color)
             }
 
         }
@@ -108,4 +110,6 @@ class TerminalFactory {
             return colorTheme
         }
     }
+
+
 }

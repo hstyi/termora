@@ -2,17 +2,20 @@ package app.termora.macro
 
 import app.termora.Actions
 import app.termora.AnAction
+import app.termora.ApplicationScope
 import app.termora.I18n
+
 import app.termora.findeverywhere.ActionFindEverywhereResult
 import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereResult
 import org.jdesktop.swingx.action.ActionManager
+import java.awt.Component
 import java.awt.event.ActionEvent
 import javax.swing.Icon
 import kotlin.math.min
 
 class MacroFindEverywhereProvider : FindEverywhereProvider {
-    private val macroManager get() = MacroManager.instance
+    private val macroManager get() = MacroManager.getInstance()
 
     override fun find(pattern: String): List<FindEverywhereResult> {
         val macroAction = ActionManager.getInstance().getAction(Actions.MACRO) ?: return emptyList()
@@ -62,7 +65,10 @@ class MacroFindEverywhereProvider : FindEverywhereProvider {
         private val macroAction: MacroAction
     ) : FindEverywhereResult {
         override fun actionPerformed(e: ActionEvent) {
-            macroAction.runMacro(macro)
+            val source = e.source
+            if (source is Component) {
+                macroAction.runMacro(ApplicationScope.forWindowScope(source), macro)
+            }
         }
 
         override fun toString(): String {

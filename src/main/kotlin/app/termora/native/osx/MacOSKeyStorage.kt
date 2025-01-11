@@ -1,5 +1,6 @@
 package app.termora.native.osx
 
+import app.termora.ApplicationScope
 import app.termora.native.KeyStorage
 import com.sun.jna.Library
 import com.sun.jna.Memory
@@ -13,7 +14,9 @@ class MacOSKeyStorage private constructor() : KeyStorage {
 
 
     companion object {
-        val instance by lazy { MacOSKeyStorage() }
+        fun getInstance(): MacOSKeyStorage {
+            return ApplicationScope.forApplicationScope().getOrCreate(MacOSKeyStorage::class) { MacOSKeyStorage() }
+        }
 
         private val errSecItemNotFound = -25300
         private val errSecSuccess = 0

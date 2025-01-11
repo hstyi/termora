@@ -28,7 +28,7 @@ import javax.swing.JComponent
 import javax.swing.SwingUtilities
 
 
-class SSHTerminalTab(host: Host) : PtyHostTerminalTab(host) {
+class SSHTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminalTab(windowScope, host) {
     companion object {
         private val log = LoggerFactory.getLogger(PtyHostTerminalTab::class.java)
     }
@@ -131,6 +131,7 @@ class SSHTerminalTab(host: Host) : PtyHostTerminalTab(host) {
         }
 
         return ptyConnectorFactory.decorate(
+            windowScope,
             ZModemPtyConnectorAdaptor(
                 terminal,
                 terminalPanel,

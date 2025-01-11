@@ -7,7 +7,6 @@ import com.jetbrains.JBR
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Window
-import java.awt.event.ActionEvent
 import java.awt.event.KeyEvent
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
@@ -132,7 +131,7 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_W, toolkit.menuShortcutKeyMaskEx), "close")
 
         rootPane.actionMap.put("close", object : AnAction() {
-            override fun actionPerformed(e: ActionEvent) {
+            override fun actionPerformed(evt: AnActionEvent) {
                 doCancelAction()
             }
         })
@@ -154,12 +153,12 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
         if (SystemInfo.isWindows) {
             addWindowListener(object : WindowAdapter(), ThemeChangeListener {
                 override fun windowClosed(e: WindowEvent) {
-                    ThemeManager.instance.removeThemeChangeListener(this)
+                    ThemeManager.getInstance().removeThemeChangeListener(this)
                 }
 
                 override fun windowOpened(e: WindowEvent) {
                     onChanged()
-                    ThemeManager.instance.addThemeChangeListener(this)
+                    ThemeManager.getInstance().addThemeChangeListener(this)
                 }
 
                 override fun onChanged() {
@@ -190,7 +189,8 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
             putValue(DEFAULT_ACTION, true)
         }
 
-        override fun actionPerformed(e: ActionEvent) {
+
+        override fun actionPerformed(evt: AnActionEvent) {
             doOKAction()
         }
 
@@ -198,7 +198,7 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
 
     protected inner class CancelAction : AnAction(I18n.getString("termora.cancel")) {
 
-        override fun actionPerformed(e: ActionEvent) {
+        override fun actionPerformed(evt: AnActionEvent) {
             doCancelAction()
         }
 

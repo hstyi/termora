@@ -1,9 +1,6 @@
 package app.termora.tlog
 
-import app.termora.Host
-import app.termora.Icons
-import app.termora.Protocol
-import app.termora.PtyHostTerminalTab
+import app.termora.*
 import app.termora.terminal.PtyConnector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -12,7 +9,8 @@ import java.io.FileNotFoundException
 import java.nio.file.Files
 import javax.swing.Icon
 
-class LogViewerTerminalTab(private val file: File) : PtyHostTerminalTab(
+class LogViewerTerminalTab(windowScope: WindowScope, private val file: File) : PtyHostTerminalTab(
+    windowScope,
     Host(
         name = file.name,
         protocol = Protocol.Local

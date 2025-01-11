@@ -1,6 +1,5 @@
 package app.termora
 
-import app.termora.db.Database
 import java.util.*
 
 interface HostListener : EventListener {
@@ -12,10 +11,12 @@ interface HostListener : EventListener {
 
 class HostManager private constructor() {
     companion object {
-        val instance by lazy { HostManager() }
+        fun getInstance(): HostManager {
+            return ApplicationScope.forApplicationScope().getOrCreate(HostManager::class) { HostManager() }
+        }
     }
 
-    private val database get() = Database.instance
+    private val database get() = Database.getDatabase()
     private val listeners = mutableListOf<HostListener>()
 
     fun addHost(host: Host, notify: Boolean = true) {

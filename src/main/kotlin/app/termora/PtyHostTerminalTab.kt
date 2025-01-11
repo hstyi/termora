@@ -10,9 +10,10 @@ import javax.swing.JComponent
 import kotlin.time.Duration.Companion.milliseconds
 
 abstract class PtyHostTerminalTab(
+    windowScope: WindowScope,
     host: Host,
-    terminal: Terminal = TerminalFactory.instance.createTerminal()
-) : HostTerminalTab(host, terminal) {
+    terminal: Terminal = TerminalFactory.getInstance(windowScope).createTerminal()
+) : HostTerminalTab(windowScope, host, terminal) {
 
     companion object {
         private val log = LoggerFactory.getLogger(PtyHostTerminalTab::class.java)
@@ -22,8 +23,9 @@ abstract class PtyHostTerminalTab(
     private var readerJob: Job? = null
     private val ptyConnectorDelegate = PtyConnectorDelegate()
 
-    protected val terminalPanel = TerminalPanelFactory.instance.createTerminalPanel(terminal, ptyConnectorDelegate)
-    protected val ptyConnectorFactory get() = PtyConnectorFactory.instance
+    protected val terminalPanel =
+        TerminalPanelFactory.getInstance(windowScope).createTerminalPanel(terminal, ptyConnectorDelegate)
+    protected val ptyConnectorFactory get() = PtyConnectorFactory.getInstance(windowScope)
 
     override fun start() {
         coroutineScope.launch(Dispatchers.IO) {

@@ -1,6 +1,7 @@
 package app.termora.macro
 
-import app.termora.db.Database
+import app.termora.ApplicationScope
+import app.termora.Database
 import org.slf4j.LoggerFactory
 
 /**
@@ -8,13 +9,15 @@ import org.slf4j.LoggerFactory
  */
 class MacroManager private constructor() {
     companion object {
-        val instance by lazy { MacroManager() }
+        fun getInstance(): MacroManager {
+            return ApplicationScope.forApplicationScope().getOrCreate(MacroManager::class) { MacroManager() }
+        }
 
         private val log = LoggerFactory.getLogger(MacroManager::class.java)
     }
 
     private val macros = mutableMapOf<String, Macro>()
-    private val database get() = Database.instance
+    private val database get() = Database.getDatabase()
 
     init {
         macros.putAll(database.getMacros().associateBy { it.id })
