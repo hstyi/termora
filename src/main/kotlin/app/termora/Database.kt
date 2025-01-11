@@ -1,6 +1,5 @@
-package app.termora.db
+package app.termora
 
-import app.termora.*
 import app.termora.Application.ohMyJson
 import app.termora.highlight.KeywordHighlight
 import app.termora.keymgr.OhKeyPair
@@ -31,19 +30,9 @@ class Database private constructor(private val env: Environment) : Disposable {
         private const val MACRO_STORE = "Macro"
         private const val KEY_PAIR_STORE = "KeyPair"
         private val log = LoggerFactory.getLogger(Database::class.java)
-        private lateinit var database: Database
 
-        val instance by lazy {
-            if (!::database.isInitialized) {
-                throw UnsupportedOperationException("Database has not been initialized!")
-            }
-            database
-        }
 
-        fun open(dir: File) {
-            if (::database.isInitialized) {
-                throw UnsupportedOperationException("Database is already open")
-            }
+        private fun open(dir: File): Database {
             val config = EnvironmentConfig()
             // 32MB
             config.setLogFileSize(1024 * 32)
@@ -51,8 +40,12 @@ class Database private constructor(private val env: Environment) : Disposable {
             // 5m
             config.setGcStartIn(5.minutes.inWholeMilliseconds.toInt())
             val environment = Environments.newInstance(dir, config)
-            database = Database(environment)
-            Disposer.register(ApplicationDisposable.instance, database)
+            return Database(environment)
+        }
+
+        fun getDatabase(): Database {
+            return ApplicationScope.forApplicationScope()
+                .getOrCreate(Database::class) { open(Application.getDatabaseFile()) }
         }
     }
 
@@ -62,7 +55,7 @@ class Database private constructor(private val env: Environment) : Disposable {
     val appearance by lazy { Appearance() }
     val sync by lazy { Sync() }
 
-    private val doorman get() = Doorman.instance
+    private val doorman get() = Doorman.getInstance()
 
 
     fun getHosts(): Collection<Host> {
@@ -459,7 +452,7 @@ class Database private constructor(private val env: Environment) : Disposable {
      * 安全的通用属性
      */
     open inner class SafetyProperties(name: String) : Property(name) {
-        private val doorman get() = Doorman.instance
+        private val doorman get() = Doorman.getInstance()
 
         public override fun getString(key: String): String? {
             var value = super.getString(key)

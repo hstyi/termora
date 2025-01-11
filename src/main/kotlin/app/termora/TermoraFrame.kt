@@ -1,6 +1,7 @@
 package app.termora
 
 
+import app.termora.actions.ActionManager
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.util.SystemInfo
@@ -26,12 +27,13 @@ fun assertEventDispatchThread() {
 class TermoraFrame : JFrame() {
 
 
+    private val actionManager get() = ActionManager.getInstance()
     private val id = UUID.randomUUID().toString()
     private val windowScope = ApplicationScope.forWindowScope(this)
     private val titleBar = LogicCustomTitleBar.createCustomTitleBar(this)
     private val tabbedPane = MyTabbedPane()
     private val toolbar = TermoraToolBar(windowScope, titleBar, tabbedPane)
-    private lateinit var terminalTabbed: TerminalTabbed
+    private val terminalTabbed = TerminalTabbed(windowScope, toolbar, tabbedPane)
     private val isWindowDecorationsSupported by lazy { JBR.isWindowDecorationsSupported() }
 
 
@@ -91,7 +93,6 @@ class TermoraFrame : JFrame() {
         }
 
         minimumSize = Dimension(640, 400)
-        terminalTabbed = TerminalTabbed(windowScope, toolbar, tabbedPane)
         terminalTabbed.addTab(WelcomePanel(windowScope))
 
         // macOS 要避开左边的控制栏

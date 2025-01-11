@@ -9,7 +9,6 @@ class LocalTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminalTa
     override suspend fun openPtyConnector(): PtyConnector {
         val winSize = terminalPanel.winSize()
         val ptyConnector = PtyConnectorFactory.getInstance(windowScope).createPtyConnector(
-            windowScope,
             winSize.rows, winSize.cols,
             host.options.envs(),
             Charsets.toCharset(host.options.encoding, StandardCharsets.UTF_8),

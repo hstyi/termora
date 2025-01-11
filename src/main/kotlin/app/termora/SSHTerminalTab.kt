@@ -131,7 +131,6 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminalTab(
         }
 
         return ptyConnectorFactory.decorate(
-            windowScope,
             ZModemPtyConnectorAdaptor(
                 terminal,
                 terminalPanel,

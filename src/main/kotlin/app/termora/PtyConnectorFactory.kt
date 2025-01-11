@@ -21,7 +21,6 @@ class PtyConnectorFactory : Disposable {
     }
 
     fun createPtyConnector(
-        scope: Scope,
         rows: Int = 24, cols: Int = 80,
         env: Map<String, String> = emptyMap(),
         charset: Charset = StandardCharsets.UTF_8
@@ -50,12 +49,12 @@ class PtyConnectorFactory : Disposable {
             .setUnixOpenTtyToPreserveOutputAfterTermination(false)
             .setSpawnProcessUsingJdkOnMacIntel(true).start()
 
-        return decorate(scope, PtyProcessConnector(ptyProcess, charset))
+        return decorate(PtyProcessConnector(ptyProcess, charset))
     }
 
-    fun decorate(scope: Scope, ptyConnector: PtyConnector): PtyConnector {
+    fun decorate(ptyConnector: PtyConnector): PtyConnector {
         // 集成转发，如果PtyConnector支持转发那么应该在当前注释行前面代理
-        val multiplePtyConnector = MultiplePtyConnector(scope, ptyConnector)
+        val multiplePtyConnector = MultiplePtyConnector(ptyConnector)
         // 宏应该在转发前面执行，不然会导致重复录制
         val macroPtyConnector = MacroPtyConnector(multiplePtyConnector)
         // 集成自动删除

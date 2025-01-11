@@ -6,6 +6,7 @@ import app.termora.ApplicationScope
 import app.termora.Icons
 import org.apache.commons.lang3.StringUtils
 import java.awt.Component
+import java.awt.KeyboardFocusManager
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 
@@ -23,6 +24,12 @@ class FindEverywhereAction : AnAction(StringUtils.EMPTY, Icons.find) {
         }
 
         val owner = evt.window
+        val focusedWindow = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusedWindow
+
+        if (owner != focusedWindow) {
+            return
+        }
+
         val dialog = FindEverywhere(owner)
         for (provider in FindEverywhereProvider.getFindEverywhereProviders(ApplicationScope.forWindowScope(owner))) {
             dialog.registerProvider(provider)
