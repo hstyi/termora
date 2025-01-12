@@ -40,18 +40,11 @@ object I18n {
     }
 
     fun getString(key: String, vararg args: Any): String {
-        try {
-            val text = getString(key)
-            if (args.isNotEmpty()) {
-                return MessageFormat.format(text, *args)
-            }
-            return text
-        } catch (e: MissingResourceException) {
-            if (log.isWarnEnabled) {
-                log.warn(e.message, e)
-            }
-            return key
+        val text = getString(key)
+        if (args.isNotEmpty()) {
+            return MessageFormat.format(text, *args)
         }
+        return text
     }
 
 
