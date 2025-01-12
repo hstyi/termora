@@ -91,12 +91,14 @@ class TermoraFrame : JFrame(), DataProvider {
 
             override fun dispatchKeyEvent(e: KeyEvent): Boolean {
                 if (e.keyCode == KeyEvent.VK_SHIFT && e.id == KeyEvent.KEY_PRESSED) {
-                    val now = System.currentTimeMillis()
-                    if (now - 250 < lastTime) {
-                        ActionManager.getInstance().getAction(FindEverywhereAction.FIND_EVERYWHERE)
-                            ?.actionPerformed(AnActionEvent(e.source, StringUtils.EMPTY, e))
+                    if (keyboardFocusManager.focusedWindow == this@TermoraFrame) {
+                        val now = System.currentTimeMillis()
+                        if (now - 250 < lastTime) {
+                            ActionManager.getInstance().getAction(FindEverywhereAction.FIND_EVERYWHERE)
+                                ?.actionPerformed(AnActionEvent(e.source, StringUtils.EMPTY, e))
+                        }
+                        lastTime = now
                     }
-                    lastTime = now
                 } else if (e.keyCode != KeyEvent.VK_SHIFT) { // 如果不是 Shift 键，那么就阻断了连续性，重置时间
                     lastTime = -1
                 }

@@ -5,6 +5,7 @@ import app.termora.terminal.PtyConnector
 import app.termora.terminal.PtyConnectorDelegate
 import app.termora.terminal.PtyProcessConnector
 import com.pty4j.PtyProcessBuilder
+import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
 import org.slf4j.LoggerFactory
 import java.nio.charset.Charset
@@ -31,6 +32,15 @@ class PtyConnectorFactory : Disposable {
         envs.putAll(System.getenv())
         envs["TERM"] = "xterm-256color"
         envs.putAll(env)
+
+        if (SystemUtils.IS_OS_UNIX) {
+            if (!envs.containsKey("LANG")) {
+                val locale = Locale.getDefault()
+                if (StringUtils.isNoneBlank(locale.language, locale.country)) {
+                    envs["LANG"] = "${locale.language}_${locale.country}.${Charset.defaultCharset().name()}"
+                }
+            }
+        }
 
         val command = database.terminal.localShell
         val commands = mutableListOf(command)
