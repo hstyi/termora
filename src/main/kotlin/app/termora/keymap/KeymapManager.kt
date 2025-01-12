@@ -5,11 +5,14 @@ import app.termora.Database
 import app.termora.DialogWrapper
 import app.termora.Disposable
 import app.termora.actions.AnActionEvent
+import app.termora.actions.DataProviders
+import app.termora.findeverywhere.FindEverywhereAction
 import com.formdev.flatlaf.util.SystemInfo
 import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.action.ActionManager
 import org.slf4j.LoggerFactory
 import java.awt.KeyEventDispatcher
+import java.awt.KeyEventPostProcessor
 import java.awt.KeyboardFocusManager
 import java.awt.event.KeyEvent
 import javax.swing.JDialog
@@ -28,14 +31,16 @@ class KeymapManager private constructor() : Disposable {
         }
     }
 
-    private val keyEventDispatcher = MyKeyEventDispatcher()
+    private val myKeyEventPostProcessor = MyKeyEventPostProcessor()
+    private val myKeyEventDispatcher = MyKeyEventDispatcher()
     private val database get() = Database.getDatabase()
     private val keymaps = linkedMapOf<String, Keymap>()
     private val activeKeymap get() = database.properties.getString("Keymap.Active")
     private val keyboardFocusManager by lazy { KeyboardFocusManager.getCurrentKeyboardFocusManager() }
 
     init {
-        keyboardFocusManager.addKeyEventDispatcher(keyEventDispatcher)
+        keyboardFocusManager.addKeyEventPostProcessor(myKeyEventPostProcessor)
+        keyboardFocusManager.addKeyEventDispatcher(myKeyEventDispatcher)
 
         try {
             for (keymap in database.getKeymaps()) {
@@ -92,10 +97,10 @@ class KeymapManager private constructor() : Disposable {
         database.removeKeymap(name)
     }
 
-    private inner class MyKeyEventDispatcher : KeyEventDispatcher {
-        override fun dispatchKeyEvent(e: KeyEvent): Boolean {
+    private inner class MyKeyEventPostProcessor : KeyEventPostProcessor {
+        override fun postProcessKeyEvent(e: KeyEvent): Boolean {
             // 只处理 PRESSED 和 带有 modifiers 键的事件
-            if (e.id == KeyEvent.KEY_PRESSED && e.modifiersEx != 0) {
+            if (!e.isConsumed && e.id == KeyEvent.KEY_PRESSED && e.modifiersEx != 0) {
                 val shortcuts = getActiveKeymap()
                 val actionIds = shortcuts.getActionIds(KeyShortcut(KeyStroke.getKeyStrokeForEvent(e)))
                 if (actionIds.isEmpty()) {
@@ -127,11 +132,38 @@ class KeymapManager private constructor() : Disposable {
 
             return false
         }
+
+    }
+
+    private inner class MyKeyEventDispatcher : KeyEventDispatcher {
+        // double shift
+        private var lastTime = -1L
+
+        override fun dispatchKeyEvent(e: KeyEvent): Boolean {
+            if (e.keyCode == KeyEvent.VK_SHIFT && e.id == KeyEvent.KEY_PRESSED) {
+                val owner = AnActionEvent(e.source, StringUtils.EMPTY, e).getData(DataProviders.TermoraFrame)
+                    ?: return false
+                if (keyboardFocusManager.focusedWindow == owner) {
+                    val now = System.currentTimeMillis()
+                    if (now - 250 < lastTime) {
+                        app.termora.actions.ActionManager.getInstance()
+                            .getAction(FindEverywhereAction.FIND_EVERYWHERE)
+                            ?.actionPerformed(AnActionEvent(e.source, StringUtils.EMPTY, e))
+                    }
+                    lastTime = now
+                }
+            } else if (e.keyCode != KeyEvent.VK_SHIFT) { // 如果不是 Shift 键，那么就阻断了连续性，重置时间
+                lastTime = -1
+            }
+            return false
+
+        }
+
     }
 
 
     override fun dispose() {
-        KeyboardFocusManager.getCurrentKeyboardFocusManager()
-            .removeKeyEventDispatcher(keyEventDispatcher)
+        keyboardFocusManager.removeKeyEventPostProcessor(myKeyEventPostProcessor)
+        keyboardFocusManager.removeKeyEventDispatcher(myKeyEventDispatcher)
     }
 }
