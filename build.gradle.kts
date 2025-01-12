@@ -83,6 +83,7 @@ application {
         "--add-exports java.base/sun.nio.ch=ALL-UNNAMED",
         "-Xmx2g",
         "-XX:+UseZGC",
+        "-XX:+ZUncommit",
         "-XX:+ZGenerational",
         "-XX:ZUncommitDelay=60",
         "-XX:SoftMaxHeapSize=64m"
@@ -147,6 +148,7 @@ tasks.register<Exec>("jpackage") {
         "--add-exports java.base/sun.nio.ch=ALL-UNNAMED",
         "-Xmx2g",
         "-XX:+UseZGC",
+        "-XX:+ZUncommit",
         "-XX:+ZGenerational",
         "-XX:ZUncommitDelay=60",
         "-XX:SoftMaxHeapSize=64m",
