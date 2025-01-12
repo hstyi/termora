@@ -1,10 +1,11 @@
-package app.termora
+package app.termora.actions
 
 import org.jdesktop.swingx.action.BoundAction
 import java.awt.event.ActionEvent
 import javax.swing.Icon
 
 abstract class AnAction : BoundAction {
+
 
     constructor() : super()
     constructor(icon: Icon) : super() {
@@ -16,9 +17,14 @@ abstract class AnAction : BoundAction {
 
 
     final override fun actionPerformed(evt: ActionEvent) {
-        actionPerformed(AnActionEvent(evt.source, evt.id, evt.actionCommand, evt))
+        if (evt is AnActionEvent) {
+            actionPerformed(evt)
+        } else {
+            actionPerformed(AnActionEvent(evt.source, evt.actionCommand, evt))
+        }
     }
 
 
-    abstract fun actionPerformed(evt: AnActionEvent)
+    protected abstract fun actionPerformed(evt: AnActionEvent)
+
 }

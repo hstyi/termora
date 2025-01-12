@@ -1,6 +1,8 @@
 package app.termora
 
 
+import app.termora.actions.NewHostAction
+import app.termora.actions.OpenHostAction
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.icons.FlatTreeClosedIcon
 import com.formdev.flatlaf.icons.FlatTreeOpenIcon
@@ -132,7 +134,7 @@ class HostTree : JTree(), Disposable {
                 if (doubleClickConnection && SwingUtilities.isLeftMouseButton(e) && e.clickCount % 2 == 0) {
                     val host = lastSelectedPathComponent
                     if (host is Host && host.protocol != Protocol.Folder) {
-                        ActionManager.getInstance().getAction(Actions.OPEN_HOST)
+                        ActionManager.getInstance().getAction(OpenHostAction.OPEN_HOST)
                             ?.actionPerformed(OpenHostActionEvent(e.source, host, e))
                     }
                 }
@@ -333,7 +335,7 @@ class HostTree : JTree(), Disposable {
                 .filter { it.protocol != Protocol.Folder }
                 .forEach {
                     ActionManager.getInstance()
-                        .getAction(Actions.OPEN_HOST)
+                        .getAction(OpenHostAction.OPEN_HOST)
                         ?.actionPerformed(OpenHostActionEvent(evt.source, it, evt))
                 }
         }
@@ -412,7 +414,8 @@ class HostTree : JTree(), Disposable {
 
         newHost.addActionListener(object : AbstractAction() {
             override fun actionPerformed(e: ActionEvent) {
-                showAddHostDialog()
+                ActionManager.getInstance().getAction(NewHostAction.NEW_HOST)
+                    ?.actionPerformed(e)
             }
         })
 
@@ -451,30 +454,8 @@ class HostTree : JTree(), Disposable {
         popupMenu.show(this, event.x, event.y)
     }
 
-    fun showAddHostDialog() {
-        var lastHost = lastSelectedPathComponent
-        if (lastHost !is Host) {
-            return
-        }
 
-        if (lastHost.protocol != Protocol.Folder) {
-            val p = model.getParent(lastHost) ?: return
-            lastHost = p
-        }
-
-        val dialog = HostDialog(SwingUtilities.getWindowAncestor(this))
-        dialog.isVisible = true
-        val host = (dialog.host ?: return).copy(parentId = lastHost.id)
-
-        runCatchingHost(host)
-
-        expandNode(lastHost)
-        selectionPath = TreePath(model.getPathToRoot(host))
-
-    }
-
-
-    private fun expandNode(node: Host, including: Boolean = false) {
+    fun expandNode(node: Host, including: Boolean = false) {
         expandPath(TreePath(model.getPathToRoot(node)))
         if (including) {
             model.getChildren(node).forEach { expandNode(it, true) }

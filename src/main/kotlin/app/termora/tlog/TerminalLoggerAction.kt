@@ -1,7 +1,8 @@
 package app.termora.tlog
 
 import app.termora.*
-import app.termora.Database
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
 import app.termora.native.FileChooser
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.util.SystemInfo

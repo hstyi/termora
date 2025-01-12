@@ -1,5 +1,7 @@
 package app.termora
 
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.util.SystemInfo
@@ -20,6 +22,7 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
 
     companion object {
         const val DEFAULT_ACTION = "DEFAULT_ACTION"
+        private const val PROCESS_GLOBAL_KEYMAP = "PROCESS_GLOBAL_KEYMAP"
     }
 
 
@@ -37,8 +40,20 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
 
     protected var lostFocusDispose = false
     protected var escapeDispose = true
+    var processGlobalKeymap: Boolean
+        get() {
+            val v = super.rootPane.getClientProperty(PROCESS_GLOBAL_KEYMAP)
+            if (v is Boolean) {
+                return v
+            }
+            return false
+        }
+        protected set(value) {
+            super.rootPane.putClientProperty(PROCESS_GLOBAL_KEYMAP, value)
+        }
 
     protected fun init() {
+
 
         defaultCloseOperation = WindowConstants.DISPOSE_ON_CLOSE
 

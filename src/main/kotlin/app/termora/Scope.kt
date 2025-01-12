@@ -3,19 +3,17 @@ package app.termora
 import org.slf4j.LoggerFactory
 import java.awt.Component
 import java.awt.Window
+import java.util.concurrent.ConcurrentHashMap
 import javax.swing.JPopupMenu
 import javax.swing.SwingUtilities
 import kotlin.reflect.KClass
 
 @Suppress("UNCHECKED_CAST")
 open class Scope(
-    private val beans: MutableMap<KClass<*>, Any> = mutableMapOf(),
-    private val properties: MutableMap<String, Any> = mutableMapOf()
+    private val beans: MutableMap<KClass<*>, Any> = ConcurrentHashMap(),
+    private val properties: MutableMap<String, Any> = ConcurrentHashMap()
 ) : Disposable {
 
-    companion object {
-        private val log = LoggerFactory.getLogger(Scope::class.java)
-    }
 
     fun <T : Any> get(clazz: KClass<T>): T {
         return beans[clazz] as T
@@ -23,18 +21,24 @@ open class Scope(
 
 
     fun <T : Any> getOrCreate(clazz: KClass<T>, create: () -> T): T {
+
         if (beans.containsKey(clazz)) {
             return get(clazz)
         }
 
-        val instance = create.invoke()
-        beans[clazz] = instance
+        synchronized(clazz) {
+            if (beans.containsKey(clazz)) {
+                return get(clazz)
+            }
 
-        if (instance is Disposable) {
-            Disposer.register(this, instance)
+            val instance = create.invoke()
+            beans[clazz] = instance
+
+            if (instance is Disposable) {
+                Disposer.register(this, instance)
+            }
+            return instance
         }
-
-        return instance
 
     }
 
@@ -92,7 +96,7 @@ class ApplicationScope private constructor() : Scope() {
             return forApplicationScope().windowScopes()
         }
 
-        fun getFrameForComponent(component: Component): TermoraFrame? {
+        private fun getFrameForComponent(component: Component): TermoraFrame? {
             if (component is TermoraFrame) {
                 return component
             }

@@ -1,7 +1,10 @@
 package app.termora.findeverywhere
 
-import app.termora.*
-
+import app.termora.Actions
+import app.termora.I18n
+import app.termora.Icons
+import app.termora.actions.NewHostAction
+import app.termora.actions.OpenLocalTerminalAction
 import com.formdev.flatlaf.FlatLaf
 import org.jdesktop.swingx.action.ActionManager
 import javax.swing.Icon
@@ -14,23 +17,9 @@ class QuickCommandFindEverywhereProvider : FindEverywhereProvider {
         actionManager.let { list.add(CreateHostFindEverywhereResult()) }
 
         // Local terminal
-        list.add(ActionFindEverywhereResult(object : AnAction(
-            I18n.getString("termora.find-everywhere.quick-command.local-terminal"),
-            Icons.terminal
-        ) {
-            override fun actionPerformed(evt: AnActionEvent) {
-                actionManager.getAction(Actions.OPEN_HOST)?.actionPerformed(
-                    OpenHostActionEvent(
-                        evt.source,
-                        Host(
-                            name = name,
-                            protocol = Protocol.Local
-                        ),
-                        evt
-                    )
-                )
-            }
-        }))
+        actionManager.getAction(OpenLocalTerminalAction.LOCAL_TERMINAL)?.let {
+            list.add(ActionFindEverywhereResult(it))
+        }
 
         // SFTP
         actionManager.getAction(Actions.SFTP)?.let {
@@ -50,7 +39,7 @@ class QuickCommandFindEverywhereProvider : FindEverywhereProvider {
     }
 
     private class CreateHostFindEverywhereResult : ActionFindEverywhereResult(
-        ActionManager.getInstance().getAction(Actions.ADD_HOST)
+        ActionManager.getInstance().getAction(NewHostAction.NEW_HOST)
     ) {
         override fun getIcon(isSelected: Boolean): Icon {
             if (isSelected) {

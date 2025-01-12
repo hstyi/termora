@@ -1,5 +1,7 @@
 package app.termora
 
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.session.ClientSession

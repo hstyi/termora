@@ -1,6 +1,9 @@
 package app.termora.macro
 
 import app.termora.*
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
+import app.termora.actions.DataProviders
 
 import com.formdev.flatlaf.util.SystemInfo
 import com.jgoodies.forms.builder.FormBuilder
@@ -108,15 +111,18 @@ class MacroDialog(owner: Window) : DialogWrapper(owner) {
             }
         }
 
-        runBtn.addActionListener {
-            val index = list.selectedIndex
-            if (index >= 0) {
-                val macroAction = ActionManager.getInstance().getAction(Actions.MACRO)
-                if (macroAction is MacroAction) {
-                    macroAction.runMacro(ApplicationScope.forWindowScope(owner), model.getElementAt(index))
+        runBtn.addActionListener(object : AnAction() {
+            override fun actionPerformed(evt: AnActionEvent) {
+                val windowScope = evt.getData(DataProviders.WindowScope) ?: return
+                val index = list.selectedIndex
+                if (index >= 0) {
+                    val macroAction = ActionManager.getInstance().getAction(Actions.MACRO)
+                    if (macroAction is MacroAction) {
+                        macroAction.runMacro(windowScope, model.getElementAt(index))
+                    }
                 }
             }
-        }
+        })
 
         copyBtn.addActionListener {
             if (list.selectionModel.selectedItemsCount > 0) {

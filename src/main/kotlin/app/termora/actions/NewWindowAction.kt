@@ -1,12 +1,26 @@
 package app.termora.actions
 
-import app.termora.AnAction
-import app.termora.AnActionEvent
 import app.termora.TermoraFrameManager
+import java.awt.KeyboardFocusManager
 
 class NewWindowAction : AnAction() {
+    companion object {
+
+        /**
+         * 打开一个新的窗口
+         */
+        const val NEW_WINDOW = "NewWindowAction"
+    }
+
+    init {
+        putValue(SHORT_DESCRIPTION, "Open new Window")
+        putValue(ACTION_COMMAND_KEY, NEW_WINDOW)
+    }
 
     override fun actionPerformed(evt: AnActionEvent) {
-        TermoraFrameManager.getInstance().createWindow().isVisible = true
+        val focusedWindow = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusedWindow
+        if (focusedWindow == evt.window) {
+            TermoraFrameManager.getInstance().createWindow().isVisible = true
+        }
     }
 }

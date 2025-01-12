@@ -1,24 +1,18 @@
 package app.termora.highlight
 
-import app.termora.*
-import java.awt.Component
-import java.awt.KeyboardFocusManager
-import java.awt.Window
+import app.termora.I18n
+import app.termora.Icons
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
 
 class KeywordHighlightAction : AnAction(
     I18n.getString("termora.highlight"),
     Icons.edit
 ) {
     override fun actionPerformed(evt: AnActionEvent) {
-        val source = evt.source
-        var owner = (if (source is Component) ApplicationScope.getFrameForComponent(source) else null) as Window?
-        if (owner == null) {
-            owner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusedWindow
-        }
-
-        if (owner != null) {
-            KeywordHighlightDialog(owner).isVisible = true
-        }
-
+        val owner = evt.window
+        val dialog = KeywordHighlightDialog(owner)
+        dialog.setLocationRelativeTo(owner)
+        dialog.isVisible = true
     }
 }

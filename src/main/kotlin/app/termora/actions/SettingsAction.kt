@@ -1,6 +1,8 @@
 package app.termora.actions
 
-import app.termora.*
+import app.termora.I18n
+import app.termora.Icons
+import app.termora.SettingsDialog
 import com.formdev.flatlaf.extras.FlatDesktop
 import org.apache.commons.lang3.StringUtils
 import java.awt.KeyboardFocusManager
@@ -12,13 +14,22 @@ class SettingsAction : AnAction(
     I18n.getString("termora.setting"),
     Icons.settings
 ) {
+    companion object {
+
+        /**
+         * 打开设置
+         */
+        const val SETTING = "SettingAction"
+    }
 
     private var isShowing = false
 
     init {
         FlatDesktop.setPreferencesHandler {
             val owner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
-            actionPerformed(ActionEvent(owner, ActionEvent.ACTION_PERFORMED, StringUtils.EMPTY))
+            if (owner != null) {
+                actionPerformed(ActionEvent(owner, ActionEvent.ACTION_PERFORMED, StringUtils.EMPTY))
+            }
         }
     }
 

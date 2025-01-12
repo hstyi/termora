@@ -2,7 +2,10 @@ package app.termora
 
 import app.termora.AES.encodeBase64String
 import app.termora.Application.ohMyJson
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
 import app.termora.highlight.KeywordHighlightManager
+import app.termora.keymap.KeymapPanel
 import app.termora.keymgr.KeyManager
 import app.termora.macro.MacroManager
 import app.termora.native.FileChooser
@@ -94,6 +97,7 @@ class SettingsOptionsPane : OptionsPane() {
     init {
         addOption(AppearanceOption())
         addOption(TerminalOption())
+        addOption(KeyShortcutsOption())
         addOption(CloudSyncOption())
         addOption(DoormanOption())
         addOption(AboutOption())
@@ -906,7 +910,7 @@ class SettingsOptionsPane : OptionsPane() {
                 override fun actionPerformed(evt: AnActionEvent) {
                     Application.browse(URI.create(url))
                 }
-            });
+            })
         }
 
         private fun initEvents() {}
@@ -1157,5 +1161,35 @@ class SettingsOptionsPane : OptionsPane() {
 
     }
 
+    private inner class KeyShortcutsOption : JPanel(BorderLayout()), Option {
+
+        private val keymapPanel = KeymapPanel()
+
+        init {
+            initView()
+            initEvents()
+        }
+
+
+        private fun initView() {
+            add(keymapPanel, BorderLayout.CENTER)
+        }
+
+
+        private fun initEvents() {}
+
+        override fun getIcon(isSelected: Boolean): Icon {
+            return Icons.fitContent
+        }
+
+        override fun getTitle(): String {
+            return I18n.getString("termora.settings.keyshortcuts")
+        }
+
+        override fun getJComponent(): JComponent {
+            return this
+        }
+
+    }
 
 }

@@ -1,10 +1,9 @@
 package app.termora.macro
 
 import app.termora.Actions
-import app.termora.AnAction
 import app.termora.ApplicationScope
 import app.termora.I18n
-
+import app.termora.actions.AnAction
 import app.termora.findeverywhere.ActionFindEverywhereResult
 import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereResult

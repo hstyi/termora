@@ -1,9 +1,11 @@
 package app.termora
 
 
+import app.termora.actions.*
 import app.termora.findeverywhere.BasicFilterFindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereResult
+import app.termora.terminal.DataKey
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.FlatSVGIcon
@@ -20,7 +22,8 @@ import javax.swing.*
 import javax.swing.event.DocumentEvent
 import kotlin.math.max
 
-class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()), Disposable, TerminalTab {
+class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()), Disposable, TerminalTab,
+    DataProvider {
     private val properties get() = Database.getDatabase().properties
     private val rootPanel = JPanel(BorderLayout())
     private val searchTextField = FlatTextField()
@@ -28,6 +31,7 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
     private val bannerPanel = BannerPanel()
     private val toggle = FlatButton()
     private var fullContent = properties.getString("WelcomeFullContent", "false").toBoolean()
+    private val dataProviderSupport = DataProviderSupport()
 
     init {
         initView()
@@ -49,6 +53,7 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
         rootPanel.add(panel, BorderLayout.CENTER)
         add(rootPanel, BorderLayout.CENTER)
 
+        dataProviderSupport.addData(DataProviders.Welcome.HostTree, hostTree)
 
     }
 
@@ -71,7 +76,7 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
         newHost.isFocusable = false
         newHost.buttonType = FlatButton.ButtonType.toolBarButton
         newHost.addActionListener { e ->
-            ActionManager.getInstance().getAction(Actions.ADD_HOST)?.actionPerformed(e)
+            ActionManager.getInstance().getAction(NewHostAction.NEW_HOST)?.actionPerformed(e)
         }
 
 
@@ -230,7 +235,7 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
     private class HostFindEverywhereResult(val host: Host) : FindEverywhereResult {
         override fun actionPerformed(e: ActionEvent) {
             ActionManager.getInstance()
-                .getAction(Actions.OPEN_HOST)
+                .getAction(OpenHostAction.OPEN_HOST)
                 ?.actionPerformed(OpenHostActionEvent(e.source, host, e))
         }
 
@@ -246,6 +251,10 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
         override fun toString(): String {
             return host.name
         }
+    }
+
+    override fun <T : Any> getData(dataKey: DataKey<T>): T? {
+        return dataProviderSupport.getData(dataKey)
     }
 
 

@@ -2,6 +2,10 @@ package app.termora
 
 import app.termora.Application.ohMyJson
 import app.termora.actions.ActionManager
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
+import app.termora.actions.SettingsAction
+import app.termora.findeverywhere.FindEverywhereAction
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
 import com.formdev.flatlaf.util.SystemInfo
 import com.jetbrains.WindowDecorations
@@ -22,7 +26,6 @@ data class ToolBarAction(
 )
 
 class TermoraToolBar(
-    private val windowScope: WindowScope,
     private val titleBar: WindowDecorations.CustomTitleBar,
     private val tabbedPane: FlatTabbedPane
 ) {
@@ -45,8 +48,8 @@ class TermoraToolBar(
             ToolBarAction(Actions.KEYWORD_HIGHLIGHT, true),
             ToolBarAction(Actions.KEY_MANAGER, true),
             ToolBarAction(Actions.MULTIPLE, true),
-            ToolBarAction(Actions.FIND_EVERYWHERE, true),
-            ToolBarAction(Actions.SETTING, true),
+            ToolBarAction(FindEverywhereAction.FIND_EVERYWHERE, true),
+            ToolBarAction(SettingsAction.SETTING, true),
         )
     }
 
@@ -96,11 +99,11 @@ class TermoraToolBar(
 
         toolbar.add(actionContainerFactory.createButton(object : AnAction(StringUtils.EMPTY, Icons.add) {
             override fun actionPerformed(evt: AnActionEvent) {
-                actionManager.getAction(Actions.FIND_EVERYWHERE)?.actionPerformed(evt)
+                actionManager.getAction(FindEverywhereAction.FIND_EVERYWHERE)?.actionPerformed(evt)
             }
 
             override fun isEnabled(): Boolean {
-                return actionManager.getAction(Actions.FIND_EVERYWHERE)?.isEnabled ?: false
+                return actionManager.getAction(FindEverywhereAction.FIND_EVERYWHERE)?.isEnabled ?: false
             }
         }))
 

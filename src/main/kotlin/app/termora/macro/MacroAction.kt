@@ -2,6 +2,9 @@ package app.termora.macro
 
 import app.termora.*
 import app.termora.AES.encodeBase64String
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
+import app.termora.actions.DataProviders
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import org.apache.commons.lang3.time.DateFormatUtils
 import org.slf4j.LoggerFactory
@@ -29,6 +32,7 @@ class MacroAction : AnAction(I18n.getString("termora.macro"), Icons.rec) {
     override fun actionPerformed(evt: AnActionEvent) {
         val source = evt.source
         if (source !is JComponent) return
+        val windowScope = evt.getData(DataProviders.WindowScope) ?: return
 
         isSelected = isRecording
 
@@ -41,7 +45,6 @@ class MacroAction : AnAction(I18n.getString("termora.macro"), Icons.rec) {
 
         val macros = macroManager.getMacros().sortedByDescending { it.sort }
 
-        val windowScope = ApplicationScope.forWindowScope(evt.window)
 
         // 播放最后一个
         menu.add(MacroPlaybackAction())

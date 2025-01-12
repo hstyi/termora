@@ -1,6 +1,10 @@
 package app.termora.findeverywhere
 
-import app.termora.*
+import app.termora.DialogWrapper
+import app.termora.DynamicColor
+import app.termora.I18n
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
 import app.termora.macro.MacroFindEverywhereProvider
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatTextField

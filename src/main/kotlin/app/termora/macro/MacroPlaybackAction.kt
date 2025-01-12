@@ -1,7 +1,10 @@
 package app.termora.macro
 
-import app.termora.*
-
+import app.termora.Actions
+import app.termora.I18n
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
+import app.termora.actions.DataProviders
 import org.jdesktop.swingx.action.ActionManager
 
 class MacroPlaybackAction : AnAction(
@@ -15,7 +18,7 @@ class MacroPlaybackAction : AnAction(
         if (macros.isEmpty() || macroAction == null) {
             return
         }
-        macroAction?.runMacro(ApplicationScope.forWindowScope(evt.window), macros.first())
+        macroAction?.runMacro(evt.getData(DataProviders.WindowScope) ?: return, macros.first())
     }
 
     override fun isEnabled(): Boolean {

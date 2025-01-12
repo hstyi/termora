@@ -1,6 +1,7 @@
 package app.termora
 
-import app.termora.shortcut.KeyShortcutsManager
+import app.termora.actions.ActionManager
+import app.termora.keymap.KeymapManager
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatSystemProperties
 import com.formdev.flatlaf.extras.FlatInspector
@@ -60,6 +61,13 @@ class ApplicationRunner {
             // 统计
             val enableAnalytics = measureTimeMillis { enableAnalytics() }
 
+            // init ActionManager、KeymapManager
+            @Suppress("OPT_IN_USAGE")
+            GlobalScope.launch(Dispatchers.IO) {
+                ActionManager.getInstance()
+                KeymapManager.getInstance()
+            }
+
             // 设置 LAF
             val setupLaf = measureTimeMillis { setupLaf() }
 
@@ -105,7 +113,7 @@ class ApplicationRunner {
     }
 
     private fun setupKeyShortcuts() {
-        KeyShortcutsManager.getInstance()
+        KeymapManager.getInstance()
     }
 
     private fun loadSettings() {

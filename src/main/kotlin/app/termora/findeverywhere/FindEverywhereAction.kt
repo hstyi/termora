@@ -1,9 +1,9 @@
 package app.termora.findeverywhere
 
-import app.termora.AnAction
-import app.termora.AnActionEvent
-import app.termora.ApplicationScope
 import app.termora.Icons
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
+import app.termora.actions.DataProviders
 import org.apache.commons.lang3.StringUtils
 import java.awt.Component
 import java.awt.KeyboardFocusManager
@@ -11,10 +11,24 @@ import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 
 class FindEverywhereAction : AnAction(StringUtils.EMPTY, Icons.find) {
+    companion object {
+
+        /**
+         * 查找
+         */
+        const val FIND_EVERYWHERE = "FindEverywhereAction"
+
+    }
+
+    init {
+        putValue(SHORT_DESCRIPTION, "Open FindEverywhere")
+        putValue(ACTION_COMMAND_KEY, FIND_EVERYWHERE)
+    }
 
     override fun actionPerformed(evt: AnActionEvent) {
 
-        if (evt.scope.getBoolean("FindEverywhereShown", false)) {
+        val scope = evt.getData(DataProviders.WindowScope) ?: return
+        if (scope.getBoolean("FindEverywhereShown", false)) {
             return
         }
 
@@ -31,17 +45,17 @@ class FindEverywhereAction : AnAction(StringUtils.EMPTY, Icons.find) {
         }
 
         val dialog = FindEverywhere(owner)
-        for (provider in FindEverywhereProvider.getFindEverywhereProviders(ApplicationScope.forWindowScope(owner))) {
+        for (provider in FindEverywhereProvider.getFindEverywhereProviders(scope)) {
             dialog.registerProvider(provider)
         }
         dialog.setLocationRelativeTo(owner)
         dialog.addWindowListener(object : WindowAdapter() {
             override fun windowClosed(e: WindowEvent) {
-                evt.scope.putBoolean("FindEverywhereShown", false)
+                scope.putBoolean("FindEverywhereShown", false)
             }
         })
         dialog.isVisible = true
 
-        evt.scope.putBoolean("FindEverywhereShown", true)
+        scope.putBoolean("FindEverywhereShown", true)
     }
 }

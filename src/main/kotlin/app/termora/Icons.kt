@@ -13,7 +13,10 @@ object Icons {
     val vcs by lazy { DynamicIcon("icons/vcs.svg", "icons/vcs_dark.svg") }
     val dumpThreads by lazy { DynamicIcon("icons/dumpThreads.svg", "icons/dumpThreads_dark.svg") }
     val supertypes by lazy { DynamicIcon("icons/supertypes.svg", "icons/supertypes_dark.svg") }
+    val fitContent by lazy { DynamicIcon("icons/fitContent.svg", "icons/fitContent_dark.svg") }
     val settings by lazy { DynamicIcon("icons/settings.svg", "icons/settings_dark.svg") }
+    val copy by lazy { DynamicIcon("icons/copy.svg", "icons/copy_dark.svg") }
+    val delete by lazy { DynamicIcon("icons/delete.svg", "icons/delete_dark.svg") }
     val pin by lazy { DynamicIcon("icons/pin.svg", "icons/pin_dark.svg") }
     val empty by lazy { DynamicIcon("icons/empty.svg") }
     val changelog by lazy { DynamicIcon("icons/changelog.svg", "icons/changelog_dark.svg") }

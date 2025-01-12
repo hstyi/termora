@@ -1,8 +1,11 @@
-package app.termora.shortcut
+package app.termora.keymap
 
 import javax.swing.KeyStroke
 
 class KeyShortcut(val keyStroke: KeyStroke) : Shortcut() {
+    override fun isKeyboard(): Boolean {
+        return true
+    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

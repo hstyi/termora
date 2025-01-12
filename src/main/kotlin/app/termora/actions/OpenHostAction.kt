@@ -1,17 +1,28 @@
 package app.termora.actions
 
-import app.termora.*
+import app.termora.LocalTerminalTab
+import app.termora.OpenHostActionEvent
+import app.termora.Protocol
+import app.termora.SSHTerminalTab
 
 class OpenHostAction : AnAction() {
+    companion object {
+        /**
+         * 打开一个主机
+         */
+        const val OPEN_HOST = "OpenHostAction"
+    }
+
     override fun actionPerformed(evt: AnActionEvent) {
-        val event = evt.event
-        if (event !is OpenHostActionEvent) return
+        if (evt !is OpenHostActionEvent) return
+        val terminalTabbedManager = evt.getData(DataProviders.TerminalTabbedManager) ?: return
+        val windowScope = evt.getData(DataProviders.WindowScope) ?: return
 
-        val tab = if (event.host.protocol == Protocol.SSH)
-            SSHTerminalTab(ApplicationScope.forWindowScope(evt.window), event.host)
-        else LocalTerminalTab(ApplicationScope.forWindowScope(evt.window), event.host)
+        val tab = if (evt.host.protocol == Protocol.SSH)
+            SSHTerminalTab(windowScope, evt.host)
+        else LocalTerminalTab(windowScope, evt.host)
 
-        evt.scope.get(TerminalTabbedManager::class).addTerminalTab(tab)
+        terminalTabbedManager.addTerminalTab(tab)
         tab.start()
     }
 }

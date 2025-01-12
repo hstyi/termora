@@ -25,18 +25,39 @@ class ActionManager : org.jdesktop.swingx.action.ActionManager() {
 
 
     private fun registerActions() {
-        addAction(Actions.NEW_WINDOW, NewWindowAction())
+        addAction(NewWindowAction.NEW_WINDOW, NewWindowAction())
+        addAction(FindEverywhereAction.FIND_EVERYWHERE, FindEverywhereAction())
+
         addAction(Actions.MULTIPLE, MultipleAction())
         addAction(Actions.APP_UPDATE, AppUpdateAction())
         addAction(Actions.KEYWORD_HIGHLIGHT, KeywordHighlightAction())
-        addAction(Actions.SETTING, SettingsAction())
         addAction(Actions.TERMINAL_LOGGER, TerminalLoggerAction())
-        addAction(Actions.FIND_EVERYWHERE, FindEverywhereAction())
         addAction(Actions.SFTP, SFTPAction())
         addAction(Actions.MACRO, MacroAction())
         addAction(Actions.KEY_MANAGER, KeyManagerAction())
-        addAction(Actions.ADD_HOST, AddHostAction())
-        addAction(Actions.OPEN_HOST, OpenHostAction())
+
+        addAction(SwitchTabAction.SWITCH_TAB, SwitchTabAction())
+        addAction(SettingsAction.SETTING, SettingsAction())
+
+        addAction(NewHostAction.NEW_HOST, NewHostAction())
+        addAction(OpenHostAction.OPEN_HOST, OpenHostAction())
+
+        addAction(TerminalCopyAction.COPY, TerminalCopyAction())
+        addAction(TerminalPasteAction.PASTE, TerminalPasteAction())
+        addAction(TerminalFindAction.FIND, TerminalFindAction())
+        addAction(TerminalCloseAction.CLOSE, TerminalCloseAction())
+        addAction(TerminalClearScreenAction.CLEAR_SCREEN, TerminalClearScreenAction())
+        addAction(OpenLocalTerminalAction.LOCAL_TERMINAL, OpenLocalTerminalAction())
+        addAction(TerminalSelectAllAction.SELECT_ALL, TerminalSelectAllAction())
+
+        addAction(TerminalZoomInAction.ZOOM_IN, TerminalZoomInAction())
+        addAction(TerminalZoomOutAction.ZOOM_OUT, TerminalZoomOutAction())
+        addAction(TerminalZoomResetAction.ZOOM_RESET, TerminalZoomResetAction())
+    }
+
+    override fun addAction(action: Action): Action {
+        val actionId = action.getValue(Action.ACTION_COMMAND_KEY) ?: throw IllegalArgumentException("Invalid action ID")
+        return addAction(actionId, action)
     }
 
     override fun addAction(id: Any, action: Action): Action {

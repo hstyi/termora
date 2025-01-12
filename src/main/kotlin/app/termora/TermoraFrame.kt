@@ -2,6 +2,10 @@ package app.termora
 
 
 import app.termora.actions.ActionManager
+import app.termora.actions.DataProvider
+import app.termora.actions.DataProviderSupport
+import app.termora.actions.DataProviders
+import app.termora.terminal.DataKey
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.util.SystemInfo
@@ -24,7 +28,7 @@ fun assertEventDispatchThread() {
 }
 
 
-class TermoraFrame : JFrame() {
+class TermoraFrame : JFrame(), DataProvider {
 
 
     private val actionManager get() = ActionManager.getInstance()
@@ -32,9 +36,11 @@ class TermoraFrame : JFrame() {
     private val windowScope = ApplicationScope.forWindowScope(this)
     private val titleBar = LogicCustomTitleBar.createCustomTitleBar(this)
     private val tabbedPane = MyTabbedPane()
-    private val toolbar = TermoraToolBar(windowScope, titleBar, tabbedPane)
+    private val toolbar = TermoraToolBar(titleBar, tabbedPane)
     private val terminalTabbed = TerminalTabbed(windowScope, toolbar, tabbedPane)
     private val isWindowDecorationsSupported by lazy { JBR.isWindowDecorationsSupported() }
+    private val dataProviderSupport = DataProviderSupport()
+    private val welcomePanel = WelcomePanel(windowScope)
 
 
     init {
@@ -93,7 +99,7 @@ class TermoraFrame : JFrame() {
         }
 
         minimumSize = Dimension(640, 400)
-        terminalTabbed.addTab(WelcomePanel(windowScope))
+        terminalTabbed.addTab(welcomePanel)
 
         // macOS 要避开左边的控制栏
         if (SystemInfo.isMacOS) {
@@ -108,6 +114,8 @@ class TermoraFrame : JFrame() {
         Disposer.register(windowScope, terminalTabbed)
         add(terminalTabbed)
 
+        dataProviderSupport.addData(DataProviders.TermoraFrame, this)
+        dataProviderSupport.addData(DataProviders.WindowScope, windowScope)
     }
 
 
@@ -166,6 +174,12 @@ class TermoraFrame : JFrame() {
 
         toolbar.getJToolBar().addMouseListener(mouseAdapter)
         toolbar.getJToolBar().addMouseMotionListener(mouseAdapter)
+    }
+
+    override fun <T : Any> getData(dataKey: DataKey<T>): T? {
+        return dataProviderSupport.getData(dataKey)
+            ?: terminalTabbed.getData(dataKey)
+            ?: welcomePanel.getData(dataKey)
     }
 
 

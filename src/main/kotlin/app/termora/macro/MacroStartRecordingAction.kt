@@ -1,7 +1,10 @@
 package app.termora.macro
 
-import app.termora.*
-
+import app.termora.Actions
+import app.termora.I18n
+import app.termora.Icons
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
 import org.jdesktop.swingx.action.ActionManager
 import javax.swing.Icon
 

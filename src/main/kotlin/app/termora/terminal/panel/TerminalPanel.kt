@@ -1,5 +1,8 @@
 package app.termora.terminal.panel
 
+import app.termora.actions.DataProvider
+import app.termora.actions.DataProviderSupport
+import app.termora.actions.DataProviders
 import app.termora.terminal.*
 import com.formdev.flatlaf.util.SystemInfo
 import org.apache.commons.lang3.StringUtils
@@ -27,7 +30,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 
 class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnector) :
-    JPanel(BorderLayout()) {
+    JPanel(BorderLayout()), DataProvider {
 
     companion object {
         val Debug = DataKey(Boolean::class)
@@ -38,29 +41,13 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
     private val terminalFindPanel = TerminalFindPanel(this, terminal)
     private val terminalDisplay = TerminalDisplay(this, terminal)
     val scrollBar = TerminalScrollBar(this@TerminalPanel, terminalFindPanel, terminal)
+    private val dataProviderSupport = DataProviderSupport()
 
 
     /**
      * 键盘事件
      */
-    private val actions = mutableListOf(
-        // 查找
-        TerminalFindAction(this),
-        // 全选
-        TerminalSelectAllAction(terminal),
-        // Zoom in
-        TerminalZoomInAction(),
-        // Zoom out
-        TerminalZoomOutAction(),
-        // Zoom reset
-        TerminalZoomResetAction(),
-        // 选择事件
-        TerminalSelectionAction(terminal),
-        // 复制
-        TerminalCopyAction(this),
-        // 粘贴
-        TerminalPasteAction(this),
-    )
+    private val actions = mutableListOf<TerminalPredicateAction>()
 
 
     /**
@@ -130,6 +117,12 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
         add(scrollBar, BorderLayout.EAST)
 
         hideFind()
+
+
+        // DataProviders
+        dataProviderSupport.addData(DataProviders.TerminalPanel, this)
+        dataProviderSupport.addData(DataProviders.Terminal, terminal)
+        dataProviderSupport.addData(DataProviders.PtyConnector, ptyConnector)
     }
 
     private fun initEvents() {
@@ -473,5 +466,9 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
                 }
             }
         }
+    }
+
+    override fun <T : Any> getData(dataKey: DataKey<T>): T? {
+        return dataProviderSupport.getData(dataKey)
     }
 }
