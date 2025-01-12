@@ -81,6 +81,11 @@ dependencies {
 application {
     val args = mutableListOf(
         "--add-exports java.base/sun.nio.ch=ALL-UNNAMED",
+        "-Xmx2g",
+        "-XX:+UseZGC",
+        "-XX:+ZGenerational",
+        "-XX:ZUncommitDelay=60",
+        "-XX:SoftMaxHeapSize=64m"
     )
 
     if (os.isMacOsX) {
@@ -141,6 +146,10 @@ tasks.register<Exec>("jpackage") {
     val options = mutableListOf(
         "--add-exports java.base/sun.nio.ch=ALL-UNNAMED",
         "-Xmx2g",
+        "-XX:+UseZGC",
+        "-XX:+ZGenerational",
+        "-XX:ZUncommitDelay=60",
+        "-XX:SoftMaxHeapSize=64m",
         "-XX:+HeapDumpOnOutOfMemoryError",
         "-Dlogger.console.level=off",
         "-Dkotlinx.coroutines.debug=off",

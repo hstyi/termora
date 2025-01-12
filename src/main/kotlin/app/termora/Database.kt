@@ -464,7 +464,7 @@ class Database private constructor(private val env: Environment) : Disposable {
         /**
          * 字体大小
          */
-        var fontSize by IntPropertyDelegate(16)
+        var fontSize by IntPropertyDelegate(14)
 
         /**
          * 最大行数

@@ -13,13 +13,13 @@ class TerminalZoomResetAction : TerminalZoomAction() {
         putValue(SHORT_DESCRIPTION, I18n.getString("termora.actions.zoom-reset-terminal"))
     }
 
-    private val defaultFontSize = 16
+    private val defaultFontSize = 14
 
     override fun zoom(): Boolean {
         if (fontSize == defaultFontSize) {
             return false
         }
-        Database.getDatabase().terminal.fontSize = 16
+        Database.getDatabase().terminal.fontSize = defaultFontSize
         return true
     }
 }
