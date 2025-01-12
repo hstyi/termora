@@ -225,7 +225,7 @@ class KeymapPanel : JPanel(BorderLayout()) {
                     val text = duplicateAction.getValue(Action.SHORT_DESCRIPTION) ?: continue
                     OptionPane.showMessageDialog(
                         SwingUtilities.getWindowAncestor(this@KeymapPanel),
-                        "快捷键 [${model.toHumanText(keyStroke)}] 已被 [${text}] 占用",
+                        I18n.getString("termora.settings.keymap.already-exists", model.toHumanText(keyStroke), text),
                         messageType = JOptionPane.ERROR_MESSAGE,
                     )
                 }
