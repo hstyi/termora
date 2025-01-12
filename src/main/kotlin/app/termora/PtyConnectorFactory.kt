@@ -6,6 +6,7 @@ import app.termora.terminal.PtyConnectorDelegate
 import app.termora.terminal.PtyProcessConnector
 import com.pty4j.PtyProcessBuilder
 import org.apache.commons.lang3.SystemUtils
+import org.slf4j.LoggerFactory
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.util.*
@@ -15,6 +16,7 @@ class PtyConnectorFactory : Disposable {
     private val database get() = Database.getDatabase()
 
     companion object {
+        private val log = LoggerFactory.getLogger(PtyConnectorFactory::class.java)
         fun getInstance(scope: Scope): PtyConnectorFactory {
             return scope.getOrCreate(PtyConnectorFactory::class) { PtyConnectorFactory() }
         }
@@ -34,6 +36,10 @@ class PtyConnectorFactory : Disposable {
         val commands = mutableListOf(command)
         if (SystemUtils.IS_OS_UNIX) {
             commands.add("-l")
+        }
+
+        if (log.isDebugEnabled) {
+            log.debug("command: {} , envs: {}", commands.joinToString(" "), envs)
         }
 
         val ptyProcess = PtyProcessBuilder(commands.toTypedArray())

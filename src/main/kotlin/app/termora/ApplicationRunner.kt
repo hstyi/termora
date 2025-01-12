@@ -191,21 +191,21 @@ class ApplicationRunner {
     }
 
     private fun printSystemInfo() {
-        if (log.isInfoEnabled) {
-            log.info("Welcome to ${Application.getName()} ${Application.getVersion()}!")
-            log.info(
+        if (log.isDebugEnabled) {
+            log.debug("Welcome to ${Application.getName()} ${Application.getVersion()}!")
+            log.debug(
                 "JVM name: {} , vendor: {} , version: {}",
                 SystemUtils.JAVA_VM_NAME,
                 SystemUtils.JAVA_VM_VENDOR,
                 SystemUtils.JAVA_VM_VERSION,
             )
-            log.info(
+            log.debug(
                 "OS name: {} , version: {} , arch: {}",
                 SystemUtils.OS_NAME,
                 SystemUtils.OS_VERSION,
                 SystemUtils.OS_ARCH
             )
-            log.info("Base config dir: ${Application.getBaseDataDir().absolutePath}")
+            log.debug("Base config dir: ${Application.getBaseDataDir().absolutePath}")
         }
     }
 

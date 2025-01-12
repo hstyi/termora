@@ -1,19 +1,19 @@
 package app.termora
 
 
-import app.termora.actions.ActionManager
-import app.termora.actions.DataProvider
-import app.termora.actions.DataProviderSupport
-import app.termora.actions.DataProviders
+import app.termora.actions.*
+import app.termora.findeverywhere.FindEverywhereAction
 import app.termora.terminal.DataKey
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.util.SystemInfo
 import com.jetbrains.JBR
+import org.apache.commons.lang3.StringUtils
 import java.awt.Dimension
 import java.awt.Insets
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
+import java.awt.KeyEventDispatcher
+import java.awt.KeyboardFocusManager
+import java.awt.event.*
 import java.util.*
 import javax.imageio.ImageIO
 import javax.swing.Box
@@ -41,6 +41,7 @@ class TermoraFrame : JFrame(), DataProvider {
     private val isWindowDecorationsSupported by lazy { JBR.isWindowDecorationsSupported() }
     private val dataProviderSupport = DataProviderSupport()
     private val welcomePanel = WelcomePanel(windowScope)
+    private val keyboardFocusManager by lazy { KeyboardFocusManager.getCurrentKeyboardFocusManager() }
 
 
     init {
@@ -73,6 +74,43 @@ class TermoraFrame : JFrame(), DataProvider {
                 }
             })
         }
+
+        // double shift
+        val keyEventDispatcher = object : KeyEventDispatcher {
+            private var lastTime = -1L
+
+            init {
+                val that = this
+                addWindowListener(object : WindowAdapter() {
+                    override fun windowClosed(e: WindowEvent) {
+                        removeWindowListener(this)
+                        keyboardFocusManager.removeKeyEventDispatcher(that)
+                    }
+                })
+            }
+
+            override fun dispatchKeyEvent(e: KeyEvent): Boolean {
+                if (e.keyCode == KeyEvent.VK_SHIFT && e.id == KeyEvent.KEY_PRESSED) {
+                    val now = System.currentTimeMillis()
+                    if (now - 250 < lastTime) {
+                        ActionManager.getInstance().getAction(FindEverywhereAction.FIND_EVERYWHERE)
+                            ?.actionPerformed(AnActionEvent(e.source, StringUtils.EMPTY, e))
+                    }
+                    lastTime = now
+                } else if (e.keyCode != KeyEvent.VK_SHIFT) { // 如果不是 Shift 键，那么就阻断了连续性，重置时间
+                    lastTime = -1
+                }
+                return false
+            }
+
+        }
+        addWindowListener(object : WindowAdapter() {
+            override fun windowClosed(e: WindowEvent) {
+                removeWindowListener(this)
+                keyboardFocusManager.removeKeyEventDispatcher(keyEventDispatcher)
+            }
+        })
+        keyboardFocusManager.addKeyEventDispatcher(keyEventDispatcher)
 
     }
 
