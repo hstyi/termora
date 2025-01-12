@@ -1,5 +1,7 @@
 package app.termora.actions
 
+import app.termora.I18n
+
 class TerminalFindAction : AnAction() {
     companion object {
         const val FIND = "TerminalFind"
@@ -7,7 +9,7 @@ class TerminalFindAction : AnAction() {
 
 
     init {
-        putValue(SHORT_DESCRIPTION, "Open Terminal Search")
+        putValue(SHORT_DESCRIPTION, I18n.getString("termora.actions.open-terminal-find"))
         putValue(ACTION_COMMAND_KEY, FIND)
     }
 

@@ -491,7 +491,11 @@ class SettingsOptionsPane : OptionsPane() {
 
             getTokenBtn.addActionListener {
                 when (typeComboBox.selectedItem) {
-                    SyncType.GitLab -> Application.browse(URI.create("https://gitlab.com/-/user_settings/personal_access_tokens"))
+                    SyncType.GitLab -> {
+                        val uri = URI.create(domainTextField.text)
+                        Application.browse(URI.create("${uri.scheme}://${uri.host}/-/user_settings/personal_access_tokens?name=Termora%20Sync%20Config&scopes=api"))
+                    }
+
                     SyncType.GitHub -> Application.browse(URI.create("https://github.com/settings/tokens"))
                     SyncType.Gitee -> Application.browse(URI.create("https://gitee.com/profile/personal_access_tokens"))
                 }
@@ -1183,7 +1187,7 @@ class SettingsOptionsPane : OptionsPane() {
         }
 
         override fun getTitle(): String {
-            return I18n.getString("termora.settings.keyshortcuts")
+            return I18n.getString("termora.settings.keymap")
         }
 
         override fun getJComponent(): JComponent {

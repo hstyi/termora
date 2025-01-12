@@ -1,5 +1,6 @@
 package app.termora.findeverywhere
 
+import app.termora.I18n
 import app.termora.Icons
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
@@ -21,7 +22,7 @@ class FindEverywhereAction : AnAction(StringUtils.EMPTY, Icons.find) {
     }
 
     init {
-        putValue(SHORT_DESCRIPTION, "Open FindEverywhere")
+        putValue(SHORT_DESCRIPTION, I18n.getString("termora.actions.open-find-everywhere"))
         putValue(ACTION_COMMAND_KEY, FIND_EVERYWHERE)
     }
 

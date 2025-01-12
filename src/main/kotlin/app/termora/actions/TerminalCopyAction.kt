@@ -14,7 +14,7 @@ class TerminalCopyAction : AnAction() {
     }
 
     init {
-        putValue(SHORT_DESCRIPTION, "Copy from Terminal")
+        putValue(SHORT_DESCRIPTION, I18n.getString("termora.actions.copy-from-terminal"))
         putValue(ACTION_COMMAND_KEY, COPY)
     }
 

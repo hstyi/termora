@@ -1,5 +1,6 @@
 package app.termora.actions
 
+import app.termora.I18n
 import app.termora.TermoraFrameManager
 import java.awt.KeyboardFocusManager
 
@@ -13,7 +14,7 @@ class NewWindowAction : AnAction() {
     }
 
     init {
-        putValue(SHORT_DESCRIPTION, "Open new Window")
+        putValue(SHORT_DESCRIPTION, I18n.getString("termora.actions.open-new-window"))
         putValue(ACTION_COMMAND_KEY, NEW_WINDOW)
     }
 

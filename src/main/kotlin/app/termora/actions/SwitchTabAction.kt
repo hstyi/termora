@@ -1,5 +1,6 @@
 package app.termora.actions
 
+import app.termora.I18n
 import java.awt.event.KeyEvent
 
 class SwitchTabAction : AnAction() {
@@ -9,7 +10,7 @@ class SwitchTabAction : AnAction() {
 
     init {
         putValue(ACTION_COMMAND_KEY, SWITCH_TAB)
-        putValue(SHORT_DESCRIPTION, "Switch to specific Tab [1..9]")
+        putValue(SHORT_DESCRIPTION, I18n.getString("termora.actions.switch-tab"))
     }
 
     override fun actionPerformed(evt: AnActionEvent) {

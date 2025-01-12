@@ -1,5 +1,6 @@
 package app.termora.keymap
 
+import app.termora.I18n
 import app.termora.actions.*
 import app.termora.findeverywhere.FindEverywhereAction
 import org.apache.commons.lang3.StringUtils
@@ -41,7 +42,8 @@ class KeymapTableModel : DefaultTableModel() {
     }
 
     override fun getColumnName(column: Int): String {
-        return if (column == 0) "Shortcut" else "Action"
+        return if (column == 0) I18n.getString("termora.settings.keymap.shortcut")
+        else I18n.getString("termora.settings.keymap.action")
     }
 
     fun getAction(row: Int): Action? {

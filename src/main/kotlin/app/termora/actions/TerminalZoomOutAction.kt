@@ -1,6 +1,7 @@
 package app.termora.actions
 
 import app.termora.Database
+import app.termora.I18n
 import kotlin.math.max
 
 class TerminalZoomOutAction : TerminalZoomAction() {
@@ -10,7 +11,7 @@ class TerminalZoomOutAction : TerminalZoomAction() {
 
     init {
         putValue(ACTION_COMMAND_KEY, ZOOM_OUT)
-        putValue(SHORT_DESCRIPTION, "Terminal Zoom Out")
+        putValue(SHORT_DESCRIPTION, I18n.getString("termora.actions.zoom-out-terminal"))
     }
 
     override fun zoom(): Boolean {

@@ -1,5 +1,6 @@
 package app.termora.actions
 
+import app.termora.I18n
 import org.slf4j.LoggerFactory
 import java.awt.datatransfer.DataFlavor
 
@@ -11,7 +12,7 @@ class TerminalPasteAction : AnAction() {
 
 
     init {
-        putValue(SHORT_DESCRIPTION, "Paste to Terminal")
+        putValue(SHORT_DESCRIPTION, I18n.getString("termora.actions.paste-to-terminal"))
         putValue(ACTION_COMMAND_KEY, PASTE)
     }
 

@@ -12,7 +12,7 @@ class OpenLocalTerminalAction : AnAction(
 
 
     init {
-        putValue(SHORT_DESCRIPTION, "Open Local Terminal")
+        putValue(SHORT_DESCRIPTION, I18n.getString("termora.actions.open-local-terminal"))
         putValue(ACTION_COMMAND_KEY, LOCAL_TERMINAL)
     }
 

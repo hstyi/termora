@@ -74,9 +74,6 @@ class ApplicationRunner {
             // 解密数据
             val openDoor = measureTimeMillis { openDoor() }
 
-            // key shortcuts
-            val setupKeyShortcuts = measureTimeMillis { setupKeyShortcuts() }
-
             // 启动主窗口
             val startMainFrame = measureTimeMillis { startMainFrame() }
 
@@ -90,7 +87,6 @@ class ApplicationRunner {
                 log.debug("setupLaf: {}ms", setupLaf)
                 log.debug("openDoor: {}ms", openDoor)
                 log.debug("startMainFrame: {}ms", startMainFrame)
-                log.debug("setupKeyShortcuts: {}ms", setupKeyShortcuts)
             }
         }.let {
             if (log.isDebugEnabled) {
@@ -110,10 +106,6 @@ class ApplicationRunner {
 
     private fun startMainFrame() {
         TermoraFrameManager.getInstance().createWindow().isVisible = true
-    }
-
-    private fun setupKeyShortcuts() {
-        KeymapManager.getInstance()
     }
 
     private fun loadSettings() {

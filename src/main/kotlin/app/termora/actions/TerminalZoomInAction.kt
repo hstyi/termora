@@ -1,6 +1,7 @@
 package app.termora.actions
 
 import app.termora.Database
+import app.termora.I18n
 
 class TerminalZoomInAction : TerminalZoomAction() {
     companion object {
@@ -9,7 +10,7 @@ class TerminalZoomInAction : TerminalZoomAction() {
 
     init {
         putValue(ACTION_COMMAND_KEY, ZOOM_IN)
-        putValue(SHORT_DESCRIPTION, "Terminal Zoom In")
+        putValue(SHORT_DESCRIPTION, I18n.getString("termora.actions.zoom-in-terminal"))
     }
 
     override fun zoom(): Boolean {

@@ -1,5 +1,6 @@
 package app.termora.actions
 
+import app.termora.I18n
 import app.termora.terminal.Position
 
 class TerminalSelectAllAction : AnAction() {
@@ -9,7 +10,7 @@ class TerminalSelectAllAction : AnAction() {
 
 
     init {
-        putValue(SHORT_DESCRIPTION, "Select All in Terminal")
+        putValue(SHORT_DESCRIPTION, I18n.getString("termora.actions.select-all-in-terminal"))
         putValue(ACTION_COMMAND_KEY, SELECT_ALL)
     }
 

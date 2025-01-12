@@ -1,6 +1,7 @@
 package app.termora.actions
 
 import app.termora.Database
+import app.termora.I18n
 
 class TerminalZoomResetAction : TerminalZoomAction() {
     companion object {
@@ -9,7 +10,7 @@ class TerminalZoomResetAction : TerminalZoomAction() {
 
     init {
         putValue(ACTION_COMMAND_KEY, ZOOM_RESET)
-        putValue(SHORT_DESCRIPTION, "Terminal Zoom Reset")
+        putValue(SHORT_DESCRIPTION, I18n.getString("termora.actions.zoom-reset-terminal"))
     }
 
     private val defaultFontSize = 16
