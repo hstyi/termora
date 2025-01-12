@@ -298,7 +298,10 @@ class SettingsOptionsPane : OptionsPane() {
         }
 
         private fun fireFontChanged() {
-            TerminalPanelFactory.getInstance(ApplicationScope.forWindowScope(owner)).fireResize()
+            ApplicationScope.windowScopes().forEach {
+                TerminalPanelFactory.getInstance(it)
+                    .fireResize()
+            }
         }
 
         private fun initView() {
