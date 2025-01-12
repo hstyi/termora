@@ -41,7 +41,7 @@ object I18n {
 
     fun getString(key: String, vararg args: Any): String {
         try {
-            val text = substitutor.replace(bundle.getString(key))
+            val text = getString(key)
             if (args.isNotEmpty()) {
                 return MessageFormat.format(text, *args)
             }
@@ -53,5 +53,18 @@ object I18n {
             return key
         }
     }
+
+
+    fun getString(key: String): String {
+        try {
+            return substitutor.replace(bundle.getString(key))
+        } catch (e: MissingResourceException) {
+            if (log.isWarnEnabled) {
+                log.warn(e.message, e)
+            }
+            return key
+        }
+    }
+
 
 }
