@@ -229,6 +229,9 @@ tasks.register<Exec>("jpackage") {
     arguments.addAll(listOf("--temp", "$buildDir/jpackage"))
     arguments.addAll(listOf("--dest", "$buildDir/distributions"))
     arguments.addAll(listOf("--java-options", options.joinToString(StringUtils.SPACE)))
+    arguments.addAll(listOf("--vendor", "TermoraDev"))
+    arguments.addAll(listOf("--copyright", "TermoraDev"))
+    arguments.addAll(listOf("--description", "A terminal emulator and SSH client."))
 
 
     if (os.isMacOsX) {
@@ -277,8 +280,9 @@ tasks.register("dist") {
 
         val distributionDir = layout.buildDirectory.dir("distributions").get()
         val gradlew = File(projectDir, if (os.isWindows) "gradlew.bat" else "gradlew").absolutePath
-        val macOSFinalFilename =
-            distributionDir.file("${project.name}-${project.version}-osx-${arch.name}.dmg").asFile.absolutePath
+        val osName = if (os.isMacOsX) "osx" else if (os.isWindows) "windows" else "linux"
+        val finalFilenameWithoutExtension = "${project.name}-${project.version}-${osName}-${arch.name}"
+        val macOSFinalFilePath = distributionDir.file("${finalFilenameWithoutExtension}.dmg").asFile.absolutePath
 
         // 清空目录
         exec { commandLine(gradlew, "clean") }
@@ -296,32 +300,47 @@ tasks.register("dist") {
         exec { commandLine(gradlew, "jpackage") }
 
         // pack
-        exec {
-            if (os.isWindows) { // zip
+        if (os.isWindows) { // zip and msi
+            // zip
+            exec {
                 commandLine(
                     "tar",
                     "-vacf",
-                    distributionDir.file("${project.name}-${project.version}-windows-${arch.name}.zip").asFile.absolutePath,
+                    distributionDir.file("${finalFilenameWithoutExtension}.zip").asFile.absolutePath,
                     project.name.uppercaseFirstChar()
                 )
                 workingDir = layout.buildDirectory.dir("jpackage/images/win-msi.image/").get().asFile
-            } else if (os.isLinux) { // tar.gz
+            }
+
+            // msi
+            exec {
+                commandLine(
+                    "cmd", "/c", "move",
+                    "${project.name.uppercaseFirstChar()}-${project.version}.msi",
+                    "${finalFilenameWithoutExtension}.msi"
+                )
+                workingDir = distributionDir.asFile
+            }
+        } else if (os.isLinux) { // tar.gz
+            exec {
                 commandLine(
                     "tar",
                     "-czvf",
-                    distributionDir.file("${project.name}-${project.version}-linux-${arch.name}.tar.gz").asFile.absolutePath,
+                    distributionDir.file("${finalFilenameWithoutExtension}.tar.gz").asFile.absolutePath,
                     project.name.uppercaseFirstChar()
                 )
                 workingDir = distributionDir.asFile
-            } else if (os.isMacOsX) { // rename
+            }
+        } else if (os.isMacOsX) { // rename
+            exec {
                 commandLine(
                     "mv",
                     distributionDir.file("${project.name.uppercaseFirstChar()}-${project.version}.dmg").asFile.absolutePath,
-                    macOSFinalFilename,
+                    macOSFinalFilePath,
                 )
-            } else {
-                throw GradleException("${os.name} is not supported")
             }
+        } else {
+            throw GradleException("${os.name} is not supported")
         }
 
 
@@ -337,7 +356,7 @@ tasks.register("dist") {
                     "-vvvv",
                     "--options",
                     "runtime",
-                    macOSFinalFilename
+                    macOSFinalFilePath
                 )
             }
 
@@ -348,7 +367,7 @@ tasks.register("dist") {
                         "/usr/bin/xcrun",
                         "notarytool",
                         "submit",
-                        macOSFinalFilename,
+                        macOSFinalFilePath,
                         "--keychain-profile",
                         macOSNotaryKeychainProfile,
                         "--wait",
