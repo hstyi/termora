@@ -36,7 +36,7 @@ repositories {
 
 dependencies {
     // 由于签名和公证，macOS 不携带 natives
-    val useNoNativesFlatLaf = os.isMacOsX
+    val useNoNativesFlatLaf = os.isMacOsX && project.gradle.startParameter.taskNames.contains("dist")
 
     testImplementation(kotlin("test"))
     testImplementation(libs.hutool)
