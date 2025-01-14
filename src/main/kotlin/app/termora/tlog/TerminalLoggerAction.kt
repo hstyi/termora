@@ -88,7 +88,6 @@ class TerminalLoggerAction : AnAction(I18n.getString("termora.terminal-logger"),
         }
 
         fc.defaultDirectory = getLogDir().absolutePath
-        println(fc.defaultDirectory)
         fc.showOpenDialog(owner).thenAccept { files ->
             if (files.isNotEmpty()) {
                 SwingUtilities.invokeLater {

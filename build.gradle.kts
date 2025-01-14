@@ -1,8 +1,7 @@
 import org.gradle.internal.jvm.Jvm
 import org.gradle.kotlin.dsl.support.uppercaseFirstChar
-import org.gradle.nativeplatform.platform.internal.ArchitectureInternal
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
-import org.gradle.nativeplatform.platform.internal.DefaultOperatingSystem
+import org.jetbrains.kotlin.org.apache.commons.io.FileUtils
 import org.jetbrains.kotlin.org.apache.commons.lang3.StringUtils
 
 plugins {
@@ -16,9 +15,18 @@ plugins {
 group = "app.termora"
 version = "1.0.1"
 
-val os: DefaultOperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
-var arch: ArchitectureInternal = DefaultNativePlatform.getCurrentArchitecture()
+val os: OperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
+val arch: Architecture = DefaultNativePlatform.getCurrentArchitecture()
 
+// macOS 签名信息
+val macOSSignUsername = System.getenv("TERMORA_MAC_SIGN_USER_NAME") ?: StringUtils.EMPTY
+val macOSSign = os.isMacOsX && macOSSignUsername.isNotBlank()
+        && System.getenv("TERMORA_MAC_SIGN").toBoolean()
+
+// macOS 公证信息
+val macOSNotaryKeychainProfile = System.getenv("TERMORA_MAC_NOTARY_KEYCHAIN_PROFILE") ?: StringUtils.EMPTY
+val macOSNotary = macOSSign && macOSNotaryKeychainProfile.isNotBlank()
+        && System.getenv("TERMORA_MAC_NOTARY").toBoolean()
 
 repositories {
     mavenCentral()
@@ -27,6 +35,9 @@ repositories {
 }
 
 dependencies {
+    // 由于签名和公证，macOS 不携带 natives
+    val useNoNativesFlatLaf = os.isMacOsX
+
     testImplementation(kotlin("test"))
     testImplementation(libs.hutool)
     testImplementation(libs.sshj)
@@ -50,9 +61,25 @@ dependencies {
     implementation(libs.commons.compress)
     implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.flatlaf)
-    implementation(libs.flatlaf.extras)
-    implementation(libs.flatlaf.swingx)
+
+    implementation(libs.flatlaf) {
+        artifact {
+            if (useNoNativesFlatLaf) {
+                classifier = "no-natives"
+            }
+        }
+    }
+    implementation(libs.flatlaf.extras) {
+        if (useNoNativesFlatLaf) {
+            exclude(group = "com.formdev", module = "flatlaf")
+        }
+    }
+    implementation(libs.flatlaf.swingx) {
+        if (useNoNativesFlatLaf) {
+            exclude(group = "com.formdev", module = "flatlaf")
+        }
+    }
+
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.swingx)
     implementation(libs.jgoodies.forms)
@@ -104,8 +131,44 @@ tasks.test {
 }
 
 tasks.register<Copy>("copy-dependencies") {
-    from(configurations.runtimeClasspath)
-        .into("${layout.buildDirectory.get()}/libs")
+    val dir = layout.buildDirectory.dir("libs")
+    from(configurations.runtimeClasspath).into(dir)
+
+    // 对 JNA 和 PTY4J 的本地库提取
+    // 提取出来是为了单独签名，不然无法通过公证
+    if (os.isMacOsX) {
+        doLast {
+            val jna = libs.jna.asProvider().get()
+            val dylib = dir.get().dir("dylib").asFile
+            val pty4j = libs.pty4j.get()
+            for (file in dir.get().asFile.listFiles() ?: emptyArray()) {
+                if ("${jna.name}-${jna.version}" == file.nameWithoutExtension) {
+                    val targetDir = File(dylib, jna.name)
+                    FileUtils.forceMkdir(targetDir)
+                    // @formatter:off
+                    exec { commandLine("unzip","-j","-o", file.absolutePath, "com/sun/jna/darwin-${arch.name}/*", "-d", targetDir.absolutePath) }
+                    // @formatter:on
+                    // 删除所有二进制类库
+                    exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/darwin-*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/win32-*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/sunos-*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/openbsd-*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/linux-*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/freebsd-*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/dragonflybsd-*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/aix-*") }
+                } else if ("${pty4j.name}-${pty4j.version}" == file.nameWithoutExtension) {
+                    val targetDir = FileUtils.getFile(dylib, pty4j.name, "darwin")
+                    FileUtils.forceMkdir(targetDir)
+                    // @formatter:off
+                    exec { commandLine("unzip", "-j" , "-o", file.absolutePath, "resources/com/pty4j/native/darwin*", "-d", targetDir.absolutePath) }
+                    // @formatter:on
+                    // 删除所有二进制类库
+                    exec { commandLine("zip", "-d", file.absolutePath, "resources/*") }
+                }
+            }
+        }
+    }
 }
 
 tasks.register<Exec>("jlink") {
@@ -137,6 +200,7 @@ tasks.register<Exec>("jlink") {
 }
 
 tasks.register<Exec>("jpackage") {
+
     val buildDir = layout.buildDirectory.get()
     val options = mutableListOf(
         "--add-exports java.base/sun.nio.ch=ALL-UNNAMED",
@@ -194,6 +258,12 @@ tasks.register<Exec>("jpackage") {
         throw UnsupportedOperationException()
     }
 
+    if (os.isMacOsX && macOSSign) {
+        arguments.add("--mac-sign")
+        arguments.add("--mac-signing-key-user-name")
+        arguments.add(macOSSignUsername)
+    }
+
     commandLine(arguments)
 
 }
@@ -201,13 +271,14 @@ tasks.register<Exec>("jpackage") {
 tasks.register("dist") {
     doLast {
         val vendor = Jvm.current().vendor ?: StringUtils.EMPTY
-        @Suppress("UnstableApiUsage")
-        if (!JvmVendorSpec.JETBRAINS.matches(vendor)) {
+        @Suppress("UnstableApiUsage") if (!JvmVendorSpec.JETBRAINS.matches(vendor)) {
             throw GradleException("JVM: $vendor is not supported")
         }
 
         val distributionDir = layout.buildDirectory.dir("distributions").get()
         val gradlew = File(projectDir, if (os.isWindows) "gradlew.bat" else "gradlew").absolutePath
+        val macOSFinalFilename =
+            distributionDir.file("${project.name}-${project.version}-osx-${arch.name}.dmg").asFile.absolutePath
 
         // 清空目录
         exec { commandLine(gradlew, "clean") }
@@ -228,14 +299,16 @@ tasks.register("dist") {
         exec {
             if (os.isWindows) { // zip
                 commandLine(
-                    "tar", "-vacf",
+                    "tar",
+                    "-vacf",
                     distributionDir.file("${project.name}-${project.version}-windows-${arch.name}.zip").asFile.absolutePath,
                     project.name.uppercaseFirstChar()
                 )
                 workingDir = layout.buildDirectory.dir("jpackage/images/win-msi.image/").get().asFile
             } else if (os.isLinux) { // tar.gz
                 commandLine(
-                    "tar", "-czvf",
+                    "tar",
+                    "-czvf",
                     distributionDir.file("${project.name}-${project.version}-linux-${arch.name}.tar.gz").asFile.absolutePath,
                     project.name.uppercaseFirstChar()
                 )
@@ -244,10 +317,43 @@ tasks.register("dist") {
                 commandLine(
                     "mv",
                     distributionDir.file("${project.name.uppercaseFirstChar()}-${project.version}.dmg").asFile.absolutePath,
-                    distributionDir.file("${project.name}-${project.version}-osx-${arch.name}.dmg").asFile.absolutePath,
+                    macOSFinalFilename,
                 )
             } else {
                 throw GradleException("${os.name} is not supported")
+            }
+        }
+
+
+        // sign dmg
+        if (os.isMacOsX && macOSSign) {
+            exec {
+                commandLine(
+                    "/usr/bin/codesign",
+                    "-s",
+                    macOSSignUsername,
+                    "--timestamp",
+                    "--force",
+                    "-vvvv",
+                    "--options",
+                    "runtime",
+                    macOSFinalFilename
+                )
+            }
+
+            // 公证
+            if (macOSNotary) {
+                exec {
+                    commandLine(
+                        "/usr/bin/xcrun",
+                        "notarytool",
+                        "submit",
+                        macOSFinalFilename,
+                        "--keychain-profile",
+                        macOSNotaryKeychainProfile,
+                        "--wait",
+                    )
+                }
             }
         }
     }
