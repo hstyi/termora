@@ -36,7 +36,7 @@ repositories {
 
 dependencies {
     // 由于签名和公证，macOS 不携带 natives
-    val useNoNativesFlatLaf = os.isMacOsX && project.gradle.startParameter.taskNames.contains("dist")
+    val useNoNativesFlatLaf = os.isMacOsX && System.getenv("ENABLE_BUILD").toBoolean()
 
     testImplementation(kotlin("test"))
     testImplementation(libs.hutool)
@@ -285,16 +285,24 @@ tasks.register("dist") {
         val macOSFinalFilePath = distributionDir.file("${finalFilenameWithoutExtension}.dmg").asFile.absolutePath
 
         // 清空目录
-        exec { commandLine(gradlew, "clean") }
+        exec {
+            commandLine(gradlew, "clean")
+        }
 
         // 打包并复制依赖
-        exec { commandLine(gradlew, "jar", "copy-dependencies") }
+        exec {
+            commandLine(gradlew, "jar", "copy-dependencies")
+            environment("ENABLE_BUILD" to true)
+        }
 
         // 检查依赖的开源协议
         exec { commandLine(gradlew, "check-license") }
 
         // jlink
-        exec { commandLine(gradlew, "jlink") }
+        exec {
+            commandLine(gradlew, "jlink")
+            environment("ENABLE_BUILD" to true)
+        }
 
         // 打包
         exec { commandLine(gradlew, "jpackage") }
