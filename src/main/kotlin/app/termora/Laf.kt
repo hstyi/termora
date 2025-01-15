@@ -8,6 +8,11 @@ import com.formdev.flatlaf.FlatPropertiesLaf
 import com.formdev.flatlaf.util.SystemInfo
 import java.util.*
 
+
+interface LafTag
+interface LightLafTag : LafTag
+interface DarkLafTag : LafTag
+
 class DraculaLaf : FlatPropertiesLaf("Dracula", Properties().apply {
     putAll(
         mapOf(
@@ -16,7 +21,7 @@ class DraculaLaf : FlatPropertiesLaf("Dracula", Properties().apply {
             "@windowText" to "#eaeaea",
         )
     )
-}), ColorTheme {
+}), ColorTheme, DarkLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Basic.BACKGROUND -> 0x282935
@@ -54,7 +59,8 @@ class DraculaLaf : FlatPropertiesLaf("Dracula", Properties().apply {
 
 }
 
-class LightLaf : FlatLightLaf(), ColorTheme {
+
+class LightLaf : FlatLightLaf(), ColorTheme, LightLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0
@@ -81,7 +87,7 @@ class LightLaf : FlatLightLaf(), ColorTheme {
 }
 
 
-class DarkLaf : FlatDarkLaf(), ColorTheme {
+class DarkLaf : FlatDarkLaf(), ColorTheme, DarkLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0
@@ -110,7 +116,7 @@ class DarkLaf : FlatDarkLaf(), ColorTheme {
     }
 }
 
-class iTerm2DarkLaf : FlatDarkLaf(), ColorTheme {
+class iTerm2DarkLaf : FlatDarkLaf(), ColorTheme, DarkLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
 
@@ -158,7 +164,7 @@ class TermiusLightLaf : FlatPropertiesLaf("Termius Light", Properties().apply {
             "@windowText" to "#32364a",
         )
     )
-}), ColorTheme {
+}), ColorTheme, LightLafTag {
 
     override fun getColor(color: TerminalColor): Int {
 
@@ -201,7 +207,7 @@ class TermiusDarkLaf : FlatPropertiesLaf("Termius Dark", Properties().apply {
             "@windowText" to "#21b568",
         )
     )
-}), ColorTheme {
+}), ColorTheme, DarkLafTag {
 
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
@@ -243,7 +249,7 @@ class NovelLaf : FlatPropertiesLaf("Novel", Properties().apply {
             "@windowText" to "#3b2322",
         )
     )
-}), ColorTheme {
+}), ColorTheme, LightLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x000000
@@ -282,7 +288,7 @@ class AtomOneDarkLaf : FlatPropertiesLaf("Atom One Dark", Properties().apply {
             "@windowText" to "#abb2bf",
         )
     )
-}), ColorTheme {
+}), ColorTheme, DarkLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x000000
@@ -320,7 +326,7 @@ class AtomOneLightLaf : FlatPropertiesLaf("Atom One Light", Properties().apply {
             "@windowText" to "#383a42",
         )
     )
-}), ColorTheme {
+}), ColorTheme, LightLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x000000
@@ -358,7 +364,7 @@ class EverforestDarkLaf : FlatPropertiesLaf("Everforest Dark", Properties().appl
             "@windowText" to "#d3c6aa",
         )
     )
-}), ColorTheme {
+}), ColorTheme, DarkLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x42494e
@@ -395,7 +401,7 @@ class EverforestLightLaf : FlatPropertiesLaf("Everforest Light", Properties().ap
             "@windowText" to "#5c6a72",
         )
     )
-}), ColorTheme {
+}), ColorTheme, LightLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x42494e
@@ -432,7 +438,7 @@ class NightOwlLaf : FlatPropertiesLaf("Night Owl", Properties().apply {
             "@windowText" to "#d6deeb",
         )
     )
-}), ColorTheme {
+}), ColorTheme, DarkLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x072945
@@ -469,7 +475,7 @@ class LightOwlLaf : FlatPropertiesLaf("Light Owl", Properties().apply {
             "@windowText" to "#403f53",
         )
     )
-}), ColorTheme {
+}), ColorTheme, LightLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x403f53
@@ -506,7 +512,7 @@ class AuraLaf : FlatPropertiesLaf("Aura", Properties().apply {
             "@windowText" to "#edecee",
         )
     )
-}), ColorTheme {
+}), ColorTheme, DarkLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x1c1b22
@@ -543,7 +549,7 @@ class Cobalt2Laf : FlatPropertiesLaf("Cobalt2", Properties().apply {
             "@windowText" to "#ffffff",
         )
     )
-}), ColorTheme {
+}), ColorTheme, DarkLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x000000
@@ -580,7 +586,7 @@ class OctocatDarkLaf : FlatPropertiesLaf("Octocat Dark", Properties().apply {
             "@windowText" to "#8b949e",
         )
     )
-}), ColorTheme {
+}), ColorTheme, DarkLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x000000
@@ -617,7 +623,7 @@ class OctocatLightLaf : FlatPropertiesLaf("Octocat Light", Properties().apply {
             "@windowText" to "#3e3e3e",
         )
     )
-}), ColorTheme {
+}), ColorTheme, LightLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x000000
@@ -654,7 +660,7 @@ class AyuDarkLaf : FlatPropertiesLaf("Ayu Dark", Properties().apply {
             "@windowText" to "#e6e1cf",
         )
     )
-}), ColorTheme {
+}), ColorTheme, DarkLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x000000
@@ -691,7 +697,7 @@ class AyuLightLaf : FlatPropertiesLaf("Ayu Light", Properties().apply {
             "@windowText" to "#5c6773",
         )
     )
-}), ColorTheme {
+}), ColorTheme, LightLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x000000
@@ -728,7 +734,7 @@ class HomebrewLaf : FlatPropertiesLaf("Homebrew", Properties().apply {
             "@windowText" to "#00ff00",
         )
     )
-}), ColorTheme {
+}), ColorTheme, DarkLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x2e2e2e
@@ -767,7 +773,7 @@ class ProLaf : FlatPropertiesLaf("Pro", Properties().apply {
             "@windowText" to "#f2f2f2",
         )
     )
-}), ColorTheme {
+}), ColorTheme, DarkLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x2e2e2e
@@ -806,7 +812,7 @@ class NordLightLaf : FlatPropertiesLaf("Nord Light", Properties().apply {
             "@windowText" to "#414858",
         )
     )
-}), ColorTheme {
+}), ColorTheme, LightLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x2c3344
@@ -845,7 +851,7 @@ class NordDarkLaf : FlatPropertiesLaf("Nord Dark", Properties().apply {
             "@windowText" to "#d8dee9",
         )
     )
-}), ColorTheme {
+}), ColorTheme, DarkLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x3b4252
@@ -885,7 +891,7 @@ class GitHubLightLaf : FlatPropertiesLaf("GitHub Light", Properties().apply {
             "@windowText" to "#3e3e3e",
         )
     )
-}), ColorTheme {
+}), ColorTheme, LightLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x3e3e3e
@@ -924,7 +930,7 @@ class GitHubDarkLaf : FlatPropertiesLaf("GitHub Dark", Properties().apply {
             "@windowText" to "#8b949e",
         )
     )
-}), ColorTheme {
+}), ColorTheme, DarkLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x000000
@@ -964,7 +970,7 @@ class ChalkLaf : FlatPropertiesLaf("Chalk", Properties().apply {
             "@windowText" to "#d2d8d9",
         )
     )
-}), ColorTheme {
+}), ColorTheme, DarkLafTag {
     override fun getColor(color: TerminalColor): Int {
         return when (color) {
             TerminalColor.Normal.BLACK -> 0x7d8b8f

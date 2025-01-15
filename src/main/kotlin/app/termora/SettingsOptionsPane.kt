@@ -17,11 +17,8 @@ import app.termora.terminal.CursorStyle
 import app.termora.terminal.DataKey
 import app.termora.terminal.panel.TerminalPanel
 import cash.z.ecc.android.bip39.Mnemonics
-import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.FlatSVGIcon
-import com.formdev.flatlaf.extras.components.FlatButton
-import com.formdev.flatlaf.extras.components.FlatComboBox
-import com.formdev.flatlaf.extras.components.FlatLabel
+import com.formdev.flatlaf.extras.components.*
 import com.formdev.flatlaf.util.SystemInfo
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
@@ -49,6 +46,8 @@ import java.nio.charset.StandardCharsets
 import java.util.*
 import javax.swing.*
 import javax.swing.event.DocumentEvent
+import javax.swing.event.PopupMenuEvent
+import javax.swing.event.PopupMenuListener
 import kotlin.time.Duration.Companion.milliseconds
 
 
@@ -109,6 +108,7 @@ class SettingsOptionsPane : OptionsPane() {
         val themeComboBox = FlatComboBox<String>()
         val languageComboBox = FlatComboBox<String>()
         val followSystemCheckBox = JCheckBox(I18n.getString("termora.settings.appearance.follow-system"))
+        val preferredThemeBtn = JButton(Icons.settings)
         private val appearance get() = database.appearance
 
         init {
@@ -119,6 +119,7 @@ class SettingsOptionsPane : OptionsPane() {
         private fun initView() {
 
             followSystemCheckBox.isSelected = appearance.followSystem
+            preferredThemeBtn.isEnabled = followSystemCheckBox.isSelected
 
             themeComboBox.isEnabled = !followSystemCheckBox.isSelected
             themeManager.themes.keys.forEach { themeComboBox.addItem(it) }
@@ -158,19 +159,16 @@ class SettingsOptionsPane : OptionsPane() {
             followSystemCheckBox.addActionListener {
                 appearance.followSystem = followSystemCheckBox.isSelected
                 themeComboBox.isEnabled = !followSystemCheckBox.isSelected
+                preferredThemeBtn.isEnabled = followSystemCheckBox.isSelected
 
                 if (followSystemCheckBox.isSelected) {
                     SwingUtilities.invokeLater {
                         if (OsThemeDetector.getDetector().isDark) {
-                            if (!FlatLaf.isLafDark()) {
-                                themeManager.change("Dark")
-                                themeComboBox.selectedItem = "Dark"
-                            }
+                            themeManager.change(appearance.darkTheme)
+                            themeComboBox.selectedItem = appearance.darkTheme
                         } else {
-                            if (FlatLaf.isLafDark()) {
-                                themeManager.change("Light")
-                                themeComboBox.selectedItem = "Light"
-                            }
+                            themeManager.change(appearance.lightTheme)
+                            themeComboBox.selectedItem = appearance.lightTheme
                         }
                     }
                 }
@@ -189,6 +187,8 @@ class SettingsOptionsPane : OptionsPane() {
                     }
                 }
             }
+
+            preferredThemeBtn.addActionListener { showPreferredThemeContextmenu() }
         }
 
         override fun getIcon(isSelected: Boolean): Icon {
@@ -203,19 +203,74 @@ class SettingsOptionsPane : OptionsPane() {
             return this
         }
 
+        private fun showPreferredThemeContextmenu() {
+            val popupMenu = FlatPopupMenu()
+            val dark = JMenu("For Dark OS")
+            val light = JMenu("For Light OS")
+            val darkTheme = appearance.darkTheme
+            val lightTheme = appearance.lightTheme
+
+            for (e in themeManager.themes) {
+                val clazz = Class.forName(e.value)
+                val item = JCheckBoxMenuItem(e.key)
+                item.isSelected = e.key == lightTheme || e.key == darkTheme
+                if (clazz.interfaces.contains(DarkLafTag::class.java)) {
+                    dark.add(item).addActionListener {
+                        if (e.key != darkTheme) {
+                            appearance.darkTheme = e.key
+                            if (OsThemeDetector.getDetector().isDark) {
+                                themeComboBox.selectedItem = e.key
+                            }
+                        }
+                    }
+                } else if (clazz.interfaces.contains(LightLafTag::class.java)) {
+                    light.add(item).addActionListener {
+                        if (e.key != lightTheme) {
+                            appearance.lightTheme = e.key
+                            if (!OsThemeDetector.getDetector().isDark) {
+                                themeComboBox.selectedItem = e.key
+                            }
+                        }
+                    }
+                }
+            }
+
+            popupMenu.add(dark)
+            popupMenu.addSeparator()
+            popupMenu.add(light)
+            popupMenu.addPopupMenuListener(object : PopupMenuListener {
+                override fun popupMenuWillBecomeVisible(e: PopupMenuEvent) {
+
+                }
+
+                override fun popupMenuWillBecomeInvisible(e: PopupMenuEvent) {
+                }
+
+                override fun popupMenuCanceled(e: PopupMenuEvent) {
+                }
+
+            })
+
+            popupMenu.show(preferredThemeBtn, 0, preferredThemeBtn.height + 2)
+        }
+
 
         private fun getFormPanel(): JPanel {
             val layout = FormLayout(
                 "left:pref, $formMargin, default:grow, $formMargin, default, default:grow",
                 "pref, $formMargin, pref, $formMargin"
             )
+            val box = FlatToolBar()
+            box.add(followSystemCheckBox)
+            box.add(Box.createHorizontalStrut(2))
+            box.add(preferredThemeBtn)
 
             var rows = 1
             val step = 2
             return FormBuilder.create().layout(layout)
                 .add("${I18n.getString("termora.settings.appearance.theme")}:").xy(1, rows)
                 .add(themeComboBox).xy(3, rows)
-                .add(followSystemCheckBox).xy(5, rows).apply { rows += step }
+                .add(box).xy(5, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.appearance.language")}:").xy(1, rows)
                 .add(languageComboBox).xy(3, rows)
                 .add(Hyperlink(object : AnAction(I18n.getString("termora.settings.appearance.i-want-to-translate")) {
