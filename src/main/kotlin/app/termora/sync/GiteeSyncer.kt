@@ -1,6 +1,7 @@
 package app.termora.sync
 
 import app.termora.Application.ohMyJson
+import app.termora.ApplicationScope
 import app.termora.ResponseException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
@@ -13,7 +14,9 @@ import org.apache.commons.lang3.StringUtils
 class GiteeSyncer private constructor() : GitSyncer() {
 
     companion object {
-        val instance by lazy { GiteeSyncer() }
+        fun getInstance(): GiteeSyncer {
+            return ApplicationScope.forApplicationScope().getOrCreate(GiteeSyncer::class) { GiteeSyncer() }
+        }
     }
 
     override fun newPullRequestBuilder(config: SyncConfig): Request.Builder {

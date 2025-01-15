@@ -42,14 +42,14 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.hutool)
     testImplementation(libs.sshj)
-    testImplementation(platform(libs.koin.bom))
-    testImplementation(libs.koin.core)
     testImplementation(libs.jsch)
     testImplementation(libs.rhino)
     testImplementation(libs.delight.rhino.sandbox)
     testImplementation(platform(libs.testcontainers.bom))
     testImplementation(libs.testcontainers)
 
+//    implementation(platform(libs.koin.bom))
+//    implementation(libs.koin.core)
     implementation(libs.slf4j.api)
     implementation(libs.pty4j)
     implementation(libs.slf4j.tinylog)
@@ -109,6 +109,12 @@ dependencies {
 application {
     val args = mutableListOf(
         "--add-exports java.base/sun.nio.ch=ALL-UNNAMED",
+        "-Xmx2g",
+        "-XX:+UseZGC",
+        "-XX:+ZUncommit",
+        "-XX:+ZGenerational",
+        "-XX:ZUncommitDelay=60",
+        "-XX:SoftMaxHeapSize=64m"
     )
 
     if (os.isMacOsX) {
@@ -215,6 +221,11 @@ tasks.register<Exec>("jpackage") {
     val options = mutableListOf(
         "--add-exports java.base/sun.nio.ch=ALL-UNNAMED",
         "-Xmx2g",
+        "-XX:+UseZGC",
+        "-XX:+ZUncommit",
+        "-XX:+ZGenerational",
+        "-XX:ZUncommitDelay=60",
+        "-XX:SoftMaxHeapSize=64m",
         "-XX:+HeapDumpOnOutOfMemoryError",
         "-Dlogger.console.level=off",
         "-Dkotlinx.coroutines.debug=off",

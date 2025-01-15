@@ -1,9 +1,12 @@
 package app.termora.findeverywhere
 
-import app.termora.*
+import app.termora.Actions
+import app.termora.I18n
+import app.termora.Icons
+import app.termora.actions.NewHostAction
+import app.termora.actions.OpenLocalTerminalAction
 import com.formdev.flatlaf.FlatLaf
 import org.jdesktop.swingx.action.ActionManager
-import java.awt.event.ActionEvent
 import javax.swing.Icon
 
 class QuickCommandFindEverywhereProvider : FindEverywhereProvider {
@@ -11,26 +14,12 @@ class QuickCommandFindEverywhereProvider : FindEverywhereProvider {
 
     override fun find(pattern: String): List<FindEverywhereResult> {
         val list = mutableListOf<FindEverywhereResult>()
-        actionManager?.let {
-            list.add(CreateHostFindEverywhereResult())
-        }
+        actionManager.let { list.add(CreateHostFindEverywhereResult()) }
 
         // Local terminal
-        list.add(ActionFindEverywhereResult(object : AnAction(
-            I18n.getString("termora.find-everywhere.quick-command.local-terminal"),
-            Icons.terminal
-        ) {
-            override fun actionPerformed(evt: ActionEvent) {
-                actionManager.getAction(Actions.OPEN_HOST)?.actionPerformed(
-                    OpenHostActionEvent(
-                        this, Host(
-                            name = name,
-                            protocol = Protocol.Local
-                        )
-                    )
-                )
-            }
-        }))
+        actionManager.getAction(OpenLocalTerminalAction.LOCAL_TERMINAL)?.let {
+            list.add(ActionFindEverywhereResult(it))
+        }
 
         // SFTP
         actionManager.getAction(Actions.SFTP)?.let {
@@ -50,7 +39,7 @@ class QuickCommandFindEverywhereProvider : FindEverywhereProvider {
     }
 
     private class CreateHostFindEverywhereResult : ActionFindEverywhereResult(
-        ActionManager.getInstance().getAction(Actions.ADD_HOST)
+        ActionManager.getInstance().getAction(NewHostAction.NEW_HOST)
     ) {
         override fun getIcon(isSelected: Boolean): Icon {
             if (isSelected) {

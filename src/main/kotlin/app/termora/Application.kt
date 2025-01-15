@@ -16,14 +16,11 @@ import java.awt.Desktop
 import java.io.File
 import java.net.URI
 import java.time.Duration
-import java.util.*
 import kotlin.math.ln
 import kotlin.math.pow
-import kotlin.reflect.KClass
 
 
 object Application {
-    private val services = Collections.synchronizedMap(mutableMapOf<KClass<*>, Any>())
     private lateinit var baseDataDir: File
 
 
@@ -123,22 +120,6 @@ object Application {
         } else {
             tryBrowse(uri)
         }
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    fun <T : Any> getService(clazz: KClass<T>): T {
-        if (services.containsKey(clazz)) {
-            return services[clazz] as T
-        }
-        throw IllegalStateException("$clazz does not exist")
-    }
-
-    @Synchronized
-    fun registerService(clazz: KClass<*>, service: Any) {
-        if (services.containsKey(clazz)) {
-            throw IllegalStateException("$clazz already registered")
-        }
-        services[clazz] = service
     }
 
     private fun tryBrowse(uri: URI) {

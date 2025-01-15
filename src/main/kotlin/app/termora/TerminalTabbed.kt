@@ -1,28 +1,35 @@
 package app.termora
 
+
+import app.termora.actions.*
 import app.termora.findeverywhere.BasicFilterFindEverywhereProvider
-import app.termora.findeverywhere.FindEverywhere
 import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereResult
+import app.termora.terminal.DataKey
 import app.termora.transport.TransportPanel
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
-import org.jdesktop.swingx.action.ActionManager
 import java.awt.*
-import java.awt.event.*
+import java.awt.event.AWTEventListener
+import java.awt.event.ActionEvent
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import java.beans.PropertyChangeListener
 import javax.swing.*
 import javax.swing.JTabbedPane.SCROLL_TAB_LAYOUT
 import kotlin.math.min
 
 class TerminalTabbed(
+    private val windowScope: WindowScope,
     private val termoraToolBar: TermoraToolBar,
     private val tabbedPane: FlatTabbedPane,
-) : JPanel(BorderLayout()), Disposable, TerminalTabbedManager {
+) : JPanel(BorderLayout()), Disposable, TerminalTabbedManager, DataProvider {
     private val tabs = mutableListOf<TerminalTab>()
     private val customizeToolBarAWTEventListener = CustomizeToolBarAWTEventListener()
     private val toolbar = termoraToolBar.getJToolBar()
+    private val actionManager = ActionManager.getInstance()
+    private val dataProviderSupport = DataProviderSupport()
 
     private val iconListener = PropertyChangeListener { e ->
         val source = e.source
@@ -52,6 +59,10 @@ class TerminalTabbed(
 
         add(tabbedPane, BorderLayout.CENTER)
 
+        windowScope.getOrCreate(TerminalTabbedManager::class) { this }
+
+        dataProviderSupport.addData(DataProviders.TerminalTabbed, this)
+        dataProviderSupport.addData(DataProviders.TerminalTabbedManager, this)
     }
 
 
@@ -78,35 +89,6 @@ class TerminalTabbed(
                 c.requestFocusInWindow()
             }
         }
-
-
-        // 快捷键
-        val inputMap = getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)
-        for (i in KeyEvent.VK_1..KeyEvent.VK_9) {
-            val tabIndex = i - KeyEvent.VK_1 + 1
-            val actionKey = "select_$tabIndex"
-            actionMap.put(actionKey, object : AnAction() {
-                override fun actionPerformed(e: ActionEvent) {
-                    tabbedPane.selectedIndex = if (i == KeyEvent.VK_9 || tabIndex > tabbedPane.tabCount) {
-                        tabbedPane.tabCount - 1
-                    } else {
-                        tabIndex - 1
-                    }
-                }
-            })
-            inputMap.put(KeyStroke.getKeyStroke(i, toolkit.menuShortcutKeyMaskEx), actionKey)
-        }
-
-        // 关闭 tab
-        actionMap.put("closeTab", object : AnAction() {
-            override fun actionPerformed(e: ActionEvent) {
-                if (tabbedPane.selectedIndex >= 0) {
-                    tabbedPane.tabCloseCallback?.accept(tabbedPane, tabbedPane.selectedIndex)
-                }
-            }
-        })
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_W, toolkit.menuShortcutKeyMaskEx), "closeTab")
-
 
         // 右键菜单
         tabbedPane.addMouseListener(object : MouseAdapter() {
@@ -136,44 +118,35 @@ class TerminalTabbed(
         })
 
         // 注册全局搜索
-        FindEverywhere.registerProvider(BasicFilterFindEverywhereProvider(object : FindEverywhereProvider {
-            override fun find(pattern: String): List<FindEverywhereResult> {
-                val results = mutableListOf<FindEverywhereResult>()
-                for (i in 0 until tabbedPane.tabCount) {
-                    val c = tabbedPane.getComponentAt(i)
-                    if (c is WelcomePanel || c is TransportPanel) {
-                        continue
-                    }
-                    results.add(
-                        SwitchFindEverywhereResult(
-                            tabbedPane.getTitleAt(i),
-                            tabbedPane.getIconAt(i),
-                            tabbedPane.getComponentAt(i)
+        FindEverywhereProvider.getFindEverywhereProviders(windowScope)
+            .add(BasicFilterFindEverywhereProvider(object : FindEverywhereProvider {
+                override fun find(pattern: String): List<FindEverywhereResult> {
+                    val results = mutableListOf<FindEverywhereResult>()
+                    for (i in 0 until tabbedPane.tabCount) {
+                        val c = tabbedPane.getComponentAt(i)
+                        if (c is WelcomePanel || c is TransportPanel) {
+                            continue
+                        }
+                        results.add(
+                            SwitchFindEverywhereResult(
+                                tabbedPane.getTitleAt(i),
+                                tabbedPane.getIconAt(i),
+                                tabbedPane.getComponentAt(i)
+                            )
                         )
-                    )
+                    }
+                    return results
                 }
-                return results
-            }
 
-            override fun group(): String {
-                return I18n.getString("termora.find-everywhere.groups.opened-hosts")
-            }
-
-            override fun order(): Int {
-                return Integer.MIN_VALUE + 1
-            }
-        }))
-
-
-        // 打开 Host
-        ActionManager.getInstance().addAction(Actions.OPEN_HOST, object : AbstractAction() {
-            override fun actionPerformed(e: ActionEvent) {
-                if (e !is OpenHostActionEvent) {
-                    return
+                override fun group(): String {
+                    return I18n.getString("termora.find-everywhere.groups.opened-hosts")
                 }
-                openHost(e.host)
-            }
-        })
+
+                override fun order(): Int {
+                    return Integer.MIN_VALUE + 1
+                }
+            }))
+
 
         // 监听全局事件
         toolkit.addAWTEventListener(customizeToolBarAWTEventListener, AWTEvent.MOUSE_EVENT_MASK)
@@ -210,7 +183,9 @@ class TerminalTabbed(
 
 
     private fun openHost(host: Host) {
-        val tab = if (host.protocol == Protocol.SSH) SSHTerminalTab(host) else LocalTerminalTab(host)
+        val tab = if (host.protocol == Protocol.SSH)
+            SSHTerminalTab(ApplicationScope.forWindowScope(this), host)
+        else LocalTerminalTab(ApplicationScope.forWindowScope(this), host)
         addTab(tab)
         tab.start()
     }
@@ -242,32 +217,34 @@ class TerminalTabbed(
 
         // 克隆
         val clone = popupMenu.add(I18n.getString("termora.tabbed.contextmenu.clone"))
-        clone.addActionListener {
+        clone.addActionListener { evt ->
             if (tab is HostTerminalTab) {
-                ActionManager.getInstance()
-                    .getAction(Actions.OPEN_HOST)
-                    .actionPerformed(OpenHostActionEvent(this, tab.host))
+                actionManager
+                    .getAction(OpenHostAction.OPEN_HOST)
+                    .actionPerformed(OpenHostActionEvent(this, tab.host, evt))
             }
         }
 
         // 在新窗口中打开
         val openInNewWindow = popupMenu.add(I18n.getString("termora.tabbed.contextmenu.open-in-new-window"))
-        openInNewWindow.addActionListener {
-            val index = tabbedPane.selectedIndex
-            if (index > 0) {
-                val title = tabbedPane.getTitleAt(index)
-                removeTabAt(index, false)
-                val dialog = TerminalTabDialog(
-                    owner = SwingUtilities.getWindowAncestor(this),
-                    terminalTab = tab,
-                    size = Dimension(min(size.width, 1280), min(size.height, 800))
-                )
-                dialog.title = title
-                Disposer.register(dialog, tab)
-                Disposer.register(this, dialog)
-                dialog.isVisible = true
+        openInNewWindow.addActionListener(object : AnAction() {
+            override fun actionPerformed(evt: AnActionEvent) {
+                val owner = evt.getData(DataProviders.TermoraFrame) ?: return
+                if (tabIndex > 0) {
+                    val title = tabbedPane.getTitleAt(tabIndex)
+                    removeTabAt(tabIndex, false)
+                    val dialog = TerminalTabDialog(
+                        owner = owner,
+                        terminalTab = tab,
+                        size = Dimension(min(size.width, 1280), min(size.height, 800))
+                    )
+                    dialog.title = title
+                    Disposer.register(dialog, tab)
+                    Disposer.register(this@TerminalTabbed, dialog)
+                    dialog.isVisible = true
+                }
             }
-        }
+        })
 
         popupMenu.addSeparator()
 
@@ -449,6 +426,19 @@ class TerminalTabbed(
                 break
             }
         }
+    }
+
+    override fun closeTerminalTab(tab: TerminalTab) {
+        for (i in 0 until tabs.size) {
+            if (tabs[i] == tab) {
+                removeTabAt(i, true)
+                break
+            }
+        }
+    }
+
+    override fun <T : Any> getData(dataKey: DataKey<T>): T? {
+        return dataProviderSupport.getData(dataKey)
     }
 
 

@@ -2,16 +2,17 @@ package app.termora
 
 import app.termora.AES.decodeBase64
 import app.termora.AES.encodeBase64String
-import app.termora.db.Database
 
 class PasswordWrongException : RuntimeException()
 
-class Doorman private constructor() {
-    private val properties get() = Database.instance.properties
+class Doorman private constructor() : Disposable {
+    private val properties get() = Database.getDatabase().properties
     private var key = byteArrayOf()
 
     companion object {
-        val instance by lazy { Doorman() }
+        fun getInstance(): Doorman {
+            return ApplicationScope.forApplicationScope().getOrCreate(Doorman::class) { Doorman() }
+        }
     }
 
     fun isWorking(): Boolean {
@@ -81,5 +82,9 @@ class Doorman private constructor() {
     fun test(password: CharArray): Boolean {
         checkIsWorking()
         return key.contentEquals(convertKey(password))
+    }
+
+    override fun dispose() {
+        key = byteArrayOf()
     }
 }

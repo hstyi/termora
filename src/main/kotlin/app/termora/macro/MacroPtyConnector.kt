@@ -1,6 +1,7 @@
 package app.termora.macro
 
 import app.termora.Actions
+
 import app.termora.terminal.PtyConnector
 import app.termora.terminal.PtyConnectorDelegate
 import org.jdesktop.swingx.action.ActionManager

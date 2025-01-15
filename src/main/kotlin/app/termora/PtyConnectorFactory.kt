@@ -1,22 +1,26 @@
 package app.termora
 
-import app.termora.db.Database
 import app.termora.macro.MacroPtyConnector
 import app.termora.terminal.PtyConnector
 import app.termora.terminal.PtyConnectorDelegate
 import app.termora.terminal.PtyProcessConnector
 import com.pty4j.PtyProcessBuilder
+import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
+import org.slf4j.LoggerFactory
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.util.*
 
-class PtyConnectorFactory {
+class PtyConnectorFactory : Disposable {
     private val ptyConnectors = Collections.synchronizedList(mutableListOf<PtyConnector>())
-    private val database get() = Database.instance
+    private val database get() = Database.getDatabase()
 
     companion object {
-        val instance by lazy { PtyConnectorFactory() }
+        private val log = LoggerFactory.getLogger(PtyConnectorFactory::class.java)
+        fun getInstance(scope: Scope): PtyConnectorFactory {
+            return scope.getOrCreate(PtyConnectorFactory::class) { PtyConnectorFactory() }
+        }
     }
 
     fun createPtyConnector(
@@ -29,10 +33,23 @@ class PtyConnectorFactory {
         envs["TERM"] = "xterm-256color"
         envs.putAll(env)
 
+        if (SystemUtils.IS_OS_UNIX) {
+            if (!envs.containsKey("LANG")) {
+                val locale = Locale.getDefault()
+                if (StringUtils.isNoneBlank(locale.language, locale.country)) {
+                    envs["LANG"] = "${locale.language}_${locale.country}.${Charset.defaultCharset().name()}"
+                }
+            }
+        }
+
         val command = database.terminal.localShell
         val commands = mutableListOf(command)
         if (SystemUtils.IS_OS_UNIX) {
             commands.add("-l")
+        }
+
+        if (log.isDebugEnabled) {
+            log.debug("command: {} , envs: {}", commands.joinToString(" "), envs)
         }
 
         val ptyProcess = PtyProcessBuilder(commands.toTypedArray())

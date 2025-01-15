@@ -1,6 +1,7 @@
 package app.termora.sync
 
 import app.termora.Application.ohMyJson
+import app.termora.ApplicationScope
 import app.termora.ResponseException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
@@ -14,7 +15,9 @@ import java.nio.charset.StandardCharsets
 class GitLabSyncer private constructor() : GitSyncer() {
 
     companion object {
-        val instance by lazy { GitLabSyncer() }
+        fun getInstance(): GitLabSyncer {
+            return ApplicationScope.forApplicationScope().getOrCreate(GitLabSyncer::class) { GitLabSyncer() }
+        }
     }
 
     private val SyncConfig.domain get() = options.getValue("domain")

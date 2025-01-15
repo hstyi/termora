@@ -46,7 +46,7 @@ class OhKeyPairKeyPairProvider(private val id: String) : AbstractResourceKeyPair
 
     override fun loadKeys(session: SessionContext?): Iterable<KeyPair> {
         val log = OhKeyPairKeyPairProvider.log
-        val ohKeyPair = KeyManager.instance.getOhKeyPair(id)
+        val ohKeyPair = KeyManager.getInstance().getOhKeyPair(id)
         if (ohKeyPair == null) {
             if (log.isErrorEnabled) {
                 log.error("Oh KeyPair [$id] could not be loaded")

@@ -68,7 +68,7 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
         keyPairTable.model = keyPairTableModel
         keyPairTable.fillsViewportHeight = true
 
-        KeyManager.instance.getOhKeyPairs().forEach {
+        KeyManager.getInstance().getOhKeyPairs().forEach {
             keyPairTableModel.addRow(arrayOf(it))
         }
 
@@ -102,7 +102,7 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
             dialog.isVisible = true
             if (dialog.ohKeyPair != OhKeyPair.empty) {
                 val keyPair = dialog.ohKeyPair
-                KeyManager.instance.addOhKeyPair(keyPair)
+                KeyManager.getInstance().addOhKeyPair(keyPair)
                 keyPairTableModel.addRow(arrayOf(keyPair))
             }
         }
@@ -118,7 +118,7 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
                     val rows = keyPairTable.selectedRows.sorted().reversed()
                     for (row in rows) {
                         val id = keyPairTableModel.getOhKeyPair(row).id
-                        KeyManager.instance.removeOhKeyPair(id)
+                        KeyManager.getInstance().removeOhKeyPair(id)
                         keyPairTableModel.removeRow(row)
                     }
                 }
@@ -129,7 +129,7 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
             val dialog = ImportKeyDialog(SwingUtilities.getWindowAncestor(this))
             dialog.isVisible = true
             if (dialog.ohKeyPair != OhKeyPair.empty) {
-                KeyManager.instance.addOhKeyPair(dialog.ohKeyPair)
+                KeyManager.getInstance().addOhKeyPair(dialog.ohKeyPair)
                 keyPairTableModel.addRow(arrayOf(dialog.ohKeyPair))
             }
         }
@@ -148,7 +148,7 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
                 ohKeyPair = dialog.ohKeyPair
 
                 if (ohKeyPair != OhKeyPair.empty) {
-                    KeyManager.instance.addOhKeyPair(ohKeyPair)
+                    KeyManager.getInstance().addOhKeyPair(ohKeyPair)
                     keyPairTableModel.setValueAt(ohKeyPair, row, 0)
                     keyPairTableModel.fireTableRowsUpdated(row, row)
                 }

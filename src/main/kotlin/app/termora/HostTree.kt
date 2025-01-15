@@ -1,6 +1,8 @@
 package app.termora
 
-import app.termora.db.Database
+
+import app.termora.actions.NewHostAction
+import app.termora.actions.OpenHostAction
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.icons.FlatTreeClosedIcon
 import com.formdev.flatlaf.icons.FlatTreeOpenIcon
@@ -24,7 +26,7 @@ import javax.swing.tree.TreeSelectionModel
 
 
 class HostTree : JTree(), Disposable {
-    private val hostManager get() = HostManager.instance
+    private val hostManager get() = HostManager.getInstance()
     private val editor = OutlineTextField(64)
 
     var contextmenu = true
@@ -83,7 +85,7 @@ class HostTree : JTree(), Disposable {
         })
 
 
-        val state = Database.instance.properties.getString("HostTreeExpansionState")
+        val state = Database.getDatabase().properties.getString("HostTreeExpansionState")
         if (state != null) {
             TreeUtils.loadExpansionState(this@HostTree, state)
         }
@@ -132,8 +134,8 @@ class HostTree : JTree(), Disposable {
                 if (doubleClickConnection && SwingUtilities.isLeftMouseButton(e) && e.clickCount % 2 == 0) {
                     val host = lastSelectedPathComponent
                     if (host is Host && host.protocol != Protocol.Folder) {
-                        ActionManager.getInstance().getAction(Actions.OPEN_HOST)
-                            ?.actionPerformed(OpenHostActionEvent(this, host))
+                        ActionManager.getInstance().getAction(OpenHostAction.OPEN_HOST)
+                            ?.actionPerformed(OpenHostActionEvent(e.source, host, e))
                     }
                 }
             }
@@ -328,13 +330,13 @@ class HostTree : JTree(), Disposable {
         popupMenu.addSeparator()
         val property = popupMenu.add(I18n.getString("termora.welcome.contextmenu.property"))
 
-        open.addActionListener {
+        open.addActionListener { evt ->
             getSelectionNodes()
                 .filter { it.protocol != Protocol.Folder }
                 .forEach {
                     ActionManager.getInstance()
-                        .getAction(Actions.OPEN_HOST)
-                        ?.actionPerformed(OpenHostActionEvent(this, it))
+                        .getAction(OpenHostAction.OPEN_HOST)
+                        ?.actionPerformed(OpenHostActionEvent(evt.source, it, evt))
                 }
         }
 
@@ -412,7 +414,8 @@ class HostTree : JTree(), Disposable {
 
         newHost.addActionListener(object : AbstractAction() {
             override fun actionPerformed(e: ActionEvent) {
-                showAddHostDialog()
+                ActionManager.getInstance().getAction(NewHostAction.NEW_HOST)
+                    ?.actionPerformed(e)
             }
         })
 
@@ -451,30 +454,8 @@ class HostTree : JTree(), Disposable {
         popupMenu.show(this, event.x, event.y)
     }
 
-    fun showAddHostDialog() {
-        var lastHost = lastSelectedPathComponent
-        if (lastHost !is Host) {
-            return
-        }
 
-        if (lastHost.protocol != Protocol.Folder) {
-            val p = model.getParent(lastHost) ?: return
-            lastHost = p
-        }
-
-        val dialog = HostDialog(SwingUtilities.getWindowAncestor(this))
-        dialog.isVisible = true
-        val host = (dialog.host ?: return).copy(parentId = lastHost.id)
-
-        runCatchingHost(host)
-
-        expandNode(lastHost)
-        selectionPath = TreePath(model.getPathToRoot(host))
-
-    }
-
-
-    private fun expandNode(node: Host, including: Boolean = false) {
+    fun expandNode(node: Host, including: Boolean = false) {
         expandPath(TreePath(model.getPathToRoot(node)))
         if (including) {
             model.getChildren(node).forEach { expandNode(it, true) }
@@ -552,7 +533,7 @@ class HostTree : JTree(), Disposable {
     }
 
     override fun dispose() {
-        Database.instance.properties.putString(
+        Database.getDatabase().properties.putString(
             "HostTreeExpansionState",
             TreeUtils.saveExpansionState(this)
         )

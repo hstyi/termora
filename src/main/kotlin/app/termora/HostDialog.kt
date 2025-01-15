@@ -1,12 +1,13 @@
 package app.termora
 
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.session.ClientSession
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Window
-import java.awt.event.ActionEvent
 import javax.swing.*
 
 class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
@@ -40,7 +41,7 @@ class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
 
     private fun createTestConnectionAction(): AbstractAction {
         return object : AnAction(I18n.getString("termora.new-host.test-connection")) {
-            override fun actionPerformed(e: ActionEvent) {
+            override fun actionPerformed(evt: AnActionEvent) {
                 if (!pane.validateFields()) {
                     return
                 }

@@ -5,4 +5,5 @@ interface TerminalTabbedManager {
     fun getSelectedTerminalTab(): TerminalTab?
     fun getTerminalTabs(): List<TerminalTab>
     fun setSelectedTerminalTab(tab: TerminalTab)
+    fun closeTerminalTab(tab: TerminalTab)
 }

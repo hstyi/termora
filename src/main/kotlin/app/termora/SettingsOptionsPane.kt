@@ -2,8 +2,10 @@ package app.termora
 
 import app.termora.AES.encodeBase64String
 import app.termora.Application.ohMyJson
-import app.termora.db.Database
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
 import app.termora.highlight.KeywordHighlightManager
+import app.termora.keymap.KeymapPanel
 import app.termora.keymgr.KeyManager
 import app.termora.macro.MacroManager
 import app.termora.native.FileChooser
@@ -40,7 +42,6 @@ import org.slf4j.LoggerFactory
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.datatransfer.StringSelection
-import java.awt.event.ActionEvent
 import java.awt.event.ItemEvent
 import java.io.File
 import java.net.URI
@@ -53,7 +54,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class SettingsOptionsPane : OptionsPane() {
     private val owner get() = SwingUtilities.getWindowAncestor(this@SettingsOptionsPane)
-    private val database get() = Database.instance
+    private val database get() = Database.getDatabase()
 
     companion object {
         private val log = LoggerFactory.getLogger(SettingsOptionsPane::class.java)
@@ -96,6 +97,7 @@ class SettingsOptionsPane : OptionsPane() {
     init {
         addOption(AppearanceOption())
         addOption(TerminalOption())
+        addOption(KeyShortcutsOption())
         addOption(CloudSyncOption())
         addOption(DoormanOption())
         addOption(AboutOption())
@@ -103,7 +105,7 @@ class SettingsOptionsPane : OptionsPane() {
     }
 
     private inner class AppearanceOption : JPanel(BorderLayout()), Option {
-        val themeManager = ThemeManager.instance
+        val themeManager = ThemeManager.getInstance()
         val themeComboBox = FlatComboBox<String>()
         val languageComboBox = FlatComboBox<String>()
         val followSystemCheckBox = JCheckBox(I18n.getString("termora.settings.appearance.follow-system"))
@@ -217,7 +219,7 @@ class SettingsOptionsPane : OptionsPane() {
                 .add("${I18n.getString("termora.settings.appearance.language")}:").xy(1, rows)
                 .add(languageComboBox).xy(3, rows)
                 .add(Hyperlink(object : AnAction(I18n.getString("termora.settings.appearance.i-want-to-translate")) {
-                    override fun actionPerformed(evt: ActionEvent) {
+                    override fun actionPerformed(evt: AnActionEvent) {
                         Application.browse(URI.create("https://github.com/TermoraDev/termora/tree/main/src/main/resources/i18n"))
                     }
                 })).xy(5, rows).apply { rows += step }
@@ -234,7 +236,7 @@ class SettingsOptionsPane : OptionsPane() {
         private val shellComboBox = FlatComboBox<String>()
         private val maxRowsTextField = IntSpinner(0, 0)
         private val fontSizeTextField = IntSpinner(0, 9, 99)
-        private val terminalSetting get() = Database.instance.terminal
+        private val terminalSetting get() = Database.getDatabase().terminal
         private val selectCopyComboBox = YesOrNoComboBox()
 
         init {
@@ -270,7 +272,7 @@ class SettingsOptionsPane : OptionsPane() {
                 if (it.stateChange == ItemEvent.SELECTED) {
                     val style = cursorStyleComboBox.selectedItem as CursorStyle
                     terminalSetting.cursor = style
-                    TerminalFactory.instance.getTerminals().forEach { e ->
+                    TerminalFactory.getInstance(ApplicationScope.forWindowScope(owner)).getTerminals().forEach { e ->
                         e.getTerminalModel().setData(DataKey.CursorStyle, style)
                     }
                 }
@@ -280,7 +282,7 @@ class SettingsOptionsPane : OptionsPane() {
             debugComboBox.addItemListener { e ->
                 if (e.stateChange == ItemEvent.SELECTED) {
                     terminalSetting.debug = debugComboBox.selectedItem as Boolean
-                    TerminalFactory.instance.getTerminals().forEach {
+                    TerminalFactory.getInstance(ApplicationScope.forWindowScope(owner)).getTerminals().forEach {
                         it.getTerminalModel().setData(TerminalPanel.Debug, terminalSetting.debug)
                     }
                 }
@@ -296,7 +298,10 @@ class SettingsOptionsPane : OptionsPane() {
         }
 
         private fun fireFontChanged() {
-            TerminalPanelFactory.instance.fireResize()
+            ApplicationScope.windowScopes().forEach {
+                TerminalPanelFactory.getInstance(it)
+                    .fireResize()
+            }
         }
 
         private fun initView() {
@@ -489,7 +494,11 @@ class SettingsOptionsPane : OptionsPane() {
 
             getTokenBtn.addActionListener {
                 when (typeComboBox.selectedItem) {
-                    SyncType.GitLab -> Application.browse(URI.create("https://gitlab.com/-/user_settings/personal_access_tokens"))
+                    SyncType.GitLab -> {
+                        val uri = URI.create(domainTextField.text)
+                        Application.browse(URI.create("${uri.scheme}://${uri.host}/-/user_settings/personal_access_tokens?name=Termora%20Sync%20Config&scopes=api"))
+                    }
+
                     SyncType.GitHub -> Application.browse(URI.create("https://github.com/settings/tokens"))
                     SyncType.Gitee -> Application.browse(URI.create("https://gitee.com/profile/personal_access_tokens"))
                 }
@@ -537,21 +546,21 @@ class SettingsOptionsPane : OptionsPane() {
                 put("os", SystemUtils.OS_NAME)
                 put("exportDateHuman", DateFormatUtils.ISO_8601_EXTENDED_DATETIME_TIME_ZONE_FORMAT.format(Date(now)))
                 if (syncConfig.ranges.contains(SyncRange.Hosts)) {
-                    put("hosts", ohMyJson.encodeToJsonElement(HostManager.instance.hosts()))
+                    put("hosts", ohMyJson.encodeToJsonElement(HostManager.getInstance().hosts()))
                 }
                 if (syncConfig.ranges.contains(SyncRange.KeyPairs)) {
-                    put("keyPairs", ohMyJson.encodeToJsonElement(KeyManager.instance.getOhKeyPairs()))
+                    put("keyPairs", ohMyJson.encodeToJsonElement(KeyManager.getInstance().getOhKeyPairs()))
                 }
                 if (syncConfig.ranges.contains(SyncRange.KeywordHighlights)) {
                     put(
                         "keywordHighlights",
-                        ohMyJson.encodeToJsonElement(KeywordHighlightManager.instance.getKeywordHighlights())
+                        ohMyJson.encodeToJsonElement(KeywordHighlightManager.getInstance().getKeywordHighlights())
                     )
                 }
                 if (syncConfig.ranges.contains(SyncRange.Macros)) {
                     put(
                         "macros",
-                        ohMyJson.encodeToJsonElement(MacroManager.instance.getMacros())
+                        ohMyJson.encodeToJsonElement(MacroManager.getInstance().getMacros())
                     )
                 }
                 put("settings", buildJsonObject {
@@ -670,7 +679,7 @@ class SettingsOptionsPane : OptionsPane() {
 
             // sync
             val syncResult = kotlin.runCatching {
-                val syncer = SyncerProvider.instance.getSyncer(syncConfig.type)
+                val syncer = SyncerProvider.getInstance().getSyncer(syncConfig.type)
                 if (push) {
                     syncer.push(syncConfig)
                 } else {
@@ -905,10 +914,10 @@ class SettingsOptionsPane : OptionsPane() {
 
         private fun createHyperlink(url: String, text: String = url): Hyperlink {
             return Hyperlink(object : AnAction(text) {
-                override fun actionPerformed(evt: ActionEvent) {
+                override fun actionPerformed(evt: AnActionEvent) {
                     Application.browse(URI.create(url))
                 }
-            });
+            })
         }
 
         private fun initEvents() {}
@@ -934,9 +943,9 @@ class SettingsOptionsPane : OptionsPane() {
         private val twoPasswordTextField = OutlinePasswordField(255)
         private val tip = FlatLabel()
         private val safeBtn = FlatButton()
-        private val doorman get() = Doorman.instance
-        private val hostManager get() = HostManager.instance
-        private val keyManager get() = KeyManager.instance
+        private val doorman get() = Doorman.getInstance()
+        private val hostManager get() = HostManager.getInstance()
+        private val keyManager get() = KeyManager.getInstance()
 
         init {
             initView()
@@ -1159,5 +1168,35 @@ class SettingsOptionsPane : OptionsPane() {
 
     }
 
+    private inner class KeyShortcutsOption : JPanel(BorderLayout()), Option {
+
+        private val keymapPanel = KeymapPanel()
+
+        init {
+            initView()
+            initEvents()
+        }
+
+
+        private fun initView() {
+            add(keymapPanel, BorderLayout.CENTER)
+        }
+
+
+        private fun initEvents() {}
+
+        override fun getIcon(isSelected: Boolean): Icon {
+            return Icons.fitContent
+        }
+
+        override fun getTitle(): String {
+            return I18n.getString("termora.settings.keymap")
+        }
+
+        override fun getJComponent(): JComponent {
+            return this
+        }
+
+    }
 
 }

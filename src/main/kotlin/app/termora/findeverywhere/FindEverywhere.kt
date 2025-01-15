@@ -1,11 +1,14 @@
 package app.termora.findeverywhere
 
-import app.termora.*
+import app.termora.DialogWrapper
+import app.termora.DynamicColor
+import app.termora.I18n
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
 import app.termora.macro.MacroFindEverywhereProvider
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatTextField
 import com.jetbrains.JBR
-import org.jdesktop.swingx.action.ActionManager
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Insets
@@ -20,24 +23,13 @@ class FindEverywhere(owner: Window) : DialogWrapper(owner) {
     private val model = DefaultListModel<FindEverywhereResult>()
     private val resultList = FindEverywhereXList(model)
     private val centerPanel = JPanel(BorderLayout())
+    private val providers = mutableListOf<FindEverywhereProvider>(
+        BasicFilterFindEverywhereProvider(QuickCommandFindEverywhereProvider()),
+        BasicFilterFindEverywhereProvider(SettingsFindEverywhereProvider()),
+        BasicFilterFindEverywhereProvider(QuickActionsFindEverywhereProvider()),
+        BasicFilterFindEverywhereProvider(MacroFindEverywhereProvider()),
+    )
 
-    companion object {
-        private val providers = mutableListOf<FindEverywhereProvider>(
-            BasicFilterFindEverywhereProvider(QuickCommandFindEverywhereProvider()),
-            BasicFilterFindEverywhereProvider(SettingsFindEverywhereProvider()),
-            BasicFilterFindEverywhereProvider(QuickActionsFindEverywhereProvider()),
-            BasicFilterFindEverywhereProvider(MacroFindEverywhereProvider()),
-        )
-
-        fun registerProvider(provider: FindEverywhereProvider) {
-            providers.add(provider)
-            providers.sortBy { it.order() }
-        }
-
-        fun unregisterProvider(provider: FindEverywhereProvider) {
-            providers.remove(provider)
-        }
-    }
 
     init {
         initView()
@@ -154,7 +146,7 @@ class FindEverywhere(owner: Window) : DialogWrapper(owner) {
                         action =
                             if (resultList.selectedIndex + 1 == resultList.elementCount) {
                                 object : AnAction() {
-                                    override fun actionPerformed(e: ActionEvent) {
+                                    override fun actionPerformed(evt: AnActionEvent) {
                                         resultList.selectedIndex = 1
                                     }
                                 }
@@ -175,12 +167,12 @@ class FindEverywhere(owner: Window) : DialogWrapper(owner) {
 
 
         resultList.actionMap.put("action", object : AnAction() {
-            override fun actionPerformed(e: ActionEvent) {
+            override fun actionPerformed(evt: AnActionEvent) {
                 if (resultList.selectedIndex < 0) {
                     return
                 }
 
-                val event = ActionEvent(e.source, ActionEvent.ACTION_PERFORMED, String())
+                val event = ActionEvent(evt.source, ActionEvent.ACTION_PERFORMED, String())
 
                 // fire
                 SwingUtilities.invokeLater { model.get(resultList.selectedIndex).actionPerformed(event) }
@@ -203,22 +195,15 @@ class FindEverywhere(owner: Window) : DialogWrapper(owner) {
             }
         })
 
+    }
 
+    fun registerProvider(provider: FindEverywhereProvider) {
+        providers.add(provider)
+        providers.sortBy { it.order() }
+    }
 
-        addWindowListener(object : WindowAdapter() {
-            override fun windowClosed(e: WindowEvent) {
-                ActionManager.getInstance()
-                    .getAction(Actions.FIND_EVERYWHERE)
-                    .isEnabled = true
-            }
-
-            override fun windowOpened(e: WindowEvent) {
-                ActionManager.getInstance()
-                    .getAction(Actions.FIND_EVERYWHERE)
-                    .isEnabled = false
-            }
-
-        })
+    fun unregisterProvider(provider: FindEverywhereProvider) {
+        providers.remove(provider)
     }
 
     override fun createCenterPanel(): JComponent {

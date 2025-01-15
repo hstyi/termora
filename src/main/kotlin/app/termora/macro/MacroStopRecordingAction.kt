@@ -1,11 +1,11 @@
 package app.termora.macro
 
 import app.termora.Actions
-import app.termora.AnAction
 import app.termora.I18n
 import app.termora.Icons
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
 import org.jdesktop.swingx.action.ActionManager
-import java.awt.event.ActionEvent
 import javax.swing.Icon
 
 class MacroStopRecordingAction(icon: Icon = Icons.stop) : AnAction(
@@ -14,7 +14,7 @@ class MacroStopRecordingAction(icon: Icon = Icons.stop) : AnAction(
 ) {
     private val macroAction get() = ActionManager.getInstance().getAction(Actions.MACRO) as MacroAction?
 
-    override fun actionPerformed(evt: ActionEvent) {
+    override fun actionPerformed(evt: AnActionEvent) {
         macroAction?.stopRecording()
     }
 

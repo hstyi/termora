@@ -1,6 +1,7 @@
 package app.termora.terminal.panel
 
 import app.termora.Application
+import app.termora.ApplicationScope
 import app.termora.terminal.*
 import java.awt.Graphics
 import java.net.URI
@@ -8,7 +9,10 @@ import kotlin.math.min
 
 class TerminalHyperlinkPaintListener private constructor() : TerminalPaintListener {
     companion object {
-        val instance by lazy { TerminalHyperlinkPaintListener() }
+        fun getInstance(): TerminalHyperlinkPaintListener {
+            return ApplicationScope.forApplicationScope()
+                .getOrCreate(TerminalHyperlinkPaintListener::class) { TerminalHyperlinkPaintListener() }
+        }
     }
 
     private val regex = Regex("https?://\\S*[^.\\s'\",()<>\\[\\]]")

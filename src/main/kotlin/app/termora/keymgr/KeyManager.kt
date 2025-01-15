@@ -1,16 +1,17 @@
 package app.termora.keymgr
 
-import app.termora.db.Database
-import org.slf4j.LoggerFactory
+import app.termora.ApplicationScope
+import app.termora.Database
 
 class KeyManager private constructor() {
     companion object {
-        private val log = LoggerFactory.getLogger(KeyManager::class.java)
-        val instance by lazy { KeyManager() }
+        fun getInstance(): KeyManager {
+            return ApplicationScope.forApplicationScope().getOrCreate(KeyManager::class) { KeyManager() }
+        }
     }
 
     private val keyPairs = mutableSetOf<OhKeyPair>()
-    private val database get() = Database.instance
+    private val database get() = Database.getDatabase()
 
     init {
         keyPairs.addAll(database.getKeyPairs())

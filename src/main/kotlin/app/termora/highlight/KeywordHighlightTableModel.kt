@@ -3,7 +3,7 @@ package app.termora.highlight
 import javax.swing.table.DefaultTableModel
 
 class KeywordHighlightTableModel : DefaultTableModel() {
-    private val rows get() = KeywordHighlightManager.instance.getKeywordHighlights()
+    private val rows get() = KeywordHighlightManager.getInstance().getKeywordHighlights()
 
     override fun isCellEditable(row: Int, column: Int): Boolean {
         return false

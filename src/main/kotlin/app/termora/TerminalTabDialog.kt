@@ -1,5 +1,9 @@
 package app.termora
 
+import app.termora.actions.DataProvider
+import app.termora.actions.DataProviderSupport
+import app.termora.actions.DataProviders
+import app.termora.terminal.DataKey
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Window
@@ -11,7 +15,9 @@ class TerminalTabDialog(
     owner: Window,
     size: Dimension,
     private val terminalTab: TerminalTab
-) : DialogWrapper(null), Disposable {
+) : DialogWrapper(null), Disposable, DataProvider {
+
+    private val dataProviderSupport = DataProviderSupport()
 
     init {
         title = terminalTab.getTitle()
@@ -19,6 +25,7 @@ class TerminalTabDialog(
         isAlwaysOnTop = false
         iconImages = owner.iconImages
         escapeDispose = false
+        processGlobalKeymap = true
 
         super.setSize(size)
 
@@ -34,6 +41,13 @@ class TerminalTabDialog(
         })
 
         setLocationRelativeTo(null)
+
+
+        if (owner is DataProvider) {
+            owner.getData(DataProviders.WindowScope)?.let {
+                dataProviderSupport.addData(DataProviders.WindowScope, it)
+            }
+        }
     }
 
     override fun createSouthPanel(): JComponent? {
@@ -50,6 +64,10 @@ class TerminalTabDialog(
     override fun dispose() {
         Disposer.dispose(this)
         super<DialogWrapper>.dispose()
+    }
+
+    override fun <T : Any> getData(dataKey: DataKey<T>): T? {
+        return dataProviderSupport.getData(dataKey)
     }
 
 }

@@ -1,5 +1,6 @@
 package app.termora
 
+import app.termora.actions.AnAction
 import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.formdev.flatlaf.extras.FlatSVGIcon.ColorFilter
 import org.jdesktop.swingx.JXHyperlink

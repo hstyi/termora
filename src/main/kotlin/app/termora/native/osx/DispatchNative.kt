@@ -1,10 +1,13 @@
 package app.termora.native.osx
 
+import app.termora.ApplicationScope
 import java.lang.reflect.Method
 
 class DispatchNative private constructor() {
     companion object {
-        val instance by lazy { DispatchNative() }
+        fun getInstance(): DispatchNative {
+            return ApplicationScope.forApplicationScope().getOrCreate(DispatchNative::class) { DispatchNative() }
+        }
     }
 
     val dispatch_main_queue: Long

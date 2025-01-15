@@ -9,8 +9,9 @@ import java.beans.PropertyChangeEvent
 import javax.swing.Icon
 
 abstract class HostTerminalTab(
+    val windowScope: WindowScope,
     val host: Host,
-    protected val terminal: Terminal = TerminalFactory.instance.createTerminal()
+    protected val terminal: Terminal = TerminalFactory.getInstance(windowScope).createTerminal()
 ) : PropertyTerminalTab() {
     companion object {
         val Host = DataKey(app.termora.Host::class)

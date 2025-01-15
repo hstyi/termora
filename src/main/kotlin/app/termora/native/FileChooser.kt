@@ -85,7 +85,7 @@ class FileChooser {
 
 
     private fun showMacOSOpenDialog(future: CompletableFuture<List<File>>) {
-        DispatchNative.instance.dispatch_async(object : Runnable {
+        DispatchNative.getInstance().dispatch_async(object : Runnable {
             override fun run() {
                 val pool = Foundation.NSAutoreleasePool()
                 try {
@@ -161,7 +161,7 @@ class FileChooser {
     }
 
     private fun showMacOSSaveDialog(filename: String, future: CompletableFuture<File?>) {
-        DispatchNative.instance.dispatch_async(object : Runnable {
+        DispatchNative.getInstance().dispatch_async(object : Runnable {
             override fun run() {
                 val pool = Foundation.NSAutoreleasePool()
                 try {

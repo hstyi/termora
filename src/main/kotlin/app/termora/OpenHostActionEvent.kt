@@ -1,5 +1,7 @@
 package app.termora
 
-import java.awt.event.ActionEvent
+import app.termora.actions.AnActionEvent
+import java.util.*
 
-class OpenHostActionEvent(source: Any, val host: Host) : ActionEvent(source, ACTION_PERFORMED, String())
+class OpenHostActionEvent(source: Any, val host: Host, event: EventObject) :
+    AnActionEvent(source, String(), event)

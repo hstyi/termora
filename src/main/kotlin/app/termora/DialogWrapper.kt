@@ -1,5 +1,7 @@
 package app.termora
 
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.util.SystemInfo
@@ -7,7 +9,6 @@ import com.jetbrains.JBR
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Window
-import java.awt.event.ActionEvent
 import java.awt.event.KeyEvent
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
@@ -21,6 +22,7 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
 
     companion object {
         const val DEFAULT_ACTION = "DEFAULT_ACTION"
+        private const val PROCESS_GLOBAL_KEYMAP = "PROCESS_GLOBAL_KEYMAP"
     }
 
 
@@ -38,8 +40,20 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
 
     protected var lostFocusDispose = false
     protected var escapeDispose = true
+    var processGlobalKeymap: Boolean
+        get() {
+            val v = super.rootPane.getClientProperty(PROCESS_GLOBAL_KEYMAP)
+            if (v is Boolean) {
+                return v
+            }
+            return false
+        }
+        protected set(value) {
+            super.rootPane.putClientProperty(PROCESS_GLOBAL_KEYMAP, value)
+        }
 
     protected fun init() {
+
 
         defaultCloseOperation = WindowConstants.DISPOSE_ON_CLOSE
 
@@ -132,7 +146,7 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_W, toolkit.menuShortcutKeyMaskEx), "close")
 
         rootPane.actionMap.put("close", object : AnAction() {
-            override fun actionPerformed(e: ActionEvent) {
+            override fun actionPerformed(evt: AnActionEvent) {
                 doCancelAction()
             }
         })
@@ -154,12 +168,12 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
         if (SystemInfo.isWindows) {
             addWindowListener(object : WindowAdapter(), ThemeChangeListener {
                 override fun windowClosed(e: WindowEvent) {
-                    ThemeManager.instance.removeThemeChangeListener(this)
+                    ThemeManager.getInstance().removeThemeChangeListener(this)
                 }
 
                 override fun windowOpened(e: WindowEvent) {
                     onChanged()
-                    ThemeManager.instance.addThemeChangeListener(this)
+                    ThemeManager.getInstance().addThemeChangeListener(this)
                 }
 
                 override fun onChanged() {
@@ -190,7 +204,8 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
             putValue(DEFAULT_ACTION, true)
         }
 
-        override fun actionPerformed(e: ActionEvent) {
+
+        override fun actionPerformed(evt: AnActionEvent) {
             doOKAction()
         }
 
@@ -198,7 +213,7 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
 
     protected inner class CancelAction : AnAction(I18n.getString("termora.cancel")) {
 
-        override fun actionPerformed(e: ActionEvent) {
+        override fun actionPerformed(evt: AnActionEvent) {
             doCancelAction()
         }
 

@@ -1,7 +1,6 @@
 package app.termora
 
 import app.termora.Application.ohMyJson
-import app.termora.db.Database
 import kotlinx.serialization.json.*
 import okhttp3.Request
 import org.apache.commons.lang3.StringUtils
@@ -19,7 +18,9 @@ import java.util.*
 class UpdaterManager private constructor() {
     companion object {
         private val log = LoggerFactory.getLogger(UpdaterManager::class.java)
-        val instance by lazy { UpdaterManager() }
+        fun getInstance(): UpdaterManager {
+            return ApplicationScope.forApplicationScope().getOrCreate(UpdaterManager::class) { UpdaterManager() }
+        }
     }
 
     data class Asset(
@@ -58,7 +59,7 @@ class UpdaterManager private constructor() {
         val isSelf get() = this == self
     }
 
-    private val properties get() = Database.instance.properties
+    private val properties get() = Database.getDatabase().properties
     var lastVersion = LatestVersion.self
 
     fun fetchLatestVersion(): LatestVersion {

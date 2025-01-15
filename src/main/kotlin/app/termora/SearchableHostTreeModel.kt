@@ -48,10 +48,10 @@ class SearchableHostTreeModel(
         val children = model.getChildren(parent)
         if (children.isEmpty()) return emptyList()
         return children.filter { e ->
-            filter.invoke(e) && e.name.contains(text, true) || TreeUtils.children(model, e, true)
-                .filterIsInstance<Host>().any {
-                it.name.contains(text, true)
-            }
+            filter.invoke(e)
+                    && e.name.contains(text, true)
+                    || e.host.contains(text, true)
+                    || TreeUtils.children(model, e, true).filterIsInstance<Host>().any { it.name.contains(text, true) || it.host.contains(text, true) }
         }
     }
 

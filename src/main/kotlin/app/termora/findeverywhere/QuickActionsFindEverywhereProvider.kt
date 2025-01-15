@@ -2,6 +2,7 @@ package app.termora.findeverywhere
 
 import app.termora.Actions
 import app.termora.I18n
+
 import org.jdesktop.swingx.action.ActionManager
 
 class QuickActionsFindEverywhereProvider : FindEverywhereProvider {

@@ -1,6 +1,5 @@
 package app.termora
 
-import app.termora.db.Database
 import java.awt.Dimension
 import java.awt.Window
 import java.awt.event.MouseAdapter
@@ -54,7 +53,7 @@ class HostTreeDialog(
         addWindowListener(object : WindowAdapter() {
             override fun windowActivated(e: WindowEvent) {
                 removeWindowListener(this)
-                val state = Database.instance.properties.getString("HostTreeDialog.HostTreeExpansionState")
+                val state = Database.getDatabase().properties.getString("HostTreeDialog.HostTreeExpansionState")
                 if (state != null) {
                     TreeUtils.loadExpansionState(tree, state)
                 }
@@ -74,7 +73,7 @@ class HostTreeDialog(
 
         addWindowListener(object : WindowAdapter() {
             override fun windowClosed(e: WindowEvent) {
-                Database.instance.properties.putString(
+                Database.getDatabase().properties.putString(
                     "HostTreeDialog.HostTreeExpansionState",
                     TreeUtils.saveExpansionState(tree)
                 )

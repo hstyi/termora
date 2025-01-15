@@ -1,6 +1,11 @@
 package app.termora.terminal.panel
 
+import app.termora.actions.AnActionEvent
+import app.termora.actions.TerminalCopyAction
+import app.termora.actions.TerminalPasteAction
 import app.termora.terminal.*
+import org.apache.commons.lang3.StringUtils
+import org.jdesktop.swingx.action.ActionManager
 import org.slf4j.LoggerFactory
 import java.awt.Point
 import java.awt.event.KeyEvent
@@ -210,10 +215,9 @@ class TerminalPanelMouseSelectionAdapter(private val terminalPanel: TerminalPane
             'C'
         )
     ) {
-        // copy
-        terminalPanel.getTerminalActions()
-            .filterIsInstance<TerminalCopyAction>()
-            .forEach { it.actionPerformed(e) }
+        ActionManager.getInstance()
+            .getAction(TerminalCopyAction.COPY)
+            ?.actionPerformed(AnActionEvent(terminalPanel, StringUtils.EMPTY, e))
     }
 
     private fun triggerPasteAction(
@@ -226,10 +230,9 @@ class TerminalPanelMouseSelectionAdapter(private val terminalPanel: TerminalPane
             'V'
         )
     ) {
-        // paste
-        terminalPanel.getTerminalActions()
-            .filterIsInstance<TerminalPasteAction>()
-            .forEach { it.actionPerformed(e) }
+        ActionManager.getInstance()
+            .getAction(TerminalPasteAction.PASTE)
+            ?.actionPerformed(AnActionEvent(terminalPanel, StringUtils.EMPTY, e))
     }
 
     private fun selectWord(position: Position) {

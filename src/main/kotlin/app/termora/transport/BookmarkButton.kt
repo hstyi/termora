@@ -5,7 +5,7 @@ import app.termora.DynamicColor
 import app.termora.I18n
 import app.termora.Icons
 import app.termora.assertEventDispatchThread
-import app.termora.db.Database
+import app.termora.Database
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.ui.FlatUIUtils
@@ -20,7 +20,7 @@ import javax.swing.SwingConstants
 import javax.swing.SwingUtilities
 
 class BookmarkButton : JButton(Icons.bookmarks) {
-    private val properties by lazy { Database.instance.properties }
+    private val properties by lazy { Database.getDatabase().properties }
     private val arrowWidth = 16
     private val arrowSize = 6
 

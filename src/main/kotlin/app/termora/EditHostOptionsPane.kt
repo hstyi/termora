@@ -15,7 +15,7 @@ class EditHostOptionsPane(private val host: Host) : HostOptionsPane() {
         generalOption.remarkTextArea.text = host.remark
         generalOption.authenticationTypeComboBox.selectedItem = host.authentication.type
         if (host.authentication.type == AuthenticationType.PublicKey) {
-            val ohKeyPair = KeyManager.instance.getOhKeyPair(host.authentication.password)
+            val ohKeyPair = KeyManager.getInstance().getOhKeyPair(host.authentication.password)
             if (ohKeyPair != null) {
                 generalOption.publicKeyTextField.text = ohKeyPair.name
                 generalOption.publicKeyTextField.putClientProperty(OhKeyPair::class, ohKeyPair)

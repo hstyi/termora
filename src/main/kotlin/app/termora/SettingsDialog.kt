@@ -1,6 +1,5 @@
 package app.termora
 
-import app.termora.db.Database
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Window
@@ -13,7 +12,7 @@ import javax.swing.UIManager
 
 class SettingsDialog(owner: Window) : DialogWrapper(owner) {
     private val optionsPane = SettingsOptionsPane()
-    private val properties get() = Database.instance.properties
+    private val properties get() = Database.getDatabase().properties
 
     init {
         size = Dimension(UIManager.getInt("Dialog.width"), UIManager.getInt("Dialog.height"))

@@ -1,84 +1,53 @@
 package app.termora
 
-import app.termora.findeverywhere.FindEverywhere
-import app.termora.highlight.KeywordHighlightDialog
-import app.termora.keymgr.KeyManagerDialog
-import app.termora.macro.MacroAction
-import app.termora.tlog.TerminalLoggerAction
-import app.termora.transport.SFTPAction
+
+import app.termora.actions.ActionManager
+import app.termora.actions.DataProvider
+import app.termora.actions.DataProviderSupport
+import app.termora.actions.DataProviders
+import app.termora.terminal.DataKey
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatLaf
-import com.formdev.flatlaf.extras.FlatDesktop
 import com.formdev.flatlaf.util.SystemInfo
 import com.jetbrains.JBR
-import io.github.g00fy2.versioncompare.Version
-import kotlinx.coroutines.*
-import kotlinx.coroutines.swing.Swing
-import org.apache.commons.lang3.StringUtils
-import org.jdesktop.swingx.JXEditorPane
-import org.jdesktop.swingx.action.ActionManager
-import org.slf4j.LoggerFactory
 import java.awt.Dimension
 import java.awt.Insets
-import java.awt.KeyEventDispatcher
 import java.awt.KeyboardFocusManager
-import java.awt.event.*
-import java.net.URI
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
+import java.util.*
 import javax.imageio.ImageIO
-import javax.swing.*
+import javax.swing.Box
+import javax.swing.JFrame
+import javax.swing.SwingUtilities
 import javax.swing.SwingUtilities.isEventDispatchThread
-import javax.swing.event.HyperlinkEvent
-import kotlin.concurrent.fixedRateTimer
+import javax.swing.UIManager
 import kotlin.math.max
-import kotlin.system.exitProcess
-import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.minutes
 
 fun assertEventDispatchThread() {
     if (!isEventDispatchThread()) throw WrongThreadException("AWT EventQueue")
 }
 
 
-class TermoraFrame : JFrame() {
+class TermoraFrame : JFrame(), DataProvider {
 
-    companion object {
-        private val log = LoggerFactory.getLogger(TermoraFrame::class.java)
-    }
 
+    private val actionManager get() = ActionManager.getInstance()
+    private val id = UUID.randomUUID().toString()
+    private val windowScope = ApplicationScope.forWindowScope(this)
     private val titleBar = LogicCustomTitleBar.createCustomTitleBar(this)
     private val tabbedPane = MyTabbedPane()
     private val toolbar = TermoraToolBar(titleBar, tabbedPane)
-    private lateinit var terminalTabbed: TerminalTabbed
-    private val disposable = Disposer.newDisposable()
+    private val terminalTabbed = TerminalTabbed(windowScope, toolbar, tabbedPane)
     private val isWindowDecorationsSupported by lazy { JBR.isWindowDecorationsSupported() }
-    private val updaterManager get() = UpdaterManager.instance
+    private val dataProviderSupport = DataProviderSupport()
+    private val welcomePanel = WelcomePanel(windowScope)
+    private val keyboardFocusManager by lazy { KeyboardFocusManager.getCurrentKeyboardFocusManager() }
 
-    private val preferencesHandler = object : Runnable {
-        override fun run() {
-            val owner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusedWindow ?: this@TermoraFrame
-            if (owner != this@TermoraFrame) {
-                return
-            }
-
-            val that = this
-            FlatDesktop.setPreferencesHandler {}
-            val dialog = SettingsDialog(owner)
-            dialog.addWindowListener(object : WindowAdapter() {
-                override fun windowClosed(e: WindowEvent) {
-                    FlatDesktop.setPreferencesHandler(that)
-                }
-            })
-            dialog.setLocationRelativeTo(owner)
-            dialog.isVisible = true
-        }
-    }
 
     init {
-        initActions()
         initView()
         initEvents()
-        initDesktopHandler()
-        scheduleUpdate()
     }
 
     private fun initEvents() {
@@ -97,153 +66,18 @@ class TermoraFrame : JFrame() {
             }
         }
 
-        // global shortcuts
-        rootPane.actionMap.put(Actions.FIND_EVERYWHERE, ActionManager.getInstance().getAction(Actions.FIND_EVERYWHERE))
-        rootPane.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)
-            .put(KeyStroke.getKeyStroke(KeyEvent.VK_T, toolkit.menuShortcutKeyMaskEx), Actions.FIND_EVERYWHERE)
-
-        // double shift
-        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(object : KeyEventDispatcher {
-            private var lastTime = -1L
-
-            override fun dispatchKeyEvent(e: KeyEvent): Boolean {
-                if (e.keyCode == KeyEvent.VK_SHIFT && e.id == KeyEvent.KEY_PRESSED) {
-                    val now = System.currentTimeMillis()
-                    if (now - 250 < lastTime) {
-                        ActionManager.getInstance().getAction(Actions.FIND_EVERYWHERE)
-                            .actionPerformed(ActionEvent(rootPane, ActionEvent.ACTION_PERFORMED, StringUtils.EMPTY))
-                    }
-                    lastTime = now
-                } else if (e.keyCode != KeyEvent.VK_SHIFT) { // 如果不是 Shift 键，那么就阻断了连续性，重置时间
-                    lastTime = -1
-                }
-                return false
-            }
-
-        })
 
         // 监听主题变化 需要动态修改控制栏颜色
         if (SystemInfo.isWindows && isWindowDecorationsSupported) {
-            ThemeManager.instance.addThemeChangeListener(object : ThemeChangeListener {
+            ThemeManager.getInstance().addThemeChangeListener(object : ThemeChangeListener {
                 override fun onChanged() {
                     titleBar.putProperty("controls.dark", FlatLaf.isLafDark())
                 }
             })
         }
 
-
-        // dispose
-        addWindowListener(object : WindowAdapter() {
-            override fun windowClosed(e: WindowEvent) {
-
-                Disposer.dispose(disposable)
-                Disposer.dispose(ApplicationDisposable.instance)
-
-                try {
-                    Disposer.getTree().assertIsEmpty(true)
-                } catch (e: Exception) {
-                    log.error(e.message)
-                }
-                exitProcess(0)
-            }
-        })
-
-
     }
 
-
-    private fun initActions() {
-        // SETTING
-        ActionManager.getInstance().addAction(Actions.SETTING, object : AnAction(
-            I18n.getString("termora.setting"),
-            Icons.settings
-        ) {
-            override fun actionPerformed(e: ActionEvent) {
-                preferencesHandler.run()
-            }
-        })
-
-
-        // MULTIPLE
-        ActionManager.getInstance().addAction(Actions.MULTIPLE, object : AnAction(
-            I18n.getString("termora.tools.multiple"),
-            Icons.vcs
-        ) {
-            init {
-                setStateAction()
-            }
-
-            override fun actionPerformed(evt: ActionEvent) {
-                TerminalPanelFactory.instance.repaintAll()
-            }
-        })
-
-
-        // Keyword Highlight
-        ActionManager.getInstance().addAction(Actions.KEYWORD_HIGHLIGHT, object : AnAction(
-            I18n.getString("termora.highlight"),
-            Icons.edit
-        ) {
-            override fun actionPerformed(evt: ActionEvent) {
-                KeywordHighlightDialog(this@TermoraFrame).isVisible = true
-            }
-        })
-
-        // app update
-        ActionManager.getInstance().addAction(Actions.APP_UPDATE, object :
-            AnAction(
-                StringUtils.EMPTY,
-                Icons.ideUpdate
-            ) {
-            init {
-                isEnabled = false
-            }
-
-            override fun actionPerformed(evt: ActionEvent) {
-                showUpdateDialog()
-            }
-        })
-
-        // 终端日志记录
-        ActionManager.getInstance().addAction(Actions.TERMINAL_LOGGER, TerminalLoggerAction())
-
-        // SFTP
-        ActionManager.getInstance().addAction(Actions.SFTP, SFTPAction())
-
-        // macro
-        ActionManager.getInstance().addAction(Actions.MACRO, MacroAction())
-
-        // FIND_EVERYWHERE
-        ActionManager.getInstance().addAction(Actions.FIND_EVERYWHERE, object : AnAction(
-            I18n.getString("termora.find-everywhere"),
-            Icons.find
-        ) {
-            override fun actionPerformed(evt: ActionEvent) {
-                if (this.isEnabled) {
-                    val focusWindow = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusedWindow
-                    val frame = this@TermoraFrame
-                    if (focusWindow == frame) {
-                        val dialog = FindEverywhere(frame)
-                        dialog.setLocationRelativeTo(frame)
-                        dialog.isVisible = true
-                    }
-                }
-            }
-        })
-
-        // Key manager
-        ActionManager.getInstance().addAction(Actions.KEY_MANAGER, object : AnAction(
-            I18n.getString("termora.keymgr.title"),
-            Icons.greyKey
-        ) {
-            override fun actionPerformed(evt: ActionEvent) {
-                if (this.isEnabled) {
-                    KeyManagerDialog(this@TermoraFrame).isVisible = true
-                }
-            }
-        })
-
-    }
 
     private fun initView() {
         if (isWindowDecorationsSupported) {
@@ -267,10 +101,7 @@ class TermoraFrame : JFrame() {
         }
 
         minimumSize = Dimension(640, 400)
-        terminalTabbed = TerminalTabbed(toolbar, tabbedPane).apply {
-            Application.registerService(TerminalTabbedManager::class, this)
-        }
-        terminalTabbed.addTab(WelcomePanel())
+        terminalTabbed.addTab(welcomePanel)
 
         // macOS 要避开左边的控制栏
         if (SystemInfo.isMacOS) {
@@ -282,89 +113,13 @@ class TermoraFrame : JFrame() {
             }
         }
 
-        Disposer.register(disposable, terminalTabbed)
+        Disposer.register(windowScope, terminalTabbed)
         add(terminalTabbed)
 
+        dataProviderSupport.addData(DataProviders.TermoraFrame, this)
+        dataProviderSupport.addData(DataProviders.WindowScope, windowScope)
     }
 
-    private fun showUpdateDialog() {
-        val lastVersion = updaterManager.lastVersion
-        val editorPane = JXEditorPane()
-        editorPane.contentType = "text/html"
-        editorPane.text = lastVersion.htmlBody
-        editorPane.isEditable = false
-        editorPane.addHyperlinkListener {
-            if (it.eventType == HyperlinkEvent.EventType.ACTIVATED) {
-                Application.browse(it.url.toURI())
-            }
-        }
-        editorPane.background = DynamicColor("window")
-        val scrollPane = JScrollPane(editorPane)
-        scrollPane.border = BorderFactory.createEmptyBorder()
-        scrollPane.preferredSize = Dimension(
-            UIManager.getInt("Dialog.width") - 100,
-            UIManager.getInt("Dialog.height") - 100
-        )
-
-        val option = OptionPane.showConfirmDialog(
-            this,
-            scrollPane,
-            title = I18n.getString("termora.update.title"),
-            messageType = JOptionPane.PLAIN_MESSAGE,
-            optionType = JOptionPane.YES_NO_CANCEL_OPTION,
-            options = arrayOf(
-                I18n.getString("termora.update.update"),
-                I18n.getString("termora.update.ignore"),
-                I18n.getString("termora.cancel")
-            ),
-            initialValue = I18n.getString("termora.update.update")
-        )
-        if (option == JOptionPane.CANCEL_OPTION) {
-            return
-        } else if (option == JOptionPane.NO_OPTION) {
-            ActionManager.getInstance().setEnabled(Actions.APP_UPDATE, false)
-            updaterManager.ignore(updaterManager.lastVersion.version)
-        } else if (option == JOptionPane.YES_OPTION) {
-            ActionManager.getInstance()
-                .setEnabled(Actions.APP_UPDATE, false)
-            Application.browse(URI.create("https://github.com/TermoraDev/termora/releases/tag/${lastVersion.version}"))
-        }
-    }
-
-    @OptIn(DelicateCoroutinesApi::class)
-    private fun scheduleUpdate() {
-        fixedRateTimer(
-            name = "check-update-timer",
-            initialDelay = 3.minutes.inWholeMilliseconds,
-            period = 5.hours.inWholeMilliseconds, daemon = true
-        ) {
-            GlobalScope.launch(Dispatchers.IO) { supervisorScope { launch { checkUpdate() } } }
-        }
-    }
-
-    private suspend fun checkUpdate() {
-
-        val latestVersion = updaterManager.fetchLatestVersion()
-        if (latestVersion.isSelf) {
-            return
-        }
-
-        val newVersion = Version(latestVersion.version)
-        val version = Version(Application.getVersion())
-        if (newVersion <= version) {
-            return
-        }
-
-        if (updaterManager.isIgnored(latestVersion.version)) {
-            return
-        }
-
-        withContext(Dispatchers.Swing) {
-            ActionManager.getInstance()
-                .setEnabled(Actions.APP_UPDATE, true)
-        }
-
-    }
 
     private fun forceHitTest() {
         val mouseAdapter = object : MouseAdapter() {
@@ -423,11 +178,25 @@ class TermoraFrame : JFrame() {
         toolbar.getJToolBar().addMouseMotionListener(mouseAdapter)
     }
 
-    private fun initDesktopHandler() {
-        if (SystemInfo.isMacOS) {
-            FlatDesktop.setPreferencesHandler {
-                preferencesHandler.run()
-            }
-        }
+    override fun <T : Any> getData(dataKey: DataKey<T>): T? {
+        return dataProviderSupport.getData(dataKey)
+            ?: terminalTabbed.getData(dataKey)
+            ?: welcomePanel.getData(dataKey)
     }
+
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as TermoraFrame
+
+        return id == other.id
+    }
+
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+
+
 }
