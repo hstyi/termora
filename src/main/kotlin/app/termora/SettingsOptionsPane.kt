@@ -160,6 +160,7 @@ class SettingsOptionsPane : OptionsPane() {
                 appearance.followSystem = followSystemCheckBox.isSelected
                 themeComboBox.isEnabled = !followSystemCheckBox.isSelected
                 preferredThemeBtn.isEnabled = followSystemCheckBox.isSelected
+                appearance.theme = themeComboBox.selectedItem as String
 
                 if (followSystemCheckBox.isSelected) {
                     SwingUtilities.invokeLater {
