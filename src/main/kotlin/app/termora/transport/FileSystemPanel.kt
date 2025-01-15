@@ -6,6 +6,7 @@ import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.extras.components.FlatToolBar
 import com.formdev.flatlaf.icons.FlatFileViewDirectoryIcon
 import com.formdev.flatlaf.icons.FlatFileViewFileIcon
+import com.formdev.flatlaf.ui.FlatTableUI
 import com.formdev.flatlaf.util.SystemInfo
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
@@ -42,8 +43,7 @@ class FileSystemPanel(
     private val fileSystem: FileSystem,
     private val transportManager: TransportManager,
     private val host: Host
-) : JPanel(BorderLayout()), Disposable,
-    FileSystemTransportListener.Provider {
+) : JPanel(BorderLayout()), Disposable, FileSystemTransportListener.Provider {
 
     companion object {
         private val log = LoggerFactory.getLogger(FileSystemPanel::class.java)
@@ -58,6 +58,10 @@ class FileSystemPanel(
     private val loadingPanel = LoadingPanel()
     private val bookmarkBtn = BookmarkButton()
     private val homeBtn = JButton(Icons.homeFolder)
+    private val showHiddenFilesBtn = JButton(Icons.eyeClose)
+    private val properties get() = Database.getDatabase().properties
+    private var isShowHiddenFiles = false
+    private val showHiddenFilesKey by lazy { "termora.transport.host.${host.id}.show-hidden-files" }
 
     val workdir get() = tableModel.workdir
 
@@ -72,6 +76,8 @@ class FileSystemPanel(
         bookmarkBtn.name = "Host.${host.id}.Bookmarks"
         bookmarkBtn.isBookmark = bookmarkBtn.getBookmarks().contains(workdir.toString())
 
+        table.setUI(FlatTableUI())
+        table.rowHeight = UIManager.getInt("Table.rowHeight")
         table.autoResizeMode = JTable.AUTO_RESIZE_OFF
         table.fillsViewportHeight = true
         table.putClientProperty(
@@ -121,6 +127,16 @@ class FileSystemPanel(
         })
 
         parentBtn.toolTipText = I18n.getString("termora.transport.parent-folder")
+        showHiddenFilesBtn.toolTipText = I18n.getString("termora.transport.show-hidden-files")
+
+        if (properties.getString(showHiddenFilesKey, "true").toBoolean()) {
+            showHiddenFilesBtn.icon = Icons.eye
+            tableModel.isShowHiddenFiles = true
+        } else {
+            showHiddenFilesBtn.icon = Icons.eyeClose
+            properties.putString(showHiddenFilesKey, "true")
+            tableModel.isShowHiddenFiles = false
+        }
 
 
         val toolbar = FlatToolBar()
@@ -128,6 +144,7 @@ class FileSystemPanel(
         toolbar.add(Box.createHorizontalStrut(2))
         toolbar.add(workdirTextField)
         toolbar.add(bookmarkBtn)
+        toolbar.add(showHiddenFilesBtn)
         toolbar.add(parentBtn)
         toolbar.add(JButton(Icons.refresh).apply {
             addActionListener { reload() }
@@ -290,6 +307,21 @@ class FileSystemPanel(
             }
         }
 
+        showHiddenFilesBtn.addActionListener {
+            val showHiddenFiles = tableModel.isShowHiddenFiles
+            tableModel.isShowHiddenFiles = !showHiddenFiles
+            if (tableModel.isShowHiddenFiles) {
+                showHiddenFilesBtn.icon = Icons.eye
+            } else {
+                showHiddenFilesBtn.icon = Icons.eyeClose
+            }
+        }
+
+        Disposer.register(this, object : Disposable {
+            override fun dispose() {
+                properties.putString(showHiddenFilesKey, "${tableModel.isShowHiddenFiles}")
+            }
+        })
 
     }
 

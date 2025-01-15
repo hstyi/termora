@@ -45,13 +45,18 @@ class FileSystemTableModel(private val fileSystem: FileSystem) : DefaultTableMod
     private val propertyChangeListeners = mutableListOf<PropertyChangeListener>()
 
     val isLocalFileSystem by lazy { FileSystems.getDefault() == fileSystem }
+    var isShowHiddenFiles = false
+        set(value) {
+            field = value
+            fireTableDataChanged()
+        }
 
     override fun getRowCount(): Int {
-        return files?.size ?: 0
+        return getShownFiles().size
     }
 
     override fun getValueAt(row: Int, column: Int): Any {
-        val path = files?.get(row) ?: return StringUtils.EMPTY
+        val path = getShownFiles()[row]
 
         if (path.fileName == ".." && column != 0) {
             return StringUtils.EMPTY
@@ -98,7 +103,7 @@ class FileSystemTableModel(private val fileSystem: FileSystem) : DefaultTableMod
     }
 
     fun getCacheablePath(index: Int): CacheablePath {
-        return files?.get(index) ?: throw IndexOutOfBoundsException()
+        return getShownFiles()[index]
     }
 
     override fun isCellEditable(row: Int, column: Int): Boolean {
@@ -106,7 +111,8 @@ class FileSystemTableModel(private val fileSystem: FileSystem) : DefaultTableMod
     }
 
     override fun removeRow(row: Int) {
-        files?.removeAt(row) ?: return
+        val e = getShownFiles()[row]
+        files?.removeIf { it == e }
         fireTableRowsDeleted(row, row)
     }
 
@@ -155,11 +161,19 @@ class FileSystemTableModel(private val fileSystem: FileSystem) : DefaultTableMod
         propertyChangeListeners.add(propertyChangeListener)
     }
 
+    private fun getShownFiles(): List<CacheablePath> {
+        if (isShowHiddenFiles) {
+            return files ?: emptyList()
+        }
+        return files?.filter { !it.isHidden } ?: emptyList()
+    }
+
     open class CacheablePath(val path: Path) {
         val fileName by lazy { path.fileName.toString() }
         val extension by lazy { path.extension }
 
         open val isDirectory by lazy { path.isDirectory() }
+        open val isHidden by lazy { fileName != ".." && path.isHidden() }
         open val fileSize by lazy { path.fileSize() }
         open val lastModifiedTime by lazy { Files.getLastModifiedTime(path).toMillis() }
         open val owner by lazy { path.getOwner().toString() }
@@ -215,6 +229,9 @@ class FileSystemTableModel(private val fileSystem: FileSystem) : DefaultTableMod
 
         override val isDirectory: Boolean
             get() = attributes.isDirectory
+
+        override val isHidden: Boolean
+            get() = fileName != ".." && fileName.startsWith(".")
 
         override val fileSize: Long
             get() = attributes.size

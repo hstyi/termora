@@ -8,6 +8,8 @@ object Icons {
     val moveDown by lazy { DynamicIcon("icons/moveDown.svg", "icons/moveDown_dark.svg") }
     val close by lazy { DynamicIcon("icons/close.svg", "icons/close_dark.svg") }
     val searchHistory by lazy { DynamicIcon("icons/searchHistory.svg", "icons/searchHistory_dark.svg") }
+    val eye by lazy { DynamicIcon("icons/eye.svg", "icons/eye_dark.svg") }
+    val eyeClose by lazy { DynamicIcon("icons/eyeClose.svg", "icons/eyeClose_dark.svg") }
     val matchCase by lazy { DynamicIcon("icons/matchCase.svg", "icons/matchCase_dark.svg") }
     val regex by lazy { DynamicIcon("icons/regex.svg", "icons/regex_dark.svg") }
     val vcs by lazy { DynamicIcon("icons/vcs.svg", "icons/vcs_dark.svg") }
