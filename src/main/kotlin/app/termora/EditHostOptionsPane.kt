@@ -38,7 +38,7 @@ class EditHostOptionsPane(private val host: Host) : HostOptionsPane() {
 
 
         if (host.options.jumpHosts.isNotEmpty()) {
-            val hosts = HostManager.instance.hosts().associateBy { it.id }
+            val hosts = HostManager.getInstance().hosts().associateBy { it.id }
             for (id in host.options.jumpHosts) {
                 jumpHostsOption.jumpHosts.add(hosts[id] ?: continue)
             }
