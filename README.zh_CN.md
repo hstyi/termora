@@ -11,7 +11,7 @@
 ## 功能特性
 
 - 支持 SSH 和本地终端
-- 支持 [SFTP](./docs/sftp-zh_CN.png) 文件传输
+- 支持 [SFTP](./docs/sftp-zh_CN.png?raw=1) 文件传输
 - 支持 Windows、macOS、Linux 平台
 - 支持 Zmodem 协议
 - 支持 SSH 端口转发
@@ -20,7 +20,7 @@
 - 支持关键词高亮
 - 支持密钥管理器
 - 支持将命令发送到多个会话
-- 支持 [Find Everywhere](./docs/findeverywhere-zh_CN.png) 快速跳转
+- 支持 [Find Everywhere](./docs/findeverywhere-zh_CN.png?raw=1) 快速跳转
 - 支持数据加密
 - ...
 
