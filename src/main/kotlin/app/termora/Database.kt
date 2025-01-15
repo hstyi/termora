@@ -2,7 +2,6 @@ package app.termora
 
 import app.termora.Application.ohMyJson
 import app.termora.highlight.KeywordHighlight
-import app.termora.keymap.KeyShortcut
 import app.termora.keymap.Keymap
 import app.termora.keymgr.OhKeyPair
 import app.termora.macro.Macro
@@ -14,12 +13,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.*
 import org.apache.commons.io.IOUtils
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.*
-import javax.swing.KeyStroke
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
@@ -65,36 +62,17 @@ class Database private constructor(private val env: Environment) : Disposable {
 
     fun getKeymaps(): Collection<Keymap> {
         val array = env.computeInTransaction { tx ->
-            openCursor<JsonObject>(tx, KEYMAP_STORE) { _, value ->
-                ohMyJson.decodeFromString<JsonObject>(value)
+            openCursor<String>(tx, KEYMAP_STORE) { _, value ->
+                value
             }.values
         }
 
-        val shortcuts = mutableListOf<Keymap>()
-        for (json in array.iterator()) {
-            val name = json["name"]?.jsonPrimitive?.content ?: continue
-            val readonly = json["readonly"]?.jsonPrimitive?.booleanOrNull ?: false
-            val keymap = Keymap(name, null, readonly)
-
-            for (shortcut in (json["shortcuts"]?.jsonArray ?: emptyList()).map { it.jsonObject }) {
-                val keyStroke = shortcut["keyStroke"]?.jsonPrimitive?.contentOrNull ?: continue
-                val keyboard = shortcut["keyboard"]?.jsonPrimitive?.booleanOrNull ?: true
-                val actionIds = ohMyJson.decodeFromJsonElement<List<String>>(
-                    shortcut["actionIds"]?.jsonArray
-                        ?: continue
-                )
-                if (keyboard) {
-                    val keyShortcut = KeyShortcut(KeyStroke.getKeyStroke(keyStroke))
-                    for (actionId in actionIds) {
-                        keymap.addShortcut(actionId, keyShortcut)
-                    }
-                }
-            }
-
-            shortcuts.add(keymap)
+        val keymaps = mutableListOf<Keymap>()
+        for (text in array.iterator()) {
+            keymaps.add(Keymap.fromJSON(text) ?: continue)
         }
 
-        return shortcuts
+        return keymaps
     }
 
     fun addKeymap(keymap: Keymap) {
@@ -599,6 +577,7 @@ class Database private constructor(private val env: Environment) : Disposable {
         var rangeKeyPairs by BooleanPropertyDelegate(true)
         var rangeKeywordHighlights by BooleanPropertyDelegate(true)
         var rangeMacros by BooleanPropertyDelegate(true)
+        var rangeKeymap by BooleanPropertyDelegate(true)
 
         /**
          * Token

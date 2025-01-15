@@ -8,11 +8,14 @@ import app.termora.AES.encodeBase64String
 import app.termora.Application.ohMyJson
 import app.termora.highlight.KeywordHighlight
 import app.termora.highlight.KeywordHighlightManager
+import app.termora.keymap.Keymap
+import app.termora.keymap.KeymapManager
 import app.termora.keymgr.KeyManager
 import app.termora.keymgr.OhKeyPair
 import app.termora.macro.Macro
 import app.termora.macro.MacroManager
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.Request
@@ -32,6 +35,7 @@ abstract class GitSyncer : Syncer {
     protected val keyManager get() = KeyManager.getInstance()
     protected val keywordHighlightManager get() = KeywordHighlightManager.getInstance()
     protected val macroManager get() = MacroManager.getInstance()
+    protected val keymapManager get() = KeymapManager.getInstance()
 
     override fun pull(config: SyncConfig): GistResponse {
 
@@ -71,6 +75,13 @@ abstract class GitSyncer : Syncer {
         if (config.ranges.contains(SyncRange.Macros)) {
             gistResponse.gists.findLast { it.filename == "Macros" }?.let {
                 decodeMacros(it.content, config)
+            }
+        }
+
+        // decode keymaps
+        if (config.ranges.contains(SyncRange.Macros)) {
+            gistResponse.gists.findLast { it.filename == "Keymaps" }?.let {
+                decodeKeymaps(it.content, config)
             }
         }
 
@@ -231,6 +242,17 @@ abstract class GitSyncer : Syncer {
         }
     }
 
+    private fun decodeKeymaps(text: String, config: SyncConfig) {
+
+        for (keymap in ohMyJson.decodeFromString<List<JsonObject>>(text).mapNotNull { Keymap.fromJSON(it) }) {
+            keymapManager.addKeymap(keymap)
+        }
+
+        if (log.isDebugEnabled) {
+            log.debug("Decode Keymaps: {}", text)
+        }
+    }
+
     private fun getKey(config: SyncConfig): ByteArray {
         return ArrayUtils.subarray(config.token.padEnd(16, '0').toByteArray(), 0, 16)
     }
@@ -244,6 +266,7 @@ abstract class GitSyncer : Syncer {
         // aes key
         val key = ArrayUtils.subarray(config.token.padEnd(16, '0').toByteArray(), 0, 16)
 
+        // Hosts
         if (config.ranges.contains(SyncRange.Hosts)) {
             val encryptedHosts = mutableListOf<EncryptedHost>()
             for (host in hostManager.hosts()) {
@@ -282,6 +305,7 @@ abstract class GitSyncer : Syncer {
 
         }
 
+        // KeyPairs
         if (config.ranges.contains(SyncRange.KeyPairs)) {
             val encryptedKeys = mutableListOf<OhKeyPair>()
             for (keyPair in keyManager.getOhKeyPairs()) {
@@ -306,6 +330,7 @@ abstract class GitSyncer : Syncer {
             gistFiles.add(GistFile("KeyPairs", keysContent))
         }
 
+        // Highlights
         if (config.ranges.contains(SyncRange.KeywordHighlights)) {
             val keywordHighlights = mutableListOf<KeywordHighlight>()
             for (keywordHighlight in keywordHighlightManager.getKeywordHighlights()) {
@@ -324,6 +349,7 @@ abstract class GitSyncer : Syncer {
             gistFiles.add(GistFile("KeywordHighlights", keywordHighlightsContent))
         }
 
+        // Macros
         if (config.ranges.contains(SyncRange.Macros)) {
             val macros = mutableListOf<Macro>()
             for (macro in macroManager.getMacros()) {
@@ -340,6 +366,26 @@ abstract class GitSyncer : Syncer {
                 log.debug("Push macros: {}", macrosContent)
             }
             gistFiles.add(GistFile("Macros", macrosContent))
+        }
+
+        // Keymap
+        if (config.ranges.contains(SyncRange.Keymap)) {
+            val keymaps = mutableListOf<JsonObject>()
+            for (keymap in keymapManager.getKeymaps()) {
+                // 只读的是内置的
+                if (keymap.isReadonly) {
+                    continue
+                }
+                keymaps.add(keymap.toJSONObject())
+            }
+
+            if (keymaps.isNotEmpty()) {
+                val keymapsContent = ohMyJson.encodeToString(keymaps)
+                if (log.isDebugEnabled) {
+                    log.debug("Push keymaps: {}", keymapsContent)
+                }
+                gistFiles.add(GistFile("Keymaps", keymapsContent))
+            }
         }
 
         if (gistFiles.isEmpty()) {

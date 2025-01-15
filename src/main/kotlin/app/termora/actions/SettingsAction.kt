@@ -1,5 +1,6 @@
 package app.termora.actions
 
+import app.termora.ApplicationScope
 import app.termora.I18n
 import app.termora.Icons
 import app.termora.SettingsDialog
@@ -27,7 +28,8 @@ class SettingsAction : AnAction(
     init {
         FlatDesktop.setPreferencesHandler {
             val owner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
-            if (owner != null) {
+            // Doorman 的情况下不允许打开
+            if (owner != null && ApplicationScope.windowScopes().isNotEmpty()) {
                 actionPerformed(ActionEvent(owner, ActionEvent.ACTION_PERFORMED, StringUtils.EMPTY))
             }
         }

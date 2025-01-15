@@ -402,6 +402,7 @@ class SettingsOptionsPane : OptionsPane() {
         val keysCheckBox = JCheckBox(I18n.getString("termora.settings.sync.range.keys"))
         val keywordHighlightsCheckBox = JCheckBox(I18n.getString("termora.settings.sync.range.keyword-highlights"))
         val macrosCheckBox = JCheckBox(I18n.getString("termora.macro"))
+        val keymapCheckBox = JCheckBox(I18n.getString("termora.settings.keymap"))
         val visitGistBtn = JButton(Icons.externalLink)
         val getTokenBtn = JButton(Icons.externalLink)
 
@@ -593,6 +594,9 @@ class SettingsOptionsPane : OptionsPane() {
             if (macrosCheckBox.isSelected) {
                 range.add(SyncRange.Macros)
             }
+            if (keymapCheckBox.isSelected) {
+                range.add(SyncRange.Keymap)
+            }
             return SyncConfig(
                 type = typeComboBox.selectedItem as SyncType,
                 token = String(tokenTextField.password),
@@ -664,6 +668,7 @@ class SettingsOptionsPane : OptionsPane() {
                 tokenTextField.isEnabled = false
                 keysCheckBox.isEnabled = false
                 macrosCheckBox.isEnabled = false
+                keymapCheckBox.isEnabled = false
                 keywordHighlightsCheckBox.isEnabled = false
                 hostsCheckBox.isEnabled = false
                 domainTextField.isEnabled = false
@@ -696,6 +701,7 @@ class SettingsOptionsPane : OptionsPane() {
                 hostsCheckBox.isEnabled = true
                 typeComboBox.isEnabled = true
                 macrosCheckBox.isEnabled = true
+                keymapCheckBox.isEnabled = true
                 gistTextField.isEnabled = true
                 tokenTextField.isEnabled = true
                 domainTextField.isEnabled = true
@@ -756,11 +762,13 @@ class SettingsOptionsPane : OptionsPane() {
             keysCheckBox.isFocusable = false
             keywordHighlightsCheckBox.isFocusable = false
             macrosCheckBox.isFocusable = false
+            keymapCheckBox.isFocusable = false
 
             hostsCheckBox.isSelected = sync.rangeHosts
             keysCheckBox.isSelected = sync.rangeKeyPairs
             keywordHighlightsCheckBox.isSelected = sync.rangeKeywordHighlights
             macrosCheckBox.isSelected = sync.rangeMacros
+            keymapCheckBox.isSelected = sync.rangeKeymap
 
             typeComboBox.selectedItem = sync.type
             gistTextField.text = sync.gist
@@ -823,6 +831,7 @@ class SettingsOptionsPane : OptionsPane() {
                 .add(keysCheckBox).xy(3, 1)
                 .add(keywordHighlightsCheckBox).xy(5, 1)
                 .add(macrosCheckBox).xy(1, 3)
+                .add(keymapCheckBox).xy(3, 3)
                 .build()
 
             var rows = 1

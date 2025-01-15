@@ -2,10 +2,8 @@ package app.termora.keymap
 
 import app.termora.Application.ohMyJson
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.encodeToJsonElement
-import kotlinx.serialization.json.put
+import kotlinx.serialization.json.*
+import javax.swing.KeyStroke
 
 open class Keymap(
     val name: String,
@@ -15,6 +13,37 @@ open class Keymap(
     private val parent: Keymap?,
     val isReadonly: Boolean = false,
 ) {
+
+    companion object {
+        fun fromJSON(text: String): Keymap? {
+            return fromJSON(ohMyJson.decodeFromString<JsonObject>(text))
+        }
+
+        fun fromJSON(json: JsonObject): Keymap? {
+            val shortcuts = mutableListOf<Keymap>()
+            val name = json["name"]?.jsonPrimitive?.content ?: return null
+            val readonly = json["readonly"]?.jsonPrimitive?.booleanOrNull ?: return null
+            val keymap = Keymap(name, null, readonly)
+
+            for (shortcut in (json["shortcuts"]?.jsonArray ?: emptyList()).map { it.jsonObject }) {
+                val keyStroke = shortcut["keyStroke"]?.jsonPrimitive?.contentOrNull ?: continue
+                val keyboard = shortcut["keyboard"]?.jsonPrimitive?.booleanOrNull ?: true
+                val actionIds = ohMyJson.decodeFromJsonElement<List<String>>(
+                    shortcut["actionIds"]?.jsonArray
+                        ?: continue
+                )
+                if (keyboard) {
+                    val keyShortcut = KeyShortcut(KeyStroke.getKeyStroke(keyStroke))
+                    for (actionId in actionIds) {
+                        keymap.addShortcut(actionId, keyShortcut)
+                    }
+                }
+            }
+
+            shortcuts.add(keymap)
+            return keymap
+        }
+    }
 
     private val shortcuts = mutableMapOf<Shortcut, MutableList<String>>()
 
@@ -66,7 +95,11 @@ open class Keymap(
 
 
     fun toJSON(): String {
-        return ohMyJson.encodeToString(buildJsonObject {
+        return ohMyJson.encodeToString(toJSONObject())
+    }
+
+    fun toJSONObject(): JsonObject {
+        return buildJsonObject {
             put("name", name)
             put("readonly", isReadonly)
             parent?.let { put("parent", it.name) }
@@ -81,7 +114,7 @@ open class Keymap(
                     })
                 }
             })
-        })
+        }
     }
 
 }
