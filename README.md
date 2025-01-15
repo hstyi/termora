@@ -1,8 +1,8 @@
-# Termora
-
 <div align="center">
 <a href="./README.zh_CN.md">🇨🇳 简体中文</a>
 </div>
+
+# Termora
 
 **Termora** is a terminal emulator and SSH client for Windows, macOS and Linux.
 
