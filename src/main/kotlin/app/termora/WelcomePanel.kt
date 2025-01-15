@@ -234,6 +234,7 @@ class WelcomePanel : JPanel(BorderLayout()), Disposable, TerminalTab {
     }
 
     override fun dispose() {
+        hostTree.setModel(null)
         properties.putString("WelcomeFullContent", fullContent.toString())
     }
 

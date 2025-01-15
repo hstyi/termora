@@ -18,6 +18,7 @@ object Icons {
     val empty by lazy { DynamicIcon("icons/empty.svg") }
     val changelog by lazy { DynamicIcon("icons/changelog.svg", "icons/changelog_dark.svg") }
     val add by lazy { DynamicIcon("icons/add.svg", "icons/add_dark.svg") }
+    val delete by lazy { DynamicIcon("icons/delete.svg", "icons/delete_dark.svg") }
     val errorIntroduction by lazy { DynamicIcon("icons/errorIntroduction.svg", "icons/errorIntroduction_dark.svg") }
     val networkPolicy by lazy { DynamicIcon("icons/networkPolicy.svg", "icons/networkPolicy_dark.svg") }
     val clusterRole by lazy { DynamicIcon("icons/clusterRole.svg", "icons/clusterRole_dark.svg") }

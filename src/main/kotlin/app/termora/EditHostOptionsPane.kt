@@ -4,6 +4,7 @@ import app.termora.keymgr.KeyManager
 import app.termora.keymgr.OhKeyPair
 
 class EditHostOptionsPane(private val host: Host) : HostOptionsPane() {
+
     init {
         generalOption.portTextField.value = host.port
         generalOption.nameTextField.text = host.name
@@ -34,6 +35,13 @@ class EditHostOptionsPane(private val host: Host) : HostOptionsPane() {
         terminalOption.heartbeatIntervalTextField.value = host.options.heartbeatInterval
 
         tunnelingOption.tunnelings.addAll(host.tunnelings)
+
+
+        val hosts = HostManager.instance.hosts().associateBy { it.id }
+        for (id in host.options.jumpHosts) {
+            jumpHostsOption.jumpHosts.add(hosts[id] ?: continue)
+        }
+        jumpHostsOption.filter = { it.id != host.id }
     }
 
     override fun getHost(): Host {

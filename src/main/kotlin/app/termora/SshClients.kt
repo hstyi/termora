@@ -5,10 +5,12 @@ import app.termora.terminal.TerminalSize
 import org.apache.sshd.client.ClientBuilder
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.channel.ChannelShell
+import org.apache.sshd.client.config.hosts.HostConfigEntryResolver
 import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.common.SshException
 import org.apache.sshd.common.channel.PtyChannelConfiguration
 import org.apache.sshd.common.global.KeepAliveHandler
+import org.apache.sshd.common.util.net.SshdSocketAddress
 import org.apache.sshd.core.CoreModuleProperties
 import org.apache.sshd.server.forward.AcceptAllForwardingFilter
 import org.apache.sshd.server.forward.RejectAllForwardingFilter
@@ -16,14 +18,15 @@ import org.eclipse.jgit.internal.transport.sshd.JGitSshClient
 import org.eclipse.jgit.transport.CredentialsProvider
 import org.eclipse.jgit.transport.sshd.IdentityPasswordProvider
 import org.eclipse.jgit.transport.sshd.ProxyData
+import org.slf4j.LoggerFactory
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.time.Duration
 import kotlin.math.max
-import org.apache.sshd.client.config.hosts.HostConfigEntryResolver
 
 object SshClients {
     private val timeout = Duration.ofSeconds(30)
+    private val log by lazy { LoggerFactory.getLogger(SshClients::class.java) }
 
     /**
      * 打开一个 Shell
@@ -57,6 +60,54 @@ object SshClients {
      * 打开一个会话
      */
     fun openSession(host: Host, client: SshClient): ClientSession {
+
+
+        // 如果没有跳板机直接连接
+        if (host.options.jumpHosts.isEmpty()) {
+            return doOpenSession(host, client)
+        }
+
+        val jumpHosts = mutableListOf<Host>()
+        val hosts = HostManager.instance.hosts().associateBy { it.id }
+        for (jumpHostId in host.options.jumpHosts) {
+            val e = hosts[jumpHostId]
+            if (e == null) {
+                if (log.isWarnEnabled) {
+                    log.warn("Failed to find jump host: $jumpHostId")
+                }
+                continue
+            }
+            jumpHosts.add(hosts.getValue(jumpHostId))
+        }
+
+        // 最后一跳是目标机器
+        jumpHosts.add(host)
+
+        val sessions = mutableListOf<ClientSession>()
+        for (i in 0 until jumpHosts.size) {
+            val currentHost = jumpHosts[i]
+            sessions.add(doOpenSession(currentHost, client))
+
+            // 如果有下一跳
+            if (i < jumpHosts.size - 1) {
+                val nextHost = jumpHosts[i + 1]
+                // 通过 currentHost 的 Session 将远程端口映射到本地
+                val address = sessions.last().startLocalPortForwarding(
+                    SshdSocketAddress.LOCALHOST_ADDRESS,
+                    SshdSocketAddress(nextHost.host, nextHost.port),
+                )
+                if (log.isDebugEnabled) {
+                    log.debug("jump host: ${currentHost.host}:${currentHost.port} , next host: ${nextHost.host}:${nextHost.port} , local address: ${address.hostName}:${address.port}")
+                }
+                // 映射完毕之后修改Host和端口
+                jumpHosts[i + 1] = nextHost.copy(host = address.hostName, port = address.port)
+            }
+        }
+
+        return sessions.last()
+    }
+
+    private fun doOpenSession(host: Host, client: SshClient): ClientSession {
         val session = client.connect(host.username, host.host, host.port)
             .verify(timeout).session
         if (host.authentication.type == AuthenticationType.Password) {
@@ -73,6 +124,7 @@ object SshClients {
         return session
     }
 
+
     /**
      * 打开一个客户端
      */
@@ -81,7 +133,7 @@ object SshClients {
         builder.globalRequestHandlers(listOf(KeepAliveHandler.INSTANCE))
             .factory { JGitSshClient() }
 
-        if (host.tunnelings.isEmpty()) {
+        if (host.tunnelings.isEmpty() && host.options.jumpHosts.isEmpty()) {
             builder.forwardingFilter(RejectAllForwardingFilter.INSTANCE)
         } else {
             builder.forwardingFilter(AcceptAllForwardingFilter.INSTANCE)

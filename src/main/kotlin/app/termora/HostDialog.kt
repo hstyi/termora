@@ -17,7 +17,7 @@ class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
     init {
         size = Dimension(UIManager.getInt("Dialog.width"), UIManager.getInt("Dialog.height"))
         isModal = true
-        title = I18n.getString("termora.new-host.title")
+        title = host?.name ?: I18n.getString("termora.new-host.title")
         setLocationRelativeTo(null)
 
         init()

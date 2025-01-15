@@ -10,7 +10,10 @@ import java.awt.event.WindowEvent
 import javax.swing.*
 import javax.swing.tree.TreeSelectionModel
 
-class HostTreeDialog(owner: Window) : DialogWrapper(owner) {
+class HostTreeDialog(
+    owner: Window,
+    private val filter: (host: Host) -> Boolean = { true }
+) : DialogWrapper(owner) {
 
     private val tree = HostTree()
 
@@ -34,7 +37,7 @@ class HostTreeDialog(owner: Window) : DialogWrapper(owner) {
         title = I18n.getString("termora.transport.sftp.select-host")
 
         tree.setModel(SearchableHostTreeModel(tree.model) { host ->
-            host.protocol == Protocol.Folder || host.protocol == Protocol.SSH
+            (host.protocol == Protocol.Folder || host.protocol == Protocol.SSH) && filter.invoke(host)
         })
         tree.contextmenu = true
         tree.doubleClickConnection = false
@@ -75,6 +78,7 @@ class HostTreeDialog(owner: Window) : DialogWrapper(owner) {
                     "HostTreeDialog.HostTreeExpansionState",
                     TreeUtils.saveExpansionState(tree)
                 )
+                tree.setModel(null)
             }
         })
     }
@@ -92,7 +96,9 @@ class HostTreeDialog(owner: Window) : DialogWrapper(owner) {
     override fun doOKAction() {
 
         if (allowMulti) {
-            val nodes = tree.getSelectionNodes().filter { it.protocol == Protocol.SSH }
+            val nodes = tree.getSelectionNodes()
+                .filter { it.protocol == Protocol.SSH }
+                .distinctBy { it.id }
             if (nodes.isEmpty()) {
                 return
             }
