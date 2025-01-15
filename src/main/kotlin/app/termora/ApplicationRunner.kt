@@ -129,14 +129,14 @@ class ApplicationRunner {
         }
 
         val themeManager = ThemeManager.getInstance()
-        val settings = Database.getDatabase()
-        var theme = settings.appearance.theme
-        // 如果是跟随系统或者不存在样式，那么使用默认的
-        if (settings.appearance.followSystem || !themeManager.themes.containsKey(theme)) {
+        val appearance = Database.getDatabase().appearance
+        var theme = appearance.theme
+        // 如果是跟随系统
+        if (appearance.followSystem) {
             theme = if (OsThemeDetector.getDetector().isDark) {
-                "Dark"
+                appearance.darkTheme
             } else {
-                "Light"
+                appearance.lightTheme
             }
         }
 

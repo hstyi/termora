@@ -551,6 +551,8 @@ class Database private constructor(private val env: Environment) : Disposable {
          * 跟随系统
          */
         var followSystem by BooleanPropertyDelegate(true)
+        var darkTheme by StringPropertyDelegate("Dark")
+        var lightTheme by StringPropertyDelegate("Light")
 
         /**
          * 语言

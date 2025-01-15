@@ -6,13 +6,12 @@ import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.util.SystemInfo
 import com.jetbrains.JBR
-import java.awt.BorderLayout
-import java.awt.Dimension
-import java.awt.Window
+import java.awt.*
 import java.awt.event.KeyEvent
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import javax.swing.*
+
 
 abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
     private val rootPanel = JPanel(BorderLayout())
@@ -147,6 +146,31 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
 
         rootPane.actionMap.put("close", object : AnAction() {
             override fun actionPerformed(evt: AnActionEvent) {
+                val c = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
+                val popups: List<JPopupMenu> = SwingUtils.getDescendantsOfType(
+                    JPopupMenu::class.java,
+                    c as Container, true
+                )
+
+                var openPopup = false
+                for (p in popups) {
+                    p.isVisible = false
+                    openPopup = true
+                }
+
+                val window = SwingUtilities.windowForComponent(c)
+                val windows = window.ownedWindows
+                for (w in windows) {
+                    if (w.isVisible && w.javaClass.getName().endsWith("HeavyWeightWindow")) {
+                        openPopup = true
+                        w.dispose()
+                    }
+                }
+
+                if (openPopup) {
+                    return
+                }
+
                 doCancelAction()
             }
         })

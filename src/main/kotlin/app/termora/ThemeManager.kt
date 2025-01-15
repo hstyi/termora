@@ -28,6 +28,7 @@ class ThemeManager private constructor() {
         }
     }
 
+    val appearance by lazy { Database.getDatabase().appearance }
     val themes = mapOf(
         "Light" to LightLaf::class.java.name,
         "Dark" to DarkLaf::class.java.name,
@@ -79,18 +80,16 @@ class ThemeManager private constructor() {
         GlobalScope.launch(Dispatchers.IO) {
             OsThemeDetector.getDetector().registerListener(object : Consumer<Boolean> {
                 override fun accept(isDark: Boolean) {
-                    if (!Database.getDatabase().appearance.followSystem) {
+                    if (!appearance.followSystem) {
                         return
                     }
 
-                    if (FlatLaf.isLafDark() && isDark) {
-                        return
-                    }
-
-                    if (isDark) {
-                        SwingUtilities.invokeLater { change("Dark") }
-                    } else {
-                        SwingUtilities.invokeLater { change("Light") }
+                    SwingUtilities.invokeLater {
+                        if (isDark) {
+                            change(appearance.darkTheme)
+                        } else {
+                            change(appearance.lightTheme)
+                        }
                     }
                 }
             })
