@@ -68,7 +68,7 @@ object SshClients {
         }
 
         val jumpHosts = mutableListOf<Host>()
-        val hosts = HostManager.instance.hosts().associateBy { it.id }
+        val hosts = HostManager.getInstance().hosts().associateBy { it.id }
         for (jumpHostId in host.options.jumpHosts) {
             val e = hosts[jumpHostId]
             if (e == null) {
@@ -77,7 +77,7 @@ object SshClients {
                 }
                 continue
             }
-            jumpHosts.add(hosts.getValue(jumpHostId))
+            jumpHosts.add(e)
         }
 
         // 最后一跳是目标机器
