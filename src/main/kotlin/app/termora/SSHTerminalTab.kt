@@ -1,7 +1,10 @@
 package app.termora
 
+import app.termora.actions.TabReconnectAction
 import app.termora.addons.zmodem.ZModemPtyConnectorAdaptor
 import app.termora.keyboardinteractive.TerminalUserInteraction
+import app.termora.keymap.KeyShortcut
+import app.termora.keymap.KeymapManager
 import app.termora.terminal.ControlCharacters
 import app.termora.terminal.DataKey
 import app.termora.terminal.PtyConnector
@@ -109,10 +112,18 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminalTab(
 
 
         channel.addChannelListener(object : ChannelListener {
+            private val reconnectShortcut
+                get() = KeymapManager.getInstance().getActiveKeymap()
+                    .getShortcut(TabReconnectAction.RECONNECT_TAB).firstOrNull()
+
             override fun channelClosed(channel: Channel, reason: Throwable?) {
                 coroutineScope.launch(Dispatchers.Swing) {
-                    terminal.write("\r\n${ControlCharacters.ESC}[31m")
-                    terminal.write("Channel has been disconnected.\r\n")
+                    terminal.write("\r\n\r\n${ControlCharacters.ESC}[31m")
+                    terminal.write("Channel has been disconnected.")
+                    if (reconnectShortcut is KeyShortcut) {
+                        terminal.write(" Type $reconnectShortcut to reconnect.")
+                    }
+                    terminal.write("\r\n")
                     terminal.write("${ControlCharacters.ESC}[0m")
                     terminalModel.setData(DataKey.ShowCursor, false)
                 }

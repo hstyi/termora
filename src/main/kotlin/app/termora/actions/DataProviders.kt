@@ -6,8 +6,11 @@ object DataProviders {
     val TerminalPanel = DataKey(app.termora.terminal.panel.TerminalPanel::class)
     val Terminal = DataKey(app.termora.terminal.Terminal::class)
     val PtyConnector = DataKey(app.termora.terminal.PtyConnector::class)
+
     val TerminalTabbed = DataKey(app.termora.TerminalTabbed::class)
+    val TerminalTab = DataKey(app.termora.TerminalTab::class)
     val TerminalTabbedManager = DataKey(app.termora.TerminalTabbedManager::class)
+
     val TermoraFrame = DataKey(app.termora.TermoraFrame::class)
     val WindowScope = DataKey(app.termora.WindowScope::class)
 

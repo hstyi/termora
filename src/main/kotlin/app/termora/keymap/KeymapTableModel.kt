@@ -3,12 +3,11 @@ package app.termora.keymap
 import app.termora.I18n
 import app.termora.actions.*
 import app.termora.findeverywhere.FindEverywhereAction
+import app.termora.keymap.KeyShortcut.Companion.toHumanText
 import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.action.ActionManager
 import org.jdesktop.swingx.action.BoundAction.ACTION_COMMAND_KEY
-import java.awt.event.KeyEvent
 import javax.swing.Action
-import javax.swing.KeyStroke
 import javax.swing.table.DefaultTableModel
 
 class KeymapTableModel : DefaultTableModel() {
@@ -30,6 +29,7 @@ class KeymapTableModel : DefaultTableModel() {
             OpenLocalTerminalAction.LOCAL_TERMINAL,
             FindEverywhereAction.FIND_EVERYWHERE,
             NewWindowAction.NEW_WINDOW,
+            TabReconnectAction.RECONNECT_TAB,
             SwitchTabAction.SWITCH_TAB,
         )) {
             val action = actionManager.getAction(id) ?: continue
@@ -73,25 +73,6 @@ class KeymapTableModel : DefaultTableModel() {
 
     override fun isCellEditable(row: Int, column: Int): Boolean {
         return false
-    }
-
-    fun toHumanText(keyStroke: KeyStroke): String {
-
-        var text = keyStroke.toString()
-        text = text.replace("shift", "⇧")
-        text = text.replace("ctrl", "⌃")
-        text = text.replace("meta", "⌘")
-        text = text.replace("alt", "⌥")
-        text = text.replace("pressed", StringUtils.EMPTY)
-        text = text.replace(StringUtils.SPACE, StringUtils.EMPTY)
-
-        if (keyStroke.keyCode == KeyEvent.VK_EQUALS) {
-            text = text.replace("EQUALS", "+")
-        } else if (keyStroke.keyCode == KeyEvent.VK_MINUS) {
-            text = text.replace("MINUS", "-")
-        }
-
-        return text.toCharArray().joinToString(" + ")
     }
 
 

@@ -3,6 +3,7 @@ package app.termora.keymap
 import app.termora.*
 import app.termora.actions.ActionManager
 import app.termora.actions.SwitchTabAction
+import app.termora.keymap.KeyShortcut.Companion.toHumanText
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatToolBar
 import java.awt.BorderLayout
@@ -225,7 +226,7 @@ class KeymapPanel : JPanel(BorderLayout()) {
                     val text = duplicateAction.getValue(Action.SHORT_DESCRIPTION) ?: continue
                     OptionPane.showMessageDialog(
                         SwingUtilities.getWindowAncestor(this@KeymapPanel),
-                        I18n.getString("termora.settings.keymap.already-exists", model.toHumanText(keyStroke), text),
+                        I18n.getString("termora.settings.keymap.already-exists", toHumanText(keyStroke), text),
                         messageType = JOptionPane.ERROR_MESSAGE,
                     )
                 }

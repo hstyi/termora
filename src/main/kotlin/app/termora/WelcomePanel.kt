@@ -228,6 +228,18 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
         return this
     }
 
+    override fun canReconnect(): Boolean {
+        return false
+    }
+
+    override fun canClose(): Boolean {
+        return false
+    }
+
+    override fun canClone(): Boolean {
+        return false
+    }
+
     override fun dispose() {
         hostTree.setModel(null)
         properties.putString("WelcomeFullContent", fullContent.toString())

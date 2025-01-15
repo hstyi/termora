@@ -181,16 +181,6 @@ class TerminalTabbed(
         }
     }
 
-
-    private fun openHost(host: Host) {
-        val tab = if (host.protocol == Protocol.SSH)
-            SSHTerminalTab(ApplicationScope.forWindowScope(this), host)
-        else LocalTerminalTab(ApplicationScope.forWindowScope(this), host)
-        addTab(tab)
-        tab.start()
-    }
-
-
     private fun showContextMenu(tabIndex: Int, e: MouseEvent) {
         val c = tabbedPane.getComponentAt(tabIndex) as JComponent
         val tab = tabs[tabIndex]
@@ -438,6 +428,12 @@ class TerminalTabbed(
     }
 
     override fun <T : Any> getData(dataKey: DataKey<T>): T? {
+        if (dataKey == DataProviders.TerminalTab) {
+            dataProviderSupport.removeData(dataKey)
+            if (tabbedPane.selectedIndex >= 0 && tabs.size > tabbedPane.selectedIndex) {
+                dataProviderSupport.addData(dataKey, tabs[tabbedPane.selectedIndex])
+            }
+        }
         return dataProviderSupport.getData(dataKey)
     }
 

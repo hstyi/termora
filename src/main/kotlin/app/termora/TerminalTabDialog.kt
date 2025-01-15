@@ -48,6 +48,8 @@ class TerminalTabDialog(
                 dataProviderSupport.addData(DataProviders.WindowScope, it)
             }
         }
+
+        dataProviderSupport.addData(DataProviders.TerminalTab, terminalTab)
     }
 
     override fun createSouthPanel(): JComponent? {

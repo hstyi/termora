@@ -37,6 +37,7 @@ class ActionManager : org.jdesktop.swingx.action.ActionManager() {
         addAction(Actions.KEY_MANAGER, KeyManagerAction())
 
         addAction(SwitchTabAction.SWITCH_TAB, SwitchTabAction())
+        addAction(TabReconnectAction.RECONNECT_TAB, TabReconnectAction())
         addAction(SettingsAction.SETTING, SettingsAction())
 
         addAction(NewHostAction.NEW_HOST, NewHostAction())

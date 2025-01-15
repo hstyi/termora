@@ -70,6 +70,12 @@ class KeymapImpl(private val menuShortcutKeyMaskEx: Int) : Keymap("Keymap", null
             KeyShortcut(KeyStroke.getKeyStroke(KeyEvent.VK_0, menuShortcutKeyMaskEx))
         )
 
+        // Command + Shift + R
+        addShortcut(
+            TabReconnectAction.RECONNECT_TAB,
+            KeyShortcut(KeyStroke.getKeyStroke(KeyEvent.VK_R, menuShortcutKeyMaskEx or InputEvent.SHIFT_DOWN_MASK))
+        )
+
 
         // switch map
         for (i in KeyEvent.VK_1..KeyEvent.VK_9) {
