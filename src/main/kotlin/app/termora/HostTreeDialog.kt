@@ -36,7 +36,7 @@ class HostTreeDialog(
         title = I18n.getString("termora.transport.sftp.select-host")
 
         tree.setModel(SearchableHostTreeModel(tree.model) { host ->
-            host.protocol == Protocol.Folder || host.protocol == Protocol.SSH
+            (host.protocol == Protocol.Folder || host.protocol == Protocol.SSH) && filter.invoke(host)
         })
         tree.contextmenu = true
         tree.doubleClickConnection = false
@@ -73,6 +73,7 @@ class HostTreeDialog(
 
         addWindowListener(object : WindowAdapter() {
             override fun windowClosed(e: WindowEvent) {
+                tree.setModel(null)
                 Database.getDatabase().properties.putString(
                     "HostTreeDialog.HostTreeExpansionState",
                     TreeUtils.saveExpansionState(tree)

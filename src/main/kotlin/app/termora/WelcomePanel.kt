@@ -229,6 +229,7 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
     }
 
     override fun dispose() {
+        hostTree.setModel(null)
         properties.putString("WelcomeFullContent", fullContent.toString())
     }
 
