@@ -3,6 +3,7 @@ import org.gradle.kotlin.dsl.support.uppercaseFirstChar
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 import org.jetbrains.kotlin.org.apache.commons.io.FileUtils
 import org.jetbrains.kotlin.org.apache.commons.lang3.StringUtils
+import java.nio.file.Files
 
 plugins {
     java
@@ -36,7 +37,7 @@ repositories {
 
 dependencies {
     // 由于签名和公证，macOS 不携带 natives
-    val useNoNativesFlatLaf = os.isMacOsX && System.getenv("ENABLE_BUILD").toBoolean()
+    val useNoNativesFlatLaf = os.isMacOsX && macOSNotary && System.getenv("ENABLE_BUILD").toBoolean()
 
     testImplementation(kotlin("test"))
     testImplementation(libs.hutool)
@@ -136,7 +137,7 @@ tasks.register<Copy>("copy-dependencies") {
 
     // 对 JNA 和 PTY4J 的本地库提取
     // 提取出来是为了单独签名，不然无法通过公证
-    if (os.isMacOsX) {
+    if (os.isMacOsX && macOSSign) {
         doLast {
             val jna = libs.jna.asProvider().get()
             val dylib = dir.get().dir("dylib").asFile
@@ -165,6 +166,15 @@ tasks.register<Copy>("copy-dependencies") {
                     // @formatter:on
                     // 删除所有二进制类库
                     exec { commandLine("zip", "-d", file.absolutePath, "resources/*") }
+                }
+            }
+
+            // 对二进制签名
+            Files.walk(dylib.toPath()).use { paths ->
+                for (path in paths) {
+                    if (Files.isRegularFile(path)) {
+                        signMacOSLocalFile(path.toFile())
+                    }
                 }
             }
         }
@@ -274,7 +284,8 @@ tasks.register<Exec>("jpackage") {
 tasks.register("dist") {
     doLast {
         val vendor = Jvm.current().vendor ?: StringUtils.EMPTY
-        @Suppress("UnstableApiUsage") if (!JvmVendorSpec.JETBRAINS.matches(vendor)) {
+        @Suppress("UnstableApiUsage")
+        if (!JvmVendorSpec.JETBRAINS.matches(vendor)) {
             throw GradleException("JVM: $vendor is not supported")
         }
 
@@ -285,9 +296,7 @@ tasks.register("dist") {
         val macOSFinalFilePath = distributionDir.file("${finalFilenameWithoutExtension}.dmg").asFile.absolutePath
 
         // 清空目录
-        exec {
-            commandLine(gradlew, "clean")
-        }
+        exec { commandLine(gradlew, "clean") }
 
         // 打包并复制依赖
         exec {
@@ -299,10 +308,7 @@ tasks.register("dist") {
         exec { commandLine(gradlew, "check-license") }
 
         // jlink
-        exec {
-            commandLine(gradlew, "jlink")
-            environment("ENABLE_BUILD" to true)
-        }
+        exec { commandLine(gradlew, "jlink") }
 
         // 打包
         exec { commandLine(gradlew, "jpackage") }
@@ -312,8 +318,7 @@ tasks.register("dist") {
             // zip
             exec {
                 commandLine(
-                    "tar",
-                    "-vacf",
+                    "tar", "-vacf",
                     distributionDir.file("${finalFilenameWithoutExtension}.zip").asFile.absolutePath,
                     project.name.uppercaseFirstChar()
                 )
@@ -332,8 +337,7 @@ tasks.register("dist") {
         } else if (os.isLinux) { // tar.gz
             exec {
                 commandLine(
-                    "tar",
-                    "-czvf",
+                    "tar", "-czvf",
                     distributionDir.file("${finalFilenameWithoutExtension}.tar.gz").asFile.absolutePath,
                     project.name.uppercaseFirstChar()
                 )
@@ -354,30 +358,17 @@ tasks.register("dist") {
 
         // sign dmg
         if (os.isMacOsX && macOSSign) {
-            exec {
-                commandLine(
-                    "/usr/bin/codesign",
-                    "-s",
-                    macOSSignUsername,
-                    "--timestamp",
-                    "--force",
-                    "-vvvv",
-                    "--options",
-                    "runtime",
-                    macOSFinalFilePath
-                )
-            }
 
-            // 公证
+            // sign
+            signMacOSLocalFile(File(macOSFinalFilePath))
+
+            // notary
             if (macOSNotary) {
                 exec {
                     commandLine(
-                        "/usr/bin/xcrun",
-                        "notarytool",
-                        "submit",
-                        macOSFinalFilePath,
-                        "--keychain-profile",
-                        macOSNotaryKeychainProfile,
+                        "/usr/bin/xcrun", "notarytool",
+                        "submit", macOSFinalFilePath,
+                        "--keychain-profile", macOSNotaryKeychainProfile,
                         "--wait",
                     )
                 }
@@ -405,20 +396,28 @@ tasks.register("check-license") {
             thirdParty[nameWithVersion.replace(StringUtils.SPACE, "-")] = license
             thirdPartyNames.add(nameWithVersion.split(StringUtils.SPACE).first())
         }
+    }
+}
 
-        for (file in configurations.runtimeClasspath.get()) {
-            val name = file.nameWithoutExtension
-            if (!thirdParty.containsKey(name)) {
-                if (logger.isWarnEnabled) {
-                    logger.warn("$name does not exist in third-party")
-                }
-                if (!thirdPartyNames.contains(name)) {
-                    throw GradleException("$name No license found")
-                }
+/**
+ * macOS 对本地文件进行签名
+ */
+fun signMacOSLocalFile(file: File) {
+    if (os.isMacOsX && macOSSign) {
+        if (file.exists() && file.isFile) {
+            exec {
+                commandLine(
+                    "/usr/bin/codesign",
+                    "-s", macOSSignUsername,
+                    "--timestamp", "--force",
+                    "-vvvv", "--options", "runtime",
+                    file.absolutePath,
+                )
             }
         }
     }
 }
+
 
 kotlin {
     jvmToolchain {
