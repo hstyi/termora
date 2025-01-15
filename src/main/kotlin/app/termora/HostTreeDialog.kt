@@ -9,7 +9,10 @@ import java.awt.event.WindowEvent
 import javax.swing.*
 import javax.swing.tree.TreeSelectionModel
 
-class HostTreeDialog(owner: Window) : DialogWrapper(owner) {
+class HostTreeDialog(
+    owner: Window,
+    private val filter: (host: Host) -> Boolean = { true }
+) : DialogWrapper(owner) {
 
     private val tree = HostTree()
 

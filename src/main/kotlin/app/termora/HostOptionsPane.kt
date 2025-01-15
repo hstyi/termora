@@ -12,6 +12,7 @@ import java.awt.*
 import java.awt.event.*
 import java.nio.charset.Charset
 import javax.swing.*
+import javax.swing.table.DefaultTableCellRenderer
 import javax.swing.table.DefaultTableModel
 
 
@@ -20,12 +21,14 @@ open class HostOptionsPane : OptionsPane() {
     protected val generalOption = GeneralOption()
     protected val proxyOption = ProxyOption()
     protected val terminalOption = TerminalOption()
-    protected val owner: Window? get() = SwingUtilities.getWindowAncestor(this)
+    protected val jumpHostsOption = JumpHostsOption()
+    protected val owner: Window get() = SwingUtilities.getWindowAncestor(this)
 
     init {
         addOption(generalOption)
         addOption(proxyOption)
         addOption(tunnelingOption)
+        addOption(jumpHostsOption)
         addOption(terminalOption)
 
         setContentBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8))
@@ -69,6 +72,7 @@ open class HostOptionsPane : OptionsPane() {
             env = terminalOption.environmentTextArea.text,
             startupCommand = terminalOption.startupCommandTextField.text,
             heartbeatInterval = (terminalOption.heartbeatIntervalTextField.value ?: 30) as Int,
+            jumpHosts = jumpHostsOption.jumpHosts.map { it.id }
         )
 
         return Host(
@@ -635,6 +639,12 @@ open class HostOptionsPane : OptionsPane() {
             model.addColumn(I18n.getString("termora.new-host.tunneling.table.destination"))
 
 
+            table.putClientProperty(
+                FlatClientProperties.STYLE, mapOf(
+                    "showHorizontalLines" to true,
+                    "showVerticalLines" to true,
+                )
+            )
             table.autoResizeMode = JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS
             table.border = BorderFactory.createEmptyBorder()
             table.fillsViewportHeight = true
@@ -843,4 +853,168 @@ open class HostOptionsPane : OptionsPane() {
         }
     }
 
+
+    protected inner class JumpHostsOption : JPanel(BorderLayout()), Option {
+        val jumpHosts = mutableListOf<Host>()
+        var filter: (host: Host) -> Boolean = { true }
+
+        private val model = object : DefaultTableModel() {
+
+            override fun isCellEditable(row: Int, column: Int): Boolean {
+                return false
+            }
+
+            override fun getRowCount(): Int {
+                return jumpHosts.size
+            }
+
+
+            override fun getValueAt(row: Int, column: Int): Any {
+                val host = jumpHosts.getOrNull(row) ?: return StringUtils.EMPTY
+                return if (column == 0)
+                    host.name
+                else "${host.host}:${host.port}"
+            }
+        }
+        private val table = JTable(model)
+        private val addBtn = JButton(I18n.getString("termora.new-host.tunneling.add"))
+        private val moveUpBtn = JButton(I18n.getString("termora.transport.bookmarks.up"))
+        private val moveDownBtn = JButton(I18n.getString("termora.transport.bookmarks.down"))
+        private val deleteBtn = JButton(I18n.getString("termora.new-host.tunneling.delete"))
+
+        init {
+            initView()
+            initEvents()
+        }
+
+        private fun initView() {
+            val scrollPane = JScrollPane(table)
+
+            model.addColumn(I18n.getString("termora.new-host.general.name"))
+            model.addColumn(I18n.getString("termora.new-host.general.host"))
+
+            table.putClientProperty(
+                FlatClientProperties.STYLE, mapOf(
+                    "showHorizontalLines" to true,
+                    "showVerticalLines" to true,
+                )
+            )
+            table.autoResizeMode = JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS
+            table.setDefaultRenderer(
+                Any::class.java,
+                DefaultTableCellRenderer().apply { horizontalAlignment = SwingConstants.CENTER })
+            table.fillsViewportHeight = true
+            scrollPane.border = BorderFactory.createCompoundBorder(
+                BorderFactory.createEmptyBorder(4, 0, 4, 0),
+                BorderFactory.createMatteBorder(1, 1, 1, 1, DynamicColor.BorderColor)
+            )
+            table.border = BorderFactory.createEmptyBorder()
+
+            moveUpBtn.isFocusable = false
+            moveDownBtn.isFocusable = false
+            deleteBtn.isFocusable = false
+            moveUpBtn.isEnabled = false
+            moveDownBtn.isEnabled = false
+            deleteBtn.isEnabled = false
+            addBtn.isFocusable = false
+
+            val box = Box.createHorizontalBox()
+            box.add(addBtn)
+            box.add(Box.createHorizontalStrut(4))
+            box.add(deleteBtn)
+            box.add(Box.createHorizontalStrut(4))
+            box.add(moveUpBtn)
+            box.add(Box.createHorizontalStrut(4))
+            box.add(moveDownBtn)
+
+            add(JLabel("${getTitle()}:"), BorderLayout.NORTH)
+            add(scrollPane, BorderLayout.CENTER)
+            add(box, BorderLayout.SOUTH)
+        }
+
+        private fun initEvents() {
+            addBtn.addActionListener(object : AbstractAction() {
+                override fun actionPerformed(e: ActionEvent?) {
+                    val dialog = HostTreeDialog(owner) { host ->
+                        jumpHosts.none { it.id == host.id } && filter.invoke(host)
+                    }
+
+                    dialog.setLocationRelativeTo(owner)
+                    dialog.isVisible = true
+                    val hosts = dialog.hosts
+                    if (hosts.isEmpty()) {
+                        return
+                    }
+                    hosts.forEach {
+                        val rowCount = model.rowCount
+                        jumpHosts.add(it)
+                        model.fireTableRowsInserted(rowCount, rowCount + 1)
+                    }
+                }
+            })
+
+            deleteBtn.addActionListener(object : AbstractAction() {
+                override fun actionPerformed(e: ActionEvent) {
+                    val rows = table.selectedRows.sortedDescending()
+                    if (rows.isEmpty()) return
+                    for (row in rows) {
+                        model.removeRow(row)
+                    }
+                }
+            })
+
+            table.selectionModel.addListSelectionListener {
+                deleteBtn.isEnabled = table.selectedRowCount > 0
+                moveUpBtn.isEnabled = deleteBtn.isEnabled && !table.selectedRows.contains(0)
+                moveDownBtn.isEnabled = deleteBtn.isEnabled && !table.selectedRows.contains(table.rowCount - 1)
+            }
+
+
+            moveUpBtn.addActionListener(object : AbstractAction() {
+                override fun actionPerformed(e: ActionEvent) {
+                    val rows = table.selectedRows.sorted()
+                    if (rows.isEmpty()) return
+
+                    table.clearSelection()
+
+                    for (row in rows) {
+                        val host = jumpHosts[(row)]
+                        jumpHosts.removeAt(row)
+                        jumpHosts.add(row - 1, host)
+                        table.addRowSelectionInterval(row - 1, row - 1)
+                    }
+                }
+            })
+
+            moveDownBtn.addActionListener(object : AbstractAction() {
+                override fun actionPerformed(e: ActionEvent) {
+                    val rows = table.selectedRows.sortedDescending()
+                    if (rows.isEmpty()) return
+
+                    table.clearSelection()
+
+                    for (row in rows) {
+                        val host = jumpHosts[(row)]
+                        jumpHosts.removeAt(row)
+                        jumpHosts.add(row + 1, host)
+                        table.addRowSelectionInterval(row + 1, row + 1)
+                    }
+                }
+            })
+        }
+
+        override fun getIcon(isSelected: Boolean): Icon {
+            return Icons.server
+        }
+
+        override fun getTitle(): String {
+            return I18n.getString("termora.new-host.jump-hosts")
+        }
+
+        override fun getJComponent(): JComponent {
+            return this
+        }
+
+
+    }
 }

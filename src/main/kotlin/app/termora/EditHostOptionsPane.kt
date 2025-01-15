@@ -34,6 +34,15 @@ class EditHostOptionsPane(private val host: Host) : HostOptionsPane() {
         terminalOption.heartbeatIntervalTextField.value = host.options.heartbeatInterval
 
         tunnelingOption.tunnelings.addAll(host.tunnelings)
+
+        if (host.options.jumpHosts.isNotEmpty()) {
+            val hosts = HostManager.getInstance().hosts().associateBy { it.id }
+            for (id in host.options.jumpHosts) {
+                jumpHostsOption.jumpHosts.add(hosts[id] ?: continue)
+            }
+        }
+
+        jumpHostsOption.filter = { it.id != host.id }
     }
 
     override fun getHost(): Host {
