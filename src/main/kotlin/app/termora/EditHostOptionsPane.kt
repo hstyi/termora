@@ -1,8 +1,5 @@
 package app.termora
 
-import app.termora.keymgr.KeyManager
-import app.termora.keymgr.OhKeyPair
-
 class EditHostOptionsPane(private val host: Host) : HostOptionsPane() {
     init {
         generalOption.portTextField.value = host.port
@@ -10,15 +7,12 @@ class EditHostOptionsPane(private val host: Host) : HostOptionsPane() {
         generalOption.protocolTypeComboBox.selectedItem = host.protocol
         generalOption.usernameTextField.text = host.username
         generalOption.hostTextField.text = host.host
-        generalOption.passwordTextField.text = host.authentication.password
         generalOption.remarkTextArea.text = host.remark
         generalOption.authenticationTypeComboBox.selectedItem = host.authentication.type
-        if (host.authentication.type == AuthenticationType.PublicKey) {
-            val ohKeyPair = KeyManager.getInstance().getOhKeyPair(host.authentication.password)
-            if (ohKeyPair != null) {
-                generalOption.publicKeyTextField.text = ohKeyPair.name
-                generalOption.publicKeyTextField.putClientProperty(OhKeyPair::class, ohKeyPair)
-            }
+        if (host.authentication.type == AuthenticationType.Password) {
+            generalOption.passwordTextField.text = host.authentication.password
+        } else if (host.authentication.type == AuthenticationType.PublicKey) {
+            generalOption.publicKeyComboBox.selectedItem = host.authentication.password
         }
 
         proxyOption.proxyTypeComboBox.selectedItem = host.proxy.type

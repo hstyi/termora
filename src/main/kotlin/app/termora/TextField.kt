@@ -1,13 +1,11 @@
 package app.termora
 
+import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.*
 import com.formdev.flatlaf.ui.FlatTextBorder
 import org.apache.commons.lang3.StringUtils
 import java.awt.Component
-import java.awt.event.FocusAdapter
-import java.awt.event.FocusEvent
-import java.awt.event.KeyAdapter
-import java.awt.event.KeyEvent
+import java.awt.event.*
 import java.text.ParseException
 import javax.swing.DefaultListCellRenderer
 import javax.swing.JComboBox
@@ -53,6 +51,15 @@ class OutlineTextArea : FlatTextArea() {
     }
 }
 
+class OutlineComboBox<T> : JComboBox<T>() {
+    init {
+        addItemListener {
+            if (it.stateChange == ItemEvent.SELECTED) {
+                putClientProperty(FlatClientProperties.OUTLINE, null)
+            }
+        }
+    }
+}
 
 class FixedLengthTextArea(var maxLength: Int = Int.MAX_VALUE) : FlatTextArea() {
     init {

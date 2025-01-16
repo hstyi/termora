@@ -522,11 +522,16 @@ class HostTree : JTree(), Disposable {
 
         while (parents.isNotEmpty()) {
             val p = parents.removeFirst()
-            for (i in 0 until model.getChildCount(p)) {
-                val child = model.getChild(p, i) as Host
+            for (i in 0 until getModel().getChildCount(p)) {
+                val child = getModel().getChild(p, i) as Host
                 nodes.add(child)
                 parents.add(child)
             }
+        }
+
+        // 确保是最新的
+        for (i in 0 until nodes.size) {
+            nodes[i] = model.getHost(nodes[i].id) ?: continue
         }
 
         return nodes

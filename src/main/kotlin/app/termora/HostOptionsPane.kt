@@ -1,7 +1,7 @@
 package app.termora
 
+import app.termora.keymgr.KeyManager
 import app.termora.keymgr.KeyManagerDialog
-import app.termora.keymgr.OhKeyPair
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatComboBox
 import com.formdev.flatlaf.ui.FlatTextBorder
@@ -49,10 +49,9 @@ open class HostOptionsPane : OptionsPane() {
                 password = String(generalOption.passwordTextField.password)
             )
         } else if (generalOption.authenticationTypeComboBox.selectedItem == AuthenticationType.PublicKey) {
-            val keyPair = generalOption.publicKeyTextField.getClientProperty(OhKeyPair::class) as OhKeyPair?
             authentication = authentication.copy(
                 type = AuthenticationType.PublicKey,
-                password = keyPair?.id ?: StringUtils.EMPTY
+                password = generalOption.publicKeyComboBox.selectedItem?.toString() ?: StringUtils.EMPTY
             )
         }
 
@@ -111,7 +110,7 @@ open class HostOptionsPane : OptionsPane() {
                 return false
             }
         } else if (host.authentication.type == AuthenticationType.PublicKey) {
-            if (validateField(generalOption.publicKeyTextField)) {
+            if (validateField(generalOption.publicKeyComboBox)) {
                 return false
             }
         }
@@ -149,6 +148,19 @@ open class HostOptionsPane : OptionsPane() {
         return false
     }
 
+    /**
+     * 返回 true 表示有错误
+     */
+    private fun validateField(comboBox: JComboBox<*>): Boolean {
+        if (comboBox.isEnabled && comboBox.selectedItem == null) {
+            selectOptionJComponent(comboBox)
+            comboBox.putClientProperty(FlatClientProperties.OUTLINE, FlatClientProperties.OUTLINE_ERROR)
+            comboBox.requestFocusInWindow()
+            return true
+        }
+        return false
+    }
+
     protected inner class GeneralOption : JPanel(BorderLayout()), Option {
         val portTextField = PortSpinner()
         val nameTextField = OutlineTextField(128)
@@ -158,7 +170,7 @@ open class HostOptionsPane : OptionsPane() {
         private val passwordPanel = JPanel(BorderLayout())
         private val chooseKeyBtn = JButton(Icons.greyKey)
         val passwordTextField = OutlinePasswordField(255)
-        val publicKeyTextField = OutlineTextField()
+        val publicKeyComboBox = OutlineComboBox<String>()
         val remarkTextArea = FixedLengthTextArea(512)
         val authenticationTypeComboBox = FlatComboBox<AuthenticationType>()
 
@@ -170,7 +182,7 @@ open class HostOptionsPane : OptionsPane() {
         private fun initView() {
             add(getCenterComponent(), BorderLayout.CENTER)
 
-            publicKeyTextField.isEditable = false
+            publicKeyComboBox.isEditable = false
             chooseKeyBtn.isFocusable = false
 
             protocolTypeComboBox.renderer = object : DefaultListCellRenderer() {
@@ -184,6 +196,28 @@ open class HostOptionsPane : OptionsPane() {
                     return super.getListCellRendererComponent(
                         list,
                         value.toString().uppercase(),
+                        index,
+                        isSelected,
+                        cellHasFocus
+                    )
+                }
+            }
+
+            publicKeyComboBox.renderer = object : DefaultListCellRenderer() {
+                override fun getListCellRendererComponent(
+                    list: JList<*>?,
+                    value: Any?,
+                    index: Int,
+                    isSelected: Boolean,
+                    cellHasFocus: Boolean
+                ): Component {
+                    var text = StringUtils.EMPTY
+                    if (value is String) {
+                        text = KeyManager.getInstance().getOhKeyPair(value)?.name ?: text
+                    }
+                    return super.getListCellRendererComponent(
+                        list,
+                        text,
                         index,
                         isSelected,
                         cellHasFocus
@@ -269,14 +303,20 @@ open class HostOptionsPane : OptionsPane() {
             dialog.pack()
             dialog.setLocationRelativeTo(null)
             dialog.isVisible = true
-            if (dialog.ok) {
-                val lastKeyPair = dialog.getLasOhKeyPair()
-                if (lastKeyPair != null) {
-                    publicKeyTextField.putClientProperty(OhKeyPair::class, lastKeyPair)
-                    publicKeyTextField.text = lastKeyPair.name
-                    publicKeyTextField.outline = null
-                }
+
+            val selectedItem = publicKeyComboBox.selectedItem
+
+            publicKeyComboBox.removeAllItems()
+            for (keyPair in KeyManager.getInstance().getOhKeyPairs()) {
+                publicKeyComboBox.addItem(keyPair.id)
             }
+            publicKeyComboBox.selectedItem = selectedItem
+
+            if (!dialog.ok) {
+                return
+            }
+
+            publicKeyComboBox.selectedItem = dialog.getLasOhKeyPair()?.id ?: return
         }
 
         private fun refreshStates() {
@@ -284,6 +324,7 @@ open class HostOptionsPane : OptionsPane() {
             portTextField.isEnabled = true
             usernameTextField.isEnabled = true
             authenticationTypeComboBox.isEnabled = true
+            publicKeyComboBox.isEnabled = true
             passwordTextField.isEnabled = true
             chooseKeyBtn.isEnabled = true
 
@@ -293,6 +334,7 @@ open class HostOptionsPane : OptionsPane() {
                 usernameTextField.isEnabled = false
                 authenticationTypeComboBox.isEnabled = false
                 passwordTextField.isEnabled = false
+                publicKeyComboBox.isEnabled = false
                 chooseKeyBtn.isEnabled = false
             }
 
@@ -369,10 +411,16 @@ open class HostOptionsPane : OptionsPane() {
             passwordPanel.removeAll()
 
             if (authenticationTypeComboBox.selectedItem == AuthenticationType.PublicKey) {
+                val selectedItem = publicKeyComboBox.selectedItem
+                publicKeyComboBox.removeAllItems()
+                for (pair in KeyManager.getInstance().getOhKeyPairs()) {
+                    publicKeyComboBox.addItem(pair.id)
+                }
+                publicKeyComboBox.selectedItem = selectedItem
                 passwordPanel.add(
                     FormBuilder.create()
                         .layout(FormLayout("default:grow, 4dlu, left:pref", "pref"))
-                        .add(publicKeyTextField).xy(1, 1)
+                        .add(publicKeyComboBox).xy(1, 1)
                         .add(chooseKeyBtn).xy(3, 1)
                         .build(), BorderLayout.CENTER
                 )
