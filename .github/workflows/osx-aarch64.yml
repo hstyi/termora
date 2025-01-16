@@ -1,17 +1,18 @@
-name: macOS x86-64
+name: macOS aarch64
 
 on: [ push, pull_request ]
 
 jobs:
   build:
-    runs-on: macos-13
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+
       # download jdk
-      - run: wget -O $RUNNER_TEMP/java_package.tar.gz https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-21.0.5-osx-x64-b509.30.tar.gz
+      - run: wget -O $RUNNER_TEMP/java_package.tar.gz https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-21.0.5-osx-aarch64-b509.30.tar.gz
 
       # install jdk
       - name: Installing Java
@@ -20,7 +21,7 @@ jobs:
           distribution: 'jdkfile'
           jdkFile: ${{ runner.temp }}/java_package.tar.gz
           java-version: '21.0.5'
-          architecture: x64
+          architecture: aarch64
 
 
       # dist
