@@ -23,6 +23,7 @@ class FindEverywhereAction : AnAction(StringUtils.EMPTY, Icons.find) {
 
     init {
         putValue(SHORT_DESCRIPTION, I18n.getString("termora.actions.open-find-everywhere"))
+        putValue(NAME, I18n.getString("termora.find-everywhere"))
         putValue(ACTION_COMMAND_KEY, FIND_EVERYWHERE)
     }
 
