@@ -1,8 +1,6 @@
 name: Windows x86-64
 
-on:
-  push:
-    branches: [ push, pull_request ]
+on: [ push, pull_request ]
 
 jobs:
   build:
