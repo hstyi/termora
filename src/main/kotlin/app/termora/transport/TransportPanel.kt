@@ -3,7 +3,9 @@ package app.termora.transport
 import app.termora.Disposable
 import app.termora.Disposer
 import app.termora.DynamicColor
-import app.termora.assertEventDispatchThread
+import app.termora.actions.DataProvider
+import app.termora.actions.DataProviderSupport
+import app.termora.terminal.DataKey
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import java.awt.BorderLayout
@@ -18,17 +20,17 @@ import javax.swing.JSplitPane
 /**
  * 传输面板
  */
-class TransportPanel : JPanel(BorderLayout()), Disposable {
+class TransportPanel : JPanel(BorderLayout()), Disposable, DataProvider {
 
     companion object {
         private val log = LoggerFactory.getLogger(TransportPanel::class.java)
     }
 
-    val transportManager = TransportManager()
+    private val dataProviderSupport = DataProviderSupport()
 
-    val leftFileSystemTabbed = FileSystemTabbed(transportManager, true)
-    val rightFileSystemTabbed = FileSystemTabbed(transportManager, false)
-
+    private val transportManager = TransportManager()
+    private val leftFileSystemTabbed = FileSystemTabbed(transportManager, true)
+    private val rightFileSystemTabbed = FileSystemTabbed(transportManager, false)
     private val fileTransportPanel = FileTransportPanel(transportManager)
 
     init {
@@ -42,6 +44,11 @@ class TransportPanel : JPanel(BorderLayout()), Disposable {
         Disposer.register(this, leftFileSystemTabbed)
         Disposer.register(this, rightFileSystemTabbed)
         Disposer.register(this, fileTransportPanel)
+
+        dataProviderSupport.addData(TransportDataProviders.LeftFileSystemTabbed, leftFileSystemTabbed)
+        dataProviderSupport.addData(TransportDataProviders.RightFileSystemTabbed, rightFileSystemTabbed)
+        dataProviderSupport.addData(TransportDataProviders.TransportManager, transportManager)
+        dataProviderSupport.addData(TransportDataProviders.TransportPanel, this)
 
         leftFileSystemTabbed.border = BorderFactory.createMatteBorder(0, 0, 0, 1, DynamicColor.BorderColor)
         rightFileSystemTabbed.border = BorderFactory.createMatteBorder(0, 1, 0, 0, DynamicColor.BorderColor)
@@ -128,26 +135,6 @@ class TransportPanel : JPanel(BorderLayout()), Disposable {
         })
     }
 
-
-    fun getTargetFileSystemPanel(fileSystemPanel: FileSystemPanel): FileSystemPanel? {
-
-        assertEventDispatchThread()
-
-        for (i in 0 until leftFileSystemTabbed.tabCount) {
-            if (leftFileSystemTabbed.getFileSystemPanel(i) == fileSystemPanel) {
-                return rightFileSystemTabbed.getSelectedFileSystemPanel()
-            }
-        }
-
-        for (i in 0 until rightFileSystemTabbed.tabCount) {
-            if (rightFileSystemTabbed.getFileSystemPanel(i) == fileSystemPanel) {
-                return leftFileSystemTabbed.getSelectedFileSystemPanel()
-            }
-        }
-
-        return null
-    }
-
     fun transport(
         sourceWorkdir: Path,
         targetWorkdir: Path,
@@ -190,5 +177,24 @@ class TransportPanel : JPanel(BorderLayout()), Disposable {
         if (log.isInfoEnabled) {
             log.info("Transport is disposed")
         }
+    }
+
+    override fun <T : Any> getData(dataKey: DataKey<T>): T? {
+        if (dataKey == TransportDataProviders.LeftFileSystemPanel ||
+            dataKey == TransportDataProviders.RightFileSystemPanel
+        ) {
+            dataProviderSupport.removeData(dataKey)
+            if (dataKey == TransportDataProviders.LeftFileSystemPanel) {
+                leftFileSystemTabbed.getSelectedFileSystemPanel()?.let {
+                    dataProviderSupport.addData(dataKey, it)
+                }
+            } else {
+                rightFileSystemTabbed.getSelectedFileSystemPanel()?.let {
+                    dataProviderSupport.addData(dataKey, it)
+                }
+            }
+
+        }
+        return dataProviderSupport.getData(dataKey)
     }
 }

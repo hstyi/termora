@@ -1,6 +1,7 @@
 package app.termora.transport
 
 import app.termora.*
+import app.termora.actions.AnActionEvent
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.extras.components.FlatToolBar
@@ -11,6 +12,7 @@ import com.formdev.flatlaf.util.SystemInfo
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
 import org.apache.commons.io.FileUtils
+import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.sshd.sftp.client.SftpClient
@@ -26,10 +28,12 @@ import java.awt.datatransfer.StringSelection
 import java.awt.dnd.DnDConstants
 import java.awt.dnd.DropTarget
 import java.awt.dnd.DropTargetDropEvent
+import java.awt.event.ActionEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.io.File
 import java.nio.file.*
+import java.util.*
 import javax.swing.*
 import javax.swing.table.DefaultTableCellRenderer
 import kotlin.io.path.exists
@@ -60,7 +64,6 @@ class FileSystemPanel(
     private val homeBtn = JButton(Icons.homeFolder)
     private val showHiddenFilesBtn = JButton(Icons.eyeClose)
     private val properties get() = Database.getDatabase().properties
-    private var isShowHiddenFiles = false
     private val showHiddenFilesKey by lazy { "termora.transport.host.${host.id}.show-hidden-files" }
 
     val workdir get() = tableModel.workdir
@@ -232,39 +235,10 @@ class FileSystemPanel(
         if (!tableModel.isLocalFileSystem) {
             table.dropTarget = object : DropTarget() {
                 override fun drop(dtde: DropTargetDropEvent) {
-                    val transportPanel = getTransportPanel() ?: return
-                    val localFileSystemPanel = transportPanel.leftFileSystemTabbed.getFileSystemPanel(0) ?: return
-
                     dtde.acceptDrop(DnDConstants.ACTION_COPY)
                     val files = dtde.transferable.getTransferData(DataFlavor.javaFileListFlavor) as List<*>
                     if (files.isEmpty()) return
-
-                    val paths = files.filterIsInstance<File>().map { FileSystemTableModel.CacheablePath(it.toPath()) }
-                    for (path in paths) {
-                        if (path.isDirectory) {
-                            Files.walk(path.path).use {
-                                for (e in it) {
-                                    transportPanel.transport(
-                                        sourceWorkdir = path.path.parent,
-                                        targetWorkdir = workdir,
-                                        isSourceDirectory = e.isDirectory(),
-                                        sourcePath = e,
-                                        sourceHolder = localFileSystemPanel,
-                                        targetHolder = this@FileSystemPanel
-                                    )
-                                }
-                            }
-                        } else {
-                            transportPanel.transport(
-                                sourceWorkdir = path.path.parent,
-                                targetWorkdir = workdir,
-                                isSourceDirectory = false,
-                                sourcePath = path.path,
-                                sourceHolder = localFileSystemPanel,
-                                targetHolder = this@FileSystemPanel
-                            )
-                        }
-                    }
+                    copyLocalFileToFileSystem(files.filterIsInstance<File>())
                 }
             }.apply {
                 this.defaultActions = DnDConstants.ACTION_COPY
@@ -307,6 +281,7 @@ class FileSystemPanel(
             }
         }
 
+        // 显示隐藏文件
         showHiddenFilesBtn.addActionListener {
             val showHiddenFiles = tableModel.isShowHiddenFiles
             tableModel.isShowHiddenFiles = !showHiddenFiles
@@ -317,6 +292,19 @@ class FileSystemPanel(
             }
         }
 
+        // 如果不是本地的文件系统，那么支持粘贴
+        if (!tableModel.isLocalFileSystem) {
+            table.actionMap.put("paste", object : AbstractAction() {
+                override fun actionPerformed(e: ActionEvent) {
+                    if (!toolkit.systemClipboard.isDataFlavorAvailable(DataFlavor.javaFileListFlavor)) {
+                        return
+                    }
+                    val files = (toolkit.systemClipboard.getData(DataFlavor.javaFileListFlavor) ?: return) as List<*>
+                    copyLocalFileToFileSystem(files.filterIsInstance<File>())
+                }
+            })
+        }
+
         Disposer.register(this, object : Disposable {
             override fun dispose() {
                 properties.putString(showHiddenFilesKey, "${tableModel.isShowHiddenFiles}")
@@ -325,6 +313,40 @@ class FileSystemPanel(
 
     }
 
+
+    private fun copyLocalFileToFileSystem(files: List<File>) {
+        val event = AnActionEvent(this, StringUtils.EMPTY, EventObject(this))
+        val transportPanel = event.getData(TransportDataProviders.TransportPanel) ?: return
+        val leftFileSystemTabbed = event.getData(TransportDataProviders.LeftFileSystemTabbed) ?: return
+        val localFileSystemPanel = leftFileSystemTabbed.getFileSystemPanel(0) ?: return
+
+        val paths = files.map { FileSystemTableModel.CacheablePath(it.toPath()) }
+        for (path in paths) {
+            if (path.isDirectory) {
+                Files.walk(path.path).use {
+                    for (e in it) {
+                        transportPanel.transport(
+                            sourceWorkdir = path.path.parent,
+                            targetWorkdir = workdir,
+                            isSourceDirectory = e.isDirectory(),
+                            sourcePath = e,
+                            sourceHolder = localFileSystemPanel,
+                            targetHolder = this@FileSystemPanel
+                        )
+                    }
+                }
+            } else {
+                transportPanel.transport(
+                    sourceWorkdir = path.path.parent,
+                    targetWorkdir = workdir,
+                    isSourceDirectory = false,
+                    sourcePath = path.path,
+                    sourceHolder = localFileSystemPanel,
+                    targetHolder = this@FileSystemPanel
+                )
+            }
+        }
+    }
 
     @OptIn(DelicateCoroutinesApi::class)
     fun reload() {
@@ -393,20 +415,20 @@ class FileSystemPanel(
     }
 
     private fun canTransfer(): Boolean {
-        return getTransportPanel()?.getTargetFileSystemPanel(this) != null
-    }
+        val event = AnActionEvent(this, StringUtils.EMPTY, EventObject(this))
+        val leftFileSystemTabbed = event.getData(TransportDataProviders.LeftFileSystemTabbed) ?: return false
+        val rightFileSystemTabbed = event.getData(TransportDataProviders.RightFileSystemTabbed) ?: return false
 
-
-    private fun getTransportPanel(): TransportPanel? {
-        var p = this as Component?
-        while (p != null) {
-            if (p is TransportPanel) {
-                return p
-            }
-            p = p.parent
+        val parent = SwingUtilities.getAncestorOfClass(FileSystemTabbed::class.java, this)
+        if (parent == leftFileSystemTabbed) {
+            return event.getData(TransportDataProviders.RightFileSystemPanel) != null
+        } else if (parent == rightFileSystemTabbed) {
+            return event.getData(TransportDataProviders.LeftFileSystemPanel) != null
         }
-        return null
+
+        return false
     }
+
 
     private fun showContextMenu(rows: IntArray, event: MouseEvent) {
         val popupMenu = FlatPopupMenu()

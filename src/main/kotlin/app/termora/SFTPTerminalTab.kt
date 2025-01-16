@@ -1,5 +1,6 @@
 package app.termora
 
+import app.termora.transport.TransportDataProviders
 import app.termora.transport.TransportPanel
 import java.beans.PropertyChangeListener
 import javax.swing.Icon
@@ -40,8 +41,8 @@ class SFTPTerminalTab : Disposable, TerminalTab {
 
     override fun canClose(): Boolean {
         assertEventDispatchThread()
-
-        if (transportPanel.transportManager.getTransports().isEmpty()) {
+        val transportManager = transportPanel.getData(TransportDataProviders.TransportManager) ?: return true
+        if (transportManager.getTransports().isEmpty()) {
             return true
         }
 
