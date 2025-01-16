@@ -1,0 +1,28 @@
+name: Windows x86-64
+
+on:
+  push:
+    branches: [ push, pull_request ]
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - run: |
+          download_url="https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-21.0.5-windows-x64-b509.30.tar.gz"
+          wget -O $RUNNER_TEMP/java_package.tar.gz $download_url
+
+      - name: Installing Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'jdkfile'
+          jdkFile: ${{ runner.temp }}/java_package.tar.gz
+          java-version: '21.0.5'
+          architecture: x64
+
+      - run: |
+          .\gradlew.bat dist --no-daemon
