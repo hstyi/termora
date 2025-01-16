@@ -52,7 +52,7 @@ class TerminalPanelKeyAdapter(
             return
         }
 
-        if (Character.isISOControl(e.keyChar)) {
+        if (Character.isISOControl(e.keyChar) && isCtrlPressedOnly(e)) {
             terminal.getSelectionModel().clearSelection()
             // 如果不为空表示已经发送过了，所以这里为空的时候再发送
             if (encode.isEmpty()) {

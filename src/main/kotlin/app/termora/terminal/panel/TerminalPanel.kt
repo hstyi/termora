@@ -47,7 +47,10 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
     /**
      * 键盘事件
      */
-    private val actions = mutableListOf<TerminalPredicateAction>()
+    private val actions = mutableListOf(
+        TerminalWindowsCopyAction(),
+        TerminalWindowsPasteAction(),
+    )
 
 
     /**
