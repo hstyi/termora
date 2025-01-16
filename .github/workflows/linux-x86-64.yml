@@ -27,6 +27,6 @@ jobs:
           ./gradlew dist --no-daemon
 
       - name: Upload artifact
-      - uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           path: build/distributions/*.tar.gz
