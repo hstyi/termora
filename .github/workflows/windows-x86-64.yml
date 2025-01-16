@@ -10,9 +10,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - run: |
-          download_url="https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-21.0.5-windows-x64-b509.30.tar.gz"
-          wget -O $RUNNER_TEMP/java_package.tar.gz $download_url
+      - name: Download Java
+      - run: wget -O $RUNNER_TEMP/java_package.tar.gz https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-21.0.5-windows-x64-b509.30.tar.gz
 
       - name: Installing Java
         uses: actions/setup-java@v4
