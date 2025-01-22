@@ -26,7 +26,8 @@
 
 ## 下载
 
-从 [Releases](https://github.com/TermoraDev/termora/releases/latest) 页面获取最新版本
+- [Latest release](https://github.com/TermoraDev/termora/releases/latest)
+- [Homebrew](https://formulae.brew.sh/cask/termora): `brew install --cask termora`
 
 ## 开发
 

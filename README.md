@@ -30,7 +30,8 @@
 
 ## Download
 
-Get the latest version from the [Releases](https://github.com/TermoraDev/termora/releases/latest) page.
+- [Latest release](https://github.com/TermoraDev/termora/releases/latest)
+- [Homebrew](https://formulae.brew.sh/cask/termora): `brew install --cask termora`
 
 ## Development
 
