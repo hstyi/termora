@@ -1,5 +1,6 @@
 package app.termora.terminal
 
+import com.formdev.flatlaf.util.SystemInfo
 import java.awt.event.KeyEvent
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -24,6 +25,7 @@ open class KeyEncoderImpl(private val terminal: Terminal) : KeyEncoder, DataList
             keypadAnsiSequences()
         }
 
+        configureLeftRight()
 
         putCode(TerminalKeyEvent(keyCode = 8), String(byteArrayOf(127)))
 
@@ -100,6 +102,40 @@ open class KeyEncoderImpl(private val terminal: Terminal) : KeyEncoder, DataList
         putCode(TerminalKeyEvent(keyCode = 0x25), encode = "${ControlCharacters.ESC}[D")
         // Right
         putCode(TerminalKeyEvent(keyCode = 0x27), encode = "${ControlCharacters.ESC}[C")
+    }
+
+    fun configureLeftRight() {
+        if (SystemInfo.isMacOS) {
+            putCode(
+                TerminalKeyEvent(keyCode = KeyEvent.VK_LEFT, TerminalEvent.ALT_MASK),
+                encode = "${ControlCharacters.ESC}b"
+            )
+            putCode(
+                TerminalKeyEvent(keyCode = KeyEvent.VK_RIGHT, TerminalEvent.ALT_MASK),
+                encode = "${ControlCharacters.ESC}f"
+            )
+        } else {
+            // ^[[1;5D
+            putCode(
+                TerminalKeyEvent(keyCode = KeyEvent.VK_LEFT, TerminalEvent.CTRL_MASK),
+                "${ControlCharacters.ESC}[1;5D"
+            )
+            // ^[[1;5C
+            putCode(
+                TerminalKeyEvent(keyCode = KeyEvent.VK_RIGHT, TerminalEvent.CTRL_MASK),
+                "${ControlCharacters.ESC}[1;5C"
+            )
+            // ^[[1;3D
+            putCode(
+                TerminalKeyEvent(keyCode = KeyEvent.VK_LEFT, TerminalEvent.ALT_MASK),
+                "${ControlCharacters.ESC}[1;3D"
+            )
+            // ^[[1;3C
+            putCode(
+                TerminalKeyEvent(keyCode = KeyEvent.VK_RIGHT, TerminalEvent.ALT_MASK),
+                "${ControlCharacters.ESC}[1;3C"
+            )
+        }
     }
 
 
