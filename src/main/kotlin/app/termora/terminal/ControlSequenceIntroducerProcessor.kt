@@ -1,5 +1,6 @@
 package app.termora.terminal
 
+import app.termora.assertEventDispatchThread
 import org.slf4j.LoggerFactory
 import kotlin.math.max
 import kotlin.math.min
@@ -13,7 +14,6 @@ class ControlSequenceIntroducerProcessor(terminal: Terminal, reader: TerminalRea
 
     companion object {
         private val log = LoggerFactory.getLogger(ControlSequenceIntroducerProcessor::class.java)
-        private val styles = hashMapOf<TextStyle, TextStyle>()
     }
 
     // 非法字符，需要重排序
@@ -175,8 +175,9 @@ class ControlSequenceIntroducerProcessor(terminal: Terminal, reader: TerminalRea
                 }
             }
 
-            // TODO Device Status Report (DSR).
+            // Device Status Report (DSR).
             'n' -> {
+                processDeviceStatusReport()
             }
 
             // ECSI Ps J  Erase in Display (ED), VT100.
@@ -464,6 +465,33 @@ class ControlSequenceIntroducerProcessor(terminal: Terminal, reader: TerminalRea
         return false
     }
 
+    private fun processDeviceStatusReport() {
+
+        assertEventDispatchThread()
+
+        if (args.startsWithQuestionMark()) {
+            if (log.isWarnEnabled) {
+                log.warn("Don't support DEC-specific Device Report Status")
+            }
+            return
+        }
+
+        if (!terminalModel.hasData(DataKey.PtyConnector)) {
+            return
+        }
+
+        val ptyConnector = terminalModel.getData(DataKey.PtyConnector)
+
+        val m = args.first()
+        if (m == '6') {
+            val position = terminal.getCursorModel().getPosition()
+            ptyConnector.write("${ControlCharacters.ESC}[${position.y};${position.x}R")
+        } else if (m == '5') {
+            ptyConnector.write("${ControlCharacters.ESC}[0n")
+        }
+
+    }
+
     /**
      * https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h4-Functions-using-CSI-_-ordered-by-the-final-character-lparen-s-rparen:CSI-?-Pm-h.1D0E
      */
@@ -580,7 +608,7 @@ class ControlSequenceIntroducerProcessor(terminal: Terminal, reader: TerminalRea
                 25 -> {
                     terminalModel.setData(DataKey.ShowCursor, enable)
                     if (log.isDebugEnabled) {
-                        log.debug("Blinking cursor $enable")
+                        log.debug("Hide cursor (DECTCEM) $enable")
                     }
                 }
 
@@ -929,7 +957,7 @@ class ControlSequenceIntroducerProcessor(terminal: Terminal, reader: TerminalRea
 
                 else -> {
                     if (log.isWarnEnabled) {
-                        log.warn("Unknown SGR: $args")
+                        log.warn("Unknown SGR: $mode")
                     }
                 }
             }

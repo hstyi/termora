@@ -2,6 +2,7 @@ package app.termora.terminal
 
 import com.pty4j.PtyProcess
 import com.pty4j.WinSize
+import org.apache.commons.io.IOUtils
 import java.io.InputStreamReader
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
@@ -33,6 +34,7 @@ class PtyProcessConnector(private val process: PtyProcess, private val charset: 
     }
 
     override fun close() {
+        IOUtils.closeQuietly(reader)
         process.destroyForcibly()
     }
 

@@ -27,6 +27,10 @@ abstract class PtyHostTerminalTab(
         TerminalPanelFactory.getInstance(windowScope).createTerminalPanel(terminal, ptyConnectorDelegate)
     protected val ptyConnectorFactory get() = PtyConnectorFactory.getInstance(windowScope)
 
+    init {
+        terminal.getTerminalModel().setData(DataKey.PtyConnector, ptyConnectorDelegate)
+    }
+
     override fun start() {
         coroutineScope.launch(Dispatchers.IO) {
 

@@ -180,6 +180,11 @@ class DataKey<T : Any>(val clazz: KClass<T>) {
          * CSI Ps SP q Set cursor style (DECSCUSR), VT520.
          */
         val CursorStyle = DataKey(app.termora.terminal.CursorStyle::class)
+
+        /**
+         * Pty Connector
+         */
+        val PtyConnector = DataKey(app.termora.terminal.PtyConnector::class)
     }
 }
 
