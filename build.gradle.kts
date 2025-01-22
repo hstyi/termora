@@ -383,6 +383,14 @@ tasks.register("dist") {
                         "--wait",
                     )
                 }
+
+                // 绑定公证信息
+                exec {
+                    commandLine(
+                        "/usr/bin/xcrun",
+                        "stapler", "staple", macOSFinalFilePath,
+                    )
+                }
             }
         }
     }
