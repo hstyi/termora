@@ -19,6 +19,7 @@ import app.termora.terminal.panel.TerminalPanel
 import cash.z.ecc.android.bip39.Mnemonics
 import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.formdev.flatlaf.extras.components.*
+import com.formdev.flatlaf.util.FontUtils
 import com.formdev.flatlaf.util.SystemInfo
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
@@ -379,6 +380,28 @@ class SettingsOptionsPane : OptionsPane() {
                 }
             }
 
+            fontComboBox.renderer = object : DefaultListCellRenderer() {
+                override fun getListCellRendererComponent(
+                    list: JList<*>?,
+                    value: Any?,
+                    index: Int,
+                    isSelected: Boolean,
+                    cellHasFocus: Boolean
+                ): Component {
+                    if (value is String) {
+                        return super.getListCellRendererComponent(
+                            list,
+                            "<html><font face='$value'>$value</font></html>",
+                            index,
+                            isSelected,
+                            cellHasFocus
+                        )
+                    }
+                    return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
+                }
+            }
+            fontComboBox.maximumSize = fontComboBox.preferredSize
+
             cursorStyleComboBox.addItem(CursorStyle.Block)
             cursorStyleComboBox.addItem(CursorStyle.Bar)
             cursorStyleComboBox.addItem(CursorStyle.Underline)
@@ -391,8 +414,33 @@ class SettingsOptionsPane : OptionsPane() {
 
             shellComboBox.selectedItem = terminalSetting.localShell
 
-            fontComboBox.addItem("JetBrains Mono")
-            fontComboBox.addItem("Source Code Pro")
+            val fonts = linkedSetOf(
+                "JetBrains Mono",
+                "Source Code Pro",
+                "Monospaced",
+                "Andale Mono",
+                "Ayuthaya",
+                "Courier New",
+                "Droid Sans Mono",
+                "Fira Code",
+                "PCMyungjo",
+                "Menlo",
+                "Monaco",
+                "Osaka",
+                "PT Mono",
+                "SimSong",
+            )
+
+            for (font in FontUtils.getAllFonts()) {
+                if (fonts.contains(font.family)) {
+                    continue
+                }
+                fonts.remove(font.family)
+            }
+
+            for (font in fonts) {
+                fontComboBox.addItem(font)
+            }
 
             fontComboBox.selectedItem = terminalSetting.font
             debugComboBox.selectedItem = terminalSetting.debug
