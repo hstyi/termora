@@ -1006,7 +1006,8 @@ open class HostOptionsPane : OptionsPane() {
                     val rows = table.selectedRows.sortedDescending()
                     if (rows.isEmpty()) return
                     for (row in rows) {
-                        model.removeRow(row)
+                        jumpHosts.removeAt(row)
+                        model.fireTableRowsDeleted(row, row)
                     }
                 }
             })
