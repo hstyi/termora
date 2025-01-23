@@ -21,6 +21,7 @@ class KeyManager private constructor() {
         if (keyPair == OhKeyPair.empty) {
             return
         }
+        keyPairs.remove(keyPair)
         keyPairs.add(keyPair)
         database.addKeyPair(keyPair)
     }
