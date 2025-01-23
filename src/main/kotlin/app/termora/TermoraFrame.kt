@@ -101,7 +101,7 @@ class TermoraFrame : JFrame(), DataProvider {
         }
 
         minimumSize = Dimension(640, 400)
-        terminalTabbed.addTab(welcomePanel)
+        terminalTabbed.addTerminalTab(welcomePanel)
 
         // macOS 要避开左边的控制栏
         if (SystemInfo.isMacOS) {

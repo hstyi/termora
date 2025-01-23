@@ -10,12 +10,14 @@ import app.termora.transport.TransportPanel
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
+import org.apache.commons.lang3.StringUtils
 import java.awt.*
 import java.awt.event.AWTEventListener
 import java.awt.event.ActionEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.beans.PropertyChangeListener
+import java.util.*
 import javax.swing.*
 import javax.swing.JTabbedPane.SCROLL_TAB_LAYOUT
 import kotlin.math.min
@@ -30,7 +32,7 @@ class TerminalTabbed(
     private val toolbar = termoraToolBar.getJToolBar()
     private val actionManager = ActionManager.getInstance()
     private val dataProviderSupport = DataProviderSupport()
-
+    private val titleProperty = UUID.randomUUID().toSimpleString()
     private val iconListener = PropertyChangeListener { e ->
         val source = e.source
         if (e.propertyName == "icon" && source is TerminalTab) {
@@ -190,16 +192,16 @@ class TerminalTabbed(
         // 修改名称
         val rename = popupMenu.add(I18n.getString("termora.tabbed.contextmenu.rename"))
         rename.addActionListener {
-            val index = tabbedPane.selectedIndex
-            if (index > 0) {
+            if (tabIndex > 0) {
                 val dialog = InputDialog(
                     SwingUtilities.getWindowAncestor(this),
                     title = rename.text,
-                    text = tabbedPane.getTitleAt(index),
+                    text = tabbedPane.getTitleAt(tabIndex),
                 )
                 val text = dialog.getText()
                 if (!text.isNullOrBlank()) {
-                    tabbedPane.setTitleAt(index, text)
+                    tabbedPane.setTitleAt(tabIndex, text)
+                    c.putClientProperty(titleProperty, text)
                 }
             }
 
@@ -276,9 +278,8 @@ class TerminalTabbed(
             popupMenu.addSeparator()
             val reconnect = popupMenu.add(I18n.getString("termora.tabbed.contextmenu.reconnect"))
             reconnect.addActionListener {
-                val index = tabbedPane.selectedIndex
-                if (index > 0) {
-                    tabs[index].reconnect()
+                if (tabIndex > 0) {
+                    tabs[tabIndex].reconnect()
                 }
             }
 
@@ -289,18 +290,24 @@ class TerminalTabbed(
     }
 
 
-    fun addTab(tab: TerminalTab) {
-        tabbedPane.addTab(
-            tab.getTitle(),
+    private fun addTab(index: Int, tab: TerminalTab) {
+        val c = tab.getJComponent()
+        val title = (c.getClientProperty(titleProperty) ?: tab.getTitle()).toString()
+
+        tabbedPane.insertTab(
+            title,
             tab.getIcon(),
-            tab.getJComponent()
+            c,
+            StringUtils.EMPTY,
+            index
         )
+        c.putClientProperty(titleProperty, title)
 
         // 监听 icons 变化
         tab.addPropertyChangeListener(iconListener)
 
-        tabs.add(tab)
-        tabbedPane.selectedIndex = tabbedPane.tabCount - 1
+        tabs.add(index, tab)
+        tabbedPane.selectedIndex = index
         Disposer.register(this, tab)
     }
 
@@ -393,7 +400,11 @@ class TerminalTabbed(
     }
 
     override fun addTerminalTab(tab: TerminalTab) {
-        addTab(tab)
+        addTab(tabs.size, tab)
+    }
+
+    override fun addTerminalTab(index: Int, tab: TerminalTab) {
+        addTab(index, tab)
     }
 
     override fun getSelectedTerminalTab(): TerminalTab? {
@@ -418,10 +429,10 @@ class TerminalTabbed(
         }
     }
 
-    override fun closeTerminalTab(tab: TerminalTab) {
+    override fun closeTerminalTab(tab: TerminalTab, disposable: Boolean) {
         for (i in 0 until tabs.size) {
             if (tabs[i] == tab) {
-                removeTabAt(i, true)
+                removeTabAt(i, disposable)
                 break
             }
         }
