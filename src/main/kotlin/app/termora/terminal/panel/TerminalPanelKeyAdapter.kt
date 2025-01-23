@@ -1,5 +1,7 @@
 package app.termora.terminal.panel
 
+import app.termora.keymap.KeyShortcut
+import app.termora.keymap.KeymapManager
 import app.termora.terminal.PtyConnector
 import app.termora.terminal.Terminal
 import com.formdev.flatlaf.util.SystemInfo
@@ -12,8 +14,9 @@ class TerminalPanelKeyAdapter(
     private val terminalPanel: TerminalPanel,
     private val terminal: Terminal,
     private val ptyConnector: PtyConnector
-) :
-    KeyAdapter() {
+) : KeyAdapter() {
+
+    private val activeKeymap get() = KeymapManager.getInstance().getActiveKeymap()
 
     override fun keyTyped(e: KeyEvent) {
         if (Character.isISOControl(e.keyChar)) {
@@ -49,6 +52,11 @@ class TerminalPanelKeyAdapter(
 
         // https://github.com/TermoraDev/termora/issues/52
         if (SystemInfo.isWindows && e.keyCode == KeyEvent.VK_TAB && isCtrlPressedOnly(e)) {
+            return
+        }
+
+        // 如果命中了全局快捷键，那么不处理
+        if (keyStroke.modifiers != 0 && activeKeymap.getActionIds(KeyShortcut(keyStroke)).isNotEmpty()) {
             return
         }
 
