@@ -135,13 +135,17 @@ object SshClients {
         builder.globalRequestHandlers(listOf(KeepAliveHandler.INSTANCE))
             .factory { JGitSshClient() }
 
-        builder.keyExchangeFactories(
+        val keyExchangeFactories = ClientBuilder.setUpDefaultKeyExchanges(true).toMutableList()
+
+        // https://github.com/TermoraDev/termora/issues/123
+        keyExchangeFactories.addAll(
             listOf(
                 DHGClient.newFactory(BuiltinDHFactories.dhg1),
                 DHGClient.newFactory(BuiltinDHFactories.dhg14),
                 DHGClient.newFactory(BuiltinDHFactories.dhgex),
             )
         )
+        builder.keyExchangeFactories(keyExchangeFactories)
 
         if (host.tunnelings.isEmpty() && host.options.jumpHosts.isEmpty()) {
             builder.forwardingFilter(RejectAllForwardingFilter.INSTANCE)
