@@ -38,6 +38,8 @@ class PtyConnectorFactory : Disposable {
                 val locale = Locale.getDefault()
                 if (StringUtils.isNoneBlank(locale.language, locale.country)) {
                     envs["LANG"] = "${locale.language}_${locale.country}.${Charset.defaultCharset().name()}"
+                } else {
+                    envs["LANG"] = "en_US.UTF-8"
                 }
             }
         }
