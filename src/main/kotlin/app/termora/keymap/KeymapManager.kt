@@ -12,9 +12,9 @@ import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.action.ActionManager
 import org.slf4j.LoggerFactory
 import java.awt.KeyEventDispatcher
-import java.awt.KeyEventPostProcessor
 import java.awt.KeyboardFocusManager
 import java.awt.event.KeyEvent
+import javax.swing.JComponent
 import javax.swing.JDialog
 import javax.swing.KeyStroke
 
@@ -23,15 +23,13 @@ class KeymapManager private constructor() : Disposable {
     companion object {
         private val log = LoggerFactory.getLogger(KeymapManager::class.java)
 
-        const val PROCESS_GLOBAL_KEYMAP = "PROCESS_GLOBAL_KEYMAP"
-
         fun getInstance(): KeymapManager {
             return ApplicationScope.forApplicationScope()
                 .getOrCreate(KeymapManager::class) { KeymapManager() }
         }
     }
 
-    private val myKeyEventPostProcessor = MyKeyEventPostProcessor()
+    private val keymapKeyEventDispatcher = KeymapKeyEventDispatcher()
     private val myKeyEventDispatcher = MyKeyEventDispatcher()
     private val database get() = Database.getDatabase()
     private val keymaps = linkedMapOf<String, Keymap>()
@@ -39,7 +37,7 @@ class KeymapManager private constructor() : Disposable {
     private val keyboardFocusManager by lazy { KeyboardFocusManager.getCurrentKeyboardFocusManager() }
 
     init {
-        keyboardFocusManager.addKeyEventPostProcessor(myKeyEventPostProcessor)
+        keyboardFocusManager.addKeyEventDispatcher(keymapKeyEventDispatcher)
         keyboardFocusManager.addKeyEventDispatcher(myKeyEventDispatcher)
 
         try {
@@ -97,36 +95,49 @@ class KeymapManager private constructor() : Disposable {
         database.removeKeymap(name)
     }
 
-    private inner class MyKeyEventPostProcessor : KeyEventPostProcessor {
-        override fun postProcessKeyEvent(e: KeyEvent): Boolean {
-            // 只处理 PRESSED 和 带有 modifiers 键的事件
-            if (!e.isConsumed && e.id == KeyEvent.KEY_PRESSED && e.modifiersEx != 0) {
-                val shortcuts = getActiveKeymap()
-                val actionIds = shortcuts.getActionIds(KeyShortcut(KeyStroke.getKeyStrokeForEvent(e)))
-                if (actionIds.isEmpty()) {
+    private inner class KeymapKeyEventDispatcher : KeyEventDispatcher {
+
+        override fun dispatchKeyEvent(e: KeyEvent): Boolean {
+            if (e.isConsumed || e.id != KeyEvent.KEY_PRESSED || e.modifiersEx == 0) {
+                return false
+            }
+
+            val keyStroke = KeyStroke.getKeyStrokeForEvent(e)
+            val component = e.source
+
+            if (component is JComponent) {
+                // 如果这个键已经被组件注册了，那么忽略
+                if (component.getConditionForKeyStroke(keyStroke) != JComponent.UNDEFINED_CONDITION) {
                     return false
                 }
+            }
 
-                val focusedWindow = keyboardFocusManager.focusedWindow
-                if (focusedWindow is DialogWrapper) {
-                    if (!focusedWindow.processGlobalKeymap) {
-                        return false
-                    }
-                } else if (focusedWindow is JDialog) {
+
+            val shortcuts = getActiveKeymap()
+            val actionIds = shortcuts.getActionIds(KeyShortcut(keyStroke))
+            if (actionIds.isEmpty()) {
+                return false
+            }
+
+            val focusedWindow = keyboardFocusManager.focusedWindow
+            if (focusedWindow is DialogWrapper) {
+                if (!focusedWindow.processGlobalKeymap) {
                     return false
                 }
+            } else if (focusedWindow is JDialog) {
+                return false
+            }
 
 
-                val evt = AnActionEvent(e.source, StringUtils.EMPTY, e)
-                for (actionId in actionIds) {
-                    val action = ActionManager.getInstance().getAction(actionId) ?: continue
-                    if (!action.isEnabled) {
-                        continue
-                    }
-                    action.actionPerformed(evt)
-                    if (evt.isConsumed) {
-                        return true
-                    }
+            val evt = AnActionEvent(e.source, StringUtils.EMPTY, e)
+            for (actionId in actionIds) {
+                val action = ActionManager.getInstance().getAction(actionId) ?: continue
+                if (!action.isEnabled) {
+                    continue
+                }
+                action.actionPerformed(evt)
+                if (evt.isConsumed) {
+                    return true
                 }
             }
 
@@ -163,7 +174,7 @@ class KeymapManager private constructor() : Disposable {
 
 
     override fun dispose() {
-        keyboardFocusManager.removeKeyEventPostProcessor(myKeyEventPostProcessor)
+        keyboardFocusManager.removeKeyEventDispatcher(keymapKeyEventDispatcher)
         keyboardFocusManager.removeKeyEventDispatcher(myKeyEventDispatcher)
     }
 }
