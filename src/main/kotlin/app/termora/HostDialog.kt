@@ -2,6 +2,9 @@ package app.termora
 
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
+import app.termora.keyboardinteractive.TerminalUserInteraction
+import kotlinx.coroutines.*
+import kotlinx.coroutines.swing.Swing
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.session.ClientSession
@@ -47,19 +50,27 @@ class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
                 }
 
                 putValue(NAME, "${I18n.getString("termora.new-host.test-connection")}...")
-                SwingUtilities.invokeLater {
-                    testConnection(pane.getHost())
-                    putValue(NAME, I18n.getString("termora.new-host.test-connection"))
-                }
+                isEnabled = false
 
+                @OptIn(DelicateCoroutinesApi::class)
+                GlobalScope.launch(Dispatchers.IO) {
+                    testConnection(pane.getHost())
+                    withContext(Dispatchers.Swing) {
+                        putValue(NAME, I18n.getString("termora.new-host.test-connection"))
+                        isEnabled = true
+                    }
+                }
             }
         }
     }
 
 
-    private fun testConnection(host: Host) {
+    private suspend fun testConnection(host: Host) {
+        val owner = this
         if (host.protocol != Protocol.SSH) {
-            OptionPane.showMessageDialog(this, I18n.getString("termora.new-host.test-connection-successful"))
+            withContext(Dispatchers.Swing) {
+                OptionPane.showMessageDialog(owner, I18n.getString("termora.new-host.test-connection-successful"))
+            }
             return
         }
 
@@ -67,13 +78,21 @@ class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
         var session: ClientSession? = null
         try {
             client = SshClients.openClient(host)
+            client.userInteraction = TerminalUserInteraction(owner)
             session = SshClients.openSession(host, client)
-            OptionPane.showMessageDialog(this, I18n.getString("termora.new-host.test-connection-successful"))
+            withContext(Dispatchers.Swing) {
+                OptionPane.showMessageDialog(
+                    owner,
+                    I18n.getString("termora.new-host.test-connection-successful")
+                )
+            }
         } catch (e: Exception) {
-            OptionPane.showMessageDialog(
-                this, ExceptionUtils.getRootCauseMessage(e),
-                messageType = JOptionPane.ERROR_MESSAGE
-            )
+            withContext(Dispatchers.Swing) {
+                OptionPane.showMessageDialog(
+                    owner, ExceptionUtils.getRootCauseMessage(e),
+                    messageType = JOptionPane.ERROR_MESSAGE
+                )
+            }
         } finally {
             session?.close()
             client?.close()
