@@ -173,6 +173,7 @@ class FileSystemTableModel(private val fileSystem: FileSystem) : DefaultTableMod
         val extension by lazy { path.extension }
 
         open val isDirectory by lazy { path.isDirectory() }
+        open val isSymbolicLink by lazy { path.isSymbolicLink() }
         open val isHidden by lazy { fileName != ".." && path.isHidden() }
         open val fileSize by lazy { path.fileSize() }
         open val lastModifiedTime by lazy { Files.getLastModifiedTime(path).toMillis() }
@@ -228,7 +229,10 @@ class FileSystemTableModel(private val fileSystem: FileSystem) : DefaultTableMod
         }
 
         override val isDirectory: Boolean
-            get() = attributes.isDirectory
+            get() = attributes.isDirectory || isSymbolicLink
+
+        override val isSymbolicLink: Boolean
+            get() = attributes.isSymbolicLink
 
         override val isHidden: Boolean
             get() = fileName != ".." && fileName.startsWith(".")
