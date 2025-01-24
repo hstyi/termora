@@ -17,6 +17,10 @@ class FileChooser {
     var allowsOtherFileTypes = true
     var canCreateDirectories = true
     var win32Filters = mutableListOf<Pair<String, List<String>>>()
+
+    /**
+     * e.g. listOf("json")
+     */
     var osxAllowedFileTypes = emptyList<String>()
 
     /**

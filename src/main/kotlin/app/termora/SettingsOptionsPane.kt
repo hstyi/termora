@@ -4,9 +4,14 @@ import app.termora.AES.encodeBase64String
 import app.termora.Application.ohMyJson
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
+import app.termora.highlight.KeywordHighlight
 import app.termora.highlight.KeywordHighlightManager
+import app.termora.keymap.Keymap
+import app.termora.keymap.KeymapManager
 import app.termora.keymap.KeymapPanel
 import app.termora.keymgr.KeyManager
+import app.termora.keymgr.OhKeyPair
+import app.termora.macro.Macro
 import app.termora.macro.MacroManager
 import app.termora.native.FileChooser
 import app.termora.sync.SyncConfig
@@ -28,12 +33,11 @@ import com.sun.jna.LastErrorException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.encodeToJsonElement
-import kotlinx.serialization.json.put
+import kotlinx.serialization.json.*
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
+import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.commons.lang3.time.DateFormatUtils
 import org.jdesktop.swingx.JXEditorPane
 import org.slf4j.LoggerFactory
@@ -55,6 +59,11 @@ import kotlin.time.Duration.Companion.milliseconds
 class SettingsOptionsPane : OptionsPane() {
     private val owner get() = SwingUtilities.getWindowAncestor(this@SettingsOptionsPane)
     private val database get() = Database.getDatabase()
+    private val hostManager get() = HostManager.getInstance()
+    private val keymapManager get() = KeymapManager.getInstance()
+    private val macroManager get() = MacroManager.getInstance()
+    private val keywordHighlightManager get() = KeywordHighlightManager.getInstance()
+    private val keyManager get() = KeyManager.getInstance()
 
     companion object {
         private val log = LoggerFactory.getLogger(SettingsOptionsPane::class.java)
@@ -499,6 +508,7 @@ class SettingsOptionsPane : OptionsPane() {
         val domainTextField = OutlineTextField(255)
         val uploadConfigButton = JButton(I18n.getString("termora.settings.sync.push"), Icons.upload)
         val exportConfigButton = JButton(I18n.getString("termora.settings.sync.export"), Icons.export)
+        val importConfigButton = JButton(I18n.getString("termora.settings.sync.import"), Icons.import)
         val downloadConfigButton = JButton(I18n.getString("termora.settings.sync.pull"), Icons.download)
         val lastSyncTimeLabel = JLabel()
         val sync get() = database.sync
@@ -610,6 +620,7 @@ class SettingsOptionsPane : OptionsPane() {
             }
 
             exportConfigButton.addActionListener { export() }
+            importConfigButton.addActionListener { import() }
 
             keysCheckBox.addActionListener { refreshButtons() }
             hostsCheckBox.addActionListener { refreshButtons() }
@@ -626,6 +637,7 @@ class SettingsOptionsPane : OptionsPane() {
                     || keywordHighlightsCheckBox.isSelected
             uploadConfigButton.isEnabled = downloadConfigButton.isEnabled
             exportConfigButton.isEnabled = downloadConfigButton.isEnabled
+            importConfigButton.isEnabled = downloadConfigButton.isEnabled
         }
 
         private fun export() {
@@ -641,6 +653,109 @@ class SettingsOptionsPane : OptionsPane() {
             }
         }
 
+        private fun import() {
+            val fileChooser = FileChooser()
+            fileChooser.fileSelectionMode = JFileChooser.FILES_ONLY
+            fileChooser.osxAllowedFileTypes = listOf("json")
+            fileChooser.win32Filters.add(Pair("JSON files", listOf("json")))
+            fileChooser.showOpenDialog(owner).thenAccept { files ->
+                if (files.isNotEmpty()) {
+                    SwingUtilities.invokeLater { importFromFile(files.first()) }
+                }
+            }
+        }
+
+        private fun importFromFile(file: File) {
+            if (!file.exists()) {
+                return
+            }
+
+            val ranges = getSyncConfig().ranges
+            if (ranges.isEmpty()) {
+                return
+            }
+
+            // 最大 100MB
+            if (file.length() >= 1024 * 1024 * 100) {
+                OptionPane.showMessageDialog(
+                    owner, I18n.getString("termora.settings.sync.import.file-too-large"),
+                    messageType = JOptionPane.ERROR_MESSAGE
+                )
+                return
+            }
+
+            val text = file.readText()
+            val jsonResult = ohMyJson.runCatching { decodeFromString<JsonObject>(text) }
+            if (jsonResult.isFailure) {
+                val e = jsonResult.exceptionOrNull() ?: return
+                OptionPane.showMessageDialog(
+                    owner, ExceptionUtils.getRootCauseMessage(e),
+                    messageType = JOptionPane.ERROR_MESSAGE
+                )
+                return
+            }
+
+            val json = jsonResult.getOrNull() ?: return
+            if (ranges.contains(SyncRange.Hosts)) {
+                val hosts = json["hosts"]
+                if (hosts is JsonArray) {
+                    ohMyJson.runCatching { decodeFromJsonElement<List<Host>>(hosts.jsonArray) }.onSuccess {
+                        for (host in it) {
+                            hostManager.addHost(host)
+                        }
+                    }
+                }
+            }
+
+            if (ranges.contains(SyncRange.KeyPairs)) {
+                val keyPairs = json["keyPairs"]
+                if (keyPairs is JsonArray) {
+                    ohMyJson.runCatching { decodeFromJsonElement<List<OhKeyPair>>(keyPairs.jsonArray) }.onSuccess {
+                        for (keyPair in it) {
+                            keyManager.addOhKeyPair(keyPair)
+                        }
+                    }
+                }
+            }
+
+            if (ranges.contains(SyncRange.KeywordHighlights)) {
+                val keywordHighlights = json["keywordHighlights"]
+                if (keywordHighlights is JsonArray) {
+                    ohMyJson.runCatching { decodeFromJsonElement<List<KeywordHighlight>>(keywordHighlights.jsonArray) }
+                        .onSuccess {
+                            for (keyPair in it) {
+                                keywordHighlightManager.addKeywordHighlight(keyPair)
+                            }
+                        }
+                }
+            }
+
+            if (ranges.contains(SyncRange.Macros)) {
+                val macros = json["macros"]
+                if (macros is JsonArray) {
+                    ohMyJson.runCatching { decodeFromJsonElement<List<Macro>>(macros.jsonArray) }.onSuccess {
+                        for (macro in it) {
+                            macroManager.addMacro(macro)
+                        }
+                    }
+                }
+            }
+
+            if (ranges.contains(SyncRange.Keymap)) {
+                val keymaps = json["keymaps"]
+                if (keymaps is JsonArray) {
+                    for (keymap in keymaps.jsonArray.mapNotNull { Keymap.fromJSON(it.jsonObject) }) {
+                        keymapManager.addKeymap(keymap)
+                    }
+                }
+            }
+
+            OptionPane.showMessageDialog(
+                owner, I18n.getString("termora.settings.sync.import.successful"),
+                messageType = JOptionPane.INFORMATION_MESSAGE
+            )
+        }
+
         private fun exportText(file: File) {
             val syncConfig = getSyncConfig()
             val text = ohMyJson.encodeToString(buildJsonObject {
@@ -651,21 +766,29 @@ class SettingsOptionsPane : OptionsPane() {
                 put("os", SystemUtils.OS_NAME)
                 put("exportDateHuman", DateFormatUtils.ISO_8601_EXTENDED_DATETIME_TIME_ZONE_FORMAT.format(Date(now)))
                 if (syncConfig.ranges.contains(SyncRange.Hosts)) {
-                    put("hosts", ohMyJson.encodeToJsonElement(HostManager.getInstance().hosts()))
+                    put("hosts", ohMyJson.encodeToJsonElement(hostManager.hosts()))
                 }
                 if (syncConfig.ranges.contains(SyncRange.KeyPairs)) {
-                    put("keyPairs", ohMyJson.encodeToJsonElement(KeyManager.getInstance().getOhKeyPairs()))
+                    put("keyPairs", ohMyJson.encodeToJsonElement(keyManager.getOhKeyPairs()))
                 }
                 if (syncConfig.ranges.contains(SyncRange.KeywordHighlights)) {
                     put(
                         "keywordHighlights",
-                        ohMyJson.encodeToJsonElement(KeywordHighlightManager.getInstance().getKeywordHighlights())
+                        ohMyJson.encodeToJsonElement(keywordHighlightManager.getKeywordHighlights())
                     )
                 }
                 if (syncConfig.ranges.contains(SyncRange.Macros)) {
                     put(
                         "macros",
-                        ohMyJson.encodeToJsonElement(MacroManager.getInstance().getMacros())
+                        ohMyJson.encodeToJsonElement(macroManager.getMacros())
+                    )
+                }
+                if (syncConfig.ranges.contains(SyncRange.Keymap)) {
+                    val keymaps = keymapManager.getKeymaps().filter { !it.isReadonly }
+                        .map { it.toJSONObject() }
+                    put(
+                        "keymaps",
+                        ohMyJson.encodeToJsonElement(keymaps)
                     )
                 }
                 put("settings", buildJsonObject {
@@ -710,6 +833,7 @@ class SettingsOptionsPane : OptionsPane() {
             )
         }
 
+        @Suppress("DuplicatedCode")
         private suspend fun pushOrPull(push: Boolean) {
 
             if (typeComboBox.selectedItem == SyncType.GitLab) {
@@ -765,6 +889,7 @@ class SettingsOptionsPane : OptionsPane() {
 
             withContext(Dispatchers.Swing) {
                 exportConfigButton.isEnabled = false
+                importConfigButton.isEnabled = false
                 downloadConfigButton.isEnabled = false
                 uploadConfigButton.isEnabled = false
                 typeComboBox.isEnabled = false
@@ -800,6 +925,7 @@ class SettingsOptionsPane : OptionsPane() {
             withContext(Dispatchers.Swing) {
                 downloadConfigButton.isEnabled = true
                 exportConfigButton.isEnabled = true
+                importConfigButton.isEnabled = true
                 uploadConfigButton.isEnabled = true
                 keysCheckBox.isEnabled = true
                 hostsCheckBox.isEnabled = true
@@ -940,7 +1066,7 @@ class SettingsOptionsPane : OptionsPane() {
 
             var rows = 1
             val step = 2
-            val builder = FormBuilder.create().layout(layout).debug(false);
+            val builder = FormBuilder.create().layout(layout).debug(false)
             val box = Box.createHorizontalBox()
             box.add(typeComboBox)
             if (typeComboBox.selectedItem == SyncType.GitLab) {
@@ -959,10 +1085,11 @@ class SettingsOptionsPane : OptionsPane() {
                 // Sync buttons
                 .add(
                     FormBuilder.create()
-                        .layout(FormLayout("left:pref, $formMargin, left:pref, $formMargin, left:pref", "pref"))
+                        .layout(FormLayout("pref, 2dlu, pref, 2dlu, pref, 2dlu, pref", "pref"))
                         .add(uploadConfigButton).xy(1, 1)
                         .add(downloadConfigButton).xy(3, 1)
                         .add(exportConfigButton).xy(5, 1)
+                        .add(importConfigButton).xy(7, 1)
                         .build()
                 ).xy(3, rows, "center, fill").apply { rows += step }
                 .add(lastSyncTimeLabel).xy(3, rows, "center, fill").apply { rows += step }
@@ -1057,8 +1184,6 @@ class SettingsOptionsPane : OptionsPane() {
         private val tip = FlatLabel()
         private val safeBtn = FlatButton()
         private val doorman get() = Doorman.getInstance()
-        private val hostManager get() = HostManager.getInstance()
-        private val keyManager get() = KeyManager.getInstance()
 
         init {
             initView()
