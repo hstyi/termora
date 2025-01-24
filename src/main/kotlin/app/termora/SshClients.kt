@@ -6,10 +6,12 @@ import org.apache.sshd.client.ClientBuilder
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.channel.ChannelShell
 import org.apache.sshd.client.config.hosts.HostConfigEntryResolver
+import org.apache.sshd.client.kex.DHGClient
 import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.common.SshException
 import org.apache.sshd.common.channel.PtyChannelConfiguration
 import org.apache.sshd.common.global.KeepAliveHandler
+import org.apache.sshd.common.kex.BuiltinDHFactories
 import org.apache.sshd.common.util.net.SshdSocketAddress
 import org.apache.sshd.core.CoreModuleProperties
 import org.apache.sshd.server.forward.AcceptAllForwardingFilter
@@ -133,6 +135,14 @@ object SshClients {
         builder.globalRequestHandlers(listOf(KeepAliveHandler.INSTANCE))
             .factory { JGitSshClient() }
 
+        builder.keyExchangeFactories(
+            listOf(
+                DHGClient.newFactory(BuiltinDHFactories.dhg1),
+                DHGClient.newFactory(BuiltinDHFactories.dhg14),
+                DHGClient.newFactory(BuiltinDHFactories.dhgex),
+            )
+        )
+
         if (host.tunnelings.isEmpty() && host.options.jumpHosts.isEmpty()) {
             builder.forwardingFilter(RejectAllForwardingFilter.INSTANCE)
         } else {
@@ -144,6 +154,8 @@ object SshClients {
         val sshClient = builder.build() as JGitSshClient
         val heartbeatInterval = max(host.options.heartbeatInterval, 3)
         CoreModuleProperties.HEARTBEAT_INTERVAL.set(sshClient, Duration.ofSeconds(heartbeatInterval.toLong()))
+        CoreModuleProperties.ALLOW_DHG1_KEX_FALLBACK.set(sshClient, true)
+
         sshClient.setKeyPasswordProviderFactory { IdentityPasswordProvider(CredentialsProvider.getDefault()) }
 
         if (host.proxy.type != ProxyType.No) {
