@@ -8,10 +8,7 @@ import java.awt.*
 import java.awt.event.*
 import java.awt.image.BufferedImage
 import java.util.*
-import javax.swing.ImageIcon
-import javax.swing.JDialog
-import javax.swing.JLabel
-import javax.swing.SwingUtilities
+import javax.swing.*
 import kotlin.math.abs
 
 class MyTabbedPane : FlatTabbedPane() {
@@ -26,6 +23,13 @@ class MyTabbedPane : FlatTabbedPane() {
         initEvents()
     }
 
+    override fun updateUI() {
+        styleMap = mapOf(
+            "focusColor" to UIManager.getColor("TabbedPane.selectedBackground"),
+            "hoverColor" to UIManager.getColor("TabbedPane.background"),
+        )
+        super.updateUI()
+    }
 
     private fun initEvents() {
         addMouseListener(dragMouseAdaptor)

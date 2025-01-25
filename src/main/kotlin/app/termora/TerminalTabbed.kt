@@ -18,8 +18,11 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.beans.PropertyChangeListener
 import java.util.*
-import javax.swing.*
+import javax.swing.Icon
+import javax.swing.JComponent
+import javax.swing.JPanel
 import javax.swing.JTabbedPane.SCROLL_TAB_LAYOUT
+import javax.swing.SwingUtilities
 import kotlin.math.min
 
 class TerminalTabbed(
@@ -54,9 +57,6 @@ class TerminalTabbed(
         tabbedPane.isTabsClosable = true
         tabbedPane.tabType = FlatTabbedPane.TabType.card
 
-        tabbedPane.styleMap = mapOf(
-            "focusColor" to UIManager.getColor("TabbedPane.selectedBackground")
-        )
         tabbedPane.trailingComponent = toolbar
 
         add(tabbedPane, BorderLayout.CENTER)
