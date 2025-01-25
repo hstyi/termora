@@ -10,9 +10,6 @@ import com.jthemedetecor.OsThemeDetector
 import com.mixpanel.mixpanelapi.ClientDelivery
 import com.mixpanel.mixpanelapi.MessageBuilder
 import com.mixpanel.mixpanelapi.MixpanelAPI
-import com.sun.jna.platform.WindowUtils
-import com.sun.jna.platform.win32.User32
-import com.sun.jna.ptr.IntByReference
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -20,25 +17,27 @@ import kotlinx.coroutines.launch
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.LocaleUtils
 import org.apache.commons.lang3.SystemUtils
-import org.apache.commons.lang3.math.NumberUtils
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
 import org.tinylog.configuration.Configuration
 import java.io.File
-import java.io.RandomAccessFile
+import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
+import java.nio.file.Paths
+import java.nio.file.StandardOpenOption
 import java.util.*
 import javax.swing.*
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
 
 class ApplicationRunner {
+    private lateinit var singletonChannel: FileChannel
     private lateinit var singletonLock: FileLock
     private val log by lazy {
         if (!::singletonLock.isInitialized) {
             throw UnsupportedOperationException("Singleton lock is not initialized")
         }
-        LoggerFactory.getLogger("Main")
+        LoggerFactory.getLogger(ApplicationRunner::class.java)
     }
 
     fun run() {
@@ -224,36 +223,14 @@ class ApplicationRunner {
 
 
     private fun checkSingleton() {
-        val file = File(Application.getBaseDataDir(), "lock")
-        val pidFile = File(Application.getBaseDataDir(), "pid")
+        singletonChannel = FileChannel.open(
+            Paths.get(Application.getBaseDataDir().absolutePath, "lock"),
+            StandardOpenOption.CREATE,
+            StandardOpenOption.WRITE,
+        )
 
-
-        val raf = RandomAccessFile(file, "rw")
-        val lock = raf.channel.tryLock()
-
-        if (lock != null) {
-            pidFile.writeText(ProcessHandle.current().pid().toString())
-            pidFile.deleteOnExit()
-            file.deleteOnExit()
-        } else {
-            if (SystemInfo.isWindows && pidFile.exists()) {
-                val pid = NumberUtils.toLong(pidFile.readText())
-                for (window in WindowUtils.getAllWindows(false)) {
-                    if (pid > 0) {
-                        val processId = IntByReference()
-                        User32.INSTANCE.GetWindowThreadProcessId(window.hwnd, processId)
-                        if (processId.value.toLong() != pid) {
-                            continue
-                        }
-                    } else if (window.title != Application.getName() || window.filePath.endsWith("explorer.exe")) {
-                        continue
-                    }
-                    User32.INSTANCE.ShowWindow(window.hwnd, User32.SW_SHOWNOACTIVATE)
-                    User32.INSTANCE.SetForegroundWindow(window.hwnd)
-                    break
-                }
-            }
-
+        val lock = singletonChannel.tryLock()
+        if (lock == null) {
             System.err.println("Program is already running")
             exitProcess(1)
         }
