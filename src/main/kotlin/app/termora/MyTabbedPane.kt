@@ -44,6 +44,12 @@ class MyTabbedPane : FlatTabbedPane() {
                 tabCloseCallback?.accept(this, index)
                 return
             }
+        } else if (e.id == MouseEvent.MOUSE_PRESSED && isShiftPressedOnly(e.modifiersEx)) {
+            val index = indexAtLocation(e.x, e.y)
+            if (index >= 0) {
+                return
+            }
+            return
         }
         super.processMouseEvent(e)
     }
