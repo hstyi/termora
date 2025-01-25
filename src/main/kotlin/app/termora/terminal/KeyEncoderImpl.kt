@@ -1,13 +1,14 @@
 package app.termora.terminal
 
 import com.formdev.flatlaf.util.SystemInfo
+import org.apache.commons.lang3.StringUtils
 import java.awt.event.KeyEvent
 
 @Suppress("MemberVisibilityCanBePrivate")
 open class KeyEncoderImpl(private val terminal: Terminal) : KeyEncoder, DataListener {
 
     private val mapping = mutableMapOf<TerminalKeyEvent, String>()
-    private val nothing = String()
+    private val nothing = StringUtils.EMPTY
 
     init {
 
@@ -27,6 +28,7 @@ open class KeyEncoderImpl(private val terminal: Terminal) : KeyEncoder, DataList
 
         configureLeftRight()
 
+        // Ctrl + C
         putCode(TerminalKeyEvent(keyCode = 8), String(byteArrayOf(127)))
 
         // Enter
@@ -38,15 +40,15 @@ open class KeyEncoderImpl(private val terminal: Terminal) : KeyEncoder, DataList
 
 
         // Page Up
-        putCode(TerminalKeyEvent(keyCode = 0x21), encode = "${ControlCharacters.ESC}[5~")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_PAGE_UP), encode = "${ControlCharacters.ESC}[5~")
         // Page Down
-        putCode(TerminalKeyEvent(keyCode = 0x22), encode = "${ControlCharacters.ESC}[6~")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_PAGE_DOWN), encode = "${ControlCharacters.ESC}[6~")
 
 
         // Insert
-        putCode(TerminalKeyEvent(keyCode = 0x9B), encode = "${ControlCharacters.ESC}[2~")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_INSERT), encode = "${ControlCharacters.ESC}[2~")
         // Delete
-        putCode(TerminalKeyEvent(keyCode = 0x7F), encode = "${ControlCharacters.ESC}[3~")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_DELETE), encode = "${ControlCharacters.ESC}[3~")
 
         // Function Keys
         putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F1), encode = "${ControlCharacters.ESC}OP")
@@ -84,26 +86,29 @@ open class KeyEncoderImpl(private val terminal: Terminal) : KeyEncoder, DataList
 
     fun arrowKeysApplicationSequences() {
         // Up
-        putCode(TerminalKeyEvent(keyCode = 0x26), encode = "${ControlCharacters.ESC}OA")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_UP), encode = "${ControlCharacters.ESC}OA")
         // Down
-        putCode(TerminalKeyEvent(keyCode = 0x28), encode = "${ControlCharacters.ESC}OB")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_DOWN), encode = "${ControlCharacters.ESC}OB")
         // Left
-        putCode(TerminalKeyEvent(keyCode = 0x25), encode = "${ControlCharacters.ESC}OD")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_LEFT), encode = "${ControlCharacters.ESC}OD")
         // Right
-        putCode(TerminalKeyEvent(keyCode = 0x27), encode = "${ControlCharacters.ESC}OC")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_RIGHT), encode = "${ControlCharacters.ESC}OC")
     }
 
     fun arrowKeysAnsiCursorSequences() {
         // Up
-        putCode(TerminalKeyEvent(keyCode = 0x26), encode = "${ControlCharacters.ESC}[A")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_UP), encode = "${ControlCharacters.ESC}[A")
         // Down
-        putCode(TerminalKeyEvent(keyCode = 0x28), encode = "${ControlCharacters.ESC}[B")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_DOWN), encode = "${ControlCharacters.ESC}[B")
         // Left
-        putCode(TerminalKeyEvent(keyCode = 0x25), encode = "${ControlCharacters.ESC}[D")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_LEFT), encode = "${ControlCharacters.ESC}[D")
         // Right
-        putCode(TerminalKeyEvent(keyCode = 0x27), encode = "${ControlCharacters.ESC}[C")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_RIGHT), encode = "${ControlCharacters.ESC}[C")
     }
 
+    /**
+     * Alt + Left/Right
+     */
     fun configureLeftRight() {
         if (SystemInfo.isMacOS) {
             putCode(
@@ -141,32 +146,32 @@ open class KeyEncoderImpl(private val terminal: Terminal) : KeyEncoder, DataList
 
     fun keypadApplicationSequences() {
         // Up
-        putCode(TerminalKeyEvent(keyCode = 0xE0), encode = "${ControlCharacters.ESC}OA")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_KP_UP), encode = "${ControlCharacters.ESC}OA")
         // Down
-        putCode(TerminalKeyEvent(keyCode = 0xE1), encode = "${ControlCharacters.ESC}OB")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_KP_DOWN), encode = "${ControlCharacters.ESC}OB")
         // Left
-        putCode(TerminalKeyEvent(keyCode = 0xE2), encode = "${ControlCharacters.ESC}OD")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_KP_LEFT), encode = "${ControlCharacters.ESC}OD")
         // Right
-        putCode(TerminalKeyEvent(keyCode = 0xE3), encode = "${ControlCharacters.ESC}OC")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_KP_RIGHT), encode = "${ControlCharacters.ESC}OC")
         // Home
-        putCode(TerminalKeyEvent(keyCode = 0x24), encode = "${ControlCharacters.ESC}OH")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_HOME), encode = "${ControlCharacters.ESC}OH")
         // End
-        putCode(TerminalKeyEvent(keyCode = 0x23), encode = "${ControlCharacters.ESC}OF")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_END), encode = "${ControlCharacters.ESC}OF")
     }
 
     fun keypadAnsiSequences() {
         // Up
-        putCode(TerminalKeyEvent(keyCode = 0xE0), encode = "${ControlCharacters.ESC}[A")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_KP_UP), encode = "${ControlCharacters.ESC}[A")
         // Down
-        putCode(TerminalKeyEvent(keyCode = 0xE1), encode = "${ControlCharacters.ESC}[B")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_KP_DOWN), encode = "${ControlCharacters.ESC}[B")
         // Left
-        putCode(TerminalKeyEvent(keyCode = 0xE2), encode = "${ControlCharacters.ESC}[D")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_KP_LEFT), encode = "${ControlCharacters.ESC}[D")
         // Right
-        putCode(TerminalKeyEvent(keyCode = 0xE3), encode = "${ControlCharacters.ESC}[C")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_KP_RIGHT), encode = "${ControlCharacters.ESC}[C")
         // Home
-        putCode(TerminalKeyEvent(keyCode = 0x24), encode = "${ControlCharacters.ESC}[H")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_HOME), encode = "${ControlCharacters.ESC}[H")
         // End
-        putCode(TerminalKeyEvent(keyCode = 0x23), encode = "${ControlCharacters.ESC}[F")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_END), encode = "${ControlCharacters.ESC}[F")
     }
 
     override fun onChanged(key: DataKey<*>, data: Any) {
