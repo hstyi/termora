@@ -415,6 +415,18 @@ tasks.register("check-license") {
             thirdParty[nameWithVersion.replace(StringUtils.SPACE, "-")] = license
             thirdPartyNames.add(nameWithVersion.split(StringUtils.SPACE).first())
         }
+
+        for (file in configurations.runtimeClasspath.get()) {
+            val name = file.nameWithoutExtension
+            if (!thirdParty.containsKey(name)) {
+                if (logger.isWarnEnabled) {
+                    logger.warn("$name does not exist in third-party")
+                }
+                if (!thirdPartyNames.contains(name)) {
+                    throw GradleException("$name No license found")
+                }
+            }
+        }
     }
 }
 
