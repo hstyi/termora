@@ -32,6 +32,25 @@ class MyTabbedPane : FlatTabbedPane() {
         addMouseMotionListener(dragMouseAdaptor)
     }
 
+    override fun processMouseEvent(e: MouseEvent) {
+        // Shift + Click ===> close tab
+        if (e.id == MouseEvent.MOUSE_PRESSED && SwingUtilities.isLeftMouseButton(e) && isShiftPressedOnly(e.modifiersEx)) {
+            val index = indexAtLocation(e.x, e.y)
+            if (index >= 0) {
+                tabCloseCallback?.accept(this, index)
+                return
+            }
+        }
+        super.processMouseEvent(e)
+    }
+
+    private fun isShiftPressedOnly(modifiersEx: Int): Boolean {
+        return (modifiersEx and InputEvent.ALT_DOWN_MASK) == 0
+                && (modifiersEx and InputEvent.ALT_GRAPH_DOWN_MASK) == 0
+                && (modifiersEx and InputEvent.CTRL_DOWN_MASK) == 0
+                && (modifiersEx and InputEvent.SHIFT_DOWN_MASK) != 0
+    }
+
     override fun setSelectedIndex(index: Int) {
         val oldIndex = selectedIndex
         super.setSelectedIndex(index)
