@@ -34,7 +34,7 @@ class MyTabbedPane : FlatTabbedPane() {
 
     override fun processMouseEvent(e: MouseEvent) {
         // Shift + Click ===> close tab
-        if (e.id == MouseEvent.MOUSE_PRESSED && SwingUtilities.isLeftMouseButton(e) && isShiftPressedOnly(e.modifiersEx)) {
+        if (e.id == MouseEvent.MOUSE_CLICKED && SwingUtilities.isLeftMouseButton(e) && isShiftPressedOnly(e.modifiersEx)) {
             val index = indexAtLocation(e.x, e.y)
             if (index >= 0) {
                 tabCloseCallback?.accept(this, index)
