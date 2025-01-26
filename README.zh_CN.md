@@ -14,7 +14,7 @@
 - 支持 [SFTP](./docs/sftp-zh_CN.png?raw=1) 文件传输
 - 支持 Windows、macOS、Linux 平台
 - 支持 Zmodem 协议
-- 支持 SSH 端口转发和 Jump hosts
+- 支持 SSH 端口转发和跳板机
 - 终端日志记录
 - 支持配置同步到 [Gist](https://gist.github.com)
 - 支持宏（录制脚本并回放）
