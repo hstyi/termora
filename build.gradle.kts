@@ -14,7 +14,7 @@ plugins {
 
 
 group = "app.termora"
-version = "1.0.4"
+version = "1.0.5"
 
 val os: OperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
 val arch: Architecture = DefaultNativePlatform.getCurrentArchitecture()
