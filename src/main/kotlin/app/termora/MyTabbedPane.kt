@@ -49,7 +49,6 @@ class MyTabbedPane : FlatTabbedPane() {
             if (index >= 0) {
                 return
             }
-            return
         }
         super.processMouseEvent(e)
     }

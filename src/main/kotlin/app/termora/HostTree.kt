@@ -318,6 +318,7 @@ class HostTree : JTree(), Disposable {
         val newHost = newMenu.add(I18n.getString("termora.welcome.contextmenu.new.host"))
 
         val open = popupMenu.add(I18n.getString("termora.welcome.contextmenu.open"))
+        val openInNewWindow = popupMenu.add(I18n.getString("termora.welcome.contextmenu.open-in-new-window"))
         popupMenu.addSeparator()
         val copy = popupMenu.add(I18n.getString("termora.welcome.contextmenu.copy"))
         val remove = popupMenu.add(I18n.getString("termora.welcome.contextmenu.remove"))
@@ -330,15 +331,8 @@ class HostTree : JTree(), Disposable {
         popupMenu.addSeparator()
         val property = popupMenu.add(I18n.getString("termora.welcome.contextmenu.property"))
 
-        open.addActionListener { evt ->
-            getSelectionNodes()
-                .filter { it.protocol != Protocol.Folder }
-                .forEach {
-                    ActionManager.getInstance()
-                        .getAction(OpenHostAction.OPEN_HOST)
-                        ?.actionPerformed(OpenHostActionEvent(evt.source, it, evt))
-                }
-        }
+        open.addActionListener { openHosts(it, false) }
+        openInNewWindow.addActionListener { openHosts(it, true) }
 
         rename.addActionListener {
             startEditingAtPath(TreePath(model.getPathToRoot(lastHost)))
@@ -454,6 +448,15 @@ class HostTree : JTree(), Disposable {
         popupMenu.show(this, event.x, event.y)
     }
 
+    private fun openHosts(evt: EventObject, openInNewWindow: Boolean) {
+        assertEventDispatchThread()
+        val openHostAction = ActionManager.getInstance().getAction(OpenHostAction.OPEN_HOST) ?: return
+        val nodes = getSelectionNodes().filter { it.protocol != Protocol.Folder }
+        val source = if (openInNewWindow)
+            TermoraFrameManager.getInstance().createWindow().apply { isVisible = true }
+        else evt.source
+        nodes.forEach { openHostAction.actionPerformed(OpenHostActionEvent(source, it, evt)) }
+    }
 
     fun expandNode(node: Host, including: Boolean = false) {
         expandPath(TreePath(model.getPathToRoot(node)))
