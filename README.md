@@ -18,7 +18,8 @@
 - [SFTP](./docs/sftp.png?raw=1) file transfer support
 - Compatible with Windows, macOS, and Linux
 - Zmodem protocol support
-- SSH port forwarding
+- SSH port forwarding & Jump hosts
+- Terminal log
 - Configuration synchronization via [Gist](https://gist.github.com)
 - Macro support (record and replay scripts)
 - Keyword highlighting
