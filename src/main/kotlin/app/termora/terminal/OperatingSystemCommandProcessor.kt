@@ -7,7 +7,7 @@ import java.awt.datatransfer.StringSelection
 
 class OperatingSystemCommandProcessor(terminal: Terminal, reader: TerminalReader) :
     AbstractProcessor(terminal, reader) {
-    private val args = StringBuilder()
+    private val systemCommandSequence = SystemCommandSequence()
     private val colorPalette get() = terminal.getTerminalModel().getColorPalette()
 
     companion object {
@@ -20,14 +20,7 @@ class OperatingSystemCommandProcessor(terminal: Terminal, reader: TerminalReader
 
         do {
 
-            val c = reader.read()
-            args.append(c)
-            if (c == ControlCharacters.BEL || c == ControlCharacters.ST) {
-                args.deleteAt(args.lastIndex)
-                break
-            } else if (c == '\\' && args.length >= 2 && args[args.length - 2] == ControlCharacters.ESC) {
-                args.deleteAt(args.lastIndex)
-                args.deleteAt(args.lastIndex)
+            if (systemCommandSequence.process(reader.read())) {
                 break
             }
 
@@ -42,7 +35,7 @@ class OperatingSystemCommandProcessor(terminal: Terminal, reader: TerminalReader
         // process osc
         processOperatingSystemCommandProcessor()
 
-        args.clear()
+        systemCommandSequence.reset()
 
         return TerminalState.READY
     }
@@ -52,6 +45,7 @@ class OperatingSystemCommandProcessor(terminal: Terminal, reader: TerminalReader
      * https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
      */
     private fun processOperatingSystemCommandProcessor() {
+        val args = systemCommandSequence.getCommand()
         val idx = args.indexOfFirst { it == ';' }
         if (idx == -1) {
             return

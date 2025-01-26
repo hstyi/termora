@@ -128,9 +128,9 @@ class EscapeSequenceProcessor(terminal: Terminal, reader: TerminalReader) : Abst
 
             }
 
-            // TODO Device Control String (DCS  is 0x90).
+            // Device Control String (DCS  is 0x90).
             'P' -> {
-
+                state = TerminalState.DCS
             }
 
             // Start of Guarded Area (SPA  is 0x96).

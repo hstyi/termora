@@ -129,7 +129,7 @@ private class MyProcessor(private val terminal: Terminal, reader: TerminalReader
         TerminalState.CSI to ControlSequenceIntroducerProcessor(terminal, reader),
         TerminalState.OSC to OperatingSystemCommandProcessor(terminal, reader),
         TerminalState.ESC_LPAREN to EscapeDesignateCharacterSetProcessor(terminal, reader),
-        TerminalState.DCS to DeviceControlProcessor(terminal),
+        TerminalState.DCS to DeviceControlStringProcessor(terminal, reader),
         TerminalState.Text to TextProcessor(terminal, reader),
     )
 
