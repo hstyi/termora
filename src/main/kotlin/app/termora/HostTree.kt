@@ -450,11 +450,13 @@ class HostTree : JTree(), Disposable {
 
     private fun openHosts(evt: EventObject, openInNewWindow: Boolean) {
         assertEventDispatchThread()
-        val openHostAction = ActionManager.getInstance().getAction(OpenHostAction.OPEN_HOST) ?: return
         val nodes = getSelectionNodes().filter { it.protocol != Protocol.Folder }
+        if (nodes.isEmpty()) return
+        val openHostAction = ActionManager.getInstance().getAction(OpenHostAction.OPEN_HOST) ?: return
         val source = if (openInNewWindow)
             TermoraFrameManager.getInstance().createWindow().apply { isVisible = true }
         else evt.source
+
         nodes.forEach { openHostAction.actionPerformed(OpenHostActionEvent(source, it, evt)) }
     }
 
