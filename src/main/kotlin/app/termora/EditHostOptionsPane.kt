@@ -37,6 +37,17 @@ class EditHostOptionsPane(private val host: Host) : HostOptionsPane() {
         }
 
         jumpHostsOption.filter = { it.id != host.id }
+
+        val serialComm = host.options.serialComm
+        if (serialComm.port.isNotBlank()) {
+            serialCommOption.serialPortComboBox.selectedItem = serialComm.port
+        }
+        serialCommOption.baudRateComboBox.selectedItem = serialComm.baudRate
+        serialCommOption.dataBitsComboBox.selectedItem = serialComm.dataBits
+        serialCommOption.parityComboBox.selectedItem = serialComm.parity
+        serialCommOption.stopBitsComboBox.selectedItem = serialComm.stopBits
+        serialCommOption.flowControlComboBox.selectedItem = serialComm.flowControl
+        serialCommOption.charsetTextField.text = serialComm.charset
     }
 
     override fun getHost(): Host {
