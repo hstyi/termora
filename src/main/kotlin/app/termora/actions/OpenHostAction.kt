@@ -1,9 +1,6 @@
 package app.termora.actions
 
-import app.termora.LocalTerminalTab
-import app.termora.OpenHostActionEvent
-import app.termora.Protocol
-import app.termora.SSHTerminalTab
+import app.termora.*
 
 class OpenHostAction : AnAction() {
     companion object {
@@ -18,9 +15,11 @@ class OpenHostAction : AnAction() {
         val terminalTabbedManager = evt.getData(DataProviders.TerminalTabbedManager) ?: return
         val windowScope = evt.getData(DataProviders.WindowScope) ?: return
 
-        val tab = if (evt.host.protocol == Protocol.SSH)
-            SSHTerminalTab(windowScope, evt.host)
-        else LocalTerminalTab(windowScope, evt.host)
+        val tab = when (evt.host.protocol) {
+            Protocol.SSH -> SSHTerminalTab(windowScope, evt.host)
+            Protocol.Serial -> SerialTerminalTab(windowScope, evt.host)
+            else -> LocalTerminalTab(windowScope, evt.host)
+        }
 
         terminalTabbedManager.addTerminalTab(tab)
         tab.start()
