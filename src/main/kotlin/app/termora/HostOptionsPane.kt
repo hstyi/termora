@@ -1011,7 +1011,7 @@ open class HostOptionsPane : OptionsPane() {
                     GlobalScope.launch(Dispatchers.IO) {
                         for (commPort in SerialPort.getCommPorts()) {
                             withContext(Dispatchers.Swing) {
-                                serialPortComboBox.addItem(commPort.systemPortPath)
+                                serialPortComboBox.addItem(commPort.systemPortName)
                             }
                         }
                     }

@@ -13,7 +13,6 @@ import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Window
 import javax.swing.*
-import kotlin.time.Duration.Companion.minutes
 
 class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
     private val pane = if (host != null) EditHostOptionsPane(host) else HostOptionsPane()
@@ -137,8 +136,8 @@ class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
             SerialCommFlowControl.XON_XOFF -> serialPort.setFlowControl(SerialPort.FLOW_CONTROL_XONXOFF_IN_ENABLED or SerialPort.FLOW_CONTROL_XONXOFF_OUT_ENABLED)
         }
         try {
-            if (!serialPort.openPort(1.minutes.inWholeMilliseconds.toInt())) {
-                throw IllegalStateException("Open serial port [${serialComm.port}] timeout")
+            if (!serialPort.openPort()) {
+                throw IllegalStateException("Open serial port [${serialComm.port}] failed")
             }
         } finally {
             serialPort.closePort()
