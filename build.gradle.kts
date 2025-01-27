@@ -1,5 +1,6 @@
 import org.gradle.internal.jvm.Jvm
 import org.gradle.kotlin.dsl.support.uppercaseFirstChar
+import org.gradle.nativeplatform.platform.internal.ArchitectureInternal
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 import org.jetbrains.kotlin.org.apache.commons.io.FileUtils
 import org.jetbrains.kotlin.org.apache.commons.lang3.StringUtils
@@ -17,7 +18,7 @@ group = "app.termora"
 version = "1.0.5"
 
 val os: OperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
-val arch: Architecture = DefaultNativePlatform.getCurrentArchitecture()
+val arch: ArchitectureInternal = DefaultNativePlatform.getCurrentArchitecture()
 
 // macOS 签名信息
 val macOSSignUsername = System.getenv("TERMORA_MAC_SIGN_USER_NAME") ?: StringUtils.EMPTY
@@ -104,6 +105,7 @@ dependencies {
     implementation(libs.bip39)
     implementation(libs.colorpicker)
     implementation(libs.mixpanel)
+    implementation(libs.jSerialComm)
 }
 
 application {
@@ -148,6 +150,8 @@ tasks.register<Copy>("copy-dependencies") {
             val jna = libs.jna.asProvider().get()
             val dylib = dir.get().dir("dylib").asFile
             val pty4j = libs.pty4j.get()
+            val jSerialComm = libs.jSerialComm.get()
+
             for (file in dir.get().asFile.listFiles() ?: emptyArray()) {
                 if ("${jna.name}-${jna.version}" == file.nameWithoutExtension) {
                     val targetDir = File(dylib, jna.name)
@@ -172,6 +176,21 @@ tasks.register<Copy>("copy-dependencies") {
                     // @formatter:on
                     // 删除所有二进制类库
                     exec { commandLine("zip", "-d", file.absolutePath, "resources/*") }
+                } else if ("${jSerialComm.name}-${jSerialComm.version}" == file.nameWithoutExtension) {
+                    val archName = if (arch.isArm) "aarch64" else "x86_64"
+                    val targetDir = FileUtils.getFile(dylib, jSerialComm.name, "OSX", archName)
+                    FileUtils.forceMkdir(targetDir)
+                    // @formatter:off
+                    exec { commandLine("unzip", "-j" , "-o", file.absolutePath, "OSX/${archName}/*", "-d", targetDir.absolutePath) }
+                    // @formatter:on
+                    // 删除所有二进制类库
+                    exec { commandLine("zip", "-d", file.absolutePath, "Android/*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "FreeBSD/*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "Linux/*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "OpenBSD/*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "OSX/*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "Solaris/*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "Windows/*") }
                 }
             }
 

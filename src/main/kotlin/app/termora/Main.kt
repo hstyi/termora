@@ -41,4 +41,9 @@ private fun setupNativeLibraries() {
     if (pty4j.exists()) {
         System.setProperty(PtyUtil.PREFERRED_NATIVE_FOLDER_KEY, pty4j.absolutePath)
     }
+
+    val jSerialComm = FileUtils.getFile(dylib, "jSerialComm")
+    if (jSerialComm.exists()) {
+        System.setProperty("jSerialComm.library.path", jSerialComm.absolutePath)
+    }
 }

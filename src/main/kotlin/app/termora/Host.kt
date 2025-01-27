@@ -13,6 +13,7 @@ enum class Protocol {
     Folder,
     SSH,
     Local,
+    Serial
 }
 
 
@@ -39,6 +40,58 @@ data class Authentication(
     }
 }
 
+enum class SerialCommParity {
+    None,
+    Even,
+    Odd,
+    Mark,
+    Space
+}
+
+enum class SerialCommFlowControl {
+    None,
+    RTS_CTS,
+    XON_XOFF,
+}
+
+@Serializable
+data class SerialComm(
+    /**
+     * 串口
+     */
+    val port: String = StringUtils.EMPTY,
+
+    /**
+     * 波特率
+     */
+    val baudRate: Int = 9600,
+
+    /**
+     * 字符集，如果为空则表示取系统默认
+     */
+    val charset: String = StringUtils.EMPTY,
+
+    /**
+     * 数据位：5、6、7、8
+     */
+    val dataBits: Int = 8,
+
+    /**
+     * 停止位： 1、1.5、2
+     */
+    val stopBits: String = "1",
+
+    /**
+     * 校验位
+     */
+    val parity: SerialCommParity = SerialCommParity.None,
+
+    /**
+     * 流控
+     */
+    val flowControl: SerialCommFlowControl = SerialCommFlowControl.None,
+)
+
 
 @Serializable
 data class Options(
@@ -61,7 +114,12 @@ data class Options(
     /**
      * SSH 心跳间隔
      */
-    val heartbeatInterval: Int = 30
+    val heartbeatInterval: Int = 30,
+
+    /**
+     * 串口配置
+     */
+    val serialComm: SerialComm = SerialComm(),
 ) {
     companion object {
         val Default = Options()

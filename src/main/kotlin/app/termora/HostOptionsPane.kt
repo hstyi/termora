@@ -2,11 +2,17 @@ package app.termora
 
 import app.termora.keymgr.KeyManager
 import app.termora.keymgr.KeyManagerDialog
+import com.fazecast.jSerialComm.SerialPort
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatComboBox
 import com.formdev.flatlaf.ui.FlatTextBorder
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.swing.Swing
+import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
 import java.awt.*
 import java.awt.event.*
@@ -22,11 +28,13 @@ open class HostOptionsPane : OptionsPane() {
     protected val proxyOption = ProxyOption()
     protected val terminalOption = TerminalOption()
     protected val jumpHostsOption = JumpHostsOption()
+    protected val serialCommOption = SerialCommOption()
     protected val owner: Window get() = SwingUtilities.getWindowAncestor(this)
 
     init {
         addOption(generalOption)
         addOption(proxyOption)
+        addOption(serialCommOption)
         addOption(tunnelingOption)
         addOption(jumpHostsOption)
         addOption(terminalOption)
@@ -42,6 +50,7 @@ open class HostOptionsPane : OptionsPane() {
         val port = (generalOption.portTextField.value ?: 22) as Int
         var authentication = Authentication.No
         var proxy = Proxy.No
+
 
         if (generalOption.authenticationTypeComboBox.selectedItem == AuthenticationType.Password) {
             authentication = authentication.copy(
@@ -66,12 +75,24 @@ open class HostOptionsPane : OptionsPane() {
             )
         }
 
+
+        val serialComm = SerialComm(
+            port = serialCommOption.serialPortComboBox.selectedItem?.toString() ?: StringUtils.EMPTY,
+            baudRate = serialCommOption.baudRateComboBox.selectedItem?.toString()?.toIntOrNull() ?: 9600,
+            charset = serialCommOption.charsetTextField.text,
+            dataBits = serialCommOption.dataBitsComboBox.selectedItem as Int? ?: 8,
+            stopBits = serialCommOption.stopBitsComboBox.selectedItem as String? ?: "1",
+            parity = serialCommOption.parityComboBox.selectedItem as SerialCommParity,
+            flowControl = serialCommOption.flowControlComboBox.selectedItem as SerialCommFlowControl
+        )
+
         val options = Options.Default.copy(
             encoding = terminalOption.charsetComboBox.selectedItem as String,
             env = terminalOption.environmentTextArea.text,
             startupCommand = terminalOption.startupCommandTextField.text,
             heartbeatInterval = (terminalOption.heartbeatIntervalTextField.value ?: 30) as Int,
-            jumpHosts = jumpHostsOption.jumpHosts.map { it.id }
+            jumpHosts = jumpHostsOption.jumpHosts.map { it.id },
+            serialComm = serialComm
         )
 
         return Host(
@@ -101,6 +122,12 @@ open class HostOptionsPane : OptionsPane() {
 
         if (host.protocol == Protocol.SSH) {
             if (validateField(generalOption.usernameTextField)) {
+                return false
+            }
+        } else if (host.protocol == Protocol.Serial) {
+            if (validateField(serialCommOption.serialPortComboBox)
+                || validateField(serialCommOption.baudRateComboBox)
+            ) {
                 return false
             }
         }
@@ -152,7 +179,8 @@ open class HostOptionsPane : OptionsPane() {
      * 返回 true 表示有错误
      */
     private fun validateField(comboBox: JComboBox<*>): Boolean {
-        if (comboBox.isEnabled && comboBox.selectedItem == null) {
+        val selectedItem = comboBox.selectedItem
+        if (comboBox.isEnabled && (selectedItem == null || (selectedItem is String && selectedItem.isBlank()))) {
             selectOptionJComponent(comboBox)
             comboBox.putClientProperty(FlatClientProperties.OUTLINE, FlatClientProperties.OUTLINE_ERROR)
             comboBox.requestFocusInWindow()
@@ -259,6 +287,7 @@ open class HostOptionsPane : OptionsPane() {
 
             protocolTypeComboBox.addItem(Protocol.SSH)
             protocolTypeComboBox.addItem(Protocol.Local)
+            protocolTypeComboBox.addItem(Protocol.Serial)
 
             authenticationTypeComboBox.addItem(AuthenticationType.No)
             authenticationTypeComboBox.addItem(AuthenticationType.Password)
@@ -328,7 +357,9 @@ open class HostOptionsPane : OptionsPane() {
             passwordTextField.isEnabled = true
             chooseKeyBtn.isEnabled = true
 
-            if (protocolTypeComboBox.selectedItem == Protocol.Local) {
+            if (protocolTypeComboBox.selectedItem == Protocol.Local
+                || protocolTypeComboBox.selectedItem == Protocol.Serial
+            ) {
                 hostTextField.isEnabled = false
                 portTextField.isEnabled = false
                 usernameTextField.isEnabled = false
@@ -901,6 +932,132 @@ open class HostOptionsPane : OptionsPane() {
         }
     }
 
+    protected inner class SerialCommOption : JPanel(BorderLayout()), Option {
+        val serialPortComboBox = OutlineComboBox<String>()
+        val baudRateComboBox = OutlineComboBox<Int>()
+        val dataBitsComboBox = OutlineComboBox<Int>()
+        val parityComboBox = OutlineComboBox<SerialCommParity>()
+        val stopBitsComboBox = OutlineComboBox<String>()
+        val flowControlComboBox = OutlineComboBox<SerialCommFlowControl>()
+        val charsetTextField = OutlineTextField()
+
+
+        init {
+            initView()
+            initEvents()
+        }
+
+        private fun initView() {
+
+            serialPortComboBox.isEditable = true
+
+            baudRateComboBox.isEditable = true
+            baudRateComboBox.addItem(9600)
+            baudRateComboBox.addItem(19200)
+            baudRateComboBox.addItem(38400)
+            baudRateComboBox.addItem(57600)
+            baudRateComboBox.addItem(115200)
+
+            dataBitsComboBox.addItem(5)
+            dataBitsComboBox.addItem(6)
+            dataBitsComboBox.addItem(7)
+            dataBitsComboBox.addItem(8)
+            dataBitsComboBox.selectedItem = 8
+
+            parityComboBox.addItem(SerialCommParity.None)
+            parityComboBox.addItem(SerialCommParity.Even)
+            parityComboBox.addItem(SerialCommParity.Odd)
+            parityComboBox.addItem(SerialCommParity.Mark)
+            parityComboBox.addItem(SerialCommParity.Space)
+
+            stopBitsComboBox.addItem("1")
+            stopBitsComboBox.addItem("1.5")
+            stopBitsComboBox.addItem("2")
+            stopBitsComboBox.selectedItem = "1"
+
+            charsetTextField.text = "UTF-8"
+
+            flowControlComboBox.addItem(SerialCommFlowControl.None)
+            flowControlComboBox.addItem(SerialCommFlowControl.RTS_CTS)
+            flowControlComboBox.addItem(SerialCommFlowControl.XON_XOFF)
+
+            flowControlComboBox.renderer = object : DefaultListCellRenderer() {
+                override fun getListCellRendererComponent(
+                    list: JList<*>?,
+                    value: Any?,
+                    index: Int,
+                    isSelected: Boolean,
+                    cellHasFocus: Boolean
+                ): Component {
+                    val text = value?.toString() ?: StringUtils.EMPTY
+                    return super.getListCellRendererComponent(
+                        list,
+                        text.replace('_', '/'),
+                        index,
+                        isSelected,
+                        cellHasFocus
+                    )
+                }
+            }
+
+            add(getCenterComponent(), BorderLayout.CENTER)
+        }
+
+        private fun initEvents() {
+            addComponentListener(object : ComponentAdapter() {
+                override fun componentShown(e: ComponentEvent) {
+                    removeComponentListener(this)
+                    @Suppress("OPT_IN_USAGE")
+                    GlobalScope.launch(Dispatchers.IO) {
+                        for (commPort in SerialPort.getCommPorts()) {
+                            withContext(Dispatchers.Swing) {
+                                serialPortComboBox.addItem(commPort.systemPortPath)
+                            }
+                        }
+                    }
+                }
+            })
+        }
+
+        override fun getIcon(isSelected: Boolean): Icon {
+            return Icons.keyboard
+        }
+
+        override fun getTitle(): String {
+            return "Serial"
+        }
+
+        override fun getJComponent(): JComponent {
+            return this
+        }
+
+        private fun getCenterComponent(): JComponent {
+            val layout = FormLayout(
+                "left:pref, $formMargin, default:grow, $formMargin",
+                "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
+            )
+
+            var rows = 1
+            val step = 2
+            val panel = FormBuilder.create().layout(layout)
+                .add("Serial port:").xy(1, rows)
+                .add(serialPortComboBox).xy(3, rows).apply { rows += step }
+                .add("Baud rate:").xy(1, rows)
+                .add(baudRateComboBox).xy(3, rows).apply { rows += step }
+                .add("Data bits:").xy(1, rows)
+                .add(dataBitsComboBox).xy(3, rows).apply { rows += step }
+                .add("Parity:").xy(1, rows)
+                .add(parityComboBox).xy(3, rows).apply { rows += step }
+                .add("Stop bits:").xy(1, rows)
+                .add(stopBitsComboBox).xy(3, rows).apply { rows += step }
+                .add("Flow control:").xy(1, rows)
+                .add(flowControlComboBox).xy(3, rows).apply { rows += step }
+                .add("Charset:").xy(1, rows)
+                .add(charsetTextField).xy(3, rows).apply { rows += step }
+                .build()
+            return panel
+        }
+    }
 
     protected inner class JumpHostsOption : JPanel(BorderLayout()), Option {
         val jumpHosts = mutableListOf<Host>()
