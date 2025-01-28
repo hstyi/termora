@@ -69,6 +69,8 @@ class HostTree : JTree(), Disposable {
                     icon = if (expanded) FlatTreeOpenIcon() else FlatTreeClosedIcon()
                 } else if (host.protocol == Protocol.SSH || host.protocol == Protocol.Local) {
                     icon = if (sel && this@HostTree.hasFocus()) Icons.terminal.dark else Icons.terminal
+                } else if (host.protocol == Protocol.Serial) {
+                    icon = if (sel && this@HostTree.hasFocus()) Icons.plugin.dark else Icons.plugin
                 }
                 return c
             }

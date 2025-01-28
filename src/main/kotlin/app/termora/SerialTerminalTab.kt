@@ -3,6 +3,7 @@ package app.termora
 import app.termora.terminal.PtyConnector
 import org.apache.commons.io.Charsets
 import java.nio.charset.StandardCharsets
+import javax.swing.Icon
 
 class SerialTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminalTab(windowScope, host) {
     override suspend fun openPtyConnector(): PtyConnector {
@@ -11,5 +12,9 @@ class SerialTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminalT
             serialPort,
             Charsets.toCharset(host.options.encoding, StandardCharsets.UTF_8)
         )
+    }
+
+    override fun getIcon(): Icon {
+        return Icons.plugin
     }
 }

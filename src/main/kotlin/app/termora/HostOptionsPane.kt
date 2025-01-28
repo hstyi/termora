@@ -34,10 +34,10 @@ open class HostOptionsPane : OptionsPane() {
     init {
         addOption(generalOption)
         addOption(proxyOption)
-        addOption(serialCommOption)
         addOption(tunnelingOption)
         addOption(jumpHostsOption)
         addOption(terminalOption)
+        addOption(serialCommOption)
 
         setContentBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8))
     }
@@ -1016,11 +1016,11 @@ open class HostOptionsPane : OptionsPane() {
         }
 
         override fun getIcon(isSelected: Boolean): Icon {
-            return Icons.keyboard
+            return Icons.plugin
         }
 
         override fun getTitle(): String {
-            return "Serial"
+            return I18n.getString("termora.new-host.serial")
         }
 
         override fun getJComponent(): JComponent {
@@ -1036,17 +1036,17 @@ open class HostOptionsPane : OptionsPane() {
             var rows = 1
             val step = 2
             val panel = FormBuilder.create().layout(layout)
-                .add("Serial port:").xy(1, rows)
+                .add("${I18n.getString("termora.new-host.serial.port")}:").xy(1, rows)
                 .add(serialPortComboBox).xy(3, rows).apply { rows += step }
-                .add("Baud rate:").xy(1, rows)
+                .add("${I18n.getString("termora.new-host.serial.baud-rate")}:").xy(1, rows)
                 .add(baudRateComboBox).xy(3, rows).apply { rows += step }
-                .add("Data bits:").xy(1, rows)
+                .add("${I18n.getString("termora.new-host.serial.data-bits")}:").xy(1, rows)
                 .add(dataBitsComboBox).xy(3, rows).apply { rows += step }
-                .add("Parity:").xy(1, rows)
+                .add("${I18n.getString("termora.new-host.serial.parity")}:").xy(1, rows)
                 .add(parityComboBox).xy(3, rows).apply { rows += step }
-                .add("Stop bits:").xy(1, rows)
+                .add("${I18n.getString("termora.new-host.serial.stop-bits")}:").xy(1, rows)
                 .add(stopBitsComboBox).xy(3, rows).apply { rows += step }
-                .add("Flow control:").xy(1, rows)
+                .add("${I18n.getString("termora.new-host.serial.flow-control")}:").xy(1, rows)
                 .add(flowControlComboBox).xy(3, rows).apply { rows += step }
                 .build()
             return panel
