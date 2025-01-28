@@ -485,9 +485,11 @@ class ControlSequenceIntroducerProcessor(terminal: Terminal, reader: TerminalRea
         val m = args.first()
         if (m == '6') {
             val position = terminal.getCursorModel().getPosition()
-            ptyConnector.write("${ControlCharacters.ESC}[${position.y};${position.x}R")
+            val bytes = "${ControlCharacters.ESC}[${position.y};${position.x}R".toByteArray(ptyConnector.getCharset())
+            ptyConnector.write(bytes)
         } else if (m == '5') {
-            ptyConnector.write("${ControlCharacters.ESC}[0n")
+            val bytes = "${ControlCharacters.ESC}[0n".toByteArray(ptyConnector.getCharset())
+            ptyConnector.write(bytes)
         }
 
     }

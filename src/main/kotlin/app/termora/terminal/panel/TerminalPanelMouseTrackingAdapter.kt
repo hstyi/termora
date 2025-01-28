@@ -70,9 +70,9 @@ class TerminalPanelMouseTrackingAdapter(
             val encode = terminal.getKeyEncoder()
                 .encode(TerminalKeyEvent(if (e.wheelRotation < 0) KeyEvent.VK_UP else KeyEvent.VK_DOWN))
             if (encode.isBlank()) return
-
+            val bytes = encode.toByteArray(ptyConnector.getCharset())
             for (i in 0 until abs(unitsToScroll)) {
-                ptyConnector.write(encode)
+                ptyConnector.write(bytes)
             }
         }
     }

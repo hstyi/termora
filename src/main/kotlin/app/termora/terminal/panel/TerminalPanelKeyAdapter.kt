@@ -24,7 +24,7 @@ class TerminalPanelKeyAdapter(
         }
 
         terminal.getSelectionModel().clearSelection()
-        ptyConnector.write("${e.keyChar}")
+        ptyConnector.write("${e.keyChar}".toByteArray(ptyConnector.getCharset()))
         terminal.getScrollingModel().scrollTo(Int.MAX_VALUE)
 
     }
@@ -47,7 +47,7 @@ class TerminalPanelKeyAdapter(
 
         val encode = terminal.getKeyEncoder().encode(AWTTerminalKeyEvent(e))
         if (encode.isNotEmpty()) {
-            ptyConnector.write(encode)
+            ptyConnector.write(encode.toByteArray(ptyConnector.getCharset()))
         }
 
         // https://github.com/TermoraDev/termora/issues/52
@@ -64,7 +64,7 @@ class TerminalPanelKeyAdapter(
             terminal.getSelectionModel().clearSelection()
             // 如果不为空表示已经发送过了，所以这里为空的时候再发送
             if (encode.isEmpty()) {
-                ptyConnector.write("${e.keyChar}")
+                ptyConnector.write("${e.keyChar}".toByteArray(ptyConnector.getCharset()))
             }
             terminal.getScrollingModel().scrollTo(Int.MAX_VALUE)
         }

@@ -1,6 +1,7 @@
 package app.termora.terminal
 
 import java.nio.ByteBuffer
+import java.nio.charset.Charset
 
 
 interface PtyConnector {
@@ -15,15 +16,18 @@ interface PtyConnector {
      */
     fun write(buffer: ByteArray, offset: Int, len: Int)
 
+    /**
+     * 写入数组。
+     *
+     * 如果要写入 String 字符串，请通过 [getCharset] 编码。
+     */
     fun write(buffer: ByteArray) {
         write(buffer, 0, buffer.size)
     }
 
-    fun write(buffer: String) {
-        if (buffer.isEmpty()) return
-        write(buffer.toByteArray())
-    }
-
+    /**
+     * 写入单个 Int
+     */
     fun write(buffer: Int) {
         write(ByteBuffer.allocate(Integer.BYTES).putInt(buffer).flip().array())
     }
@@ -43,4 +47,8 @@ interface PtyConnector {
      */
     fun close()
 
+    /**
+     * 编码
+     */
+    fun getCharset(): Charset = Charsets.UTF_8
 }

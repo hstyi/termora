@@ -53,8 +53,12 @@ abstract class PtyHostTerminalTab(
                     coroutineScope.launch(Dispatchers.IO) {
                         delay(250.milliseconds)
                         withContext(Dispatchers.Swing) {
-                            ptyConnector.write(host.options.startupCommand)
-                            ptyConnector.write(terminal.getKeyEncoder().encode(TerminalKeyEvent(KeyEvent.VK_ENTER)))
+                            val charset = ptyConnector.getCharset()
+                            ptyConnector.write(host.options.startupCommand.toByteArray(charset))
+                            ptyConnector.write(
+                                terminal.getKeyEncoder().encode(TerminalKeyEvent(KeyEvent.VK_ENTER))
+                                    .toByteArray(charset)
+                            )
                         }
                     }
                 }

@@ -1,5 +1,7 @@
 package app.termora.terminal
 
+import java.nio.charset.Charset
+
 open class PtyConnectorDelegate(
     @Volatile var ptyConnector: PtyConnector? = null
 ) : PtyConnector {
@@ -26,5 +28,7 @@ open class PtyConnectorDelegate(
         ptyConnector = null
     }
 
-
+    override fun getCharset(): Charset {
+        return ptyConnector?.getCharset() ?: super.getCharset()
+    }
 }

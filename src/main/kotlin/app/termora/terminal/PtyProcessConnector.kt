@@ -20,9 +20,6 @@ class PtyProcessConnector(private val process: PtyProcess, private val charset: 
         output.flush()
     }
 
-    override fun write(buffer: String) {
-        write(buffer.toByteArray(charset))
-    }
 
     override fun resize(rows: Int, cols: Int) {
         process.winSize = WinSize(cols, rows)
@@ -38,5 +35,7 @@ class PtyProcessConnector(private val process: PtyProcess, private val charset: 
         process.destroyForcibly()
     }
 
-
+    override fun getCharset(): Charset {
+        return charset
+    }
 }

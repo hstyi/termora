@@ -22,10 +22,6 @@ class ChannelShellPtyConnector(
         output.flush()
     }
 
-    override fun write(buffer: String) {
-        write(buffer.toByteArray(charset))
-    }
-
     override fun resize(rows: Int, cols: Int) {
         channel.sendWindowChange(cols, rows)
     }
@@ -37,5 +33,9 @@ class ChannelShellPtyConnector(
 
     override fun close() {
         channel.close(true)
+    }
+
+    override fun getCharset(): Charset {
+        return charset
     }
 }

@@ -298,7 +298,7 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
 
         // 输入法提交
         if (committedCharacterCount > 0) {
-            ptyConnector.write(sb.toString())
+            ptyConnector.write(sb.toString().toByteArray(ptyConnector.getCharset()))
         } else {
             val breakIterator = BreakIterator.getCharacterInstance()
             val chars = mutableListOf<Char>()
@@ -404,9 +404,15 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
         }
 
         if (terminal.getTerminalModel().getData(DataKey.BracketedPasteMode, false)) {
-            ptyConnector.write("${ControlCharacters.ESC}[200~${content}${ControlCharacters.ESC}[201~")
+            val bytes = ptyConnector.getCharset()
+                .encode("${ControlCharacters.ESC}[200~${content}${ControlCharacters.ESC}[201~")
+                .array()
+            ptyConnector.write(bytes)
         } else {
-            ptyConnector.write(content)
+            val bytes = ptyConnector.getCharset()
+                .encode(content)
+                .array()
+            ptyConnector.write(bytes)
         }
 
         terminal.getScrollingModel().scrollToRow(
