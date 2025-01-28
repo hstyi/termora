@@ -83,7 +83,7 @@ class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
         } catch (e: Exception) {
             withContext(Dispatchers.Swing) {
                 OptionPane.showMessageDialog(
-                    owner, ExceptionUtils.getRootCauseMessage(e),
+                    owner, ExceptionUtils.getMessage(e),
                     messageType = JOptionPane.ERROR_MESSAGE
                 )
             }
