@@ -9,7 +9,7 @@ class SerialTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminalT
         val serialPort = Serials.openPort(host)
         return SerialPortPtyConnector(
             serialPort,
-            Charsets.toCharset(host.options.serialComm.charset, StandardCharsets.UTF_8)
+            Charsets.toCharset(host.options.encoding, StandardCharsets.UTF_8)
         )
     }
 }

@@ -79,7 +79,6 @@ open class HostOptionsPane : OptionsPane() {
         val serialComm = SerialComm(
             port = serialCommOption.serialPortComboBox.selectedItem?.toString() ?: StringUtils.EMPTY,
             baudRate = serialCommOption.baudRateComboBox.selectedItem?.toString()?.toIntOrNull() ?: 9600,
-            charset = serialCommOption.charsetTextField.text,
             dataBits = serialCommOption.dataBitsComboBox.selectedItem as Int? ?: 8,
             stopBits = serialCommOption.stopBitsComboBox.selectedItem as String? ?: "1",
             parity = serialCommOption.parityComboBox.selectedItem as SerialCommParity,
@@ -939,7 +938,6 @@ open class HostOptionsPane : OptionsPane() {
         val parityComboBox = OutlineComboBox<SerialCommParity>()
         val stopBitsComboBox = OutlineComboBox<String>()
         val flowControlComboBox = OutlineComboBox<SerialCommFlowControl>()
-        val charsetTextField = OutlineTextField()
 
 
         init {
@@ -974,8 +972,6 @@ open class HostOptionsPane : OptionsPane() {
             stopBitsComboBox.addItem("1.5")
             stopBitsComboBox.addItem("2")
             stopBitsComboBox.selectedItem = "1"
-
-            charsetTextField.text = "UTF-8"
 
             flowControlComboBox.addItem(SerialCommFlowControl.None)
             flowControlComboBox.addItem(SerialCommFlowControl.RTS_CTS)
@@ -1034,7 +1030,7 @@ open class HostOptionsPane : OptionsPane() {
         private fun getCenterComponent(): JComponent {
             val layout = FormLayout(
                 "left:pref, $formMargin, default:grow, $formMargin",
-                "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
+                "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
             )
 
             var rows = 1
@@ -1052,8 +1048,6 @@ open class HostOptionsPane : OptionsPane() {
                 .add(stopBitsComboBox).xy(3, rows).apply { rows += step }
                 .add("Flow control:").xy(1, rows)
                 .add(flowControlComboBox).xy(3, rows).apply { rows += step }
-                .add("Charset:").xy(1, rows)
-                .add(charsetTextField).xy(3, rows).apply { rows += step }
                 .build()
             return panel
         }

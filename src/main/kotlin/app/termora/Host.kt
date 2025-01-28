@@ -67,11 +67,6 @@ data class SerialComm(
     val baudRate: Int = 9600,
 
     /**
-     * 字符集，如果为空则表示取系统默认
-     */
-    val charset: String = StringUtils.EMPTY,
-
-    /**
      * 数据位：5、6、7、8
      */
     val dataBits: Int = 8,
