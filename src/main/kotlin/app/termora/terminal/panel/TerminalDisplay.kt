@@ -1,8 +1,8 @@
 package app.termora.terminal.panel
 
+import app.termora.Database
 import app.termora.DynamicColor
 import app.termora.assertEventDispatchThread
-import app.termora.Database
 import app.termora.terminal.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
@@ -49,6 +49,8 @@ class TerminalDisplay(
     init {
         terminalPanel.addTerminalPaintListener(toaster)
         putClientProperty(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+
+        cursor = Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR)
     }
 
     override fun paint(g: Graphics) {
