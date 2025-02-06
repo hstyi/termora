@@ -15,6 +15,7 @@ class SyncerProvider private constructor() {
             SyncType.GitHub -> GitHubSyncer.getInstance()
             SyncType.Gitee -> GiteeSyncer.getInstance()
             SyncType.GitLab -> GitLabSyncer.getInstance()
+            SyncType.WebDAV -> WebDAVSyncer.getInstance()
         }
     }
 }

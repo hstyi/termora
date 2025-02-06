@@ -4,6 +4,7 @@ enum class SyncType {
     GitLab,
     GitHub,
     Gitee,
+    WebDAV,
 }
 
 enum class SyncRange {

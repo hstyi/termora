@@ -550,12 +550,6 @@ class SettingsOptionsPane : OptionsPane() {
                         }
                     }
 
-                    if (typeComboBox.selectedItem == SyncType.Gitee) {
-                        gistTextField.trailingComponent = null
-                    } else {
-                        gistTextField.trailingComponent = visitGistBtn
-                    }
-
                     removeAll()
                     add(getCenterComponent(), BorderLayout.CENTER)
                     revalidate()
@@ -987,6 +981,7 @@ class SettingsOptionsPane : OptionsPane() {
             typeComboBox.addItem(SyncType.GitHub)
             typeComboBox.addItem(SyncType.GitLab)
             typeComboBox.addItem(SyncType.Gitee)
+            typeComboBox.addItem(SyncType.WebDAV)
 
             hostsCheckBox.isFocusable = false
             keysCheckBox.isFocusable = false
@@ -1005,7 +1000,31 @@ class SettingsOptionsPane : OptionsPane() {
             tokenTextField.text = sync.token
             domainTextField.trailingComponent = JButton(Icons.externalLink).apply {
                 addActionListener {
-                    Application.browse(URI.create("https://docs.gitlab.com/ee/api/snippets.html"))
+                    if (typeComboBox.selectedItem == SyncType.GitLab) {
+                        Application.browse(URI.create("https://docs.gitlab.com/ee/api/snippets.html"))
+
+                    } else if (typeComboBox.selectedItem == SyncType.WebDAV) {
+                        val url = domainTextField.text
+                        if (url.isNullOrBlank()) {
+                            OptionPane.showMessageDialog(
+                                owner,
+                                I18n.getString("termora.settings.sync.webdav.help")
+                            )
+                        } else {
+                            val uri = URI.create(url)
+                            val sb = StringBuilder()
+                            sb.append(uri.scheme).append("://")
+                            if (tokenTextField.password.isNotEmpty() && gistTextField.text.isNotBlank()) {
+                                sb.append(String(tokenTextField.password)).append(":").append(gistTextField.text)
+                                sb.append('@')
+                            }
+                            sb.append(uri.authority).append(uri.path)
+                            if (!uri.query.isNullOrBlank()) {
+                                sb.append('?').append(uri.query)
+                            }
+                            Application.browse(URI.create(sb.toString()))
+                        }
+                    }
                 }
             }
 
@@ -1015,11 +1034,14 @@ class SettingsOptionsPane : OptionsPane() {
 
             tokenTextField.trailingComponent = if (tokenTextField.password.isEmpty()) getTokenBtn else null
 
-            if (typeComboBox.selectedItem == SyncType.GitLab) {
-                if (domainTextField.text.isBlank()) {
+            if (domainTextField.text.isBlank()) {
+                if (typeComboBox.selectedItem == SyncType.GitLab) {
                     domainTextField.text = StringUtils.defaultIfBlank(sync.domain, "https://gitlab.com/api")
+                } else if (typeComboBox.selectedItem == SyncType.WebDAV) {
+                    domainTextField.text = sync.domain
                 }
             }
+
 
             val lastSyncTime = sync.lastSyncTime
             lastSyncTimeLabel.text = "${I18n.getString("termora.settings.sync.last-sync-time")}: ${
@@ -1069,17 +1091,37 @@ class SettingsOptionsPane : OptionsPane() {
             val builder = FormBuilder.create().layout(layout).debug(false)
             val box = Box.createHorizontalBox()
             box.add(typeComboBox)
-            if (typeComboBox.selectedItem == SyncType.GitLab) {
+            if (typeComboBox.selectedItem == SyncType.GitLab || typeComboBox.selectedItem == SyncType.WebDAV) {
                 box.add(Box.createHorizontalStrut(4))
                 box.add(domainTextField)
             }
             builder.add("${I18n.getString("termora.settings.sync.type")}:").xy(1, rows)
                 .add(box).xy(3, rows).apply { rows += step }
 
-            builder.add("${I18n.getString("termora.settings.sync.token")}:").xy(1, rows)
-                .add(tokenTextField).xy(3, rows).apply { rows += step }
-                .add("${I18n.getString("termora.settings.sync.gist")}:").xy(1, rows)
-                .add(gistTextField).xy(3, rows).apply { rows += step }
+            val isWebDAV = typeComboBox.selectedItem == SyncType.WebDAV
+
+            val tokenText = if (isWebDAV) {
+                I18n.getString("termora.new-host.general.username")
+            } else {
+                I18n.getString("termora.settings.sync.token")
+            }
+
+            val gistText = if (isWebDAV) {
+                I18n.getString("termora.new-host.general.password")
+            } else {
+                I18n.getString("termora.settings.sync.gist")
+            }
+
+            if (typeComboBox.selectedItem == SyncType.Gitee || isWebDAV) {
+                gistTextField.trailingComponent = null
+            } else {
+                gistTextField.trailingComponent = visitGistBtn
+            }
+
+            builder.add("${tokenText}:").xy(1, rows)
+                .add(if (isWebDAV) gistTextField else tokenTextField).xy(3, rows).apply { rows += step }
+                .add("${gistText}:").xy(1, rows)
+                .add(if (isWebDAV) tokenTextField else gistTextField).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.sync.range")}:").xy(1, rows)
                 .add(rangeBox).xy(3, rows).apply { rows += step }
                 // Sync buttons
