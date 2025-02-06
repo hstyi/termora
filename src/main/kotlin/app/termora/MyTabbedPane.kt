@@ -136,7 +136,8 @@ class MyTabbedPane : FlatTabbedPane() {
                 return
             }
 
-            val c = getTopMostWindowUnderMouse()
+            // 如果是取消，那么不需要移动到其它窗口
+            val c = if (cancelled) null else getTopMostWindowUnderMouse()
             if (c != owner && c is TermoraFrame) {
                 dragToAnotherWindow(c)
             } else {
