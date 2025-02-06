@@ -116,6 +116,7 @@ class TermoraFrame : JFrame(), DataProvider {
         Disposer.register(windowScope, terminalTabbed)
         add(terminalTabbed)
 
+        dataProviderSupport.addData(DataProviders.TabbedPane, tabbedPane)
         dataProviderSupport.addData(DataProviders.TermoraFrame, this)
         dataProviderSupport.addData(DataProviders.WindowScope, windowScope)
     }

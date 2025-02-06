@@ -136,19 +136,18 @@ class MyTabbedPane : FlatTabbedPane() {
                 return
             }
 
-            val tab = this.terminalTab
-            val terminalTabbedManager = terminalTabbedManager
-
-            if (tab != null && terminalTabbedManager != null) {
-                // 如果是手动取消
-                if (cancelled) {
-                    terminalTabbedManager.addTerminalTab(tabIndex, tab)
-                } else if (lastVisitTabIndex > 0) {
-                    terminalTabbedManager.addTerminalTab(lastVisitTabIndex, tab)
-                } else if (lastVisitTabIndex == 0) {
-                    terminalTabbedManager.addTerminalTab(1, tab)
-                } else {
-                    terminalTabbedManager.addTerminalTab(tab)
+            val c = getTopMostWindowUnderMouse()
+            if (c != owner && c is TermoraFrame) {
+                dragToAnotherWindow(c)
+            } else {
+                val tab = this.terminalTab
+                val terminalTabbedManager = terminalTabbedManager
+                if (tab != null && terminalTabbedManager != null) {
+                    moveTab(
+                        terminalTabbedManager,
+                        tab,
+                        lastVisitTabIndex
+                    )
                 }
             }
 
@@ -183,6 +182,66 @@ class MyTabbedPane : FlatTabbedPane() {
                 return true
             }
             return false
+        }
+
+        private fun getTopMostWindowUnderMouse(): Window? {
+            val mouseLocation = MouseInfo.getPointerInfo().location
+            val windows = Window.getWindows()
+            // 倒序遍历，最上层的窗口优先匹配
+            for (i in windows.indices.reversed()) {
+                val window = windows[i]
+                if (window !is TermoraFrame) {
+                    continue
+                }
+                if (window.isVisible && window.bounds.contains(mouseLocation)) {
+                    val topComponent = SwingUtilities.getDeepestComponentAt(
+                        window,
+                        mouseLocation.x - window.x, mouseLocation.y - window.y
+                    )
+                    if (topComponent != null) {
+                        return SwingUtilities.getWindowAncestor(topComponent)
+                    }
+                }
+            }
+            return null
+        }
+
+
+        private fun dragToAnotherWindow(frame: TermoraFrame) {
+            val tab = this.terminalTab ?: return
+            val tabbedManager = frame.getData(DataProviders.TerminalTabbed) ?: return
+            val tabbedPane = frame.getData(DataProviders.TabbedPane) ?: return
+            val location = Point(MouseInfo.getPointerInfo().location)
+            SwingUtilities.convertPointFromScreen(location, tabbedPane)
+            val index = tabbedPane.indexAtLocation(location.x, location.y)
+
+            moveTab(
+                tabbedManager,
+                tab,
+                index
+            )
+
+            if (frame.hasFocus()) {
+                return
+            }
+
+            SwingUtilities.invokeLater {
+                frame.requestFocus()
+                tabbedPane.selectedComponent?.requestFocusInWindow()
+            }
+        }
+
+        private fun moveTab(terminalTabbedManager: TerminalTabbedManager, tab: TerminalTab, lastVisitTabIndex: Int) {
+            // 如果是手动取消
+            if (cancelled) {
+                terminalTabbedManager.addTerminalTab(tabIndex, tab)
+            } else if (lastVisitTabIndex > 0) {
+                terminalTabbedManager.addTerminalTab(lastVisitTabIndex, tab)
+            } else if (lastVisitTabIndex == 0) {
+                terminalTabbedManager.addTerminalTab(1, tab)
+            } else {
+                terminalTabbedManager.addTerminalTab(tab)
+            }
         }
     }
 
