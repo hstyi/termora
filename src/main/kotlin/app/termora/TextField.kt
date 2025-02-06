@@ -99,6 +99,8 @@ class OutlinePasswordField(
         styleMap = mapOf(
             "showRevealButton" to true
         )
+
+        putClientProperty("JPasswordField.cutCopyAllowed", true)
     }
 }
 
