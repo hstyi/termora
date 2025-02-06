@@ -15,6 +15,7 @@
 ## Features
 
 - SSH and local terminal support
+- Serial port protocol support
 - [SFTP](./docs/sftp.png?raw=1) file transfer support
 - Compatible with Windows, macOS, and Linux
 - Zmodem protocol support

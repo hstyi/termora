@@ -11,6 +11,7 @@
 ## 功能特性
 
 - 支持 SSH 和本地终端
+- 支持串口协议
 - 支持 [SFTP](./docs/sftp-zh_CN.png?raw=1) 文件传输
 - 支持 Windows、macOS、Linux 平台
 - 支持 Zmodem 协议
