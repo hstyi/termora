@@ -186,6 +186,11 @@ class MyTabbedPane : FlatTabbedPane() {
 
         private fun getTopMostWindowUnderMouse(): Window? {
             val mouseLocation = MouseInfo.getPointerInfo().location
+            val owner = owner
+            if (owner.isVisible && owner.bounds.contains(mouseLocation)) {
+                return owner
+            }
+
             val windows = Window.getWindows()
             // 倒序遍历，最上层的窗口优先匹配
             for (i in windows.indices.reversed()) {
