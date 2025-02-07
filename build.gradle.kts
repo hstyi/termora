@@ -251,11 +251,14 @@ tasks.register<Exec>("jpackage") {
         "-Dapp-version=${project.version}",
     )
 
+    options.add("-Dsun.java2d.metal=true")
+
     if (os.isMacOsX) {
-        options.add("-Dsun.java2d.metal=true")
         options.add("-Dapple.awt.application.appearance=system")
         options.add("--add-opens java.desktop/sun.lwawt.macosx.concurrent=ALL-UNNAMED")
-    } else {
+    }
+
+    if (os.isLinux) {
         options.add("-Dsun.java2d.opengl=true")
     }
 
