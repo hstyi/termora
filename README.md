@@ -34,6 +34,7 @@
 
 - [Latest release](https://github.com/TermoraDev/termora/releases/latest)
 - [Homebrew](https://formulae.brew.sh/cask/termora): `brew install --cask termora`
+- [WinGet](https://github.com/microsoft/winget-pkgs/tree/master/manifests/t/TermoraDev/Termora): `winget install termora`
 
 ## Development
 
