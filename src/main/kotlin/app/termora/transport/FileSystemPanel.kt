@@ -25,9 +25,8 @@ import java.awt.Component
 import java.awt.Desktop
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
-import java.awt.dnd.DnDConstants
-import java.awt.dnd.DropTarget
-import java.awt.dnd.DropTargetDropEvent
+import java.awt.datatransfer.Transferable
+import java.awt.datatransfer.UnsupportedFlavorException
 import java.awt.event.ActionEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -80,6 +79,8 @@ class FileSystemPanel(
         bookmarkBtn.isBookmark = bookmarkBtn.getBookmarks().contains(workdir.toString())
 
         table.setUI(FlatTableUI())
+        table.dragEnabled = true
+        table.dropMode = DropMode.INSERT_ROWS
         table.rowHeight = UIManager.getInt("Table.rowHeight")
         table.autoResizeMode = JTable.AUTO_RESIZE_OFF
         table.fillsViewportHeight = true
@@ -231,17 +232,45 @@ class FileSystemPanel(
             }
         })
 
-        // 本地文件系统不支持本地拖拽进去
-        if (!tableModel.isLocalFileSystem) {
-            table.dropTarget = object : DropTarget() {
-                override fun drop(dtde: DropTargetDropEvent) {
-                    dtde.acceptDrop(DnDConstants.ACTION_COPY)
-                    val files = dtde.transferable.getTransferData(DataFlavor.javaFileListFlavor) as List<*>
-                    if (files.isEmpty()) return
-                    copyLocalFileToFileSystem(files.filterIsInstance<File>())
+
+        table.transferHandler = object : TransferHandler() {
+            override fun canImport(support: TransferSupport): Boolean {
+                if (support.isDataFlavorSupported(FileSystemTableRowTransferable.dataFlavor)) {
+                    val data = support.transferable.getTransferData(FileSystemTableRowTransferable.dataFlavor)
+                    return data is FileSystemTableRowTransferable && data.fileSystemPanel != this@FileSystemPanel
+                } else if (support.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+                    return !tableModel.isLocalFileSystem
                 }
-            }.apply {
-                this.defaultActions = DnDConstants.ACTION_COPY
+                return false
+            }
+
+            override fun importData(comp: JComponent?, t: Transferable): Boolean {
+                if (t.isDataFlavorSupported(FileSystemTableRowTransferable.dataFlavor)) {
+                    val data = t.getTransferData(FileSystemTableRowTransferable.dataFlavor)
+                    if (data !is FileSystemTableRowTransferable) {
+                        return false
+                    }
+                    data.fileSystemPanel.transport(data.paths)
+                    return true
+                } else if (t.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+                    val files = t.getTransferData(DataFlavor.javaFileListFlavor) as List<*>
+                    if (files.isEmpty()) return false
+                    copyLocalFileToFileSystem(files.filterIsInstance<File>())
+                    return true
+                }
+                return false
+            }
+
+            override fun getSourceActions(c: JComponent?): Int {
+                return COPY
+            }
+
+            override fun createTransferable(c: JComponent?): Transferable? {
+                val paths = table.selectedRows.filter { it != 0 }.map { tableModel.getCacheablePath(it) }
+                if (paths.isEmpty()) {
+                    return null
+                }
+                return FileSystemTableRowTransferable(this@FileSystemPanel, paths)
             }
         }
 
@@ -838,4 +867,28 @@ class FileSystemPanel(
     }
 
 
+    private class FileSystemTableRowTransferable(
+        val fileSystemPanel: FileSystemPanel,
+        val paths: List<FileSystemTableModel.CacheablePath>
+    ) : Transferable {
+        companion object {
+            val dataFlavor = DataFlavor(FileSystemTableRowTransferable::class.java, "TableRowTransferable")
+        }
+
+        override fun getTransferDataFlavors(): Array<DataFlavor> {
+            return arrayOf(dataFlavor)
+        }
+
+        override fun isDataFlavorSupported(flavor: DataFlavor?): Boolean {
+            return flavor == dataFlavor
+        }
+
+        override fun getTransferData(flavor: DataFlavor?): Any {
+            if (flavor != dataFlavor) {
+                throw UnsupportedFlavorException(flavor)
+            }
+            return this
+        }
+
+    }
 }
