@@ -68,6 +68,7 @@ object Icons {
     val network by lazy { DynamicIcon("icons/network.svg", "icons/network_dark.svg") }
     val server by lazy { DynamicIcon("icons/server.svg", "icons/server_dark.svg") }
     val runAnything by lazy { DynamicIcon("icons/runAnything.svg", "icons/runAnything_dark.svg") }
+    val run by lazy { DynamicIcon("icons/run.svg", "icons/run_dark.svg") }
     val uiForm by lazy { DynamicIcon("icons/uiForm.svg", "icons/uiForm_dark.svg") }
     val cloud by lazy { DynamicIcon("icons/cloud.svg", "icons/cloud_dark.svg") }
     val externalLink by lazy { DynamicIcon("icons/externalLink.svg", "icons/externalLink_dark.svg") }

@@ -455,6 +455,11 @@ class Database private constructor(private val env: Environment) : Disposable {
         var debug by BooleanPropertyDelegate(false)
 
         /**
+         * 蜂鸣声
+         */
+        var beep by BooleanPropertyDelegate(true)
+
+        /**
          * 选中复制
          */
         var selectCopy by BooleanPropertyDelegate(false)

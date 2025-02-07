@@ -22,6 +22,7 @@ import app.termora.terminal.CursorStyle
 import app.termora.terminal.DataKey
 import app.termora.terminal.panel.TerminalPanel
 import cash.z.ecc.android.bip39.Mnemonics
+import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.formdev.flatlaf.extras.components.*
 import com.formdev.flatlaf.util.FontUtils
@@ -43,6 +44,7 @@ import org.jdesktop.swingx.JXEditorPane
 import org.slf4j.LoggerFactory
 import java.awt.BorderLayout
 import java.awt.Component
+import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.awt.event.ItemEvent
 import java.io.File
@@ -298,6 +300,7 @@ class SettingsOptionsPane : OptionsPane() {
     private inner class TerminalOption : JPanel(BorderLayout()), Option {
         private val cursorStyleComboBox = FlatComboBox<CursorStyle>()
         private val debugComboBox = YesOrNoComboBox()
+        private val beepComboBox = YesOrNoComboBox()
         private val fontComboBox = FlatComboBox<String>()
         private val shellComboBox = FlatComboBox<String>()
         private val maxRowsTextField = IntSpinner(0, 0)
@@ -351,6 +354,13 @@ class SettingsOptionsPane : OptionsPane() {
                     TerminalFactory.getInstance(ApplicationScope.forWindowScope(owner)).getTerminals().forEach {
                         it.getTerminalModel().setData(TerminalPanel.Debug, terminalSetting.debug)
                     }
+                }
+            }
+
+
+            beepComboBox.addItemListener { e ->
+                if (e.stateChange == ItemEvent.SELECTED) {
+                    terminalSetting.beep = beepComboBox.selectedItem as Boolean
                 }
             }
 
@@ -453,6 +463,7 @@ class SettingsOptionsPane : OptionsPane() {
 
             fontComboBox.selectedItem = terminalSetting.font
             debugComboBox.selectedItem = terminalSetting.debug
+            beepComboBox.selectedItem = terminalSetting.beep
             cursorStyleComboBox.selectedItem = terminalSetting.cursor
             selectCopyComboBox.selectedItem = terminalSetting.selectCopy
         }
@@ -472,8 +483,13 @@ class SettingsOptionsPane : OptionsPane() {
         private fun getCenterComponent(): JComponent {
             val layout = FormLayout(
                 "left:pref, $formMargin, default:grow, $formMargin, left:pref, $formMargin, pref, default:grow",
-                "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
+                "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
             )
+
+            val beepBtn = JButton(Icons.run)
+            beepBtn.isFocusable = false
+            beepBtn.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON)
+            beepBtn.addActionListener { Toolkit.getDefaultToolkit().beep() }
 
             var rows = 1
             val step = 2
@@ -487,6 +503,9 @@ class SettingsOptionsPane : OptionsPane() {
                 .add(maxRowsTextField).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.terminal.debug")}:").xy(1, rows)
                 .add(debugComboBox).xy(3, rows).apply { rows += step }
+                .add("${I18n.getString("termora.settings.terminal.beep")}:").xy(1, rows)
+                .add(beepComboBox).xy(3, rows)
+                .add(beepBtn).xy(5, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.terminal.select-copy")}:").xy(1, rows)
                 .add(selectCopyComboBox).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.terminal.cursor-style")}:").xy(1, rows)

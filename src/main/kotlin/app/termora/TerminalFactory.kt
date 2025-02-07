@@ -51,6 +51,11 @@ class TerminalFactory private constructor() : Disposable {
             return colorPalette
         }
 
+        override fun bell() {
+            if (config.beep) {
+                super.bell()
+            }
+        }
 
         @Suppress("UNCHECKED_CAST")
         override fun <T : Any> getData(key: DataKey<T>): T {
