@@ -4,7 +4,8 @@ import com.formdev.flatlaf.util.SystemInfo
 import org.slf4j.LoggerFactory
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
-import javax.swing.WindowConstants.DISPOSE_ON_CLOSE
+import javax.swing.JOptionPane
+import javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE
 import kotlin.system.exitProcess
 
 class TermoraFrameManager {
@@ -22,7 +23,7 @@ class TermoraFrameManager {
         val frame = TermoraFrame()
         registerCloseCallback(frame)
         frame.title = if (SystemInfo.isLinux) null else Application.getName()
-        frame.defaultCloseOperation = DISPOSE_ON_CLOSE
+        frame.defaultCloseOperation = DO_NOTHING_ON_CLOSE
         frame.setSize(1280, 800)
         frame.setLocationRelativeTo(null)
         return frame
@@ -41,6 +42,21 @@ class TermoraFrameManager {
                 // 如果已经没有 Window 域了，那么就可以退出程序了
                 if (windowScopes.isEmpty()) {
                     this@TermoraFrameManager.dispose()
+                }
+            }
+
+            override fun windowClosing(e: WindowEvent) {
+                if (ApplicationScope.windowScopes().size == 1) {
+                    if (OptionPane.showConfirmDialog(
+                            window,
+                            I18n.getString("termora.quit-confirm", Application.getName()),
+                            optionType = JOptionPane.YES_NO_OPTION,
+                        ) == JOptionPane.YES_OPTION
+                    ) {
+                        window.dispose()
+                    }
+                } else {
+                    window.dispose()
                 }
             }
         })
