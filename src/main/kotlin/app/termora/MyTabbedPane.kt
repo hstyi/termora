@@ -75,6 +75,7 @@ class MyTabbedPane : FlatTabbedPane() {
         private var terminalTab: TerminalTab? = null
         private var isDragging = false
         private var lastVisitTabIndex = -1
+        private var releasedPoint = Point()
 
         override fun mousePressed(e: MouseEvent) {
             val index = indexAtLocation(e.x, e.y)
@@ -137,8 +138,15 @@ class MyTabbedPane : FlatTabbedPane() {
             }
 
             // 如果是取消，那么不需要移动到其它窗口
-            val c = if (cancelled) null else getTopMostWindowUnderMouse()
-            if (c != owner && c is TermoraFrame) {
+            val c = if (cancelled) owner else getTopMostWindowUnderMouse()
+
+            // 如果等于 null 表示在空地方释放，那么单独一个窗口
+            if (c == null) {
+                val window = TermoraFrameManager.getInstance().createWindow()
+                dragToAnotherWindow(window)
+                window.location = releasedPoint
+                window.isVisible = true
+            } else if (c != owner && c is TermoraFrame) { // 如果在某个窗口内释放，那么就移动到某个窗口内
                 dragToAnotherWindow(c)
             } else {
                 val tab = this.terminalTab
@@ -161,6 +169,7 @@ class MyTabbedPane : FlatTabbedPane() {
         }
 
         override fun mouseReleased(e: MouseEvent) {
+            releasedPoint = e.point
             stopDrag()
         }
 
