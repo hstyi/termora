@@ -691,6 +691,13 @@ class ControlSequenceIntroducerProcessor(terminal: Terminal, reader: TerminalRea
                 // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-The-Alternate-Screen-Buffer
                 1049 -> {
 
+                    // Save cursor
+                    if (enable) {
+                        CursorStoreStores.store(terminal)
+                    } else {
+                        CursorStoreStores.restore(terminal)
+                    }
+
                     // 如果是关闭 清屏
                     if (!enable) {
                         terminal.getDocument().eraseInDisplay(2)
@@ -924,7 +931,7 @@ class ControlSequenceIntroducerProcessor(terminal: Terminal, reader: TerminalRea
 
                             else -> {
                                 if (log.isWarnEnabled) {
-                                    log.warn("xterm-256 foreground color, code: $code")
+                                    log.warn("xterm-256 background color, code: $code")
                                 }
                             }
                         }
