@@ -1,0 +1,15 @@
+name: Publish to WinGet
+on:
+  release:
+    types: [ released ]
+  push:
+    branches: [ test-winget ]
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - uses: vedantmgoyal9/winget-releaser@main
+        with:
+          identifier: TermoraDev.Termora
+          installers-regex: 'x86-64\.msi$' # Only x86-64.msi files
+          token: ${{ secrets.WINGET_TOKEN }}
