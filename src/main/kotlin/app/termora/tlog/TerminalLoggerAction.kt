@@ -7,6 +7,7 @@ import app.termora.native.FileChooser
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.util.SystemInfo
 import org.apache.commons.io.FileUtils
+import org.slf4j.LoggerFactory
 import java.awt.Window
 import java.io.File
 import java.time.LocalDate
@@ -15,6 +16,11 @@ import javax.swing.JFileChooser
 import javax.swing.SwingUtilities
 
 class TerminalLoggerAction : AnAction(I18n.getString("termora.terminal-logger"), Icons.listFiles) {
+
+    companion object {
+        private val log = LoggerFactory.getLogger(TerminalLoggerAction::class.java)
+    }
+
     private val properties by lazy { Database.getDatabase().properties }
 
     /**
@@ -67,8 +73,12 @@ class TerminalLoggerAction : AnAction(I18n.getString("termora.terminal-logger"),
                 else I18n.getString("termora.folder")
             )
         ).addActionListener {
-            val dir = getLogDir()
-            Application.browse(dir.toURI())
+            try {
+                val dir = getLogDir()
+                Application.browse(dir.toURI(), true)
+            } catch (e: Exception) {
+                log.error(e.message, e)
+            }
         }
 
         val width = popupMenu.preferredSize.width
