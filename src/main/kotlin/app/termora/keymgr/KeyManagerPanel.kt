@@ -2,6 +2,9 @@ package app.termora.keymgr
 
 import app.termora.*
 import app.termora.AES.decodeBase64
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
+import app.termora.actions.DataProviders
 import app.termora.native.FileChooser
 import com.formdev.flatlaf.extras.components.FlatComboBox
 import com.formdev.flatlaf.extras.components.FlatTable
@@ -48,6 +51,7 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
     private val exportBtn = JButton(I18n.getString("termora.keymgr.export"))
     private val editBtn = JButton(I18n.getString("termora.keymgr.edit"))
     private val deleteBtn = JButton(I18n.getString("termora.remove"))
+    private val sshCopyIdBtn = JButton("ssh-copy-id")
 
     init {
         initView()
@@ -59,6 +63,7 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
 
         exportBtn.isEnabled = false
         editBtn.isEnabled = false
+        sshCopyIdBtn.isEnabled = false
         deleteBtn.isEnabled = false
 
         keyPairTableModel.addColumn(I18n.getString("termora.keymgr.table.name"))
@@ -75,7 +80,7 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
         val formMargin = "4dlu"
         val layout = FormLayout(
             "default:grow",
-            "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin"
+            "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, 16dlu, pref"
         )
 
         var rows = 1
@@ -91,6 +96,7 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
                 .add(importBtn).xy(1, rows).apply { rows += step }
                 .add(exportBtn).xy(1, rows).apply { rows += step }
                 .add(deleteBtn).xy(1, rows).apply { rows += step }
+                .add(sshCopyIdBtn).xy(1, rows).apply { rows += step }
                 .build(), BorderLayout.EAST)
         border = BorderFactory.createEmptyBorder(if (SystemInfo.isWindows || SystemInfo.isLinux) 6 else 0, 12, 12, 12)
 
@@ -175,11 +181,46 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
             }
         })
 
+        sshCopyIdBtn.addActionListener(object : AnAction() {
+            override fun actionPerformed(evt: AnActionEvent) {
+                sshCopyId(evt)
+            }
+        })
+
         keyPairTable.selectionModel.addListSelectionListener {
             exportBtn.isEnabled = keyPairTable.selectedRowCount > 0
             editBtn.isEnabled = exportBtn.isEnabled
             deleteBtn.isEnabled = exportBtn.isEnabled
+            sshCopyIdBtn.isEnabled = exportBtn.isEnabled
         }
+    }
+
+    private fun sshCopyId(evt: AnActionEvent) {
+        val windowScope = evt.getData(DataProviders.WindowScope) ?: return
+        val keyPairs = keyPairTable.selectedRows.map { keyPairTableModel.getOhKeyPair(it) }
+        val publicKeys = mutableListOf<String>()
+        for (keyPair in keyPairs) {
+            val publicKey = OhKeyPairKeyPairProvider.generateKeyPair(keyPair).public
+            val baos = ByteArrayOutputStream()
+            OpenSSHKeyPairResourceWriter.INSTANCE.writePublicKey(publicKey, keyPair.name, baos)
+            publicKeys.add(baos.toString(Charsets.UTF_8))
+        }
+
+        if (publicKeys.isEmpty()) {
+            return
+        }
+
+        val owner = SwingUtilities.getWindowAncestor(this) ?: return
+        val hostTreeDialog = HostTreeDialog(owner) {
+            it.protocol == Protocol.SSH
+        }
+        hostTreeDialog.isVisible = true
+        val hosts = hostTreeDialog.hosts
+        if (hosts.isEmpty()) {
+            return
+        }
+
+        SSHCopyIdDialog(owner, windowScope, hosts, publicKeys).start()
     }
 
     private fun exportKeyPairs(file: File, keyPairs: List<OhKeyPair>) {

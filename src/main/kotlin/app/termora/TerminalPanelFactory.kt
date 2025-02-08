@@ -23,6 +23,11 @@ class TerminalPanelFactory {
         terminalPanel.addTerminalPaintListener(MultipleTerminalListener())
         terminalPanel.addTerminalPaintListener(KeywordHighlightPaintListener.getInstance())
         terminalPanel.addTerminalPaintListener(TerminalHyperlinkPaintListener.getInstance())
+        Disposer.register(terminalPanel, object : Disposable {
+            override fun dispose() {
+                terminalPanels.remove(terminalPanel)
+            }
+        })
         terminalPanels.add(terminalPanel)
         return terminalPanel
     }
@@ -45,6 +50,10 @@ class TerminalPanelFactory {
                 it.componentResized(ComponentEvent(c, ComponentEvent.COMPONENT_RESIZED))
             }
         }
+    }
+
+    fun removeTerminalPanel(terminalPanel: TerminalPanel) {
+        terminalPanels.remove(terminalPanel)
     }
 
 }

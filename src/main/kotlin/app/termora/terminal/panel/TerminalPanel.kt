@@ -1,5 +1,6 @@
 package app.termora.terminal.panel
 
+import app.termora.Disposable
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviderSupport
 import app.termora.actions.DataProviders
@@ -30,7 +31,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 
 class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnector) :
-    JPanel(BorderLayout()), DataProvider {
+    JPanel(BorderLayout()), DataProvider, Disposable {
 
     companion object {
         val Debug = DataKey(Boolean::class)

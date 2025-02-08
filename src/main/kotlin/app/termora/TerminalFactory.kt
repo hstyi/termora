@@ -21,6 +21,11 @@ class TerminalFactory private constructor() : Disposable {
 
         // terminal logger listener
         terminal.getTerminalModel().addDataListener(TerminalLoggerDataListener(terminal))
+        terminal.addTerminalListener(object : TerminalListener {
+            override fun onClose(terminal: Terminal) {
+                terminals.remove(terminal)
+            }
+        })
 
         terminals.add(terminal)
         return terminal

@@ -23,8 +23,9 @@ abstract class PtyHostTerminalTab(
     private var readerJob: Job? = null
     private val ptyConnectorDelegate = PtyConnectorDelegate()
 
-    protected val terminalPanel =
-        TerminalPanelFactory.getInstance(windowScope).createTerminalPanel(terminal, ptyConnectorDelegate)
+    private val terminalPanelFactory = TerminalPanelFactory.getInstance(windowScope)
+    protected val terminalPanel = terminalPanelFactory.createTerminalPanel(terminal, ptyConnectorDelegate)
+        .apply { Disposer.register(this@PtyHostTerminalTab, this) }
     protected val ptyConnectorFactory get() = PtyConnectorFactory.getInstance(windowScope)
 
     init {
@@ -120,6 +121,7 @@ abstract class PtyHostTerminalTab(
 
     override fun dispose() {
         stop()
+        terminalPanel
         super.dispose()
 
 
