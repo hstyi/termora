@@ -46,7 +46,6 @@ import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
-import java.awt.event.ActionEvent
 import java.awt.event.ItemEvent
 import java.io.File
 import java.net.URI
@@ -520,10 +519,10 @@ class SettingsOptionsPane : OptionsPane() {
                 .add(selectCopyComboBox).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.terminal.cursor-style")}:").xy(1, rows)
                 .add(cursorStyleComboBox).xy(3, rows).apply { rows += step }
-                .add("${I18n.getString("termora.settings.terminal.local-shell")}:").xy(1, rows)
-                .add(shellComboBox).xyw(3, rows, 5).apply { rows += step }
                 .add("${I18n.getString("termora.settings.terminal.auto-close-tab")}:").xy(1, rows)
-                .add(autoCloseTabComboBox).xy(3, rows)
+                .add(autoCloseTabComboBox).xy(3, rows).apply { rows += step }
+                .add("${I18n.getString("termora.settings.terminal.local-shell")}:").xy(1, rows)
+                .add(shellComboBox).xyw(3, rows, 5)
                 .build()
 
 
