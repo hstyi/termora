@@ -397,11 +397,11 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
      * 执行粘贴操作
      */
     fun paste(text: String) {
-        val content = if (SystemInfo.isWindows) {
-            text.replace("${ControlCharacters.CR}${ControlCharacters.LF}", "${ControlCharacters.LF}")
-        } else {
-            text.replace(ControlCharacters.LF, ControlCharacters.CR)
+        var content = text
+        if (!SystemInfo.isWindows) {
+            content = content.replace("\r\n", "\n")
         }
+        content = content.replace('\n', '\r')
 
         if (terminal.getTerminalModel().getData(DataKey.BracketedPasteMode, false)) {
             val bytes = ptyConnector.getCharset()
