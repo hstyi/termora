@@ -10,7 +10,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install the Apple certificate and provisioning profile
+      - name: Install the Apple certificate
+        if: github.event_name == 'push'
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
@@ -20,7 +21,7 @@ jobs:
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           
-          # import certificate and provisioning profile from secrets
+          # import certificate from secrets
           echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
           
           # create temporary keychain
@@ -47,7 +48,7 @@ jobs:
       # dist
       - name: Dist
         env:
-          TERMORA_MAC_SIGN: true
+          TERMORA_MAC_SIGN: ${{ github.event_name == 'push' }}
           TERMORA_MAC_SIGN_USER_NAME: ${{ secrets.TERMORA_MAC_SIGN_USER_NAME }}
         run: |
           ./gradlew dist --no-daemon
