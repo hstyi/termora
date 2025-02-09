@@ -12,6 +12,7 @@ import org.apache.sshd.common.SshException
 import org.apache.sshd.common.channel.PtyChannelConfiguration
 import org.apache.sshd.common.global.KeepAliveHandler
 import org.apache.sshd.common.kex.BuiltinDHFactories
+import org.apache.sshd.common.keyprovider.KeyIdentityProvider
 import org.apache.sshd.common.util.net.SshdSocketAddress
 import org.apache.sshd.core.CoreModuleProperties
 import org.apache.sshd.server.forward.AcceptAllForwardingFilter
@@ -114,9 +115,6 @@ object SshClients {
             .verify(timeout).session
         if (host.authentication.type == AuthenticationType.Password) {
             session.addPasswordIdentity(host.authentication.password)
-            // https://github.com/TermoraDev/termora/issues/180
-            // JGit 会尝试读取本地的私钥或缓存的私钥
-            session.keyIdentityProvider = null
         } else if (host.authentication.type == AuthenticationType.PublicKey) {
             session.keyIdentityProvider = OhKeyPairKeyPairProvider(host.authentication.password)
         }
@@ -159,6 +157,11 @@ object SshClients {
         builder.hostConfigEntryResolver(HostConfigEntryResolver.EMPTY)
 
         val sshClient = builder.build() as JGitSshClient
+
+        // https://github.com/TermoraDev/termora/issues/180
+        // JGit 会尝试读取本地的私钥或缓存的私钥
+        sshClient.keyIdentityProvider = KeyIdentityProvider { mutableListOf() }
+
         val heartbeatInterval = max(host.options.heartbeatInterval, 3)
         CoreModuleProperties.HEARTBEAT_INTERVAL.set(sshClient, Duration.ofSeconds(heartbeatInterval.toLong()))
         CoreModuleProperties.ALLOW_DHG1_KEX_FALLBACK.set(sshClient, true)
