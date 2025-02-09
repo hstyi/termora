@@ -145,7 +145,7 @@ class UpdaterManager private constructor() {
 
 
     fun isIgnored(version: String): Boolean {
-        return false && properties.getString("ignored.version.$version", "false").toBoolean()
+        return properties.getString("ignored.version.$version", "false").toBoolean()
     }
 
     fun ignore(version: String) {
