@@ -114,6 +114,9 @@ object SshClients {
             .verify(timeout).session
         if (host.authentication.type == AuthenticationType.Password) {
             session.addPasswordIdentity(host.authentication.password)
+            // https://github.com/TermoraDev/termora/issues/180
+            // JGit 会尝试读取本地的私钥或缓存的私钥
+            session.keyIdentityProvider = null
         } else if (host.authentication.type == AuthenticationType.PublicKey) {
             session.keyIdentityProvider = OhKeyPairKeyPairProvider(host.authentication.password)
         }
