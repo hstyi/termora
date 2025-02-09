@@ -198,12 +198,12 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
     private fun sshCopyId(evt: AnActionEvent) {
         val windowScope = evt.getData(DataProviders.WindowScope) ?: return
         val keyPairs = keyPairTable.selectedRows.map { keyPairTableModel.getOhKeyPair(it) }
-        val publicKeys = mutableListOf<String>()
+        val publicKeys = mutableListOf<Pair<String, String>>()
         for (keyPair in keyPairs) {
             val publicKey = OhKeyPairKeyPairProvider.generateKeyPair(keyPair).public
             val baos = ByteArrayOutputStream()
             OpenSSHKeyPairResourceWriter.INSTANCE.writePublicKey(publicKey, keyPair.name, baos)
-            publicKeys.add(baos.toString(Charsets.UTF_8))
+            publicKeys.add(Pair(keyPair.name, baos.toString(Charsets.UTF_8)))
         }
 
         if (publicKeys.isEmpty()) {

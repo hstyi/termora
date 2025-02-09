@@ -25,7 +25,8 @@ class SSHCopyIdDialog(
     owner: Window,
     private val windowScope: WindowScope,
     private val hosts: List<Host>,
-    private val publicKeys: List<String>,
+    // key: name , value: public key
+    private val publicKeys: List<Pair<String, String>>,
 ) : DialogWrapper(owner) {
 
     companion object {
@@ -114,6 +115,9 @@ class SSHCopyIdDialog(
         var mySession: ClientSession? = null
         val timeout = Duration.ofMinutes(1)
 
+        // 获取公钥名称最长的
+        val publicKeyNameLength = publicKeys.maxOfOrNull { it.first.length } ?: 0
+
         for (index in hosts.indices) {
             if (!coroutineScope.isActive) {
                 return
@@ -125,15 +129,18 @@ class SSHCopyIdDialog(
                 terminal.getDocument().newline()
             }
 
-            for (j in publicKeys.indices) {
+            for ((j, e) in publicKeys.withIndex()) {
                 if (!coroutineScope.isActive) {
                     return
                 }
 
-                val publicKey = publicKeys[j]
+                val publicKeyName = e.first.padEnd(publicKeyNameLength, ' ')
+                val publicKey = e.second
 
                 withContext(Dispatchers.Swing) {
-                    terminal.write("\t[${cyan(j + 1)}/${cyan(publicKeys.size)}] ${I18n.getString("termora.transport.sftp.connecting")}")
+                    // @formatter:off
+                    terminal.write("\t[${cyan(j + 1)}/${cyan(publicKeys.size)}] $publicKeyName ${I18n.getString("termora.transport.sftp.connecting")}")
+                    // @formatter:on
                 }
 
                 try {
@@ -152,12 +159,16 @@ class SSHCopyIdDialog(
                     }
                     withContext(Dispatchers.Swing) {
                         terminal.getDocument().eraseInLine(2)
-                        terminal.write("\r\t[${cyan(j + 1)}/${cyan(publicKeys.size)}] ${green(I18n.getString("termora.keymgr.ssh-copy-id.successful"))}")
+                        // @formatter:off
+                        terminal.write("\r\t[${cyan(j + 1)}/${cyan(publicKeys.size)}] $publicKeyName ${green(I18n.getString("termora.keymgr.ssh-copy-id.successful"))}")
+                        // @formatter:on
                     }
                 } catch (e: Exception) {
                     withContext(Dispatchers.Swing) {
                         terminal.getDocument().eraseInLine(2)
-                        terminal.write("\r\t[${cyan(j + 1)}/${cyan(publicKeys.size)}] ${red("${I18n.getString("termora.keymgr.ssh-copy-id.failed")}: ${e.message}")}")
+                        // @formatter:off
+                        terminal.write("\r\t[${cyan(j + 1)}/${cyan(publicKeys.size)}] $publicKeyName ${red("${I18n.getString("termora.keymgr.ssh-copy-id.failed")}: ${e.message}")}")
+                        // @formatter:on
                     }
                 } finally {
                     IOUtils.closeQuietly(mySession)
