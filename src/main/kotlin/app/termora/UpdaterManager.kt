@@ -4,6 +4,7 @@ import app.termora.Application.ohMyJson
 import kotlinx.serialization.json.*
 import okhttp3.Request
 import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.time.DateFormatUtils
 import org.commonmark.node.BulletList
 import org.commonmark.node.Heading
 import org.commonmark.node.Paragraph
@@ -97,7 +98,14 @@ class UpdaterManager private constructor() {
                 }
 
             val parser = Parser.builder().build()
-            val document = parser.parse("# ${name.trim()}\n${body.trim()}")
+            val document = parser.parse(
+                "# 🎉 ${name.trim()} (${
+                    DateFormatUtils.format(
+                        publishedDate,
+                        "yyyy-MM-dd"
+                    )
+                }) \n${body.trim()}"
+            )
             val renderer = HtmlRenderer.builder()
                 .attributeProviderFactory {
                     AttributeProvider { node, _, attributes ->
@@ -106,7 +114,7 @@ class UpdaterManager private constructor() {
                                 attributes["style"] = "margin: 5px 0;"
                             } else if (node is BulletList) {
                                 attributes["style"] = "margin: 0 20px;"
-                            }else if(node is Paragraph){
+                            } else if (node is Paragraph) {
                                 attributes["style"] = "margin: 0;"
                             }
                         }
@@ -137,7 +145,7 @@ class UpdaterManager private constructor() {
 
 
     fun isIgnored(version: String): Boolean {
-        return properties.getString("ignored.version.$version", "false").toBoolean()
+        return false && properties.getString("ignored.version.$version", "false").toBoolean()
     }
 
     fun ignore(version: String) {
