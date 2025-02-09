@@ -405,15 +405,13 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
         content = content.replace('\n', '\r')
 
         if (terminal.getTerminalModel().getData(DataKey.BracketedPasteMode, false)) {
-            val bytes = ptyConnector.getCharset()
-                .encode("${ControlCharacters.ESC}[200~${content}${ControlCharacters.ESC}[201~")
-                .array()
-            ptyConnector.write(bytes)
+            ptyConnector.write(
+                "${ControlCharacters.ESC}[200~${content}${ControlCharacters.ESC}[201~".toByteArray(
+                    ptyConnector.getCharset()
+                )
+            )
         } else {
-            val bytes = ptyConnector.getCharset()
-                .encode(content)
-                .array()
-            ptyConnector.write(bytes)
+            ptyConnector.write(content.toByteArray(ptyConnector.getCharset()))
         }
 
         terminal.getScrollingModel().scrollToRow(
