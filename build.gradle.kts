@@ -262,7 +262,7 @@ tasks.register<Exec>("jpackage") {
         options.add("-Dsun.java2d.opengl=true")
     }
 
-    val arguments = mutableListOf("${Jvm.current().javaHome}/bin/jpackage", "--verbose")
+    val arguments = mutableListOf("${Jvm.current().javaHome}/bin/jpackage")
     arguments.addAll(listOf("--runtime-image", "${buildDir}/jlink"))
     arguments.addAll(listOf("--name", project.name.uppercaseFirstChar()))
     arguments.addAll(listOf("--app-version", "${project.version}"))
