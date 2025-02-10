@@ -111,11 +111,18 @@ object Application {
         return "Termora"
     }
 
+    @Suppress("OPT_IN_USAGE")
     fun browse(uri: URI, async: Boolean = true) {
-        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+        // https://github.com/TermoraDev/termora/issues/178
+        if (SystemInfo.isWindows && uri.scheme == "file") {
+            if (async) {
+                GlobalScope.launch(Dispatchers.IO) { tryBrowse(uri) }
+            } else {
+                tryBrowse(uri)
+            }
+        } else if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
             Desktop.getDesktop().browse(uri)
         } else if (async) {
-            @Suppress("OPT_IN_USAGE")
             GlobalScope.launch(Dispatchers.IO) { tryBrowse(uri) }
         } else {
             tryBrowse(uri)
