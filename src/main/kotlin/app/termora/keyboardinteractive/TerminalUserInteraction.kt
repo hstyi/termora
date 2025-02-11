@@ -28,6 +28,7 @@ class TerminalUserInteraction(
                     prompt[i],
                     true
                 )
+                dialog.setLocationRelativeTo(owner)
                 dialog.title = instruction ?: name ?: StringUtils.EMPTY
                 passwords[i] = dialog.getText()
                 if (passwords[i].isBlank()) {
