@@ -109,6 +109,7 @@ class SettingsOptionsPane : OptionsPane() {
         addOption(AppearanceOption())
         addOption(TerminalOption())
         addOption(KeyShortcutsOption())
+        addOption(SFTPOption())
         addOption(CloudSyncOption())
         addOption(DoormanOption())
         addOption(AboutOption())
@@ -1166,6 +1167,63 @@ class SettingsOptionsPane : OptionsPane() {
                 ).xy(3, rows, "center, fill").apply { rows += step }
                 .add(lastSyncTimeLabel).xy(3, rows, "center, fill").apply { rows += step }
 
+
+            return builder.build()
+
+        }
+    }
+
+    private inner class SFTPOption : JPanel(BorderLayout()), Option {
+
+        val editCommandField = OutlineTextField(255)
+        private val sftp get() = database.sftp
+
+        init {
+            initView()
+            initEvents()
+            add(getCenterComponent(), BorderLayout.CENTER)
+        }
+
+        private fun initEvents() {
+            editCommandField.document.addDocumentListener(object : DocumentAdaptor() {
+                override fun changedUpdate(e: DocumentEvent) {
+                    sftp.editCommand = editCommandField.text
+                }
+            })
+        }
+
+
+        private fun initView() {
+            if (SystemInfo.isWindows || SystemInfo.isLinux) {
+                editCommandField.placeholderText = "notepad {0}"
+            } else if (SystemInfo.isMacOS) {
+                editCommandField.placeholderText = "open -a TextEdit {0}"
+            }
+
+            editCommandField.text = sftp.editCommand
+        }
+
+        override fun getIcon(isSelected: Boolean): Icon {
+            return Icons.folder
+        }
+
+        override fun getTitle(): String {
+            return "SFTP"
+        }
+
+        override fun getJComponent(): JComponent {
+            return this
+        }
+
+        private fun getCenterComponent(): JComponent {
+            val layout = FormLayout(
+                "left:pref, $formMargin, default:grow, 30dlu",
+                "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
+            )
+
+            val builder = FormBuilder.create().layout(layout).debug(false)
+            builder.add("${I18n.getString("termora.settings.sftp.edit-command")}:").xy(1, 1)
+            builder.add(editCommandField).xy(3, 1)
 
             return builder.build()
 

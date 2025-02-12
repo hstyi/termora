@@ -33,7 +33,9 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.io.File
 import java.nio.file.*
+import java.text.MessageFormat
 import java.util.*
+import java.util.regex.Pattern
 import javax.swing.*
 import javax.swing.table.DefaultTableCellRenderer
 import kotlin.io.path.absolutePathString
@@ -615,19 +617,37 @@ class FileSystemPanel(
 
     private fun editFileTransportListener(source: Path, localPath: Path): TransportListener {
         return object : TransportListener {
+            private val sftp get() = Database.getDatabase().sftp
             override fun onTransportChanged(transport: Transport) {
                 // 传输成功
                 if (transport.state == TransportState.Done) {
                     val transportManager = evt.getData(TransportDataProviders.TransportManager) ?: return
                     var lastModifiedTime = localPath.getLastModifiedTime().toMillis()
 
-                    if (SystemInfo.isMacOS) {
-                        ProcessBuilder("open", "-a", "TextEdit", localPath.absolutePathString()).start()
-                    } else if (SystemInfo.isWindows) {
-                        ProcessBuilder("notepad", localPath.absolutePathString()).start()
-                    } else {
+                    try {
+                        if (sftp.editCommand.isNotBlank()) {
+                            ProcessBuilder(
+                                parseCommand(
+                                    MessageFormat.format(
+                                        sftp.editCommand,
+                                        localPath.absolutePathString()
+                                    )
+                                )
+                            ).start()
+                        } else if (SystemInfo.isMacOS) {
+                            ProcessBuilder("open", "-a", "TextEdit", localPath.absolutePathString()).start()
+                        } else if (SystemInfo.isWindows) {
+                            ProcessBuilder("notepad", localPath.absolutePathString()).start()
+                        } else {
+                            return
+                        }
+                    } catch (e: Exception) {
+                        if (log.isErrorEnabled) {
+                            log.error(e.message, e)
+                        }
                         return
                     }
+
 
                     coroutineScope.launch(Dispatchers.IO) {
                         while (coroutineScope.isActive) {
@@ -656,6 +676,20 @@ class FileSystemPanel(
                         }
                     }
                 }
+            }
+
+            fun parseCommand(command: String): List<String> {
+                val result = mutableListOf<String>()
+                val matcher = Pattern.compile("\"([^\"]*)\"|(\\S+)").matcher(command)
+
+                while (matcher.find()) {
+                    if (matcher.group(1) != null) {
+                        result.add(matcher.group(1)) // 处理双引号部分
+                    } else {
+                        result.add(matcher.group(2).replace("\\\\ ", " "))
+                    }
+                }
+                return result
             }
         }
     }

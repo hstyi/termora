@@ -14,6 +14,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import org.apache.commons.io.IOUtils
+import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.*
@@ -55,6 +56,7 @@ class Database private constructor(private val env: Environment) : Disposable {
     val safetyProperties by lazy { SafetyProperties("Setting.SafetyProperties") }
     val terminal by lazy { Terminal() }
     val appearance by lazy { Appearance() }
+    val sftp by lazy { SFTP() }
     val sync by lazy { Sync() }
 
     private val doorman get() = Doorman.getInstance()
@@ -570,6 +572,19 @@ class Database private constructor(private val env: Environment) : Disposable {
         var language by StringPropertyLazyDelegate {
             I18n.containsLanguage(Locale.getDefault()) ?: Locale.US.toString()
         }
+
+    }
+
+    /**
+     * SFTP
+     */
+    inner class SFTP : Property("Setting.SFTP") {
+
+
+        /**
+         * 编辑命令
+         */
+        var editCommand by StringPropertyDelegate(StringUtils.EMPTY)
 
     }
 
