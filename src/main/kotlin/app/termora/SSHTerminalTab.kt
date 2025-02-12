@@ -87,11 +87,24 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
             terminal.write("SSH client is opening...\r\n")
         }
 
+        var host = this.host.copy(authentication = this.host.authentication.copy())
         val owner = SwingUtilities.getWindowAncestor(terminalPanel)
         val client = SshClients.openClient(host).also { sshClient = it }
         client.serverKeyVerifier = DialogServerKeyVerifier(owner)
         // keyboard interactive
         client.userInteraction = TerminalUserInteraction(owner)
+
+        if (host.authentication.type == AuthenticationType.No) {
+            withContext(Dispatchers.Swing) {
+                val dialog = RequestAuthenticationDialog(owner)
+                val authentication = dialog.getAuthentication()
+                host = host.copy(authentication = authentication)
+                // save
+                if (dialog.isRemembered()) {
+                    HostManager.getInstance().addHost(this@SSHTerminalTab.host.copy(authentication = authentication))
+                }
+            }
+        }
 
         val sessionListener = MySessionListener()
         val channelListener = MyChannelListener()

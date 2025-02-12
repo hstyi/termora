@@ -104,7 +104,8 @@ class SftpFileSystemPanel(
 
     private suspend fun doConnect() {
 
-        val host = this.host ?: return
+        val thisHost = this.host ?: return
+        var host = thisHost.copy(authentication = thisHost.authentication.copy())
 
         closeIO()
 
@@ -114,6 +115,17 @@ class SftpFileSystemPanel(
                 val owner = SwingUtilities.getWindowAncestor(this@SftpFileSystemPanel)
                 client.userInteraction = TerminalUserInteraction(owner)
                 client.serverKeyVerifier = DialogServerKeyVerifier(owner)
+                // 弹出授权框
+                if (host.authentication.type == AuthenticationType.No) {
+                    val dialog = RequestAuthenticationDialog(owner)
+                    val authentication = dialog.getAuthentication()
+                    host = host.copy(authentication = authentication)
+                    // save
+                    if (dialog.isRemembered()) {
+                        HostManager.getInstance()
+                            .addHost(host.copy(authentication = authentication))
+                    }
+                }
             }
             val session = SshClients.openSession(host, client).apply { session = this }
             fileSystem = SftpClientFactory.instance().createSftpFileSystem(session)
