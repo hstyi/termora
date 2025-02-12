@@ -54,6 +54,7 @@ class HostTree : JTree(), Disposable {
         editor.preferredSize = Dimension(220, 0)
 
         setCellRenderer(object : DefaultXTreeCellRenderer() {
+            private val properties get() = Database.getDatabase().properties
             override fun getTreeCellRendererComponent(
                 tree: JTree,
                 value: Any,
@@ -65,28 +66,32 @@ class HostTree : JTree(), Disposable {
             ): Component {
                 val host = value as Host
                 var text = host.name
-                val color = if (sel) {
-                    if (this@HostTree.hasFocus()) {
-                        UIManager.getColor("textHighlightText")
-                    } else {
-                        this.foreground
-                    }
-                } else {
-                    UIManager.getColor("textInactiveText")
-                }
 
-                if (host.protocol == Protocol.SSH) {
-                    text = """
+                // 是否显示更多信息
+                if (properties.getString("HostTree.showMoreInfo", "false").toBoolean()) {
+                    val color = if (sel) {
+                        if (this@HostTree.hasFocus()) {
+                            UIManager.getColor("textHighlightText")
+                        } else {
+                            this.foreground
+                        }
+                    } else {
+                        UIManager.getColor("textInactiveText")
+                    }
+
+                    if (host.protocol == Protocol.SSH) {
+                        text = """
                         <html>${host.name}
                         &nbsp;&nbsp;
                         <font color=rgb(${color.red},${color.green},${color.blue})>${host.username}@${host.host}</font></html>
                     """.trimIndent()
-                } else if (host.protocol == Protocol.Serial) {
-                    text = """
+                    } else if (host.protocol == Protocol.Serial) {
+                        text = """
                         <html>${host.name}
                         &nbsp;&nbsp;
                         <font color=rgb(${color.red},${color.green},${color.blue})>${host.options.serialComm.port}</font></html>
                     """.trimIndent()
+                    }
                 }
 
                 val c = super.getTreeCellRendererComponent(tree, text, sel, expanded, leaf, row, hasFocus)
@@ -338,6 +343,7 @@ class HostTree : JTree(), Disposable {
             return
         }
 
+        val properties = Database.getDatabase().properties
         val popupMenu = FlatPopupMenu()
         val newMenu = JMenu(I18n.getString("termora.welcome.contextmenu.new"))
         val newFolder = newMenu.add(I18n.getString("termora.welcome.contextmenu.new.folder"))
@@ -355,6 +361,17 @@ class HostTree : JTree(), Disposable {
         popupMenu.addSeparator()
         popupMenu.add(newMenu)
         popupMenu.addSeparator()
+
+        val showMoreInfo = JCheckBoxMenuItem(I18n.getString("termora.welcome.contextmenu.show-more-info"))
+        showMoreInfo.isSelected = properties.getString("HostTree.showMoreInfo", "false").toBoolean()
+        showMoreInfo.addActionListener {
+            properties.putString(
+                "HostTree.showMoreInfo",
+                showMoreInfo.isSelected.toString()
+            )
+            SwingUtilities.updateComponentTreeUI(this)
+        }
+        popupMenu.add(showMoreInfo)
         val property = popupMenu.add(I18n.getString("termora.welcome.contextmenu.property"))
 
         open.addActionListener { openHosts(it, false) }
