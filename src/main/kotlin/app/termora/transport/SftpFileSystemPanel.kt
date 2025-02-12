@@ -115,8 +115,9 @@ class SftpFileSystemPanel(
         try {
             val client = SshClients.openClient(host).apply { client = this }
             withContext(Dispatchers.Swing) {
-                client.userInteraction =
-                    TerminalUserInteraction(SwingUtilities.getWindowAncestor(this@SftpFileSystemPanel))
+                val owner = SwingUtilities.getWindowAncestor(this@SftpFileSystemPanel)
+                client.userInteraction = TerminalUserInteraction(owner)
+                client.serverKeyVerifier = DialogServerKeyVerifier(owner)
             }
             val session = SshClients.openSession(host, client).apply { session = this }
             fileSystem = SftpClientFactory.instance().createSftpFileSystem(session)

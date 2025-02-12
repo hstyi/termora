@@ -2,14 +2,20 @@ package app.termora
 
 import app.termora.keymgr.OhKeyPairKeyPairProvider
 import app.termora.terminal.TerminalSize
+import org.apache.commons.lang3.StringUtils
 import org.apache.sshd.client.ClientBuilder
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.channel.ChannelShell
 import org.apache.sshd.client.config.hosts.HostConfigEntryResolver
+import org.apache.sshd.client.config.hosts.KnownHostEntry
 import org.apache.sshd.client.kex.DHGClient
+import org.apache.sshd.client.keyverifier.KnownHostsServerKeyVerifier
+import org.apache.sshd.client.keyverifier.ModifiedServerKeyAcceptor
+import org.apache.sshd.client.keyverifier.ServerKeyVerifier
 import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.common.SshException
 import org.apache.sshd.common.channel.PtyChannelConfiguration
+import org.apache.sshd.common.config.keys.KeyUtils
 import org.apache.sshd.common.global.KeepAliveHandler
 import org.apache.sshd.common.kex.BuiltinDHFactories
 import org.apache.sshd.common.keyprovider.KeyIdentityProvider
@@ -22,9 +28,16 @@ import org.eclipse.jgit.transport.CredentialsProvider
 import org.eclipse.jgit.transport.sshd.IdentityPasswordProvider
 import org.eclipse.jgit.transport.sshd.ProxyData
 import org.slf4j.LoggerFactory
+import java.awt.Window
 import java.net.InetSocketAddress
 import java.net.Proxy
+import java.net.SocketAddress
+import java.nio.file.Paths
+import java.security.PublicKey
 import java.time.Duration
+import java.util.concurrent.atomic.AtomicBoolean
+import javax.swing.JOptionPane
+import javax.swing.SwingUtilities
 import kotlin.math.max
 
 object SshClients {
@@ -190,5 +203,75 @@ object SshClients {
 
         sshClient.start()
         return sshClient
+    }
+}
+
+
+private class MyDialogServerKeyVerifier(private val owner: Window) : ServerKeyVerifier, ModifiedServerKeyAcceptor {
+    override fun verifyServerKey(
+        clientSession: ClientSession,
+        remoteAddress: SocketAddress,
+        serverKey: PublicKey
+    ): Boolean {
+        val result = AtomicBoolean(false)
+
+        SwingUtilities.invokeAndWait {
+            result.set(
+                OptionPane.showConfirmDialog(
+                    parentComponent = owner,
+                    message = I18n.getString(
+                        "termora.host.verify-server-key",
+                        remoteAddress.toString().replace("/", StringUtils.EMPTY),
+                        KeyUtils.getKeyType(serverKey),
+                        KeyUtils.getFingerPrint(serverKey)
+                    ),
+                    optionType = JOptionPane.OK_CANCEL_OPTION,
+                    messageType = JOptionPane.WARNING_MESSAGE,
+                ) == JOptionPane.OK_OPTION
+            )
+        }
+
+        return result.get()
+    }
+
+    override fun acceptModifiedServerKey(
+        clientSession: ClientSession?,
+        remoteAddress: SocketAddress?,
+        entry: KnownHostEntry?,
+        expected: PublicKey?,
+        actual: PublicKey?
+    ): Boolean {
+        val result = AtomicBoolean(false)
+
+        SwingUtilities.invokeAndWait {
+            result.set(
+                OptionPane.showConfirmDialog(
+                    parentComponent = owner,
+                    message = I18n.getString(
+                        "termora.host.modified-server-key",
+                        remoteAddress.toString().replace("/", StringUtils.EMPTY),
+                        KeyUtils.getKeyType(expected),
+                        KeyUtils.getFingerPrint(expected),
+                        KeyUtils.getKeyType(actual),
+                        KeyUtils.getFingerPrint(actual),
+                    ),
+                    optionType = JOptionPane.OK_CANCEL_OPTION,
+                    messageType = JOptionPane.WARNING_MESSAGE,
+                ) == JOptionPane.OK_OPTION
+            )
+        }
+
+        return result.get()
+    }
+}
+
+class DialogServerKeyVerifier(
+    owner: Window,
+) : KnownHostsServerKeyVerifier(
+    MyDialogServerKeyVerifier(owner),
+    Paths.get(Application.getBaseDataDir().absolutePath, "known_hosts")
+) {
+    init {
+        modifiedServerKeyAcceptor = delegateVerifier as ModifiedServerKeyAcceptor
     }
 }

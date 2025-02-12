@@ -29,7 +29,7 @@ import org.apache.sshd.common.session.SessionListener.Event
 import org.apache.sshd.common.util.net.SshdSocketAddress
 import org.slf4j.LoggerFactory
 import java.nio.charset.StandardCharsets
-import java.util.EventObject
+import java.util.*
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
 
@@ -87,9 +87,11 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
             terminal.write("SSH client is opening...\r\n")
         }
 
+        val owner = SwingUtilities.getWindowAncestor(terminalPanel)
         val client = SshClients.openClient(host).also { sshClient = it }
+        client.serverKeyVerifier = DialogServerKeyVerifier(owner)
         // keyboard interactive
-        client.userInteraction = TerminalUserInteraction(SwingUtilities.getWindowAncestor(terminalPanel))
+        client.userInteraction = TerminalUserInteraction(owner)
 
         val sessionListener = MySessionListener()
         val channelListener = MyChannelListener()

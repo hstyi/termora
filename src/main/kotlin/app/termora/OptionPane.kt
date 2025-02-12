@@ -6,8 +6,6 @@ import com.formdev.flatlaf.util.SystemInfo
 import com.jetbrains.JBR
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
-import org.apache.commons.lang3.StringUtils
-import org.jdesktop.swingx.JXLabel
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Desktop
@@ -57,6 +55,7 @@ object OptionPane {
                 pane.selectInitialValue()
             }
         })
+        dialog.setLocationRelativeTo(parentComponent)
         dialog.isVisible = true
         dialog.dispose()
         val selectedValue = pane.value
