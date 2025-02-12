@@ -129,6 +129,8 @@ class FileSystemTabbed(
     override fun addTab(title: String, component: Component) {
         super.addTab(title, component)
 
+        selectedIndex = tabCount - 1
+
         if (component is SftpFileSystemPanel) {
             component.addPropertyChangeListener("TabName") { e ->
                 SwingUtilities.invokeLater {
@@ -145,6 +147,7 @@ class FileSystemTabbed(
                 }
             }
         }
+
     }
 
 
