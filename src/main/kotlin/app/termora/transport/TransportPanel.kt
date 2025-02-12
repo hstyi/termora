@@ -107,32 +107,6 @@ class TransportPanel : JPanel(BorderLayout()), Disposable, DataProvider {
         })
 
 
-        leftFileSystemTabbed.addFileSystemTransportListener(object : FileSystemTransportListener {
-            override fun transport(fileSystemPanel: FileSystemPanel, workdir: Path, isDirectory: Boolean, path: Path) {
-                val target = rightFileSystemTabbed.getSelectedFileSystemPanel() ?: return
-                transport(
-                    fileSystemPanel.workdir, target.workdir,
-                    isSourceDirectory = isDirectory,
-                    sourcePath = path,
-                    sourceHolder = fileSystemPanel,
-                    targetHolder = target,
-                )
-            }
-        })
-
-
-        rightFileSystemTabbed.addFileSystemTransportListener(object : FileSystemTransportListener {
-            override fun transport(fileSystemPanel: FileSystemPanel, workdir: Path, isDirectory: Boolean, path: Path) {
-                val target = leftFileSystemTabbed.getSelectedFileSystemPanel() ?: return
-                transport(
-                    fileSystemPanel.workdir, target.workdir,
-                    isSourceDirectory = isDirectory,
-                    sourcePath = path,
-                    sourceHolder = fileSystemPanel,
-                    targetHolder = target,
-                )
-            }
-        })
     }
 
     fun transport(

@@ -12,6 +12,7 @@ import com.formdev.flatlaf.util.SystemInfo
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
 import org.apache.commons.io.FileUtils
+import org.apache.commons.io.file.PathUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
@@ -35,8 +36,11 @@ import java.nio.file.*
 import java.util.*
 import javax.swing.*
 import javax.swing.table.DefaultTableCellRenderer
+import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
+import kotlin.io.path.getLastModifiedTime
 import kotlin.io.path.isDirectory
+import kotlin.time.Duration.Companion.milliseconds
 
 
 /**
@@ -44,9 +48,8 @@ import kotlin.io.path.isDirectory
  */
 class FileSystemPanel(
     private val fileSystem: FileSystem,
-    private val transportManager: TransportManager,
     private val host: Host
-) : JPanel(BorderLayout()), Disposable, FileSystemTransportListener.Provider {
+) : JPanel(BorderLayout()), Disposable {
 
     companion object {
         private val log = LoggerFactory.getLogger(FileSystemPanel::class.java)
@@ -64,6 +67,12 @@ class FileSystemPanel(
     private val showHiddenFilesBtn = JButton(Icons.eyeClose)
     private val properties get() = Database.getDatabase().properties
     private val showHiddenFilesKey by lazy { "termora.transport.host.${host.id}.show-hidden-files" }
+    private val evt by lazy { AnActionEvent(this, StringUtils.EMPTY, EventObject(this)) }
+
+    /**
+     * Edit
+     */
+    private val coroutineScope by lazy { CoroutineScope(Dispatchers.IO + SupervisorJob()) }
 
     val workdir get() = tableModel.workdir
 
@@ -342,6 +351,9 @@ class FileSystemPanel(
 
     }
 
+    override fun dispose() {
+        coroutineScope.cancel()
+    }
 
     private fun copyLocalFileToFileSystem(files: List<File>) {
         val event = AnActionEvent(this, StringUtils.EMPTY, EventObject(this))
@@ -425,14 +437,6 @@ class FileSystemPanel(
     }
 
 
-    override fun addFileSystemTransportListener(listener: FileSystemTransportListener) {
-        listenerList.add(FileSystemTransportListener::class.java, listener)
-    }
-
-    override fun removeFileSystemTransportListener(listener: FileSystemTransportListener) {
-        listenerList.remove(FileSystemTransportListener::class.java, listener)
-    }
-
     private fun openFolder() {
         val row = table.selectedRow
         if (row < 0) return
@@ -460,6 +464,7 @@ class FileSystemPanel(
 
 
     private fun showContextMenu(rows: IntArray, event: MouseEvent) {
+        val paths = rows.filter { it != 0 }.map { tableModel.getCacheablePath(it) }
         val popupMenu = FlatPopupMenu()
         val newMenu = JMenu(I18n.getString("termora.transport.table.contextmenu.new"))
 
@@ -477,11 +482,22 @@ class FileSystemPanel(
         // 传输
         val transfer = popupMenu.add(I18n.getString("termora.transport.table.contextmenu.transfer"))
         transfer.addActionListener {
-            val paths = rows.filter { it != 0 }.map { tableModel.getCacheablePath(it) }
             if (paths.isNotEmpty()) {
                 transport(paths)
             }
         }
+
+        // 编辑
+        val edit = popupMenu.add(I18n.getString("termora.transport.table.contextmenu.edit"))
+        // 不是 Linux & 不是本地文件系统 & 包含文件
+        edit.isEnabled = !SystemInfo.isLinux && !tableModel.isLocalFileSystem && paths.any { !it.isDirectory }
+        edit.addActionListener {
+            val files = paths.filter { !it.isDirectory }
+            if (files.isNotEmpty()) {
+                editFiles(files)
+            }
+        }
+
         popupMenu.addSeparator()
 
         // 复制路径
@@ -574,6 +590,75 @@ class FileSystemPanel(
         popupMenu.show(table, event.x, event.y)
     }
 
+    private fun editFiles(files: List<FileSystemTableModel.CacheablePath>) {
+        if (files.isEmpty()) return
+        val transportManager = evt.getData(TransportDataProviders.TransportManager) ?: return
+
+        val temporary = Paths.get(Application.getBaseDataDir().absolutePath, "temporary")
+        Files.createDirectories(temporary)
+
+        for (file in files) {
+            val dir = Files.createTempDirectory(temporary, "termora-")
+            val path = Paths.get(dir.absolutePathString(), file.fileName)
+            transportManager.addTransport(
+                transport = FileTransport(
+                    name = file.fileName,
+                    source = file.path,
+                    target = path,
+                    sourceHolder = this,
+                    targetHolder = this,
+                    listener = editFileTransportListener(file.path, path)
+                )
+            )
+        }
+    }
+
+    private fun editFileTransportListener(source: Path, localPath: Path): TransportListener {
+        return object : TransportListener {
+            override fun onTransportChanged(transport: Transport) {
+                // 传输成功
+                if (transport.state == TransportState.Done) {
+                    val transportManager = evt.getData(TransportDataProviders.TransportManager) ?: return
+                    var lastModifiedTime = localPath.getLastModifiedTime().toMillis()
+
+                    if (SystemInfo.isMacOS) {
+                        ProcessBuilder("open", "-a", "TextEdit", localPath.absolutePathString()).start()
+                    } else if (SystemInfo.isWindows) {
+                        ProcessBuilder("notepad", localPath.absolutePathString()).start()
+                    } else {
+                        return
+                    }
+
+                    coroutineScope.launch(Dispatchers.IO) {
+                        while (coroutineScope.isActive) {
+                            try {
+                                val nowModifiedTime = localPath.getLastModifiedTime().toMillis()
+                                if (nowModifiedTime != lastModifiedTime) {
+                                    lastModifiedTime = nowModifiedTime
+                                    // upload
+                                    transportManager.addTransport(
+                                        transport = FileTransport(
+                                            name = PathUtils.getFileNameString(localPath.fileName),
+                                            source = localPath,
+                                            target = source,
+                                            sourceHolder = this@FileSystemPanel,
+                                            targetHolder = this@FileSystemPanel,
+                                        )
+                                    )
+                                }
+                            } catch (e: Exception) {
+                                if (log.isErrorEnabled) {
+                                    log.error(e.message, e)
+                                }
+                                break
+                            }
+                            delay(250.milliseconds)
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     @OptIn(DelicateCoroutinesApi::class)
     private fun renamePath(path: Path) {
@@ -789,17 +874,31 @@ class FileSystemPanel(
 
     private suspend fun doTransport(paths: List<FileSystemTableModel.CacheablePath>) {
         if (paths.isEmpty()) return
-
-        val listeners = listenerList.getListeners(FileSystemTransportListener::class.java)
-        if (listeners.isEmpty()) return
-
+        val transportPanel = evt.getData(TransportDataProviders.TransportPanel) ?: return
+        val leftFileSystemPanel = evt.getData(TransportDataProviders.LeftFileSystemPanel) ?: return
+        val rightFileSystemPanel = evt.getData(TransportDataProviders.RightFileSystemPanel) ?: return
+        val sourceFileSystemPanel = this
+        val targetFileSystemPanel = if (this == leftFileSystemPanel) rightFileSystemPanel else leftFileSystemPanel
 
         // 收集数据
         for (e in paths) {
 
             if (!e.isDirectory) {
+                val job = TransportJob(
+                    fileSystemPanel = this,
+                    workdir = workdir,
+                    isDirectory = false,
+                    path = e.path,
+                )
                 withContext(Dispatchers.Swing) {
-                    listeners.forEach { it.transport(this@FileSystemPanel, workdir, false, e.path) }
+                    transportPanel.transport(
+                        sourceWorkdir = workdir,
+                        targetWorkdir = targetFileSystemPanel.workdir,
+                        isSourceDirectory = false,
+                        sourcePath = e.path,
+                        sourceHolder = sourceFileSystemPanel,
+                        targetHolder = targetFileSystemPanel
+                    )
                 }
                 continue
             }
@@ -811,12 +910,26 @@ class FileSystemPanel(
                             val isDirectory = if (path.attributes != null)
                                 path.attributes.isDirectory else path.isDirectory()
                             withContext(Dispatchers.Swing) {
-                                listeners.forEach { it.transport(this@FileSystemPanel, workdir, isDirectory, path) }
+                                transportPanel.transport(
+                                    sourceWorkdir = workdir,
+                                    targetWorkdir = targetFileSystemPanel.workdir,
+                                    isSourceDirectory = isDirectory,
+                                    sourcePath = path,
+                                    sourceHolder = sourceFileSystemPanel,
+                                    targetHolder = targetFileSystemPanel
+                                )
                             }
                         } else {
                             val isDirectory = path.isDirectory()
                             withContext(Dispatchers.Swing) {
-                                listeners.forEach { it.transport(this@FileSystemPanel, workdir, isDirectory, path) }
+                                transportPanel.transport(
+                                    sourceWorkdir = workdir,
+                                    targetWorkdir = targetFileSystemPanel.workdir,
+                                    isSourceDirectory = isDirectory,
+                                    sourcePath = path,
+                                    sourceHolder = sourceFileSystemPanel,
+                                    targetHolder = targetFileSystemPanel
+                                )
                             }
                         }
                     }

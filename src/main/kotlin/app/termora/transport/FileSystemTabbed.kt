@@ -3,9 +3,9 @@ package app.termora.transport
 import app.termora.*
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
 import org.apache.commons.lang3.StringUtils
+import java.awt.Component
 import java.awt.Point
 import java.nio.file.FileSystems
-import java.nio.file.Path
 import javax.swing.*
 import kotlin.math.max
 
@@ -13,9 +13,8 @@ import kotlin.math.max
 class FileSystemTabbed(
     private val transportManager: TransportManager,
     private val isLeft: Boolean = false
-) : FlatTabbedPane(), FileSystemTransportListener.Provider, Disposable {
+) : FlatTabbedPane(), Disposable {
     private val addBtn = JButton(Icons.add)
-    private val listeners = mutableListOf<FileSystemTransportListener>()
 
     init {
         initView()
@@ -36,23 +35,20 @@ class FileSystemTabbed(
         trailingComponent = toolbar
 
         if (isLeft) {
-            addFileSystemTransportProvider(
-                I18n.getString("termora.transport.local"),
-                FileSystemPanel(
+            addTab(
+                I18n.getString("termora.transport.local"), FileSystemPanel(
                     FileSystems.getDefault(),
-                    transportManager,
                     host = Host(
                         id = "local",
                         name = I18n.getString("termora.transport.local"),
                         protocol = Protocol.Local,
                     )
-                ).apply { reload() }
-            )
+                ).apply { reload() })
             setTabClosable(0, false)
         } else {
-            addFileSystemTransportProvider(
+            addTab(
                 I18n.getString("termora.transport.sftp.select-host"),
-                SftpFileSystemPanel(transportManager)
+                SftpFileSystemPanel()
             )
         }
 
@@ -70,8 +66,8 @@ class FileSystemTabbed(
             dialog.isVisible = true
 
             for (host in dialog.hosts) {
-                val panel = SftpFileSystemPanel(transportManager, host)
-                addFileSystemTransportProvider(host.name, panel)
+                val panel = SftpFileSystemPanel(host)
+                addTab(host.name, panel)
                 panel.connect()
             }
 
@@ -120,9 +116,9 @@ class FileSystemTabbed(
 
         if (tabCount == 0) {
             if (!isLeft) {
-                addFileSystemTransportProvider(
+                addTab(
                     I18n.getString("termora.transport.sftp.select-host"),
-                    SftpFileSystemPanel(transportManager)
+                    SftpFileSystemPanel()
                 )
             }
         }
@@ -130,38 +126,27 @@ class FileSystemTabbed(
 
     }
 
-    fun addFileSystemTransportProvider(title: String, provider: FileSystemTransportListener.Provider) {
-        if (provider !is JComponent) {
-            throw IllegalArgumentException("Provider is not an JComponent")
-        }
+    override fun addTab(title: String, component: Component) {
+        super.addTab(title, component)
 
-        provider.addFileSystemTransportListener(object : FileSystemTransportListener {
-            override fun transport(fileSystemPanel: FileSystemPanel, workdir: Path, isDirectory: Boolean, path: Path) {
-                listeners.forEach { it.transport(fileSystemPanel, workdir, isDirectory, path) }
-            }
-        })
-
-        // 修改 Tab名称
-        provider.addPropertyChangeListener("TabName") { e ->
-            SwingUtilities.invokeLater {
-                val name = StringUtils.defaultIfEmpty(
-                    e.newValue.toString(),
-                    I18n.getString("termora.transport.sftp.select-host")
-                )
-                for (i in 0 until tabCount) {
-                    if (getComponentAt(i) == provider) {
-                        setTitleAt(i, name)
-                        break
+        if (component is SftpFileSystemPanel) {
+            component.addPropertyChangeListener("TabName") { e ->
+                SwingUtilities.invokeLater {
+                    val name = StringUtils.defaultIfEmpty(
+                        e.newValue.toString(),
+                        I18n.getString("termora.transport.sftp.select-host")
+                    )
+                    for (i in 0 until tabCount) {
+                        if (getComponentAt(i) == component) {
+                            setTitleAt(i, name)
+                            break
+                        }
                     }
                 }
             }
         }
-
-        addTab(title, provider)
-
-        if (tabCount > 0)
-            selectedIndex = tabCount - 1
     }
+
 
     fun getSelectedFileSystemPanel(): FileSystemPanel? {
         return getFileSystemPanel(selectedIndex)
@@ -182,14 +167,6 @@ class FileSystemTabbed(
         }
 
         return null
-    }
-
-    override fun addFileSystemTransportListener(listener: FileSystemTransportListener) {
-        listeners.add(listener)
-    }
-
-    override fun removeFileSystemTransportListener(listener: FileSystemTransportListener) {
-        listeners.remove(listener)
     }
 
     override fun dispose() {

@@ -21,15 +21,12 @@ import org.slf4j.LoggerFactory
 import java.awt.BorderLayout
 import java.awt.CardLayout
 import java.awt.event.ActionEvent
-import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.*
 
 class SftpFileSystemPanel(
-    private val transportManager: TransportManager,
     private var host: Host? = null
-) : JPanel(BorderLayout()), Disposable,
-    FileSystemTransportListener.Provider {
+) : JPanel(BorderLayout()), Disposable {
 
     companion object {
         private val log = LoggerFactory.getLogger(SftpFileSystemPanel::class.java)
@@ -50,7 +47,6 @@ class SftpFileSystemPanel(
     private val connectingPanel = ConnectingPanel()
     private val selectHostPanel = SelectHostPanel()
     private val connectFailedPanel = ConnectFailedPanel()
-    private val listeners = mutableListOf<FileSystemTransportListener>()
     private val isDisposed = AtomicBoolean(false)
 
     private var client: SshClient? = null
@@ -136,17 +132,7 @@ class SftpFileSystemPanel(
         withContext(Dispatchers.Swing) {
             state = State.Connected
 
-            val fileSystemPanel = FileSystemPanel(fileSystem, transportManager, host)
-            fileSystemPanel.addFileSystemTransportListener(object : FileSystemTransportListener {
-                override fun transport(
-                    fileSystemPanel: FileSystemPanel,
-                    workdir: Path,
-                    isDirectory: Boolean,
-                    path: Path
-                ) {
-                    listeners.forEach { it.transport(fileSystemPanel, workdir, isDirectory, path) }
-                }
-            })
+            val fileSystemPanel = FileSystemPanel(fileSystem, host)
 
             cardPanel.add(fileSystemPanel, State.Connected.name)
             cardLayout.show(cardPanel, State.Connected.name)
@@ -312,11 +298,4 @@ class SftpFileSystemPanel(
     }
 
 
-    override fun addFileSystemTransportListener(listener: FileSystemTransportListener) {
-        listeners.add(listener)
-    }
-
-    override fun removeFileSystemTransportListener(listener: FileSystemTransportListener) {
-        listeners.remove(listener)
-    }
 }

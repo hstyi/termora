@@ -73,6 +73,9 @@ class ApplicationRunner {
             // 解密数据
             val openDoor = measureTimeMillis { openDoor() }
 
+            // clear temporary
+            clearTemporary()
+
             // 启动主窗口
             val startMainFrame = measureTimeMillis { startMainFrame() }
 
@@ -94,6 +97,22 @@ class ApplicationRunner {
         }
     }
 
+    @Suppress("OPT_IN_USAGE")
+    private fun clearTemporary() {
+        GlobalScope.launch(Dispatchers.IO) {
+
+            // 启动时清除
+            FileUtils.cleanDirectory(File(Application.getBaseDataDir(), "temporary"))
+
+            // 关闭时清除
+            Disposer.register(ApplicationScope.forApplicationScope(), object : Disposable {
+                override fun dispose() {
+                    FileUtils.cleanDirectory(File(Application.getBaseDataDir(), "temporary"))
+                }
+            })
+        }
+
+    }
 
     private fun openDoor() {
         if (Doorman.getInstance().isWorking()) {

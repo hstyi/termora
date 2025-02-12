@@ -31,9 +31,14 @@ abstract class Transport(
     val target: Path,
     val sourceHolder: Disposable,
     val targetHolder: Disposable,
+    val listener: TransportListener = TransportListener.EMPTY
 ) : Disposable, Runnable {
 
     private val listeners = ArrayList<TransportListener>()
+
+    init {
+        listeners.add(listener)
+    }
 
     @Volatile
     var state = TransportState.Waiting
@@ -142,9 +147,9 @@ private class SlidingWindowByteCounter {
  */
 class FileTransport(
     name: String, source: Path, target: Path,
-    sourceHolder: Disposable, targetHolder: Disposable,
+    sourceHolder: Disposable, targetHolder: Disposable, listener: TransportListener = TransportListener.EMPTY
 ) : Transport(
-    name, source, target, sourceHolder, targetHolder,
+    name, source, target, sourceHolder, targetHolder, listener
 ), CopyStreamListener {
 
     companion object {
