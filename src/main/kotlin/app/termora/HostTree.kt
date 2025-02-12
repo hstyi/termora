@@ -64,13 +64,37 @@ class HostTree : JTree(), Disposable {
                 hasFocus: Boolean
             ): Component {
                 val host = value as Host
-                val c = super.getTreeCellRendererComponent(tree, host, sel, expanded, leaf, row, hasFocus)
-                if (host.protocol == Protocol.Folder) {
-                    icon = if (expanded) FlatTreeOpenIcon() else FlatTreeClosedIcon()
-                } else if (host.protocol == Protocol.SSH || host.protocol == Protocol.Local) {
-                    icon = if (sel && this@HostTree.hasFocus()) Icons.terminal.dark else Icons.terminal
+                var text = host.name
+                val color = if (sel) {
+                    if (this@HostTree.hasFocus()) {
+                        UIManager.getColor("textHighlightText")
+                    } else {
+                        this.foreground
+                    }
+                } else {
+                    UIManager.getColor("textInactiveText")
+                }
+
+                if (host.protocol == Protocol.SSH) {
+                    text = """
+                        <html>${host.name}
+                        &nbsp;&nbsp;
+                        <font color=rgb(${color.red},${color.green},${color.blue})>${host.username}@${host.host}</font></html>
+                    """.trimIndent()
                 } else if (host.protocol == Protocol.Serial) {
-                    icon = if (sel && this@HostTree.hasFocus()) Icons.plugin.dark else Icons.plugin
+                    text = """
+                        <html>${host.name}
+                        &nbsp;&nbsp;
+                        <font color=rgb(${color.red},${color.green},${color.blue})>${host.options.serialComm.port}</font></html>
+                    """.trimIndent()
+                }
+
+                val c = super.getTreeCellRendererComponent(tree, text, sel, expanded, leaf, row, hasFocus)
+
+                icon = when (host.protocol) {
+                    Protocol.Folder -> if (expanded) FlatTreeOpenIcon() else FlatTreeClosedIcon()
+                    Protocol.SSH, Protocol.Local -> if (sel && this@HostTree.hasFocus()) Icons.terminal.dark else Icons.terminal
+                    Protocol.Serial -> if (sel && this@HostTree.hasFocus()) Icons.plugin.dark else Icons.plugin
                 }
                 return c
             }
