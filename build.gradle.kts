@@ -38,7 +38,7 @@ repositories {
 
 dependencies {
     // 由于签名和公证，macOS 不携带 natives
-    val useNoNativesFlatLaf = os.isMacOsX && macOSNotary && System.getenv("ENABLE_BUILD").toBoolean()
+    val useNoNativesFlatLaf = os.isMacOsX && System.getenv("ENABLE_BUILD").toBoolean()
 
     testImplementation(kotlin("test"))
     testImplementation(libs.hutool)
