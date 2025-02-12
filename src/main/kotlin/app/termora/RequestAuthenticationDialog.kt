@@ -19,7 +19,7 @@ class RequestAuthenticationDialog(owner: Window) : DialogWrapper(owner) {
     private val rememberCheckBox = JCheckBox("Remember")
     private val passwordPanel = JPanel(BorderLayout())
     private val passwordPasswordField = OutlinePasswordField()
-    private val publicKeyComboBox = FlatComboBox<OhKeyPair>()
+    private val publicKeyComboBox = OutlineComboBox<OhKeyPair>()
     private val keyManager get() = KeyManager.getInstance()
     private var authentication = Authentication.No
 
@@ -111,6 +111,19 @@ class RequestAuthenticationDialog(owner: Window) : DialogWrapper(owner) {
 
     override fun doOKAction() {
         val type = authenticationTypeComboBox.selectedItem as AuthenticationType
+
+        if (type == AuthenticationType.Password) {
+            if (passwordPasswordField.password.isEmpty()) {
+                passwordPasswordField.requestFocusInWindow()
+                return
+            }
+        } else if (type == AuthenticationType.PublicKey) {
+            if (publicKeyComboBox.selectedItem == null) {
+                publicKeyComboBox.requestFocusInWindow()
+                return
+            }
+        }
+
         authentication = authentication.copy(
             type = type,
             password = if (type == AuthenticationType.Password) String(passwordPasswordField.password)
