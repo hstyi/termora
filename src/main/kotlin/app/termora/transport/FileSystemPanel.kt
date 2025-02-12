@@ -491,8 +491,8 @@ class FileSystemPanel(
 
         // 编辑
         val edit = popupMenu.add(I18n.getString("termora.transport.table.contextmenu.edit"))
-        // 不是 Linux & 不是本地文件系统 & 包含文件
-        edit.isEnabled = !SystemInfo.isLinux && !tableModel.isLocalFileSystem && paths.any { !it.isDirectory }
+        // 不是本地文件系统 & 包含文件
+        edit.isEnabled = !tableModel.isLocalFileSystem && paths.any { !it.isDirectory }
         edit.addActionListener {
             val files = paths.filter { !it.isDirectory }
             if (files.isNotEmpty()) {
