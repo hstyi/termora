@@ -292,6 +292,10 @@ tasks.register<Exec>("jpackage") {
         arguments.addAll(listOf("--icon", "${projectDir.absolutePath}/src/main/resources/icons/termora.ico"))
     }
 
+    if (os.isLinux) {
+        arguments.addAll(listOf("--icon", "${projectDir.absolutePath}/src/main/resources/icons/termora.png"))
+    }
+
 
     arguments.add("--type")
     if (os.isMacOsX) {
