@@ -382,6 +382,9 @@ class HostTree : JTree(), Disposable {
         openWithSFTP.addActionListener { openWithSFTP(it) }
         openInNewWindow.addActionListener { openHosts(it, true) }
 
+        // 如果选中了 SSH 服务器，那么才启用
+        openWithSFTP.isEnabled = getSelectionNodes().any { it.protocol == Protocol.SSH }
+
         rename.addActionListener {
             startEditingAtPath(TreePath(model.getPathToRoot(lastHost)))
         }
