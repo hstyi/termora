@@ -1,11 +1,14 @@
 package app.termora
 
 
+import app.termora.actions.AnActionEvent
 import app.termora.actions.NewHostAction
 import app.termora.actions.OpenHostAction
+import app.termora.transport.SFTPAction
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.icons.FlatTreeClosedIcon
 import com.formdev.flatlaf.icons.FlatTreeOpenIcon
+import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.action.ActionManager
 import org.jdesktop.swingx.tree.DefaultXTreeCellRenderer
 import java.awt.Component
@@ -350,6 +353,7 @@ class HostTree : JTree(), Disposable {
         val newHost = newMenu.add(I18n.getString("termora.welcome.contextmenu.new.host"))
 
         val open = popupMenu.add(I18n.getString("termora.welcome.contextmenu.open"))
+        val openWithSFTP = popupMenu.add(I18n.getString("termora.welcome.contextmenu.open-with-sftp"))
         val openInNewWindow = popupMenu.add(I18n.getString("termora.welcome.contextmenu.open-in-new-window"))
         popupMenu.addSeparator()
         val copy = popupMenu.add(I18n.getString("termora.welcome.contextmenu.copy"))
@@ -375,6 +379,7 @@ class HostTree : JTree(), Disposable {
         val property = popupMenu.add(I18n.getString("termora.welcome.contextmenu.property"))
 
         open.addActionListener { openHosts(it, false) }
+        openWithSFTP.addActionListener { openWithSFTP(it) }
         openInNewWindow.addActionListener { openHosts(it, true) }
 
         rename.addActionListener {
@@ -501,6 +506,17 @@ class HostTree : JTree(), Disposable {
         else evt.source
 
         nodes.forEach { openHostAction.actionPerformed(OpenHostActionEvent(source, it, evt)) }
+    }
+
+    private fun openWithSFTP(evt: EventObject) {
+        val nodes = getSelectionNodes().filter { it.protocol == Protocol.SSH }
+        if (nodes.isEmpty()) return
+
+        val sftpAction = ActionManager.getInstance().getAction(Actions.SFTP) as SFTPAction? ?: return
+        val tab = sftpAction.openOrCreateSFTPTerminalTab(AnActionEvent(this, StringUtils.EMPTY, evt)) ?: return
+        for (node in nodes) {
+            sftpAction.connectHost(node, tab)
+        }
     }
 
     fun expandNode(node: Host, including: Boolean = false) {

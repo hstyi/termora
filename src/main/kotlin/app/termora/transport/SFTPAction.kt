@@ -13,21 +13,7 @@ class SFTPAction : AnAction("SFTP", Icons.folder) {
         val terminalTabbedManager = evt.getData(DataProviders.TerminalTabbedManager) ?: return
         val selectedTerminalTab = terminalTabbedManager.getSelectedTerminalTab()
         val host = if (selectedTerminalTab is SSHTerminalTab) selectedTerminalTab.host else null
-
-        val tabs = terminalTabbedManager.getTerminalTabs()
-        for (tab in tabs) {
-            if (tab is SFTPTerminalTab) {
-                terminalTabbedManager.setSelectedTerminalTab(tab)
-                if (host != null) {
-                    connectHost(host, tab)
-                }
-                return
-            }
-        }
-
-        // 创建一个新的
-        val tab = SFTPTerminalTab()
-        terminalTabbedManager.addTerminalTab(tab)
+        val tab = openOrCreateSFTPTerminalTab(evt) ?: return
 
         if (host != null) {
             connectHost(host, tab)
@@ -35,9 +21,32 @@ class SFTPAction : AnAction("SFTP", Icons.folder) {
     }
 
     /**
+     * 打开一个已经存在或者创建一个 SFTP Tab
+     *
+     * @return null 表示当前条件下无法创建
+     */
+    fun openOrCreateSFTPTerminalTab(evt: AnActionEvent): SFTPTerminalTab? {
+        val terminalTabbedManager = evt.getData(DataProviders.TerminalTabbedManager) ?: return null
+
+        val tabs = terminalTabbedManager.getTerminalTabs()
+        for (tab in tabs) {
+            if (tab is SFTPTerminalTab) {
+                terminalTabbedManager.setSelectedTerminalTab(tab)
+                return tab
+            }
+        }
+
+        // 创建一个新的
+        val tab = SFTPTerminalTab()
+        terminalTabbedManager.addTerminalTab(tab)
+
+        return tab
+    }
+
+    /**
      * 如果当前选中的是 SSH 服务器 Tab，那么直接打开 SFTP 通道
      */
-    private fun connectHost(host: Host, tab: SFTPTerminalTab) {
+    fun connectHost(host: Host, tab: SFTPTerminalTab) {
         val tabbed = tab.getData(TransportDataProviders.TransportPanel)
             ?.getData(TransportDataProviders.RightFileSystemTabbed) ?: return
 
