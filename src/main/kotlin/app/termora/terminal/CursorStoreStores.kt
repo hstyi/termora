@@ -22,7 +22,9 @@ object CursorStoreStores {
 
         terminalModel.setData(DataKey.OriginMode, cursorStore.originMode)
         terminalModel.setData(DataKey.TextStyle, cursorStore.textStyle)
-        terminalModel.setData(DataKey.AutoWrapMode, cursorStore.autoWarpMode)
+        if (cursorStore.autoWarpMode != null) {
+            terminalModel.setData(DataKey.AutoWrapMode, cursorStore.autoWarpMode)
+        }
         terminalModel.setData(DataKey.GraphicCharacterSet, cursorStore.graphicCharacterSet)
 
         val region = if (terminalModel.isOriginMode()) terminalModel.getScrollingRegion()
@@ -52,7 +54,7 @@ object CursorStoreStores {
         val cursorStore = CursorStore(
             position = terminal.getCursorModel().getPosition(),
             textStyle = terminalModel.getData(DataKey.TextStyle),
-            autoWarpMode = terminalModel.getData(DataKey.AutoWrapMode, false),
+            autoWarpMode = if (terminalModel.hasData(DataKey.AutoWrapMode)) terminalModel.getData(DataKey.AutoWrapMode) else null,
             originMode = terminalModel.isOriginMode(),
             graphicCharacterSet = graphicCharacterSet.copy(characterSets = characterSets),
         )

@@ -13,9 +13,11 @@ data class CursorStore(
      */
     val textStyle: TextStyle,
     /**
+     * 如果为 null 表示没有设置
+     *
      * @see [DataKey.AutoWrapMode]
      */
-    val autoWarpMode: Boolean,
+    val autoWarpMode: Boolean?,
     /**
      * @see [DataKey.OriginMode]
      */
