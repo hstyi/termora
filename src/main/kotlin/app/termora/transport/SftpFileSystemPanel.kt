@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.*
 
 class SftpFileSystemPanel(
-    private var host: Host? = null
+    var host: Host? = null
 ) : JPanel(BorderLayout()), Disposable {
 
     companion object {

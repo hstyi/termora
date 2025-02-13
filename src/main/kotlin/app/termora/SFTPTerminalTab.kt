@@ -1,5 +1,7 @@
 package app.termora
 
+import app.termora.actions.DataProvider
+import app.termora.terminal.DataKey
 import app.termora.transport.TransportDataProviders
 import app.termora.transport.TransportPanel
 import java.beans.PropertyChangeListener
@@ -8,7 +10,7 @@ import javax.swing.JComponent
 import javax.swing.JOptionPane
 import javax.swing.SwingUtilities
 
-class SFTPTerminalTab : Disposable, TerminalTab {
+class SFTPTerminalTab : Disposable, TerminalTab, DataProvider {
 
     private val transportPanel by lazy {
         TransportPanel().apply {
@@ -52,6 +54,14 @@ class SFTPTerminalTab : Disposable, TerminalTab {
             messageType = JOptionPane.QUESTION_MESSAGE,
             optionType = JOptionPane.OK_CANCEL_OPTION
         ) == JOptionPane.OK_OPTION
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : Any> getData(dataKey: DataKey<T>): T? {
+        if (dataKey == TransportDataProviders.TransportPanel) {
+            return transportPanel as T
+        }
+        return null
     }
 
 }
