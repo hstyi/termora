@@ -11,7 +11,7 @@ jobs:
           fetch-depth: 0
 
       # download jdk
-      - run: wget -O $RUNNER_TEMP/java_package.tar.gz https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-21.0.6-linux-x64-b825.69.tar.gz
+      - run: wget -q -O $RUNNER_TEMP/java_package.tar.gz https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-21.0.6-linux-x64-b825.69.tar.gz
 
       # appimagetool
       - run: sudo apt install libfuse2
