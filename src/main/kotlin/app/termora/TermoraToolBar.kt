@@ -109,6 +109,10 @@ class TermoraToolBar(
 
         toolbar.add(Box.createHorizontalGlue())
 
+        if (SystemInfo.isLinux || SystemInfo.isWindows) {
+            toolbar.add(Box.createHorizontalStrut(16))
+        }
+
 
         // update btn
         val updateBtn = actionContainerFactory.createButton(actionManager.getAction(Actions.APP_UPDATE))
