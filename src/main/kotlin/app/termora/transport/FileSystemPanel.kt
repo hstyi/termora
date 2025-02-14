@@ -652,26 +652,35 @@ class FileSystemPanel(
                     coroutineScope.launch(Dispatchers.IO) {
                         while (coroutineScope.isActive) {
                             try {
+
+                                if (!Files.exists(localPath)) {
+                                    break
+                                }
+
                                 val nowModifiedTime = localPath.getLastModifiedTime().toMillis()
                                 if (nowModifiedTime != lastModifiedTime) {
                                     lastModifiedTime = nowModifiedTime
-                                    // upload
-                                    transportManager.addTransport(
-                                        transport = FileTransport(
-                                            name = PathUtils.getFileNameString(localPath.fileName),
-                                            source = localPath,
-                                            target = source,
-                                            sourceHolder = this@FileSystemPanel,
-                                            targetHolder = this@FileSystemPanel,
+                                    withContext(Dispatchers.Swing) {
+                                        // upload
+                                        transportManager.addTransport(
+                                            transport = FileTransport(
+                                                name = PathUtils.getFileNameString(localPath.fileName),
+                                                source = localPath,
+                                                target = source,
+                                                sourceHolder = this@FileSystemPanel,
+                                                targetHolder = this@FileSystemPanel,
+                                            )
                                         )
-                                    )
+                                    }
                                 }
+
                             } catch (e: Exception) {
                                 if (log.isErrorEnabled) {
                                     log.error(e.message, e)
                                 }
                                 break
                             }
+
                             delay(250.milliseconds)
                         }
                     }
