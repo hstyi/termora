@@ -35,6 +35,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
+import org.apache.commons.codec.binary.Base64
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
@@ -667,13 +668,40 @@ class SettingsOptionsPane : OptionsPane() {
 
         private fun export() {
 
+            assertEventDispatchThread()
+
+            val passwordField = OutlinePasswordField()
+            val panel = object : JPanel(BorderLayout()) {
+                override fun requestFocusInWindow(): Boolean {
+                    return passwordField.requestFocusInWindow()
+                }
+            }
+
+            val label = JLabel(I18n.getString("termora.settings.sync.export-encrypt") + StringUtils.SPACE.repeat(25))
+            label.border = BorderFactory.createEmptyBorder(0, 0, 8, 0)
+            panel.add(label, BorderLayout.NORTH)
+            panel.add(passwordField, BorderLayout.CENTER)
+
+            var password = StringUtils.EMPTY
+
+            if (OptionPane.showConfirmDialog(
+                    owner,
+                    panel,
+                    optionType = JOptionPane.YES_NO_OPTION,
+                    initialValue = passwordField
+                ) == JOptionPane.YES_OPTION
+            ) {
+                password = String(passwordField.password).trim()
+            }
+
+
             val fileChooser = FileChooser()
             fileChooser.fileSelectionMode = JFileChooser.FILES_ONLY
             fileChooser.win32Filters.add(Pair("All Files", listOf("*")))
             fileChooser.win32Filters.add(Pair("JSON files", listOf("json")))
             fileChooser.showSaveDialog(owner, "${Application.getName()}.json").thenAccept { file ->
                 if (file != null) {
-                    SwingUtilities.invokeLater { exportText(file) }
+                    SwingUtilities.invokeLater { exportText(file, password) }
                 }
             }
         }
@@ -690,6 +718,7 @@ class SettingsOptionsPane : OptionsPane() {
             }
         }
 
+        @Suppress("DuplicatedCode")
         private fun importFromFile(file: File) {
             if (!file.exists()) {
                 return
@@ -720,7 +749,79 @@ class SettingsOptionsPane : OptionsPane() {
                 return
             }
 
-            val json = jsonResult.getOrNull() ?: return
+            var json = jsonResult.getOrNull() ?: return
+
+            // 如果加密了 则解密数据
+            if (json["encryption"]?.jsonPrimitive?.booleanOrNull == true) {
+                val data = json["data"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
+                if (data.isBlank()) {
+                    OptionPane.showMessageDialog(
+                        owner, "Data file corruption",
+                        messageType = JOptionPane.ERROR_MESSAGE
+                    )
+                    return
+                }
+
+                while (true) {
+                    val passwordField = OutlinePasswordField()
+                    val panel = object : JPanel(BorderLayout()) {
+                        override fun requestFocusInWindow(): Boolean {
+                            return passwordField.requestFocusInWindow()
+                        }
+                    }
+
+                    val label = JLabel("Please enter the password" + StringUtils.SPACE.repeat(25))
+                    label.border = BorderFactory.createEmptyBorder(0, 0, 8, 0)
+                    panel.add(label, BorderLayout.NORTH)
+                    panel.add(passwordField, BorderLayout.CENTER)
+
+                    if (OptionPane.showConfirmDialog(
+                            owner,
+                            panel,
+                            optionType = JOptionPane.YES_NO_OPTION,
+                            initialValue = passwordField
+                        ) != JOptionPane.YES_OPTION
+                    ) {
+                        return
+                    }
+
+                    if (passwordField.password.isEmpty()) {
+                        OptionPane.showMessageDialog(
+                            owner, I18n.getString("termora.doorman.unlock-data"),
+                            messageType = JOptionPane.ERROR_MESSAGE
+                        )
+                        continue
+                    }
+
+                    val password = String(passwordField.password)
+                    val key = PBKDF2.generateSecret(
+                        password.toCharArray(),
+                        password.toByteArray(), keyLength = 128
+                    )
+
+                    try {
+                        val dataText = AES.ECB.decrypt(key, Base64.decodeBase64(data)).toString(Charsets.UTF_8)
+                        val dataJsonResult = ohMyJson.runCatching { decodeFromString<JsonObject>(dataText) }
+                        if (dataJsonResult.isFailure) {
+                            val e = dataJsonResult.exceptionOrNull() ?: return
+                            OptionPane.showMessageDialog(
+                                owner, ExceptionUtils.getRootCauseMessage(e),
+                                messageType = JOptionPane.ERROR_MESSAGE
+                            )
+                            return
+                        }
+                        json = dataJsonResult.getOrNull() ?: return
+                        break
+                    } catch (_: Exception) {
+                        OptionPane.showMessageDialog(
+                            owner, I18n.getString("termora.doorman.password-wrong"),
+                            messageType = JOptionPane.ERROR_MESSAGE
+                        )
+                    }
+
+                }
+            }
+
             if (ranges.contains(SyncRange.Hosts)) {
                 val hosts = json["hosts"]
                 if (hosts is JsonArray) {
@@ -781,9 +882,9 @@ class SettingsOptionsPane : OptionsPane() {
             )
         }
 
-        private fun exportText(file: File) {
+        private fun exportText(file: File, password: String) {
             val syncConfig = getSyncConfig()
-            val text = ohMyJson.encodeToString(buildJsonObject {
+            var text = ohMyJson.encodeToString(buildJsonObject {
                 val now = System.currentTimeMillis()
                 put("exporter", SystemUtils.USER_NAME)
                 put("version", Application.getVersion())
@@ -822,6 +923,19 @@ class SettingsOptionsPane : OptionsPane() {
                     put("terminal", ohMyJson.encodeToJsonElement(database.terminal.getProperties()))
                 })
             })
+
+            if (password.isNotBlank()) {
+                val key = PBKDF2.generateSecret(
+                    password.toCharArray(),
+                    password.toByteArray(), keyLength = 128
+                )
+
+                text = ohMyJson.encodeToString(buildJsonObject {
+                    put("encryption", true)
+                    put("data", AES.ECB.encrypt(key, text.toByteArray(Charsets.UTF_8)).encodeBase64String())
+                })
+            }
+
             file.outputStream().use {
                 IOUtils.write(text, it, StandardCharsets.UTF_8)
                 OptionPane.openFileInFolder(
