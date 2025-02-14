@@ -392,6 +392,42 @@ tasks.register("dist") {
             throw GradleException("${os.name} is not supported")
         }
 
+        // AppImage
+        if (os.isLinux) {
+
+            exec {
+                commandLine(
+                    "wget",
+                    "-O", "appimagetool",
+                    "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-${if (arch.isArm) "aarch64" else "x86_64"}.AppImage"
+                )
+                workingDir = distributionDir.asFile
+            }
+
+            exec {
+                commandLine("chmod", "+x", distributionDir.file("appimagetool"))
+            }
+
+            val termoraName = project.name.uppercaseFirstChar()
+            val desktopFile = distributionDir.file(termoraName + File.separator + termoraName + ".desktop").asFile
+            desktopFile.writeText(
+                """[Desktop Entry]
+Type=Application
+Name=${termoraName}
+Exec=bin/${termoraName}
+Comment=Terminal emulator and SSH client
+Icon=/lib/${termoraName}
+Categories=Development;
+Terminal=false
+""".trimIndent()
+            )
+
+            exec {
+                commandLine("./appimagetool", termoraName, "${finalFilenameWithoutExtension}.AppImage")
+                workingDir = distributionDir.asFile
+            }
+        }
+
 
         // sign dmg
         if (os.isMacOsX && macOSSign) {

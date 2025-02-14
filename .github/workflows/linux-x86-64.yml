@@ -4,7 +4,7 @@ on: [ push, pull_request ]
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -12,6 +12,9 @@ jobs:
 
       # download jdk
       - run: wget -O $RUNNER_TEMP/java_package.tar.gz https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-21.0.6-linux-x64-b825.69.tar.gz
+
+      # appimagetool
+      - run: sudo apt install libfuse2
 
       # install jdk
       - name: Installing Java
@@ -22,6 +25,15 @@ jobs:
           java-version: '21.0.6'
           architecture: x64
 
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
       # dist
       - run: |
           ./gradlew dist --no-daemon
@@ -30,4 +42,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: termora-linux-x86-64
-          path: build/distributions/*.tar.gz
+          path: |
+            build/distributions/*.tar.gz
+            build/distributions/*.AppImage
