@@ -395,26 +395,30 @@ tasks.register("dist") {
         // AppImage
         if (os.isLinux) {
 
-            exec {
-                commandLine(
-                    "wget",
-                    "-O", "appimagetool",
-                    "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-${if (arch.isArm) "aarch64" else "x86_64"}.AppImage"
-                )
-                workingDir = distributionDir.asFile
+            // Download AppImageKit
+            val appimagetool = FileUtils.getFile(projectDir, ".gradle", "appimagetool")
+            if (!appimagetool.exists()) {
+                exec {
+                    commandLine(
+                        "wget",
+                        "-O", appimagetool.absolutePath,
+                        "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-${if (arch.isArm) "aarch64" else "x86_64"}.AppImage"
+                    )
+                    workingDir = distributionDir.asFile
+                }
+
+                // AppImageKit chmod
+                exec { commandLine("chmod", "+x", appimagetool.absolutePath) }
             }
 
-            exec {
-                commandLine("chmod", "+x", distributionDir.file("appimagetool"))
-            }
 
+            // Desktop file
             val termoraName = project.name.uppercaseFirstChar()
             val desktopFile = distributionDir.file(termoraName + File.separator + termoraName + ".desktop").asFile
             desktopFile.writeText(
                 """[Desktop Entry]
 Type=Application
 Name=${termoraName}
-Exec=bin/${termoraName}
 Comment=Terminal emulator and SSH client
 Icon=/lib/${termoraName}
 Categories=Development;
@@ -422,8 +426,18 @@ Terminal=false
 """.trimIndent()
             )
 
+            // AppRun file
+            val appRun = File(desktopFile.parentFile, "AppRun")
+            val sb = StringBuilder()
+            sb.append("#!/bin/sh").appendLine()
+            sb.append("SELF=$(readlink -f \"$0\")").appendLine()
+            sb.append("HERE=\${SELF%/*}").appendLine()
+            sb.append("exec \"\${HERE}/bin/${termoraName}\" \"$@\"")
+            appRun.writeText(sb.toString())
+            appRun.setExecutable(true)
+
             exec {
-                commandLine("./appimagetool", termoraName, "${finalFilenameWithoutExtension}.AppImage")
+                commandLine(appimagetool.absolutePath, termoraName, "${finalFilenameWithoutExtension}.AppImage")
                 workingDir = distributionDir.asFile
             }
         }
