@@ -80,6 +80,8 @@ class MyTabbedPane : FlatTabbedPane() {
         override fun mousePressed(e: MouseEvent) {
             val index = indexAtLocation(e.x, e.y)
             if (index < 0 || !isTabClosable(index)) {
+                tabIndex = -1
+                mousePressedPoint = Point()
                 return
             }
             tabIndex = index
