@@ -467,6 +467,7 @@ class HostTree : JTree(), Disposable {
         property.addActionListener(object : AbstractAction() {
             override fun actionPerformed(e: ActionEvent) {
                 val dialog = HostDialog(SwingUtilities.getWindowAncestor(this@HostTree), lastHost)
+                dialog.title = lastHost.name
                 dialog.isVisible = true
                 val host = dialog.host ?: return
                 runCatchingHost(host)
