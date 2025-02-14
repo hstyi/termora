@@ -16,6 +16,12 @@ class TerminalPanelFactory {
         fun getInstance(scope: Scope): TerminalPanelFactory {
             return scope.getOrCreate(TerminalPanelFactory::class) { TerminalPanelFactory() }
         }
+
+        fun getAllTerminalPanel(): List<TerminalPanel> {
+            return ApplicationScope.forApplicationScope().windowScopes()
+                .map { getInstance(it) }
+                .flatMap { it.getTerminalPanels() }
+        }
     }
 
     fun createTerminalPanel(terminal: Terminal, ptyConnector: PtyConnector): TerminalPanel {

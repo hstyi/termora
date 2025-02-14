@@ -3,6 +3,8 @@ package app.termora
 object Icons {
     val bulletList by lazy { DynamicIcon("icons/bulletList.svg", "icons/bulletList_dark.svg") }
     val up by lazy { DynamicIcon("icons/up.svg", "icons/up_dark.svg") }
+    val closeSmall by lazy { DynamicIcon("icons/closeSmall.svg", "icons/closeSmall_dark.svg") }
+    val closeSmallHovered by lazy { DynamicIcon("icons/closeSmallHovered.svg", "icons/closeSmallHovered_dark.svg") }
     val plugin by lazy { DynamicIcon("icons/plugin.svg", "icons/plugin_dark.svg") }
     val moveUp by lazy { DynamicIcon("icons/moveUp.svg", "icons/moveUp_dark.svg") }
     val down by lazy { DynamicIcon("icons/down.svg", "icons/down_dark.svg") }

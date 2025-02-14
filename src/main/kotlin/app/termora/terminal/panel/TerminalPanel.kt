@@ -1,6 +1,7 @@
 package app.termora.terminal.panel
 
 import app.termora.Disposable
+import app.termora.Disposer
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviderSupport
 import app.termora.actions.DataProviders
@@ -40,9 +41,11 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
     }
 
     private val terminalFindPanel = TerminalFindPanel(this, terminal)
+    private val floatingToolbar = FloatingToolbarPanel()
     private val terminalDisplay = TerminalDisplay(this, terminal)
-    val scrollBar = TerminalScrollBar(this@TerminalPanel, terminalFindPanel, terminal)
     private val dataProviderSupport = DataProviderSupport()
+
+    val scrollBar = TerminalScrollBar(this@TerminalPanel, terminalFindPanel, terminal)
 
 
     /**
@@ -117,6 +120,7 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
         val layeredPane = TerminalLayeredPane()
         layeredPane.add(terminalDisplay, JLayeredPane.DEFAULT_LAYER as Any)
         layeredPane.add(terminalFindPanel, JLayeredPane.POPUP_LAYER as Any)
+        layeredPane.add(floatingToolbar, JLayeredPane.POPUP_LAYER as Any)
         add(layeredPane, BorderLayout.CENTER)
         add(scrollBar, BorderLayout.EAST)
 
@@ -127,6 +131,7 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
         dataProviderSupport.addData(DataProviders.TerminalPanel, this)
         dataProviderSupport.addData(DataProviders.Terminal, terminal)
         dataProviderSupport.addData(DataProviders.PtyConnector, ptyConnector)
+        dataProviderSupport.addData(FloatingToolbarPanel.FloatingToolbar, floatingToolbar)
     }
 
     private fun initEvents() {
@@ -157,6 +162,11 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
         val trackingAdapter = TerminalPanelMouseTrackingAdapter(this, terminal, ptyConnector)
         this.addMouseListener(trackingAdapter)
         this.addMouseWheelListener(trackingAdapter)
+
+        // 悬浮工具栏
+        val floatingToolBarAdapter = TerminalPanelMouseFloatingToolBarAdapter(this, terminalDisplay)
+        this.addMouseMotionListener(floatingToolBarAdapter)
+        this.addMouseListener(floatingToolBarAdapter)
 
         // 滚动相关
         this.addMouseWheelListener(object : MouseWheelListener {
@@ -197,6 +207,8 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
         // 开启拖拽
         enableDropTarget()
 
+        // 监听悬浮工具栏变化，然后重新渲染
+        floatingToolbar.addPropertyChangeListener { repaintImmediate() }
 
     }
 
@@ -373,6 +385,9 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
 
     }
 
+    override fun dispose() {
+        Disposer.dispose(floatingToolbar)
+    }
 
     fun getAverageCharWidth(): Int {
         return terminalDisplay.getAverageCharWidth()
@@ -450,6 +465,7 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
             synchronized(treeLock) {
                 val w = width
                 val h = height
+                val findPanelHeight = max(terminalFindPanel.preferredSize.height, terminalFindPanel.height)
                 for (c in components) {
                     when (c) {
                         terminalDisplay -> {
@@ -467,7 +483,19 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
                                 w - width,
                                 0,
                                 width,
-                                max(terminalFindPanel.preferredSize.height, terminalFindPanel.height)
+                                findPanelHeight
+                            )
+                        }
+
+                        floatingToolbar -> {
+                            val width = floatingToolbar.preferredSize.width
+                            val height = floatingToolbar.preferredSize.height
+                            val y = 4
+                            c.setBounds(
+                                w - width,
+                                if (terminalFindPanel.isVisible) findPanelHeight + y else y,
+                                width,
+                                height
                             )
                         }
                     }

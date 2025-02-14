@@ -18,9 +18,6 @@ import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.*
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.set
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 import kotlin.time.Duration.Companion.minutes
@@ -475,6 +472,11 @@ class Database private constructor(private val env: Environment) : Disposable {
          * 终端断开连接时自动关闭Tab
          */
         var autoCloseTabWhenDisconnected by BooleanPropertyDelegate(false)
+
+        /**
+         * 是否显示悬浮工具栏
+         */
+        var floatingToolbar by BooleanPropertyDelegate(true)
     }
 
     /**

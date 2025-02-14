@@ -5,6 +5,7 @@ import app.termora.actions.ActionManager
 import app.termora.terminal.Terminal
 import app.termora.terminal.TerminalColor
 import app.termora.terminal.TextStyle
+import app.termora.terminal.panel.FloatingToolbarPanel
 import app.termora.terminal.panel.TerminalDisplay
 import app.termora.terminal.panel.TerminalPaintListener
 import app.termora.terminal.panel.TerminalPanel
@@ -32,13 +33,25 @@ class MultipleTerminalListener : TerminalPaintListener {
         // 正在搜索那么需要下移
         val finding = terminal.getTerminalModel().getData(TerminalPanel.Finding, false)
 
+        // 如果悬浮窗正在显示，那么需要下移
+        val floatingToolBar = terminalPanel.getData(FloatingToolbarPanel.FloatingToolbar)?.isVisible == true
+
+        var y = g.fontMetrics.ascent
+        if (finding) {
+            y += g.fontMetrics.height + g.fontMetrics.ascent / 2
+        }
+
+        if (floatingToolBar) {
+            y += g.fontMetrics.height + g.fontMetrics.ascent / 2
+        }
+
+
         g.font = font
         g.color = Color(colorPalette.getColor(TerminalColor.Normal.RED))
         g.drawString(
             text,
             terminalDisplay.width - width - terminalPanel.getAverageCharWidth() / 2,
-            g.fontMetrics.ascent + if (finding)
-                g.fontMetrics.height + g.fontMetrics.ascent / 2 else 0
+            y
         )
         g.font = oldFont
     }

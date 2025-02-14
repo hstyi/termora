@@ -20,6 +20,7 @@ import app.termora.sync.SyncType
 import app.termora.sync.SyncerProvider
 import app.termora.terminal.CursorStyle
 import app.termora.terminal.DataKey
+import app.termora.terminal.panel.FloatingToolbarPanel
 import app.termora.terminal.panel.TerminalPanel
 import cash.z.ecc.android.bip39.Mnemonics
 import com.formdev.flatlaf.FlatClientProperties
@@ -310,6 +311,7 @@ class SettingsOptionsPane : OptionsPane() {
         private val terminalSetting get() = Database.getDatabase().terminal
         private val selectCopyComboBox = YesOrNoComboBox()
         private val autoCloseTabComboBox = YesOrNoComboBox()
+        private val floatingToolbarComboBox = YesOrNoComboBox()
 
         init {
             initView()
@@ -331,6 +333,19 @@ class SettingsOptionsPane : OptionsPane() {
                 }
             }
             autoCloseTabComboBox.toolTipText = I18n.getString("termora.settings.terminal.auto-close-tab-description")
+
+            floatingToolbarComboBox.addItemListener { e ->
+                if (e.stateChange == ItemEvent.SELECTED) {
+                    terminalSetting.floatingToolbar = floatingToolbarComboBox.selectedItem as Boolean
+                    TerminalPanelFactory.getAllTerminalPanel().forEach { tp ->
+                        if (terminalSetting.floatingToolbar && FloatingToolbarPanel.isPined) {
+                            tp.getData(FloatingToolbarPanel.FloatingToolbar)?.triggerShow()
+                        } else {
+                            tp.getData(FloatingToolbarPanel.FloatingToolbar)?.triggerHide()
+                        }
+                    }
+                }
+            }
 
             selectCopyComboBox.addItemListener { e ->
                 if (e.stateChange == ItemEvent.SELECTED) {
@@ -477,6 +492,7 @@ class SettingsOptionsPane : OptionsPane() {
             cursorStyleComboBox.selectedItem = terminalSetting.cursor
             selectCopyComboBox.selectedItem = terminalSetting.selectCopy
             autoCloseTabComboBox.selectedItem = terminalSetting.autoCloseTabWhenDisconnected
+            floatingToolbarComboBox.selectedItem = terminalSetting.floatingToolbar
         }
 
         override fun getIcon(isSelected: Boolean): Icon {
@@ -494,7 +510,7 @@ class SettingsOptionsPane : OptionsPane() {
         private fun getCenterComponent(): JComponent {
             val layout = FormLayout(
                 "left:pref, $formMargin, default:grow, $formMargin, left:pref, $formMargin, pref, default:grow",
-                "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
+                "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
             )
 
             val beepBtn = JButton(Icons.run)
@@ -521,6 +537,8 @@ class SettingsOptionsPane : OptionsPane() {
                 .add(selectCopyComboBox).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.terminal.cursor-style")}:").xy(1, rows)
                 .add(cursorStyleComboBox).xy(3, rows).apply { rows += step }
+                .add("悬浮工具栏:").xy(1, rows)
+                .add(floatingToolbarComboBox).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.terminal.auto-close-tab")}:").xy(1, rows)
                 .add(autoCloseTabComboBox).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.terminal.local-shell")}:").xy(1, rows)
