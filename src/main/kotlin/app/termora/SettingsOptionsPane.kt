@@ -537,7 +537,7 @@ class SettingsOptionsPane : OptionsPane() {
                 .add(selectCopyComboBox).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.terminal.cursor-style")}:").xy(1, rows)
                 .add(cursorStyleComboBox).xy(3, rows).apply { rows += step }
-                .add("悬浮工具栏:").xy(1, rows)
+                .add("${I18n.getString("termora.settings.terminal.floating-toolbar")}:").xy(1, rows)
                 .add(floatingToolbarComboBox).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.terminal.auto-close-tab")}:").xy(1, rows)
                 .add(autoCloseTabComboBox).xy(3, rows).apply { rows += step }
