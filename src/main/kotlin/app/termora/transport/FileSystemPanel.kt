@@ -2,6 +2,7 @@ package app.termora.transport
 
 import app.termora.*
 import app.termora.actions.AnActionEvent
+import app.termora.actions.SettingsAction
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.extras.components.FlatToolBar
@@ -20,6 +21,7 @@ import org.apache.sshd.sftp.client.SftpClient
 import org.apache.sshd.sftp.client.fs.SftpFileSystem
 import org.apache.sshd.sftp.client.fs.SftpPath
 import org.jdesktop.swingx.JXBusyLabel
+import org.jdesktop.swingx.action.ActionManager
 import org.slf4j.LoggerFactory
 import java.awt.BorderLayout
 import java.awt.Component
@@ -70,6 +72,8 @@ class FileSystemPanel(
     private val properties get() = Database.getDatabase().properties
     private val showHiddenFilesKey by lazy { "termora.transport.host.${host.id}.show-hidden-files" }
     private val evt by lazy { AnActionEvent(this, StringUtils.EMPTY, EventObject(this)) }
+    private val sftp get() = Database.getDatabase().sftp
+    private val actionManager get() = ActionManager.getInstance()
 
     /**
      * Edit
@@ -596,6 +600,19 @@ class FileSystemPanel(
         if (files.isEmpty()) return
         val transportManager = evt.getData(TransportDataProviders.TransportManager) ?: return
 
+        if (SystemInfo.isLinux) {
+            if (sftp.editCommand.isBlank()) {
+                OptionPane.showMessageDialog(
+                    owner,
+                    I18n.getString("termora.transport.table.contextmenu.edit-command"),
+                    messageType = JOptionPane.INFORMATION_MESSAGE
+                )
+                actionManager.getAction(SettingsAction.SETTING)
+                    ?.actionPerformed(AnActionEvent(this, StringUtils.EMPTY, EventObject(this)))
+                return
+            }
+        }
+
         val temporary = Paths.get(Application.getBaseDataDir().absolutePath, "temporary")
         Files.createDirectories(temporary)
 
@@ -617,7 +634,6 @@ class FileSystemPanel(
 
     private fun editFileTransportListener(source: Path, localPath: Path): TransportListener {
         return object : TransportListener {
-            private val sftp get() = Database.getDatabase().sftp
             override fun onTransportChanged(transport: Transport) {
                 // 传输成功
                 if (transport.state == TransportState.Done) {
