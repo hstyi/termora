@@ -162,6 +162,41 @@ object SshClients {
         return session
     }
 
+    fun openTunneling(session: ClientSession, host: Host, tunneling: Tunneling): SshdSocketAddress {
+
+        val sshdSocketAddress = if (tunneling.type == TunnelingType.Local) {
+            session.startLocalPortForwarding(
+                SshdSocketAddress(tunneling.sourceHost, tunneling.sourcePort),
+                SshdSocketAddress(tunneling.destinationHost, tunneling.destinationPort)
+            )
+        } else if (tunneling.type == TunnelingType.Remote) {
+            session.startRemotePortForwarding(
+                SshdSocketAddress(tunneling.sourceHost, tunneling.sourcePort),
+                SshdSocketAddress(tunneling.destinationHost, tunneling.destinationPort),
+            )
+        } else if (tunneling.type == TunnelingType.Dynamic) {
+            session.startDynamicPortForwarding(
+                SshdSocketAddress(
+                    tunneling.sourceHost,
+                    tunneling.sourcePort
+                )
+            )
+        } else {
+            SshdSocketAddress.LOCALHOST_ADDRESS
+        }
+
+        if (log.isInfoEnabled) {
+            log.info(
+                "SSH [{}] started {} port forwarding. host: {} , port: {}",
+                host.name,
+                tunneling.name,
+                sshdSocketAddress.hostName,
+                sshdSocketAddress.port
+            )
+        }
+
+        return sshdSocketAddress
+    }
 
     /**
      * 打开一个客户端

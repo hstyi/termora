@@ -26,7 +26,6 @@ import org.apache.sshd.common.channel.ChannelListener
 import org.apache.sshd.common.session.Session
 import org.apache.sshd.common.session.SessionListener
 import org.apache.sshd.common.session.SessionListener.Event
-import org.apache.sshd.common.util.net.SshdSocketAddress
 import org.slf4j.LoggerFactory
 import java.nio.charset.StandardCharsets
 import java.util.*
@@ -193,28 +192,8 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
         }
 
         for (tunneling in host.tunnelings) {
-            if (tunneling.type == TunnelingType.Local) {
-                session.startLocalPortForwarding(
-                    SshdSocketAddress(tunneling.sourceHost, tunneling.sourcePort),
-                    SshdSocketAddress(tunneling.destinationHost, tunneling.destinationPort)
-                )
-            } else if (tunneling.type == TunnelingType.Remote) {
-                session.startRemotePortForwarding(
-                    SshdSocketAddress(tunneling.sourceHost, tunneling.sourcePort),
-                    SshdSocketAddress(tunneling.destinationHost, tunneling.destinationPort),
-                )
-            } else if (tunneling.type == TunnelingType.Dynamic) {
-                session.startDynamicPortForwarding(
-                    SshdSocketAddress(
-                        tunneling.sourceHost,
-                        tunneling.sourcePort
-                    )
-                )
-            }
 
-            if (log.isInfoEnabled) {
-                log.info("SSH [{}] started {} port forwarding.", host.name, tunneling.name)
-            }
+            SshClients.openTunneling(session, host, tunneling)
 
             withContext(Dispatchers.Swing) {
                 terminal.write("Start [${tunneling.name}] port forwarding successfully.\r\n")
