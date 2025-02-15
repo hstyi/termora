@@ -274,7 +274,17 @@ tasks.register<Exec>("jpackage") {
     arguments.addAll(listOf("--java-options", options.joinToString(StringUtils.SPACE)))
     arguments.addAll(listOf("--vendor", "TermoraDev"))
     arguments.addAll(listOf("--copyright", "TermoraDev"))
-    arguments.addAll(listOf("--description", "A terminal emulator and SSH client."))
+
+    if (os.isWindows) {
+        arguments.addAll(
+            listOf(
+                "--description",
+                "${project.name.uppercaseFirstChar()}: A terminal emulator and SSH client"
+            )
+        )
+    } else {
+        arguments.addAll(listOf("--description", "A terminal emulator and SSH client."))
+    }
 
 
     if (os.isMacOsX) {
