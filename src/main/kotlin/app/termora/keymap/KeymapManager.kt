@@ -1,19 +1,18 @@
 package app.termora.keymap
 
-import app.termora.ApplicationScope
-import app.termora.Database
-import app.termora.DialogWrapper
-import app.termora.Disposable
+import app.termora.*
 import app.termora.actions.AnActionEvent
 import com.formdev.flatlaf.util.SystemInfo
 import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.action.ActionManager
 import org.slf4j.LoggerFactory
+import java.awt.Container
 import java.awt.KeyEventDispatcher
 import java.awt.KeyboardFocusManager
 import java.awt.event.KeyEvent
 import javax.swing.JComponent
 import javax.swing.JDialog
+import javax.swing.JPopupMenu
 import javax.swing.KeyStroke
 
 class KeymapManager private constructor() : Disposable {
@@ -125,6 +124,17 @@ class KeymapManager private constructor() : Disposable {
                 return false
             }
 
+            // 如果当前有 Popup ，那么不派发事件
+            val c = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
+            if (c is Container) {
+                val popups: List<JPopupMenu> = SwingUtils.getDescendantsOfType(
+                    JPopupMenu::class.java,
+                    c, true
+                )
+                if (popups.isNotEmpty()) {
+                    return false
+                }
+            }
 
             val evt = AnActionEvent(e.source, StringUtils.EMPTY, e)
             for (actionId in actionIds) {
