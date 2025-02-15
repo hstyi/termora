@@ -6,6 +6,7 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.sshd.client.ClientBuilder
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.channel.ChannelShell
+import org.apache.sshd.client.config.hosts.HostConfigEntry
 import org.apache.sshd.client.config.hosts.HostConfigEntryResolver
 import org.apache.sshd.client.config.hosts.KnownHostEntry
 import org.apache.sshd.client.kex.DHGClient
@@ -23,6 +24,7 @@ import org.apache.sshd.common.util.net.SshdSocketAddress
 import org.apache.sshd.core.CoreModuleProperties
 import org.apache.sshd.server.forward.AcceptAllForwardingFilter
 import org.apache.sshd.server.forward.RejectAllForwardingFilter
+import org.eclipse.jgit.internal.transport.sshd.JGitClientSession
 import org.eclipse.jgit.internal.transport.sshd.JGitSshClient
 import org.eclipse.jgit.transport.CredentialsProvider
 import org.eclipse.jgit.transport.sshd.IdentityPasswordProvider
@@ -32,6 +34,7 @@ import java.awt.Window
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.SocketAddress
+import java.nio.file.Path
 import java.nio.file.Paths
 import java.security.PublicKey
 import java.time.Duration
@@ -102,7 +105,7 @@ object SshClients {
         val sessions = mutableListOf<ClientSession>()
         for (i in 0 until jumpHosts.size) {
             val currentHost = jumpHosts[i]
-            sessions.add(doOpenSession(currentHost, client))
+            sessions.add(doOpenSession(currentHost, client, i != 0))
 
             // 如果有下一跳
             if (i < jumpHosts.size - 1) {
@@ -123,8 +126,27 @@ object SshClients {
         return sessions.last()
     }
 
-    private fun doOpenSession(host: Host, client: SshClient): ClientSession {
-        val session = client.connect(host.username, host.host, host.port)
+    fun isMiddleware(session: ClientSession): Boolean {
+        if (session is JGitClientSession) {
+            if (session.hostConfigEntry.properties["Middleware"]?.toBoolean() == true) {
+                return true
+            }
+        }
+        return false
+    }
+
+
+    /**
+     * @param middleware 如果为 true 表示是跳板
+     */
+    private fun doOpenSession(host: Host, client: SshClient, middleware: Boolean = false): ClientSession {
+        val entry = HostConfigEntry()
+        entry.port = host.port
+        entry.username = host.username
+        entry.hostName = host.host
+        entry.setProperty("Middleware", middleware.toString())
+
+        val session = client.connect(entry)
             .verify(timeout).session
         if (host.authentication.type == AuthenticationType.Password) {
             session.addPasswordIdentity(host.authentication.password)
@@ -213,6 +235,11 @@ private class MyDialogServerKeyVerifier(private val owner: Window) : ServerKeyVe
         remoteAddress: SocketAddress,
         serverKey: PublicKey
     ): Boolean {
+
+        if (SshClients.isMiddleware(clientSession)) {
+            return true
+        }
+
         val result = AtomicBoolean(false)
 
         SwingUtilities.invokeAndWait {
@@ -273,5 +300,20 @@ class DialogServerKeyVerifier(
 ) {
     init {
         modifiedServerKeyAcceptor = delegateVerifier as ModifiedServerKeyAcceptor
+    }
+
+    override fun updateKnownHostsFile(
+        clientSession: ClientSession?,
+        remoteAddress: SocketAddress?,
+        serverKey: PublicKey?,
+        file: Path?,
+        knownHosts: Collection<HostEntryPair?>?
+    ): KnownHostEntry? {
+        if (clientSession is JGitClientSession) {
+            if (SshClients.isMiddleware(clientSession)) {
+                return null
+            }
+        }
+        return super.updateKnownHostsFile(clientSession, remoteAddress, serverKey, file, knownHosts)
     }
 }
