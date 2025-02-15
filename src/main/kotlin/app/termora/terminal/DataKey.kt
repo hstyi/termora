@@ -75,6 +75,13 @@ class DataKey<T : Any>(val clazz: KClass<T>) {
         val Workdir = DataKey(String::class)
 
         /**
+         * OSC 1337 CurrentDir
+         *
+         * https://iterm2.com/documentation-escape-codes.html
+         */
+        val CurrentDir = DataKey(String::class)
+
+        /**
          * true: alternate keypad.
          * false: Normal Keypad (DECKPNM)
          */

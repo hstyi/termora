@@ -4,6 +4,8 @@ import org.apache.commons.codec.binary.Base64
 import org.slf4j.LoggerFactory
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
+import java.io.StringReader
+import java.util.*
 
 class OperatingSystemCommandProcessor(terminal: Terminal, reader: TerminalReader) :
     AbstractProcessor(terminal, reader) {
@@ -82,6 +84,19 @@ class OperatingSystemCommandProcessor(terminal: Terminal, reader: TerminalReader
             8 -> {
                 if (log.isDebugEnabled) {
                     log.debug("Ignore hyperlink OSC: 8")
+                }
+            }
+
+            // https://iterm2.com/documentation-escape-codes.html
+            1337 -> {
+                val properties = Properties()
+                properties.load(StringReader(suffix))
+                if (properties.containsKey("CurrentDir")) {
+                    val currentDir = properties.getProperty("CurrentDir")
+                    terminal.getTerminalModel().setData(DataKey.CurrentDir, currentDir)
+                    if (log.isDebugEnabled) {
+                        log.debug("CurrentDir: $currentDir")
+                    }
                 }
             }
 

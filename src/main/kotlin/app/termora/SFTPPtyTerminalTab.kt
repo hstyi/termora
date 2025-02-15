@@ -95,7 +95,14 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
         // 设置认证信息
         setAuthentication(commands, host)
 
-        commands.add("${host.username}@${host.host}")
+
+        val envs = host.options.envs()
+        if (envs.containsKey("CurrentDir")) {
+            val currentDir = envs.getValue("CurrentDir")
+            commands.add("${host.username}@${host.host}:${currentDir}")
+        } else {
+            commands.add("${host.username}@${host.host}")
+        }
 
         val winSize = terminalPanel.winSize()
         val ptyConnector = ptyConnectorFactory.createPtyConnector(

@@ -5,6 +5,17 @@ import org.apache.commons.lang3.StringUtils
 import java.util.*
 
 
+fun Map<*, *>.toPropertiesString(): String {
+    val env = StringBuilder()
+    for ((i, e) in entries.withIndex()) {
+        env.append(e.key).append('=').append(e.value)
+        if (i != size - 1) {
+            env.appendLine()
+        }
+    }
+    return env.toString()
+}
+
 fun UUID.toSimpleString(): String {
     return toString().replace("-", StringUtils.EMPTY)
 }

@@ -1,5 +1,7 @@
 package app.termora
 
+import app.termora.actions.DataProvider
+import app.termora.actions.DataProviders
 import app.termora.terminal.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -12,7 +14,7 @@ abstract class HostTerminalTab(
     val windowScope: WindowScope,
     val host: Host,
     protected val terminal: Terminal = TerminalFactory.getInstance(windowScope).createTerminal()
-) : PropertyTerminalTab() {
+) : PropertyTerminalTab(), DataProvider {
     companion object {
         val Host = DataKey(app.termora.Host::class)
     }
@@ -69,4 +71,11 @@ abstract class HostTerminalTab(
         unread = false
     }
 
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : Any> getData(dataKey: DataKey<T>): T? {
+        if (dataKey == DataProviders.Terminal) {
+            return terminal as T?
+        }
+        return null
+    }
 }

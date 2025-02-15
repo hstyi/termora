@@ -1,5 +1,6 @@
 package app.termora
 
+import app.termora.actions.DataProviders
 import app.termora.terminal.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
@@ -135,4 +136,12 @@ abstract class PtyHostTerminalTab(
     }
 
     abstract suspend fun openPtyConnector(): PtyConnector
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : Any> getData(dataKey: DataKey<T>): T? {
+        if (dataKey == DataProviders.TerminalPanel) {
+            return terminalPanel as T?
+        }
+        return super.getData(dataKey)
+    }
 }

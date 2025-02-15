@@ -236,21 +236,12 @@ class TerminalTabbed(
         })
 
         if (tab is HostTerminalTab) {
-            if (tab.host.protocol == Protocol.SSH || tab.host.protocol == Protocol.SFTPPty) {
-                popupMenu.addSeparator()
-                val sftpCommand = popupMenu.add(I18n.getString("termora.tabbed.contextmenu.sftp-command"))
-                sftpCommand.addActionListener {
-                    if (SFTPPtyTerminalTab.canSupports) {
-                        actionManager.getAction(OpenHostAction.OPEN_HOST)
-                            ?.actionPerformed(OpenHostActionEvent(this, tab.host.copy(protocol = Protocol.SFTPPty), it))
-                    } else {
-                        OptionPane.showMessageDialog(
-                            SwingUtilities.getWindowAncestor(this),
-                            I18n.getString("termora.tabbed.contextmenu.sftp-not-install"),
-                            messageType = JOptionPane.ERROR_MESSAGE
-                        )
-                    }
-
+            val openHostAction = actionManager.getAction(OpenHostAction.OPEN_HOST)
+            if (openHostAction != null) {
+                if (tab.host.protocol == Protocol.SSH || tab.host.protocol == Protocol.SFTPPty) {
+                    popupMenu.addSeparator()
+                    val sftpCommand = popupMenu.add(I18n.getString("termora.tabbed.contextmenu.sftp-command"))
+                    sftpCommand.addActionListener { openSFTPPtyTab(tab, openHostAction, it) }
                 }
             }
         }
@@ -326,6 +317,36 @@ class TerminalTabbed(
         tabs.add(index, tab)
         tabbedPane.selectedIndex = index
         Disposer.register(this, tab)
+    }
+
+    private fun openSFTPPtyTab(tab: HostTerminalTab, openHostAction: Action, evt: EventObject) {
+        if (!SFTPPtyTerminalTab.canSupports) {
+            OptionPane.showMessageDialog(
+                SwingUtilities.getWindowAncestor(this),
+                I18n.getString("termora.tabbed.contextmenu.sftp-not-install"),
+                messageType = JOptionPane.ERROR_MESSAGE
+            )
+            return
+        }
+
+        var host = tab.host
+
+        if (host.protocol == Protocol.SSH) {
+            val envs = tab.host.options.envs().toMutableMap()
+            val currentDir = tab.getData(DataProviders.Terminal)?.getTerminalModel()
+                ?.getData(DataKey.CurrentDir, StringUtils.EMPTY) ?: StringUtils.EMPTY
+
+            if (currentDir.isNotBlank()) {
+                envs["CurrentDir"] = currentDir
+            }
+
+            host = host.copy(
+                protocol = Protocol.SFTPPty,
+                options = host.options.copy(env = envs.toPropertiesString())
+            )
+        }
+
+        openHostAction.actionPerformed(OpenHostActionEvent(this, host, evt))
     }
 
     /**
