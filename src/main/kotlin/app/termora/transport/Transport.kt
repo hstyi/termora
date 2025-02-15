@@ -2,6 +2,7 @@ package app.termora.transport
 
 import app.termora.Disposable
 import org.apache.commons.io.IOUtils
+import org.apache.commons.lang3.ObjectUtils
 import org.apache.commons.net.io.CopyStreamEvent
 import org.apache.commons.net.io.CopyStreamListener
 import org.apache.commons.net.io.Util
@@ -105,7 +106,10 @@ abstract class Transport(
         if (fileSystem is SftpFileSystem) {
             val clientSession = fileSystem.session
             if (clientSession is JGitClientSession) {
-                return clientSession.hostConfigEntry.host
+                return ObjectUtils.defaultIfNull(
+                    clientSession.hostConfigEntry.host,
+                    clientSession.hostConfigEntry.hostName
+                )
             }
         }
         return "file"
