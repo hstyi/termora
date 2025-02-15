@@ -8,13 +8,11 @@ import com.formdev.flatlaf.util.SystemInfo
 import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.action.ActionManager
 import org.slf4j.LoggerFactory
+import java.awt.Container
 import java.awt.KeyEventDispatcher
 import java.awt.KeyboardFocusManager
 import java.awt.event.KeyEvent
-import javax.swing.JComponent
-import javax.swing.JDialog
-import javax.swing.KeyStroke
-import javax.swing.SwingUtilities
+import javax.swing.*
 
 class KeymapManager private constructor() : Disposable {
 
@@ -124,6 +122,16 @@ class KeymapManager private constructor() : Disposable {
                     return false
                 }
             } else if (focusedWindow is JDialog) {
+                return false
+            }
+
+            // 如果当前有 Popup ，那么不派发事件
+            val c = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
+            val popups: List<JPopupMenu> = SwingUtils.getDescendantsOfType(
+                JPopupMenu::class.java,
+                c as Container, true
+            )
+            if (popups.isNotEmpty()) {
                 return false
             }
 
