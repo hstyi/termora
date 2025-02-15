@@ -11,7 +11,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install the Apple certificate
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.repository == 'TermoraDev/termora'
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
