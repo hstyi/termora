@@ -15,6 +15,7 @@ jobs:
         with:
           distribution: 'jetbrains'
           java-version: '21'
+          cache: gradle
 
       - uses: actions/cache@v4
         with:
