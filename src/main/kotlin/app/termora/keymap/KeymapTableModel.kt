@@ -27,6 +27,7 @@ class KeymapTableModel : DefaultTableModel() {
             TerminalZoomOutAction.ZOOM_OUT,
             TerminalZoomResetAction.ZOOM_RESET,
             OpenLocalTerminalAction.LOCAL_TERMINAL,
+            TerminalClearScreenAction.CLEAR_SCREEN,
             FindEverywhereAction.FIND_EVERYWHERE,
             NewWindowAction.NEW_WINDOW,
             TabReconnectAction.RECONNECT_TAB,
