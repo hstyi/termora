@@ -50,7 +50,7 @@ abstract class PtyHostTerminalTab(
                 startPtyConnectorReader()
 
                 // 启动命令
-                if (host.options.startupCommand.isNotBlank()) {
+                if (host.options.startupCommand.isNotBlank() && host.protocol != Protocol.SFTPPty) {
                     coroutineScope.launch(Dispatchers.IO) {
                         delay(250.milliseconds)
                         withContext(Dispatchers.Swing) {

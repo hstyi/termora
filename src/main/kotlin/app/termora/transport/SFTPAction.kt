@@ -1,9 +1,6 @@
 package app.termora.transport
 
-import app.termora.Host
-import app.termora.Icons
-import app.termora.SFTPTerminalTab
-import app.termora.SSHTerminalTab
+import app.termora.*
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProviders
@@ -12,11 +9,12 @@ class SFTPAction : AnAction("SFTP", Icons.folder) {
     override fun actionPerformed(evt: AnActionEvent) {
         val terminalTabbedManager = evt.getData(DataProviders.TerminalTabbedManager) ?: return
         val selectedTerminalTab = terminalTabbedManager.getSelectedTerminalTab()
-        val host = if (selectedTerminalTab is SSHTerminalTab) selectedTerminalTab.host else null
+        val host = if (selectedTerminalTab is SSHTerminalTab || selectedTerminalTab is SFTPPtyTerminalTab)
+            selectedTerminalTab.host else null
         val tab = openOrCreateSFTPTerminalTab(evt) ?: return
 
         if (host != null) {
-            connectHost(host, tab)
+            connectHost(host.copy(protocol = Protocol.SSH), tab)
         }
     }
 

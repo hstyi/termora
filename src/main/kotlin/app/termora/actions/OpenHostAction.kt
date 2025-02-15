@@ -18,6 +18,7 @@ class OpenHostAction : AnAction() {
         val tab = when (evt.host.protocol) {
             Protocol.SSH -> SSHTerminalTab(windowScope, evt.host)
             Protocol.Serial -> SerialTerminalTab(windowScope, evt.host)
+            Protocol.SFTPPty -> SFTPPtyTerminalTab(windowScope, evt.host)
             else -> LocalTerminalTab(windowScope, evt.host)
         }
 

@@ -13,7 +13,13 @@ enum class Protocol {
     Folder,
     SSH,
     Local,
-    Serial
+    Serial,
+
+    /**
+     * 交互式的 SFTP，此协议只在系统内部交互不应该暴露给用户也不应该持久化
+     */
+    @Transient
+    SFTPPty
 }
 
 

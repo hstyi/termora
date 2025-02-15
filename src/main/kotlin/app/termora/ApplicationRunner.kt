@@ -102,12 +102,12 @@ class ApplicationRunner {
         GlobalScope.launch(Dispatchers.IO) {
 
             // 启动时清除
-            FileUtils.cleanDirectory(File(Application.getBaseDataDir(), "temporary"))
+            FileUtils.cleanDirectory(Application.getTemporaryDir())
 
             // 关闭时清除
             Disposer.register(ApplicationScope.forApplicationScope(), object : Disposable {
                 override fun dispose() {
-                    FileUtils.cleanDirectory(File(Application.getBaseDataDir(), "temporary"))
+                    FileUtils.cleanDirectory(Application.getTemporaryDir())
                 }
             })
         }

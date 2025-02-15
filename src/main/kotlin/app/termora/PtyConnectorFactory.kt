@@ -28,6 +28,20 @@ class PtyConnectorFactory : Disposable {
         env: Map<String, String> = emptyMap(),
         charset: Charset = StandardCharsets.UTF_8
     ): PtyConnector {
+        val command = database.terminal.localShell
+        val commands = mutableListOf(command)
+        if (SystemUtils.IS_OS_UNIX) {
+            commands.add("-l")
+        }
+        return createPtyConnector(commands.toTypedArray(), rows, cols, env, charset)
+    }
+
+    fun createPtyConnector(
+        commands: Array<String>,
+        rows: Int = 24, cols: Int = 80,
+        env: Map<String, String> = emptyMap(),
+        charset: Charset = StandardCharsets.UTF_8
+    ): PtyConnector {
         val envs = mutableMapOf<String, String>()
         envs.putAll(System.getenv())
         envs["TERM"] = "xterm-256color"
@@ -44,17 +58,11 @@ class PtyConnectorFactory : Disposable {
             }
         }
 
-        val command = database.terminal.localShell
-        val commands = mutableListOf(command)
-        if (SystemUtils.IS_OS_UNIX) {
-            commands.add("-l")
-        }
-
         if (log.isDebugEnabled) {
             log.debug("command: {} , envs: {}", commands.joinToString(" "), envs)
         }
 
-        val ptyProcess = PtyProcessBuilder(commands.toTypedArray())
+        val ptyProcess = PtyProcessBuilder(commands)
             .setEnvironment(envs)
             .setInitialRows(rows)
             .setInitialColumns(cols)

@@ -15,6 +15,8 @@ import org.slf4j.LoggerFactory
 import java.awt.Desktop
 import java.io.File
 import java.net.URI
+import java.nio.file.Files
+import java.nio.file.Path
 import java.time.Duration
 import kotlin.math.ln
 import kotlin.math.pow
@@ -58,6 +60,16 @@ object Application {
             }
         }
         return "/bin/bash"
+    }
+
+    fun getTemporaryDir(): File {
+        val temporaryDir = File(getBaseDataDir(), "temporary")
+        FileUtils.forceMkdir(temporaryDir)
+        return temporaryDir
+    }
+
+    fun createSubTemporaryDir(prefix: String = getName()): Path {
+        return Files.createTempDirectory(getTemporaryDir().toPath(), prefix)
     }
 
     fun getBaseDataDir(): File {

@@ -101,8 +101,8 @@ class HostTree : JTree(), Disposable {
 
                 icon = when (host.protocol) {
                     Protocol.Folder -> if (expanded) FlatTreeOpenIcon() else FlatTreeClosedIcon()
-                    Protocol.SSH, Protocol.Local -> if (sel && this@HostTree.hasFocus()) Icons.terminal.dark else Icons.terminal
                     Protocol.Serial -> if (sel && this@HostTree.hasFocus()) Icons.plugin.dark else Icons.plugin
+                    else -> if (sel && this@HostTree.hasFocus()) Icons.terminal.dark else Icons.terminal
                 }
                 return c
             }

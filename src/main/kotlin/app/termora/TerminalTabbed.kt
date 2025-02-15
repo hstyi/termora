@@ -238,6 +238,17 @@ class TerminalTabbed(
             }
         })
 
+        if (tab is HostTerminalTab) {
+            if (tab.host.protocol == Protocol.SSH || tab.host.protocol == Protocol.SFTPPty) {
+                popupMenu.addSeparator()
+                val sftpCommand = popupMenu.add(I18n.getString("termora.tabbed.contextmenu.sftp-command"))
+                sftpCommand.addActionListener {
+                    actionManager.getAction(OpenHostAction.OPEN_HOST)
+                        ?.actionPerformed(OpenHostActionEvent(this, tab.host.copy(protocol = Protocol.SFTPPty), it))
+                }
+            }
+        }
+
         popupMenu.addSeparator()
 
         // 关闭

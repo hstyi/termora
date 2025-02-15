@@ -613,8 +613,7 @@ class FileSystemPanel(
             }
         }
 
-        val temporary = Paths.get(Application.getBaseDataDir().absolutePath, "temporary")
-        Files.createDirectories(temporary)
+        val temporary = Application.getTemporaryDir().toPath()
 
         for (file in files) {
             val dir = Files.createTempDirectory(temporary, "termora-")
