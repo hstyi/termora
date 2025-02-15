@@ -1,9 +1,10 @@
 package app.termora.keymap
 
-import app.termora.*
+import app.termora.ApplicationScope
+import app.termora.Database
+import app.termora.DialogWrapper
+import app.termora.Disposable
 import app.termora.actions.AnActionEvent
-import app.termora.actions.DataProviders
-import app.termora.findeverywhere.FindEverywhereAction
 import com.formdev.flatlaf.util.SystemInfo
 import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.action.ActionManager
@@ -14,7 +15,6 @@ import java.awt.event.KeyEvent
 import javax.swing.JComponent
 import javax.swing.JDialog
 import javax.swing.KeyStroke
-import javax.swing.SwingUtilities
 
 class KeymapManager private constructor() : Disposable {
 
@@ -28,7 +28,6 @@ class KeymapManager private constructor() : Disposable {
     }
 
     private val keymapKeyEventDispatcher = KeymapKeyEventDispatcher()
-    private val myKeyEventDispatcher = MyKeyEventDispatcher()
     private val database get() = Database.getDatabase()
     private val properties get() = database.properties
     private val keymaps = linkedMapOf<String, Keymap>()
@@ -37,7 +36,6 @@ class KeymapManager private constructor() : Disposable {
 
     init {
         keyboardFocusManager.addKeyEventDispatcher(keymapKeyEventDispatcher)
-        keyboardFocusManager.addKeyEventDispatcher(myKeyEventDispatcher)
 
         try {
             for (keymap in database.getKeymaps()) {
@@ -145,54 +143,7 @@ class KeymapManager private constructor() : Disposable {
 
     }
 
-    @Deprecated(message = "Deprecated")
-    private inner class MyKeyEventDispatcher : KeyEventDispatcher {
-        // double shift
-        private var lastTime = -1L
-        private val findEverywhereAction
-            get() = ActionManager.getInstance().getAction(FindEverywhereAction.FIND_EVERYWHERE)
-        private val deprecatedKey by lazy { "${Application.getVersion()}.FindEverywhereActionDeprecated" }
-
-
-        override fun dispatchKeyEvent(e: KeyEvent): Boolean {
-            if (e.keyCode == KeyEvent.VK_SHIFT && e.id == KeyEvent.KEY_PRESSED) {
-                val evt = AnActionEvent(e.source, StringUtils.EMPTY, e)
-                val owner = evt.getData(DataProviders.TermoraFrame) ?: return false
-                if (keyboardFocusManager.focusedWindow == owner) {
-                    val now = System.currentTimeMillis()
-                    if (now - 250 < lastTime) {
-                        if (!properties.getString(deprecatedKey, "false").toBoolean()) {
-                            properties.putString(deprecatedKey, "true")
-                            val shortcut = getActiveKeymap().getShortcut(FindEverywhereAction.FIND_EVERYWHERE)
-                                .firstOrNull()
-                            if (shortcut == null) {
-                                OptionPane.showMessageDialog(
-                                    owner,
-                                    I18n.getString("termora.find-everywhere.double-shift-deprecated")
-                                )
-                            } else {
-                                OptionPane.showMessageDialog(
-                                    owner,
-                                    I18n.getString("termora.find-everywhere.double-shift-deprecated-instead", shortcut)
-                                )
-                            }
-                        }
-                        SwingUtilities.invokeLater { findEverywhereAction?.actionPerformed(evt) }
-                    }
-                    lastTime = now
-                }
-            } else if (e.keyCode != KeyEvent.VK_SHIFT) { // 如果不是 Shift 键，那么就阻断了连续性，重置时间
-                lastTime = -1
-            }
-            return false
-
-        }
-
-    }
-
-
     override fun dispose() {
         keyboardFocusManager.removeKeyEventDispatcher(keymapKeyEventDispatcher)
-        keyboardFocusManager.removeKeyEventDispatcher(myKeyEventDispatcher)
     }
 }
