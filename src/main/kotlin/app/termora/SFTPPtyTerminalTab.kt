@@ -26,6 +26,18 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
     private var sshSession: ClientSession? = null
     private var lastPasswordReporterDataListener: PasswordReporterDataListener? = null
 
+    companion object {
+        val canSupports by lazy {
+            val process = if (SystemInfo.isWindows) {
+                ProcessBuilder("cmd.exe", "/c", "where", "sftp1").start()
+            } else {
+                ProcessBuilder("which", "sftp1").start()
+            }
+            process.waitFor()
+            return@lazy process.exitValue() == 0
+        }
+    }
+
     override suspend fun openPtyConnector(): PtyConnector {
 
 

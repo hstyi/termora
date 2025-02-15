@@ -15,6 +15,13 @@ class OpenHostAction : AnAction() {
         val terminalTabbedManager = evt.getData(DataProviders.TerminalTabbedManager) ?: return
         val windowScope = evt.getData(DataProviders.WindowScope) ?: return
 
+        // 如果不支持 SFTP 那么不处理这个响应
+        if (evt.host.protocol == Protocol.SFTPPty) {
+            if (!SFTPPtyTerminalTab.canSupports) {
+                return
+            }
+        }
+
         val tab = when (evt.host.protocol) {
             Protocol.SSH -> SSHTerminalTab(windowScope, evt.host)
             Protocol.Serial -> SerialTerminalTab(windowScope, evt.host)

@@ -18,11 +18,8 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.beans.PropertyChangeListener
 import java.util.*
-import javax.swing.Icon
-import javax.swing.JComponent
-import javax.swing.JPanel
+import javax.swing.*
 import javax.swing.JTabbedPane.SCROLL_TAB_LAYOUT
-import javax.swing.SwingUtilities
 import kotlin.math.min
 
 class TerminalTabbed(
@@ -243,8 +240,17 @@ class TerminalTabbed(
                 popupMenu.addSeparator()
                 val sftpCommand = popupMenu.add(I18n.getString("termora.tabbed.contextmenu.sftp-command"))
                 sftpCommand.addActionListener {
-                    actionManager.getAction(OpenHostAction.OPEN_HOST)
-                        ?.actionPerformed(OpenHostActionEvent(this, tab.host.copy(protocol = Protocol.SFTPPty), it))
+                    if (SFTPPtyTerminalTab.canSupports) {
+                        actionManager.getAction(OpenHostAction.OPEN_HOST)
+                            ?.actionPerformed(OpenHostActionEvent(this, tab.host.copy(protocol = Protocol.SFTPPty), it))
+                    } else {
+                        OptionPane.showMessageDialog(
+                            SwingUtilities.getWindowAncestor(this),
+                            I18n.getString("termora.tabbed.contextmenu.sftp-not-install"),
+                            messageType = JOptionPane.ERROR_MESSAGE
+                        )
+                    }
+
                 }
             }
         }
