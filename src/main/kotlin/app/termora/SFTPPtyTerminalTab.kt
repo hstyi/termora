@@ -8,6 +8,7 @@ import org.apache.commons.io.Charsets
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
+import org.apache.sshd.client.ClientBuilder
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.common.config.keys.writer.openssh.OpenSSHKeyPairResourceWriter
@@ -83,10 +84,18 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
             commands.add("UserKnownHostsFile=${File(Application.getBaseDataDir(), "known_hosts").absolutePath}")
         }
 
-
         // Compression
         commands.add("-o")
         commands.add("Compression=yes")
+
+        // HostKeyAlgorithms 让 SFTP 命令的顺序和 sshd 的一致 这样可以避免 known_hosts 文件不一致问题
+        val hostKeyAlgorithms = ClientBuilder.setUpDefaultSignatureFactories(true).joinToString(",") { it.name }
+        commands.add("-o")
+        commands.add("HostKeyAlgorithms=${hostKeyAlgorithms}")
+
+        // 不使用配置文件
+        commands.add("-F")
+        commands.add("/dev/null")
 
         // port
         commands.add("-P")
