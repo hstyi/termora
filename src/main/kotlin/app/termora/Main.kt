@@ -12,6 +12,10 @@ fun main() {
         setupNativeLibraries()
     }
 
+    if (SystemUtils.IS_OS_MAC_OSX) {
+        System.setProperty("apple.awt.application.name", Application.getName())
+    }
+
     ApplicationRunner().run()
 }
 
