@@ -16,6 +16,11 @@ fun main() {
         System.setProperty("apple.awt.application.name", Application.getName())
     }
 
+    // https://github.com/TermoraDev/termora/issues/197
+    if (SystemUtils.IS_OS_WINDOWS) {
+        System.setProperty("jthemedetecor.windows.theme.interval", "250")
+    }
+
     ApplicationRunner().run()
 }
 
