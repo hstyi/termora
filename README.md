@@ -16,12 +16,12 @@
 
 - SSH and local terminal support
 - Serial port protocol support
-- [SFTP](./docs/sftp.png?raw=1) file transfer support
+- [SFTP](./docs/sftp.png?raw=1) & [Command](./docs/sftp-command.png?raw=1) file transfer support
 - Compatible with Windows, macOS, and Linux
 - Zmodem protocol support
 - SSH port forwarding & Jump hosts
 - Terminal log
-- Configuration synchronization via [Gist](https://gist.github.com)
+- Configuration synchronization via [Gist](https://gist.github.com) & [WebDAV](https://developer.mozilla.org/docs/Glossary/WebDAV)
 - Macro support (record and replay scripts)
 - Keyword highlighting
 - Key management
