@@ -50,6 +50,7 @@ object Icons {
     val import by lazy { DynamicIcon("icons/import.svg", "icons/import_dark.svg") }
     val export by lazy { DynamicIcon("icons/export.svg", "icons/export_dark.svg") }
     val terminal by lazy { DynamicIcon("icons/terminal.svg", "icons/terminal_dark.svg") }
+    val fileFormat by lazy { DynamicIcon("icons/fileFormat.svg", "icons/fileFormat_dark.svg") }
     val azure by lazy { DynamicIcon("icons/azure.svg", "icons/azure_dark.svg") }
     val revert by lazy { DynamicIcon("icons/revert.svg", "icons/revert_dark.svg") }
     val edit by lazy { DynamicIcon("icons/edit.svg", "icons/edit_dark.svg") }

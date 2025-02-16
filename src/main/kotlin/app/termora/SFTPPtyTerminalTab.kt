@@ -18,6 +18,7 @@ import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
+import javax.swing.Icon
 import javax.swing.SwingUtilities
 
 class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminalTab(windowScope, host) {
@@ -160,6 +161,10 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
         }
 
         super.stop()
+    }
+
+    override fun getIcon(): Icon {
+        return Icons.fileFormat
     }
 
     private inner class PasswordReporterDataListener(private val host: Host) : DataListener {
