@@ -352,8 +352,10 @@ class HostTree : JTree(), Disposable {
         val newFolder = newMenu.add(I18n.getString("termora.welcome.contextmenu.new.folder"))
         val newHost = newMenu.add(I18n.getString("termora.welcome.contextmenu.new.host"))
 
-        val open = popupMenu.add(I18n.getString("termora.welcome.contextmenu.open"))
-        val openWithSFTP = popupMenu.add(I18n.getString("termora.welcome.contextmenu.open-with-sftp"))
+        val open = popupMenu.add(I18n.getString("termora.welcome.contextmenu.connect"))
+        val openWith = popupMenu.add(JMenu(I18n.getString("termora.welcome.contextmenu.connect-with"))) as JMenu
+        val openWithSFTP = openWith.add("SFTP")
+        val openWithSFTPCommand = openWith.add(I18n.getString("termora.tabbed.contextmenu.sftp-command"))
         val openInNewWindow = popupMenu.add(I18n.getString("termora.welcome.contextmenu.open-in-new-window"))
         popupMenu.addSeparator()
         val copy = popupMenu.add(I18n.getString("termora.welcome.contextmenu.copy"))
@@ -380,10 +382,13 @@ class HostTree : JTree(), Disposable {
 
         open.addActionListener { openHosts(it, false) }
         openWithSFTP.addActionListener { openWithSFTP(it) }
+        openWithSFTPCommand.addActionListener { openWithSFTPCommand(it) }
         openInNewWindow.addActionListener { openHosts(it, true) }
 
         // 如果选中了 SSH 服务器，那么才启用
         openWithSFTP.isEnabled = getSelectionNodes().any { it.protocol == Protocol.SSH }
+        openWithSFTPCommand.isEnabled = openWithSFTP.isEnabled
+        openWith.isEnabled = openWith.menuComponents.any { it is JMenuItem && it.isEnabled }
 
         rename.addActionListener {
             startEditingAtPath(TreePath(model.getPathToRoot(lastHost)))
@@ -520,6 +525,15 @@ class HostTree : JTree(), Disposable {
         val tab = sftpAction.openOrCreateSFTPTerminalTab(AnActionEvent(this, StringUtils.EMPTY, evt)) ?: return
         for (node in nodes) {
             sftpAction.connectHost(node, tab)
+        }
+    }
+
+    private fun openWithSFTPCommand(evt: EventObject) {
+        val nodes = getSelectionNodes().filter { it.protocol == Protocol.SSH }
+        if (nodes.isEmpty()) return
+        val action = ActionManager.getInstance().getAction(OpenHostAction.OPEN_HOST) ?: return
+        for (host in nodes) {
+            action.actionPerformed(OpenHostActionEvent(this, host.copy(protocol = Protocol.SFTPPty), evt))
         }
     }
 
