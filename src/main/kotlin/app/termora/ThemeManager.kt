@@ -2,12 +2,15 @@ package app.termora
 
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.FlatAnimatedLafChange
+import com.formdev.flatlaf.util.SystemInfo
 import com.jthemedetecor.OsThemeDetector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Consumer
 import javax.swing.PopupFactory
 import javax.swing.SwingUtilities
@@ -77,8 +80,50 @@ class ThemeManager private constructor() {
 
     init {
         @Suppress("OPT_IN_USAGE")
-        GlobalScope.launch(Dispatchers.IO) {
-            OsThemeDetector.getDetector().registerListener(object : Consumer<Boolean> {
+        GlobalScope.launch(Dispatchers.IO) { checkThemeChanged() }
+    }
+
+    @Suppress("OPT_IN_USAGE")
+    private fun checkThemeChanged() {
+        val detector = OsThemeDetector.getDetector()
+
+        // https://github.com/TermoraDev/termora/issues/197
+        if (SystemInfo.isWindows) {
+            val running = AtomicBoolean(true)
+            val job = GlobalScope.launch(Dispatchers.IO) {
+                var lastValue = detector.isDark
+                while (running.get()) {
+                    delay(1000)
+
+                    if (!appearance.followSystem) {
+                        continue
+                    }
+
+                    val isDark = detector.isDark
+                    if (isDark == lastValue) {
+                        continue
+                    }
+
+                    lastValue = isDark
+
+                    SwingUtilities.invokeLater {
+                        if (isDark) {
+                            change(appearance.darkTheme)
+                        } else {
+                            change(appearance.lightTheme)
+                        }
+                    }
+                }
+            }
+
+            Disposer.register(ApplicationScope.forApplicationScope(), object : Disposable {
+                override fun dispose() {
+                    running.set(false)
+                    job.cancel()
+                }
+            })
+        } else {
+            detector.registerListener(object : Consumer<Boolean> {
                 override fun accept(isDark: Boolean) {
                     if (!appearance.followSystem) {
                         return
