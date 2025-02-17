@@ -46,6 +46,7 @@ import org.jdesktop.swingx.JXEditorPane
 import org.slf4j.LoggerFactory
 import java.awt.BorderLayout
 import java.awt.Component
+import java.awt.Dimension
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.awt.event.ItemEvent
@@ -425,6 +426,11 @@ class SettingsOptionsPane : OptionsPane() {
             }
 
             fontComboBox.renderer = object : DefaultListCellRenderer() {
+                init {
+                    preferredSize = Dimension(preferredSize.width, fontComboBox.preferredSize.height - 2)
+                    maximumSize = Dimension(preferredSize.width, preferredSize.height)
+                }
+
                 override fun getListCellRendererComponent(
                     list: JList<*>?,
                     value: Any?,
@@ -458,28 +464,11 @@ class SettingsOptionsPane : OptionsPane() {
 
             shellComboBox.selectedItem = terminalSetting.localShell
 
-            val fonts = linkedSetOf(
-                "JetBrains Mono",
-                "Source Code Pro",
-                "Monospaced",
-                "Andale Mono",
-                "Ayuthaya",
-                "Courier New",
-                "Droid Sans Mono",
-                "Fira Code",
-                "PCMyungjo",
-                "Menlo",
-                "Monaco",
-                "Osaka",
-                "PT Mono",
-                "SimSong",
-            )
-
-            for (font in FontUtils.getAllFonts()) {
-                if (fonts.contains(font.family)) {
-                    continue
+            val fonts = linkedSetOf<String>("JetBrains Mono", "Source Code Pro", "Monospaced")
+            FontUtils.getAllFonts().forEach {
+                if (!fonts.contains(it.family)) {
+                    fonts.addLast(it.family)
                 }
-                fonts.remove(font.family)
             }
 
             for (font in fonts) {
