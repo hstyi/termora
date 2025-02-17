@@ -8,6 +8,7 @@ import java.nio.file.Files
 
 plugins {
     java
+    idea
     application
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlinx.serialization)
@@ -116,7 +117,6 @@ application {
         "-XX:+ZUncommit",
         "-XX:+ZGenerational",
         "-XX:ZUncommitDelay=60",
-        "-XX:SoftMaxHeapSize=64m"
     )
 
     if (os.isMacOsX) {
@@ -244,7 +244,6 @@ tasks.register<Exec>("jpackage") {
         "-XX:+ZUncommit",
         "-XX:+ZGenerational",
         "-XX:ZUncommitDelay=60",
-        "-XX:SoftMaxHeapSize=64m",
         "-XX:+HeapDumpOnOutOfMemoryError",
         "-Dlogger.console.level=off",
         "-Dkotlinx.coroutines.debug=off",
@@ -541,5 +540,12 @@ kotlin {
         languageVersion = JavaLanguageVersion.of(21)
         @Suppress("UnstableApiUsage")
         vendor = JvmVendorSpec.JETBRAINS
+    }
+}
+
+idea {
+    module {
+        isDownloadJavadoc = true
+        isDownloadSources = true
     }
 }
