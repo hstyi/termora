@@ -1297,6 +1297,7 @@ class SettingsOptionsPane : OptionsPane() {
     private inner class SFTPOption : JPanel(BorderLayout()), Option {
 
         val editCommandField = OutlineTextField(255)
+        val sftpCommandField = OutlineTextField(255)
         private val sftp get() = database.sftp
 
         init {
@@ -1311,6 +1312,13 @@ class SettingsOptionsPane : OptionsPane() {
                     sftp.editCommand = editCommandField.text
                 }
             })
+
+
+            sftpCommandField.document.addDocumentListener(object : DocumentAdaptor() {
+                override fun changedUpdate(e: DocumentEvent) {
+                    sftp.sftpCommand = sftpCommandField.text
+                }
+            })
         }
 
 
@@ -1321,7 +1329,14 @@ class SettingsOptionsPane : OptionsPane() {
                 editCommandField.placeholderText = "open -a TextEdit {0}"
             }
 
+            if (SystemInfo.isWindows) {
+                sftpCommandField.placeholderText = "sftp.exe"
+            } else {
+                sftpCommandField.placeholderText = "sftp"
+            }
+
             editCommandField.text = sftp.editCommand
+            sftpCommandField.text = sftp.sftpCommand
         }
 
         override fun getIcon(isSelected: Boolean): Icon {
@@ -1345,6 +1360,8 @@ class SettingsOptionsPane : OptionsPane() {
             val builder = FormBuilder.create().layout(layout).debug(false)
             builder.add("${I18n.getString("termora.settings.sftp.edit-command")}:").xy(1, 1)
             builder.add(editCommandField).xy(3, 1)
+            builder.add("${I18n.getString("termora.tabbed.contextmenu.sftp-command")}:").xy(1, 3)
+            builder.add(sftpCommandField).xy(3, 3)
 
             return builder.build()
 

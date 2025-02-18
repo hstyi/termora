@@ -27,6 +27,7 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
     private var sshClient: SshClient? = null
     private var sshSession: ClientSession? = null
     private var lastPasswordReporterDataListener: PasswordReporterDataListener? = null
+    private val sftpCommand get() = Database.getDatabase().sftp.sftpCommand
 
     companion object {
         val canSupports by lazy {
@@ -42,9 +43,8 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
 
     override suspend fun openPtyConnector(): PtyConnector {
 
-
         val useJumpHosts = host.options.jumpHosts.isNotEmpty() || host.proxy.type != ProxyType.No
-        val commands = mutableListOf("sftp")
+        val commands = mutableListOf(StringUtils.defaultIfBlank(sftpCommand, "sftp"))
         var host = this.host
 
         // 如果配置了跳板机或者代理，那么通过 SSH 的端口转发到本地

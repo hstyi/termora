@@ -588,6 +588,12 @@ class Database private constructor(private val env: Environment) : Disposable {
          */
         var editCommand by StringPropertyDelegate(StringUtils.EMPTY)
 
+
+        /**
+         * sftp command
+         */
+        var sftpCommand by StringPropertyDelegate(StringUtils.EMPTY)
+
     }
 
     /**
