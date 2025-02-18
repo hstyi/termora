@@ -19,6 +19,8 @@ class TermoraFrameManager {
         }
     }
 
+    private val frames = mutableListOf<TermoraFrame>()
+
     fun createWindow(): TermoraFrame {
         val frame = TermoraFrame()
         registerCloseCallback(frame)
@@ -26,13 +28,21 @@ class TermoraFrameManager {
         frame.defaultCloseOperation = DO_NOTHING_ON_CLOSE
         frame.setSize(1280, 800)
         frame.setLocationRelativeTo(null)
+        frames.add(frame)
         return frame
+    }
+
+    fun getWindows(): Array<TermoraFrame> {
+        return frames.toTypedArray()
     }
 
 
     private fun registerCloseCallback(window: TermoraFrame) {
         window.addWindowListener(object : WindowAdapter() {
             override fun windowClosed(e: WindowEvent) {
+
+                // 删除
+                frames.remove(window)
 
                 // dispose windowScope
                 Disposer.dispose(ApplicationScope.forWindowScope(e.window))

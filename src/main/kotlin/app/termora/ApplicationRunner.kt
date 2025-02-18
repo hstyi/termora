@@ -4,6 +4,8 @@ import app.termora.actions.ActionManager
 import app.termora.keymap.KeymapManager
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatSystemProperties
+import com.formdev.flatlaf.extras.FlatDesktop
+import com.formdev.flatlaf.extras.FlatDesktop.QuitResponse
 import com.formdev.flatlaf.extras.FlatInspector
 import com.formdev.flatlaf.util.SystemInfo
 import com.jthemedetecor.OsThemeDetector
@@ -20,12 +22,14 @@ import org.apache.commons.lang3.SystemUtils
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
 import org.tinylog.configuration.Configuration
+import java.awt.KeyboardFocusManager
 import java.io.File
 import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.util.*
+import java.util.function.Consumer
 import javax.swing.*
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
@@ -123,7 +127,37 @@ class ApplicationRunner {
     }
 
     private fun startMainFrame() {
+
         TermoraFrameManager.getInstance().createWindow().isVisible = true
+
+        if (SystemUtils.IS_OS_MAC_OSX) {
+            SwingUtilities.invokeLater {
+                FlatDesktop.setQuitHandler(object : Consumer<QuitResponse> {
+                    override fun accept(response: QuitResponse) {
+                        quitHandler(response)
+                    }
+                })
+            }
+        }
+    }
+
+    private fun quitHandler(response: QuitResponse) {
+        val keyboardFocusManager = KeyboardFocusManager.getCurrentKeyboardFocusManager()
+
+        if (OptionPane.showConfirmDialog(
+                keyboardFocusManager.focusedWindow,
+                I18n.getString("termora.quit-confirm", Application.getName()),
+                optionType = JOptionPane.YES_NO_OPTION,
+            ) != JOptionPane.YES_OPTION
+        ) {
+            response.cancelQuit()
+            return
+        }
+
+        for (frame in TermoraFrameManager.getInstance().getWindows()) {
+            frame.dispose()
+        }
+
     }
 
     private fun loadSettings() {
