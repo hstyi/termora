@@ -94,16 +94,16 @@ class FindEverywhereXList(private val model: DefaultListModel<FindEverywhereResu
                     label.font = font.deriveFont(font.size - 2f)
                     val box = Box.createHorizontalBox()
                     box.add(label)
-                    /*box.add(object : JComponent() {
-                        override fun paintComponent(g: Graphics) {
-                            g.color = DynamicColor.BorderColor
-                            g.drawLine(10, height / 2, width, height / 2)
-                        }
-                    })*/
                     return box
                 }
 
-                val c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
+                val c = super.getListCellRendererComponent(
+                    list,
+                    if (value is FindEverywhereResult) value.getText(isSelected) else value,
+                    index,
+                    isSelected,
+                    cellHasFocus
+                )
                 if (isSelected) {
                     background = UIManager.getColor("List.selectionBackground")
                     foreground = UIManager.getColor("List.selectionForeground")

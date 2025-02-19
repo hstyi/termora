@@ -2,7 +2,6 @@ package app.termora
 
 
 import app.termora.actions.*
-import app.termora.findeverywhere.BasicFilterFindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereResult
 import app.termora.terminal.DataKey
@@ -164,12 +163,23 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
 
 
         FindEverywhereProvider.getFindEverywhereProviders(windowScope)
-            .add(BasicFilterFindEverywhereProvider(object : FindEverywhereProvider {
+            .add(object : FindEverywhereProvider {
                 override fun find(pattern: String): List<FindEverywhereResult> {
-                    return TreeUtils.children(hostTree.model, hostTree.model.root)
+                    var filter = TreeUtils.children(hostTree.model, hostTree.model.root)
                         .filterIsInstance<Host>()
                         .filter { it.protocol != Protocol.Folder }
-                        .map { HostFindEverywhereResult(it) }
+
+                    if (pattern.isNotBlank()) {
+                        filter = filter.filter {
+                            if (it.protocol == Protocol.SSH) {
+                                it.name.contains(pattern, true) || it.host.contains(pattern, true)
+                            } else {
+                                it.name.contains(pattern, true)
+                            }
+                        }
+                    }
+
+                    return filter.map { HostFindEverywhereResult(it) }
                 }
 
                 override fun group(): String {
@@ -179,7 +189,7 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
                 override fun order(): Int {
                     return Integer.MIN_VALUE + 2
                 }
-            }))
+            })
 
         searchTextField.document.addDocumentListener(object : DocumentAdaptor() {
             private var state = StringUtils.EMPTY
@@ -245,7 +255,9 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
         properties.putString("WelcomeFullContent", fullContent.toString())
     }
 
-    private class HostFindEverywhereResult(val host: Host) : FindEverywhereResult {
+    private inner class HostFindEverywhereResult(val host: Host) : FindEverywhereResult {
+        private val showMoreInfo get() = properties.getString("HostTree.showMoreInfo", "false").toBoolean()
+
         override fun actionPerformed(e: ActionEvent) {
             ActionManager.getInstance()
                 .getAction(OpenHostAction.OPEN_HOST)
@@ -261,7 +273,20 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
             return Icons.terminal
         }
 
-        override fun toString(): String {
+        override fun getText(isSelected: Boolean): String {
+            if (showMoreInfo) {
+                val color = UIManager.getColor(if (isSelected) "textHighlightText" else "textInactiveText")
+                val moreInfo = if (host.protocol == Protocol.SSH) {
+                    "${host.username}@${host.host}"
+                } else if (host.protocol == Protocol.Serial) {
+                    host.options.serialComm.port
+                } else {
+                    StringUtils.EMPTY
+                }
+                if (moreInfo.isNotBlank()) {
+                    return "<html>${host.name}&nbsp;&nbsp;&nbsp;&nbsp;<font color=rgb(${color.red},${color.green},${color.blue})>${moreInfo}</font></html>"
+                }
+            }
             return host.name
         }
     }
