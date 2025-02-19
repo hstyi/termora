@@ -37,12 +37,14 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
     companion object {
         val Debug = DataKey(Boolean::class)
         val Finding = DataKey(Boolean::class)
+        val Focused = DataKey(Boolean::class)
         val SelectCopy = DataKey(Boolean::class)
     }
 
+    private val terminalBlink = TerminalBlink(terminal)
     private val terminalFindPanel = TerminalFindPanel(this, terminal)
     private val floatingToolbar = FloatingToolbarPanel()
-    private val terminalDisplay = TerminalDisplay(this, terminal)
+    private val terminalDisplay = TerminalDisplay(this, terminal, terminalBlink)
     private val dataProviderSupport = DataProviderSupport()
 
     val scrollBar = TerminalScrollBar(this@TerminalPanel, terminalFindPanel, terminal)
@@ -140,10 +142,12 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
 
         this.addFocusListener(object : FocusAdapter() {
             override fun focusLost(e: FocusEvent) {
+                terminal.getTerminalModel().setData(Focused, false)
                 repaintImmediate()
             }
 
             override fun focusGained(e: FocusEvent) {
+                terminal.getTerminalModel().setData(Focused, true)
                 repaintImmediate()
             }
         })
@@ -386,6 +390,7 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
     }
 
     override fun dispose() {
+        Disposer.dispose(terminalBlink)
         Disposer.dispose(floatingToolbar)
     }
 

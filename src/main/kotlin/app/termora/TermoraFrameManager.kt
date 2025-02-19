@@ -45,7 +45,9 @@ class TermoraFrameManager {
                 frames.remove(window)
 
                 // dispose windowScope
-                Disposer.dispose(ApplicationScope.forWindowScope(e.window))
+                val windowScope = ApplicationScope.forWindowScope(e.window)
+                Disposer.disposeChildren(windowScope, null)
+                Disposer.dispose(windowScope)
 
                 val windowScopes = ApplicationScope.windowScopes()
 

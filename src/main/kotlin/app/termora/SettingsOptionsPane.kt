@@ -305,6 +305,7 @@ class SettingsOptionsPane : OptionsPane() {
         private val cursorStyleComboBox = FlatComboBox<CursorStyle>()
         private val debugComboBox = YesOrNoComboBox()
         private val beepComboBox = YesOrNoComboBox()
+        private val cursorBlinkComboBox = YesOrNoComboBox()
         private val fontComboBox = FlatComboBox<String>()
         private val shellComboBox = FlatComboBox<String>()
         private val maxRowsTextField = IntSpinner(0, 0)
@@ -387,6 +388,12 @@ class SettingsOptionsPane : OptionsPane() {
             beepComboBox.addItemListener { e ->
                 if (e.stateChange == ItemEvent.SELECTED) {
                     terminalSetting.beep = beepComboBox.selectedItem as Boolean
+                }
+            }
+
+            cursorBlinkComboBox.addItemListener { e ->
+                if (e.stateChange == ItemEvent.SELECTED) {
+                    terminalSetting.cursorBlink = cursorBlinkComboBox.selectedItem as Boolean
                 }
             }
 
@@ -478,6 +485,7 @@ class SettingsOptionsPane : OptionsPane() {
             fontComboBox.selectedItem = terminalSetting.font
             debugComboBox.selectedItem = terminalSetting.debug
             beepComboBox.selectedItem = terminalSetting.beep
+            cursorBlinkComboBox.selectedItem = terminalSetting.cursorBlink
             cursorStyleComboBox.selectedItem = terminalSetting.cursor
             selectCopyComboBox.selectedItem = terminalSetting.selectCopy
             autoCloseTabComboBox.selectedItem = terminalSetting.autoCloseTabWhenDisconnected
@@ -499,7 +507,7 @@ class SettingsOptionsPane : OptionsPane() {
         private fun getCenterComponent(): JComponent {
             val layout = FormLayout(
                 "left:pref, $formMargin, default:grow, $formMargin, left:pref, $formMargin, pref, default:grow",
-                "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
+                "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
             )
 
             val beepBtn = JButton(Icons.run)
@@ -526,6 +534,8 @@ class SettingsOptionsPane : OptionsPane() {
                 .add(selectCopyComboBox).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.terminal.cursor-style")}:").xy(1, rows)
                 .add(cursorStyleComboBox).xy(3, rows).apply { rows += step }
+                .add("${I18n.getString("termora.settings.terminal.cursor-blink")}:").xy(1, rows)
+                .add(cursorBlinkComboBox).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.terminal.floating-toolbar")}:").xy(1, rows)
                 .add(floatingToolbarComboBox).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.terminal.auto-close-tab")}:").xy(1, rows)

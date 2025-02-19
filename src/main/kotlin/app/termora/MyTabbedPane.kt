@@ -1,6 +1,7 @@
 package app.termora
 
 import app.termora.actions.AnActionEvent
+import app.termora.actions.DataProvider
 import app.termora.actions.DataProviders
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
 import org.apache.commons.lang3.StringUtils
@@ -13,11 +14,13 @@ import kotlin.math.abs
 
 class MyTabbedPane : FlatTabbedPane() {
 
-    private val owner: Window get() = SwingUtilities.getWindowAncestor(this)
     private val dragMouseAdaptor = DragMouseAdaptor()
     private val terminalTabbedManager
         get() = AnActionEvent(this, StringUtils.EMPTY, EventObject(this))
             .getData(DataProviders.TerminalTabbedManager)
+    private val owner
+        get() = AnActionEvent(this, StringUtils.EMPTY, EventObject(this))
+            .getData(DataProviders.TermoraFrame) as TermoraFrame
 
     init {
         initEvents()
@@ -145,11 +148,11 @@ class MyTabbedPane : FlatTabbedPane() {
             // 如果等于 null 表示在空地方释放，那么单独一个窗口
             if (c == null) {
                 val window = TermoraFrameManager.getInstance().createWindow()
-                dragToAnotherWindow(window)
+                dragToAnotherWindow(owner, window)
                 window.location = releasedPoint
                 window.isVisible = true
             } else if (c != owner && c is TermoraFrame) { // 如果在某个窗口内释放，那么就移动到某个窗口内
-                dragToAnotherWindow(c)
+                dragToAnotherWindow(owner, c)
             } else {
                 val tab = this.terminalTab
                 val terminalTabbedManager = terminalTabbedManager
@@ -224,19 +227,28 @@ class MyTabbedPane : FlatTabbedPane() {
         }
 
 
-        private fun dragToAnotherWindow(frame: TermoraFrame) {
+        private fun dragToAnotherWindow(oldFrame: TermoraFrame, frame: TermoraFrame) {
             val tab = this.terminalTab ?: return
+            val terminalPanel = (tab as DataProvider?)?.getData(DataProviders.TerminalPanel) ?: return
             val tabbedManager = frame.getData(DataProviders.TerminalTabbed) ?: return
             val tabbedPane = frame.getData(DataProviders.TabbedPane) ?: return
+            val windowScope = frame.getData(DataProviders.WindowScope) ?: return
+            val oldWindowScope = oldFrame.getData(DataProviders.WindowScope) ?: return
             val location = Point(MouseInfo.getPointerInfo().location)
             SwingUtilities.convertPointFromScreen(location, tabbedPane)
             val index = tabbedPane.indexAtLocation(location.x, location.y)
+
 
             moveTab(
                 tabbedManager,
                 tab,
                 index
             )
+
+            TerminalPanelFactory.getInstance(oldWindowScope).removeTerminalPanel(terminalPanel)
+            TerminalPanelFactory.getInstance(windowScope).addTerminalPanel(terminalPanel)
+
+
 
             if (frame.hasFocus()) {
                 return

@@ -17,6 +17,7 @@ import kotlin.time.Duration
 class TerminalDisplay(
     private val terminalPanel: TerminalPanel,
     private val terminal: Terminal,
+    private val terminalBlink: TerminalBlink
 ) : JComponent() {
 
     companion object {
@@ -136,12 +137,13 @@ class TerminalDisplay(
         val lineHeight = getLineHeight()
         val style = if (inputMethodData.isNoTyping)
             terminal.getTerminalModel().getData(DataKey.CursorStyle) else CursorStyle.Bar
+        val hasFocus = terminal.getTerminalModel().getData(TerminalPanel.Focused, false)
 
         // background
         g.color = Color(colorPalette.getColor(TerminalColor.Cursor.BACKGROUND))
 
         if (style == CursorStyle.Block) {
-            if (terminalPanel.hasFocus()) {
+            if (hasFocus) {
                 g.fillRect(xOffset, (y - 1) * lineHeight, width, lineHeight)
             } else {
                 g.drawRect(xOffset, (y - 1) * lineHeight, width, lineHeight)
@@ -217,19 +219,23 @@ class TerminalDisplay(
     }
 
     private fun drawCharacters(g: Graphics2D) {
-        val reverseVideo = terminal.getTerminalModel().getData(DataKey.ReverseVideo, false)
-        val rows = terminal.getTerminalModel().getRows()
-        val cols = terminal.getTerminalModel().getCols()
+        val terminalModel = terminal.getTerminalModel()
+        val reverseVideo = terminalModel.getData(DataKey.ReverseVideo, false)
+        val rows = terminalModel.getRows()
+        val cols = terminalModel.getCols()
         val triple = Triple(Char.Space.toString(), TextStyle.Default, 1)
         val cursorPosition = terminal.getCursorModel().getPosition()
         val averageCharWidth = getAverageCharWidth()
         val maxVerticalScrollOffset = terminal.getScrollingModel().getMaxVerticalScrollOffset()
         val verticalScrollOffset = terminal.getScrollingModel().getVerticalScrollOffset()
         val selectionModel = terminal.getSelectionModel()
-        val cursorStyle = terminal.getTerminalModel().getData(DataKey.CursorStyle)
-        val showCursor = terminal.getTerminalModel().getData(DataKey.ShowCursor)
+        val cursorStyle = terminalModel.getData(DataKey.CursorStyle)
+        val showCursor = terminalModel.getData(DataKey.ShowCursor)
         val markupModel = terminal.getMarkupModel()
         val lineHeight = getLineHeight()
+        val blink = terminalBlink.blink
+        val cursorBlink = terminalBlink.cursorBlink
+        val hasFocus = terminalModel.getData(TerminalPanel.Focused, false)
 
 
         for (i in 1..rows) {
@@ -267,6 +273,13 @@ class TerminalDisplay(
                 if (hasSelection) {
                     foreground = colorPalette.getColor(TerminalColor.Basic.SELECTION_FOREGROUND)
                     background = colorPalette.getColor(TerminalColor.Basic.SELECTION_BACKGROUND)
+                }
+
+                // 如果启用了闪烁
+                if (textStyle.blink) {
+                    if (!blink) {
+                        continue
+                    }
                 }
 
                 // 设置字体
@@ -310,12 +323,15 @@ class TerminalDisplay(
 
                 // 渲染光标
                 if (caret) {
-                    drawCursor(g, i, xOffset, charWidth)
-                    // 如果是获取焦点状态，那么颜色互换
-                    if (terminalPanel.hasFocus() && cursorStyle == CursorStyle.Block && inputMethodData.isNoTyping) {
-                        g.color = Color(colorPalette.getColor(TerminalColor.Basic.BACKGROUND))
-                    } else {
-                        g.color = Color(foreground)
+                    // 这几种情况光标才会渲染：输入中、闪烁中、没有焦点
+                    if (inputMethodData.isTyping || cursorBlink || !hasFocus) {
+                        drawCursor(g, i, xOffset, charWidth)
+                        // 如果是获取焦点状态，那么颜色互换
+                        if (hasFocus && cursorStyle == CursorStyle.Block && inputMethodData.isNoTyping) {
+                            g.color = Color(colorPalette.getColor(TerminalColor.Basic.BACKGROUND))
+                        } else {
+                            g.color = Color(foreground)
+                        }
                     }
                 }
 

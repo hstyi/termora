@@ -400,10 +400,10 @@ class Database private constructor(private val env: Environment) : Disposable {
         protected inner class CursorStylePropertyDelegate(defaultValue: CursorStyle) :
             PropertyDelegate<CursorStyle>(defaultValue) {
             override fun convertValue(value: String): CursorStyle {
-                try {
-                    return CursorStyle.valueOf(value)
-                } catch (e: Exception) {
-                    return initializer.invoke()
+                return try {
+                    CursorStyle.valueOf(value)
+                } catch (_: Exception) {
+                    initializer.invoke()
                 }
             }
         }
@@ -457,6 +457,11 @@ class Database private constructor(private val env: Environment) : Disposable {
          * 蜂鸣声
          */
         var beep by BooleanPropertyDelegate(true)
+
+        /**
+         * 光标闪烁
+         */
+        var cursorBlink by BooleanPropertyDelegate(false)
 
         /**
          * 选中复制
