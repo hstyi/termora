@@ -1,14 +1,13 @@
 package app.termora.terminal.panel.vw
 
-import app.termora.I18n
-import app.termora.Icons
-import app.termora.SSHTerminalTab
-import app.termora.SshClients
+import app.termora.*
 import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.swing.Swing
+import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.JXBusyLabel
 import org.slf4j.LoggerFactory
@@ -22,7 +21,6 @@ import java.io.StringReader
 import javax.swing.*
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.xpath.XPathFactory
-import kotlin.time.Duration.Companion.milliseconds
 
 class NvidiaSMIVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindowManager) :
     SSHVisualWindow(tab, "NVIDIA-SMI", visualWindowManager) {
@@ -79,6 +77,8 @@ class NvidiaSMIVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWind
             percentageBtn.icon = if (isPercentage) Icons.text else Icons.percentage
             nvidiaSMIPanel.refreshPanel()
         }
+
+        Disposer.register(this, nvidiaSMIPanel)
     }
 
     private data class GPU(
@@ -183,8 +183,7 @@ class NvidiaSMIVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWind
         }
     }
 
-    private inner class NvidiaSMIPanel : JPanel(BorderLayout()) {
-        private val coroutineScope = CoroutineScope(Dispatchers.IO)
+    private inner class NvidiaSMIPanel : AutoRefreshPanel() {
 
         private val xPath by lazy { XPathFactory.newInstance().newXPath() }
         private val db by lazy {
@@ -224,6 +223,8 @@ class NvidiaSMIVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWind
 
         private fun initViews() {
 
+            layout = BorderLayout()
+
             add(
                 FormBuilder.create().debug(false)
                     .layout(
@@ -253,27 +254,11 @@ class NvidiaSMIVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWind
 
 
         private fun initEvents() {
-            coroutineScope.launch {
 
-                // 首次刷新
-                refresh(true)
-
-                while (coroutineScope.isActive) {
-                    delay(1000.milliseconds)
-
-                    try {
-                        refresh()
-                    } catch (e: Exception) {
-                        if (log.isErrorEnabled) {
-                            log.error(e.message, e)
-                        }
-                    }
-                }
-            }
         }
 
 
-        private suspend fun refresh(isFirst: Boolean = false) {
+        override suspend fun refresh(isFirst: Boolean) {
             val session = tab.getData(SSHTerminalTab.SSHSession) ?: return
 
             val doc = try {
@@ -347,7 +332,6 @@ class NvidiaSMIVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWind
                 refreshPanel()
 
             }
-
         }
 
         private fun initPanel() {

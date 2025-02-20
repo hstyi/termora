@@ -3,8 +3,9 @@ package app.termora.terminal.panel.vw
 import app.termora.*
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.swing.Swing
+import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
 import org.apache.sshd.client.session.ClientSession
 import org.slf4j.LoggerFactory
@@ -12,7 +13,6 @@ import java.awt.BorderLayout
 import javax.swing.*
 import javax.swing.table.DefaultTableCellRenderer
 import javax.swing.table.DefaultTableModel
-import kotlin.time.Duration.Companion.milliseconds
 
 
 class SystemInformationVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindowManager) :
@@ -40,9 +40,8 @@ class SystemInformationVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
         Disposer.register(this, systemInformationPanel)
     }
 
-    private inner class SystemInformationPanel : JPanel(BorderLayout()), Disposable {
+    private inner class SystemInformationPanel : AutoRefreshPanel() {
 
-        private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
         private val cpuProgressBar = SmartProgressBar()
         private val memoryProgressBar = SmartProgressBar()
@@ -63,6 +62,7 @@ class SystemInformationVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
 
 
         private fun initViews() {
+            layout = BorderLayout()
             add(createPanel(), BorderLayout.CENTER)
         }
 
@@ -109,22 +109,10 @@ class SystemInformationVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
         }
 
         private fun initEvents() {
-            coroutineScope.launch {
-                while (coroutineScope.isActive) {
-                    try {
-                        refresh()
-                    } catch (e: Exception) {
-                        if (log.isErrorEnabled) {
-                            log.error(e.message, e)
-                        }
-                    } finally {
-                        delay(1000.milliseconds)
-                    }
-                }
-            }
+
         }
 
-        private suspend fun refresh() {
+        override suspend fun refresh(isFirst: Boolean) {
             val session = tab.getData(SSHTerminalTab.SSHSession) ?: return
 
             try {
@@ -144,7 +132,6 @@ class SystemInformationVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
                     log.error("refreshDisk", e)
                 }
             }
-
         }
 
         private suspend fun refreshCPUAndMem(session: ClientSession) {
@@ -288,10 +275,6 @@ class SystemInformationVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
                     )
                 }
             }
-        }
-
-        override fun dispose() {
-            coroutineScope.cancel()
         }
 
     }
