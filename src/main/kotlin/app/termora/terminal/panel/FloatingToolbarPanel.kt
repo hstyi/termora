@@ -3,8 +3,10 @@ package app.termora.terminal.panel
 import app.termora.*
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
+import app.termora.actions.DataProvider
 import app.termora.actions.DataProviders
 import app.termora.terminal.DataKey
+import app.termora.terminal.panel.vw.SystemInformationVisualWindow
 import com.formdev.flatlaf.extras.components.FlatToolBar
 import com.formdev.flatlaf.ui.FlatRoundBorder
 import org.apache.commons.lang3.StringUtils
@@ -70,6 +72,11 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
         initActions()
     }
 
+    override fun updateUI() {
+        super.updateUI()
+        border = FlatRoundBorder()
+    }
+
     fun triggerShow() {
         if (!floatingToolbarEnable || closed) {
             return
@@ -98,11 +105,42 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
         // Pin
         add(initPinActionButton())
 
+        // 服务器信息
+        add(initServerInfoActionButton())
+
         // 重连
         add(initReconnectActionButton())
 
         // 关闭
         add(initCloseActionButton())
+    }
+
+    private fun initServerInfoActionButton(): JButton {
+        val btn = JButton(Icons.infoOutline)
+        btn.toolTipText = I18n.getString("termora.visual-window.system-information")
+        btn.addActionListener(object : AnAction() {
+            override fun actionPerformed(evt: AnActionEvent) {
+                val tab = evt.getData(DataProviders.TerminalTab) ?: return
+                val terminalPanel = (tab as DataProvider?)?.getData(DataProviders.TerminalPanel) ?: return
+
+                if (tab !is SSHTerminalTab) {
+                    terminalPanel.toast(I18n.getString("termora.floating-toolbar.not-supported"))
+                    return
+                }
+
+                for (window in terminalPanel.getVisualWindows()) {
+                    if (window is SystemInformationVisualWindow) {
+                        terminalPanel.moveToFront(window)
+                        return
+                    }
+                }
+
+                val visualWindowPanel = SystemInformationVisualWindow(tab, terminalPanel)
+                terminalPanel.addVisualWindow(visualWindowPanel)
+
+            }
+        })
+        return btn
     }
 
     private fun initPinActionButton(): JButton {

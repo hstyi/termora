@@ -2,10 +2,12 @@ package app.termora
 
 import app.termora.keymgr.OhKeyPairKeyPairProvider
 import app.termora.terminal.TerminalSize
+import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.sshd.client.ClientBuilder
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.channel.ChannelShell
+import org.apache.sshd.client.channel.ClientChannelEvent
 import org.apache.sshd.client.config.hosts.HostConfigEntry
 import org.apache.sshd.client.config.hosts.HostConfigEntryResolver
 import org.apache.sshd.client.config.hosts.KnownHostEntry
@@ -31,6 +33,7 @@ import org.eclipse.jgit.transport.sshd.IdentityPasswordProvider
 import org.eclipse.jgit.transport.sshd.ProxyData
 import org.slf4j.LoggerFactory
 import java.awt.Window
+import java.io.ByteArrayOutputStream
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.SocketAddress
@@ -38,6 +41,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.security.PublicKey
 import java.time.Duration
+import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.JOptionPane
 import javax.swing.SwingUtilities
@@ -72,6 +76,34 @@ object SshClients {
         }
 
         return channel
+
+    }
+
+    /**
+     * 执行一个命令
+     *
+     * @return first: exitCode , second: response
+     */
+    fun execChannel(
+        session: ClientSession,
+        command: String
+    ): Pair<Int, String> {
+
+        val baos = ByteArrayOutputStream()
+        val channel = session.createExecChannel(command)
+        channel.out = baos
+
+        if (channel.open().verify(timeout).await(timeout)) {
+            channel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), timeout)
+        }
+
+        IOUtils.closeQuietly(channel)
+
+        if (channel.exitStatus == null) {
+            return Pair(-1, baos.toString())
+        }
+
+        return Pair(channel.exitStatus, baos.toString())
 
     }
 

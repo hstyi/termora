@@ -73,12 +73,17 @@ class TerminalTabbed(
         tabbedPane.addPropertyChangeListener("selectedIndex") { evt ->
             val oldIndex = evt.oldValue as Int
             val newIndex = evt.newValue as Int
+
             if (oldIndex >= 0 && tabs.size > newIndex) {
                 tabs[oldIndex].onLostFocus()
             }
+
             if (newIndex >= 0 && tabs.size > newIndex) {
                 tabs[newIndex].onGrabFocus()
             }
+
+            SwingUtilities.invokeLater { tabbedPane.getComponentAt(newIndex).requestFocusInWindow() }
+
         }
 
         // 选择变动
@@ -173,6 +178,9 @@ class TerminalTabbed(
 
             // 新的获取到焦点
             tabs[tabbedPane.selectedIndex].onGrabFocus()
+
+            // 新的真正获取焦点
+            tabbedPane.getComponentAt(tabbedPane.selectedIndex).requestFocusInWindow()
 
             if (disposable) {
                 Disposer.dispose(tab)

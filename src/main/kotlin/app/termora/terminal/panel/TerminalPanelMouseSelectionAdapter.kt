@@ -42,6 +42,8 @@ class TerminalPanelMouseSelectionAdapter(private val terminalPanel: TerminalPane
 
     override fun mousePressed(e: MouseEvent) {
 
+        terminalPanel.requestFocusInWindow()
+
         if (isMouseTracking) {
             return
         }
@@ -77,7 +79,6 @@ class TerminalPanelMouseSelectionAdapter(private val terminalPanel: TerminalPane
             mousePressedPoint.y = e.y
         }
 
-        terminalPanel.requestFocusInWindow()
 
         // 如果只有 Shift 键按下，那么应该追加选中
         if (selectionModel.hasSelection() && SwingUtilities.isLeftMouseButton(e) && e.modifiersEx == 1088) {

@@ -26,7 +26,6 @@ import org.apache.sshd.common.channel.ChannelListener
 import org.apache.sshd.common.session.Session
 import org.apache.sshd.common.session.SessionListener
 import org.apache.sshd.common.session.SessionListener.Event
-import org.slf4j.LoggerFactory
 import java.nio.charset.StandardCharsets
 import java.util.*
 import javax.swing.JComponent
@@ -36,7 +35,7 @@ import javax.swing.SwingUtilities
 class SSHTerminalTab(windowScope: WindowScope, host: Host) :
     PtyHostTerminalTab(windowScope, host) {
     companion object {
-        private val log = LoggerFactory.getLogger(PtyHostTerminalTab::class.java)
+        val SSHSession = DataKey(ClientSession::class)
     }
 
     private val mutex = Mutex()
@@ -201,6 +200,13 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : Any> getData(dataKey: DataKey<T>): T? {
+        if (dataKey == SSHSession) {
+            return sshSession as T?
+        }
+        return super.getData(dataKey)
+    }
 
     override fun stop() {
         if (mutex.tryLock()) {

@@ -6,7 +6,10 @@ import app.termora.actions.DataProvider
 import app.termora.actions.DataProviderSupport
 import app.termora.actions.DataProviders
 import app.termora.terminal.*
+import app.termora.terminal.panel.vw.VisualWindow
+import app.termora.terminal.panel.vw.VisualWindowManager
 import com.formdev.flatlaf.util.SystemInfo
+import org.apache.commons.lang3.ArrayUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
 import java.awt.*
@@ -32,7 +35,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 
 class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnector) :
-    JPanel(BorderLayout()), DataProvider, Disposable {
+    JPanel(BorderLayout()), DataProvider, Disposable, VisualWindowManager {
 
     companion object {
         val Debug = DataKey(Boolean::class)
@@ -46,6 +49,8 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
     private val floatingToolbar = FloatingToolbarPanel()
     private val terminalDisplay = TerminalDisplay(this, terminal, terminalBlink)
     private val dataProviderSupport = DataProviderSupport()
+    private val layeredPane = TerminalLayeredPane()
+    private var visualWindows = emptyArray<VisualWindow>()
 
     val scrollBar = TerminalScrollBar(this@TerminalPanel, terminalFindPanel, terminal)
 
@@ -118,8 +123,6 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
         scrollBar.blockIncrement = 1
         background = Color.black
 
-
-        val layeredPane = TerminalLayeredPane()
         layeredPane.add(terminalDisplay, JLayeredPane.DEFAULT_LAYER as Any)
         layeredPane.add(terminalFindPanel, JLayeredPane.POPUP_LAYER as Any)
         layeredPane.add(floatingToolbar, JLayeredPane.POPUP_LAYER as Any)
@@ -503,6 +506,23 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
                                 height
                             )
                         }
+
+                        is VisualWindow -> {
+                            var location = c.location
+                            val dimension = getDimension()
+                            if (location.x > dimension.width) {
+                                location = Point(dimension.width - c.preferredSize.width, location.y)
+                            }
+                            if (location.y > dimension.height) {
+                                location = Point(location.x, dimension.height - c.preferredSize.height)
+                            }
+                            c.setBounds(
+                                location.x,
+                                location.y,
+                                c.width,
+                                c.height
+                            )
+                        }
                     }
                 }
             }
@@ -511,5 +531,43 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
 
     override fun <T : Any> getData(dataKey: DataKey<T>): T? {
         return dataProviderSupport.getData(dataKey)
+    }
+
+    override fun moveToFront(visualWindow: VisualWindow) {
+        if (visualWindow.isWindow()) {
+            visualWindow.getWindow()?.requestFocus()
+            return
+        }
+        layeredPane.moveToFront(visualWindow.getJComponent())
+    }
+
+    override fun getVisualWindows(): Array<VisualWindow> {
+        return visualWindows
+    }
+
+    override fun addVisualWindow(visualWindow: VisualWindow) {
+        visualWindows = ArrayUtils.add(visualWindows, visualWindow)
+        layeredPane.add(visualWindow.getJComponent(), JLayeredPane.DRAG_LAYER as Any)
+        layeredPane.revalidate()
+        layeredPane.repaint()
+    }
+
+    override fun removeVisualWindow(visualWindow: VisualWindow) {
+        rebaseVisualWindow(visualWindow)
+        visualWindows = ArrayUtils.removeElement(visualWindows, visualWindow)
+    }
+
+    override fun rebaseVisualWindow(visualWindow: VisualWindow) {
+        layeredPane.remove(visualWindow.getJComponent())
+        layeredPane.revalidate()
+        layeredPane.repaint()
+        requestFocusInWindow()
+    }
+
+    override fun getDimension(): Dimension {
+        return Dimension(
+            terminalDisplay.size.width + padding.left + padding.right,
+            terminalDisplay.size.height + padding.bottom + padding.top
+        )
     }
 }

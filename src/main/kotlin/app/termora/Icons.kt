@@ -10,6 +10,8 @@ object Icons {
     val down by lazy { DynamicIcon("icons/down.svg", "icons/down_dark.svg") }
     val moveDown by lazy { DynamicIcon("icons/moveDown.svg", "icons/moveDown_dark.svg") }
     val close by lazy { DynamicIcon("icons/close.svg", "icons/close_dark.svg") }
+    val openInNewWindow by lazy { DynamicIcon("icons/openInNewWindow.svg", "icons/openInNewWindow_dark.svg") }
+    val openInToolWindow by lazy { DynamicIcon("icons/openInToolWindow.svg", "icons/openInToolWindow_dark.svg") }
     val searchHistory by lazy { DynamicIcon("icons/searchHistory.svg", "icons/searchHistory_dark.svg") }
     val eye by lazy { DynamicIcon("icons/eye.svg", "icons/eye_dark.svg") }
     val eyeClose by lazy { DynamicIcon("icons/eyeClose.svg", "icons/eyeClose_dark.svg") }
@@ -26,6 +28,7 @@ object Icons {
     val empty by lazy { DynamicIcon("icons/empty.svg") }
     val changelog by lazy { DynamicIcon("icons/changelog.svg", "icons/changelog_dark.svg") }
     val add by lazy { DynamicIcon("icons/add.svg", "icons/add_dark.svg") }
+    val locate by lazy { DynamicIcon("icons/locate.svg", "icons/locate_dark.svg") }
     val errorIntroduction by lazy { DynamicIcon("icons/errorIntroduction.svg", "icons/errorIntroduction_dark.svg") }
     val networkPolicy by lazy { DynamicIcon("icons/networkPolicy.svg", "icons/networkPolicy_dark.svg") }
     val clusterRole by lazy { DynamicIcon("icons/clusterRole.svg", "icons/clusterRole_dark.svg") }

@@ -54,7 +54,7 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
     protected fun init() {
 
 
-        defaultCloseOperation = WindowConstants.DISPOSE_ON_CLOSE
+        defaultCloseOperation = DISPOSE_ON_CLOSE
 
         initTitleBar()
         initEvents()
@@ -158,12 +158,14 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
                     openPopup = true
                 }
 
-                val window = SwingUtilities.windowForComponent(c)
-                val windows = window.ownedWindows
-                for (w in windows) {
-                    if (w.isVisible && w.javaClass.getName().endsWith("HeavyWeightWindow")) {
-                        openPopup = true
-                        w.dispose()
+                val window = c as? Window ?: SwingUtilities.windowForComponent(c)
+                if (window != null) {
+                    val windows = window.ownedWindows
+                    for (w in windows) {
+                        if (w.isVisible && w.javaClass.getName().endsWith("HeavyWeightWindow")) {
+                            openPopup = true
+                            w.dispose()
+                        }
                     }
                 }
 
