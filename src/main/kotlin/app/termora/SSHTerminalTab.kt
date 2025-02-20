@@ -26,6 +26,7 @@ import org.apache.sshd.common.channel.ChannelListener
 import org.apache.sshd.common.session.Session
 import org.apache.sshd.common.session.SessionListener
 import org.apache.sshd.common.session.SessionListener.Event
+import org.slf4j.LoggerFactory
 import java.nio.charset.StandardCharsets
 import java.util.*
 import javax.swing.JComponent
@@ -36,6 +37,8 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
     PtyHostTerminalTab(windowScope, host) {
     companion object {
         val SSHSession = DataKey(ClientSession::class)
+
+        private val log = LoggerFactory.getLogger(SSHTerminalTab::class.java)
     }
 
     private val mutex = Mutex()
@@ -191,12 +194,20 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
         }
 
         for (tunneling in host.tunnelings) {
-
-            SshClients.openTunneling(session, host, tunneling)
-
-            withContext(Dispatchers.Swing) {
-                terminal.write("Start [${tunneling.name}] port forwarding successfully.\r\n")
+            try {
+                SshClients.openTunneling(session, host, tunneling)
+                withContext(Dispatchers.Swing) {
+                    terminal.write("Start [${tunneling.name}] port forwarding successfully.\r\n")
+                }
+            } catch (e: Exception) {
+                if (log.isErrorEnabled) {
+                    log.error("Start [${tunneling.name}] port forwarding failed: {}", e.message, e)
+                }
+                withContext(Dispatchers.Swing) {
+                    terminal.write("Start [${tunneling.name}] port forwarding failed: ${e.message}\r\n")
+                }
             }
+
         }
     }
 
