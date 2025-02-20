@@ -548,8 +548,7 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
     override fun addVisualWindow(visualWindow: VisualWindow) {
         visualWindows = ArrayUtils.add(visualWindows, visualWindow)
         layeredPane.add(visualWindow.getJComponent(), JLayeredPane.DRAG_LAYER as Any)
-        layeredPane.revalidate()
-        layeredPane.repaint()
+        layeredPane.moveToFront(visualWindow.getJComponent())
     }
 
     override fun removeVisualWindow(visualWindow: VisualWindow) {

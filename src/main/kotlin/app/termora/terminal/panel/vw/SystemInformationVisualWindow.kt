@@ -1,8 +1,6 @@
 package app.termora.terminal.panel.vw
 
 import app.termora.*
-import app.termora.actions.AnActionEvent
-import app.termora.actions.DataProviders
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import kotlinx.coroutines.*
@@ -11,15 +9,14 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.sshd.client.session.ClientSession
 import org.slf4j.LoggerFactory
 import java.awt.BorderLayout
-import java.util.*
 import javax.swing.*
 import javax.swing.table.DefaultTableCellRenderer
 import javax.swing.table.DefaultTableModel
 import kotlin.time.Duration.Companion.milliseconds
 
 
-class SystemInformationVisualWindow(private val tab: SSHTerminalTab, visualWindowManager: VisualWindowManager) :
-    VisualWindowPanel("SystemInformation", visualWindowManager) {
+class SystemInformationVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindowManager) :
+    SSHVisualWindow(tab, "SystemInformation", visualWindowManager) {
 
     companion object {
         private val log = LoggerFactory.getLogger(SystemInformationVisualWindow::class.java)
@@ -41,22 +38,6 @@ class SystemInformationVisualWindow(private val tab: SSHTerminalTab, visualWindo
 
     private fun initEvents() {
         Disposer.register(this, systemInformationPanel)
-        Disposer.register(tab, this)
-    }
-
-    override fun getWindowTitle(): String {
-        return tab.getTitle() + " - " + title
-    }
-
-    override fun toggleWindow() {
-        val evt = AnActionEvent(tab.getJComponent(), StringUtils.EMPTY, EventObject(this))
-        val terminalTabbedManager = evt.getData(DataProviders.TerminalTabbedManager) ?: return
-
-        super.toggleWindow()
-
-        if (!isWindow()) {
-            terminalTabbedManager.setSelectedTerminalTab(tab)
-        }
     }
 
     private inner class SystemInformationPanel : JPanel(BorderLayout()), Disposable {

@@ -6,6 +6,7 @@ import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviders
 import app.termora.terminal.DataKey
+import app.termora.terminal.panel.vw.NvidiaSMIVisualWindow
 import app.termora.terminal.panel.vw.SystemInformationVisualWindow
 import com.formdev.flatlaf.extras.components.FlatToolBar
 import com.formdev.flatlaf.ui.FlatRoundBorder
@@ -108,6 +109,9 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
         // 服务器信息
         add(initServerInfoActionButton())
 
+        // Nvidia 显卡信息
+        add(initNvidiaSMIActionButton())
+
         // 重连
         add(initReconnectActionButton())
 
@@ -136,6 +140,34 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
                 }
 
                 val visualWindowPanel = SystemInformationVisualWindow(tab, terminalPanel)
+                terminalPanel.addVisualWindow(visualWindowPanel)
+
+            }
+        })
+        return btn
+    }
+
+    private fun initNvidiaSMIActionButton(): JButton {
+        val btn = JButton(Icons.nvidia)
+        btn.toolTipText = I18n.getString("termora.visual-window.nvidia-smi")
+        btn.addActionListener(object : AnAction() {
+            override fun actionPerformed(evt: AnActionEvent) {
+                val tab = evt.getData(DataProviders.TerminalTab) ?: return
+                val terminalPanel = (tab as DataProvider?)?.getData(DataProviders.TerminalPanel) ?: return
+
+                if (tab !is SSHTerminalTab) {
+                    terminalPanel.toast(I18n.getString("termora.floating-toolbar.not-supported"))
+                    return
+                }
+
+                for (window in terminalPanel.getVisualWindows()) {
+                    if (window is NvidiaSMIVisualWindow) {
+                        terminalPanel.moveToFront(window)
+                        return
+                    }
+                }
+
+                val visualWindowPanel = NvidiaSMIVisualWindow(tab, terminalPanel)
                 terminalPanel.addVisualWindow(visualWindowPanel)
 
             }

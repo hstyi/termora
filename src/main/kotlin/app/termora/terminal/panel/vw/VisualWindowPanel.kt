@@ -28,6 +28,11 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
     private var dialog: VisualWindowDialog? = null
     private var oldBounds = Rectangle()
     private var toggleWindowBtn = JButton(Icons.openInNewWindow)
+    private var isAlwaysTop
+        get() = properties.getString("VisualWindow.${id}.dialog.isAlwaysTop", "false").toBoolean()
+        set(value) = properties.putString("VisualWindow.${id}.dialog.isAlwaysTop", value.toString())
+
+    private val alwaysTopBtn = JButton(Icons.moveUp)
     private val closeWindowListener = object : WindowAdapter() {
         override fun windowClosed(e: WindowEvent) {
             close()
@@ -64,6 +69,12 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
 
         if (w > 0 && h > 0) setSize(w, h) else setSize(400, 200)
 
+        alwaysTopBtn.isSelected = isAlwaysTop
+        alwaysTopBtn.isVisible = false
+    }
+
+    protected open fun toolbarButtons(): List<JButton> {
+        return emptyList()
     }
 
     private fun initEvents() {
@@ -102,14 +113,29 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
                 }
             }
         })
+
+        alwaysTopBtn.addActionListener {
+            isAlwaysTop = !isAlwaysTop
+            alwaysTopBtn.isSelected = isAlwaysTop
+
+            if (isWindow()) {
+                dialog?.isAlwaysOnTop = isAlwaysTop
+            }
+        }
     }
 
     private fun initToolBar() {
-        toolbar.add(JLabel(Icons.empty))
+        val btns = toolbarButtons()
+        val count = 2 + btns.size
+        toolbar.add(alwaysTopBtn)
+        toolbar.add(Box.createHorizontalStrut(count * 26))
         toolbar.add(JLabel(Icons.empty))
         toolbar.add(Box.createHorizontalGlue())
         toolbar.add(titleLabel)
         toolbar.add(Box.createHorizontalGlue())
+
+        btns.forEach { toolbar.add(it) }
+
         toolbar.add(toggleWindowBtn)
         toolbar.add(JButton(Icons.close).apply { addActionListener { Disposer.dispose(visualWindow) } })
         toolbar.border = BorderFactory.createMatteBorder(0, 0, 1, 0, DynamicColor.BorderColor)
@@ -156,6 +182,8 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
         isWindow = !isWindow
         dialog?.dispose()
         dialog = null
+
+        alwaysTopBtn.isVisible = isWindow
 
         if (isWindow) {
             oldBounds = bounds
@@ -212,13 +240,11 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
 
 
     protected open fun close() {
-        SwingUtilities.invokeLater {
-            if (isWindow()) {
-                dialog?.dispose()
-                dialog = null
-            }
-            visualWindowManager.removeVisualWindow(visualWindow)
+        if (isWindow()) {
+            dialog?.dispose()
+            dialog = null
         }
+        visualWindowManager.removeVisualWindow(visualWindow)
     }
 
     private inner class VisualWindowDialog : DialogWrapper(null) {
@@ -228,6 +254,7 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
             controlsVisible = false
             isResizable = true
             title = getWindowTitle()
+            isAlwaysOnTop = isAlwaysTop
 
             initEvents()
 
@@ -251,8 +278,8 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
         }
 
         private fun initEvents() {
-            Disposer.register(disposable, object : Disposable {
-                override fun dispose() {
+            addWindowListener(object : WindowAdapter() {
+                override fun windowClosed(e: WindowEvent) {
                     properties.putString("VisualWindow.${id}.dialog.location.x", x.toString())
                     properties.putString("VisualWindow.${id}.dialog.location.y", y.toString())
                     properties.putString("VisualWindow.${id}.dialog.location.width", width.toString())

@@ -80,7 +80,9 @@ class TermoraFrameManager {
         try {
             Disposer.getTree().assertIsEmpty(true)
         } catch (e: Exception) {
-            log.error(e.message)
+            if (log.isErrorEnabled) {
+                log.error(e.message, e)
+            }
         }
 
         exitProcess(0)
