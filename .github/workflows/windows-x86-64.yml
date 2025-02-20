@@ -16,6 +16,9 @@ jobs:
           distribution: 'jetbrains'
           java-version: '21'
 
+      - name: Install zip
+        uses: montudor/action-zip@v1
+
       - uses: actions/cache@v4
         with:
           path: |

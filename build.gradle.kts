@@ -142,16 +142,15 @@ tasks.test {
 tasks.register<Copy>("copy-dependencies") {
     val dir = layout.buildDirectory.dir("libs")
     from(configurations.runtimeClasspath).into(dir)
+    val jna = libs.jna.asProvider().get()
+    val pty4j = libs.pty4j.get()
+    val jSerialComm = libs.jSerialComm.get()
 
     // 对 JNA 和 PTY4J 的本地库提取
     // 提取出来是为了单独签名，不然无法通过公证
     if (os.isMacOsX && macOSSign) {
         doLast {
-            val jna = libs.jna.asProvider().get()
             val dylib = dir.get().dir("dylib").asFile
-            val pty4j = libs.pty4j.get()
-            val jSerialComm = libs.jSerialComm.get()
-
             for (file in dir.get().asFile.listFiles() ?: emptyArray()) {
                 if ("${jna.name}-${jna.version}" == file.nameWithoutExtension) {
                     val targetDir = File(dylib, jna.name)
@@ -199,6 +198,43 @@ tasks.register<Copy>("copy-dependencies") {
                 for (path in paths) {
                     if (Files.isRegularFile(path)) {
                         signMacOSLocalFile(path.toFile())
+                    }
+                }
+            }
+        }
+    } else if (os.isLinux || os.isWindows) { // 缩减安装包
+        doLast {
+            for (file in dir.get().asFile.listFiles() ?: emptyArray()) {
+                if ("${jna.name}-${jna.version}" == file.nameWithoutExtension) {
+                    exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/darwin-*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/sunos-*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/openbsd-*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/freebsd-*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/dragonflybsd-*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/aix-*") }
+                    if (os.isWindows) {
+                        exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/linux-*") }
+                    } else if (os.isLinux) {
+                        exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/win32-*") }
+                    }
+                } else if ("${pty4j.name}-${pty4j.version}" == file.nameWithoutExtension) {
+                    exec { commandLine("zip", "-d", file.absolutePath, "resources/*darwin*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "resources/*freebsd*") }
+                    if (os.isWindows) {
+                        exec { commandLine("zip", "-d", file.absolutePath, "resources/*linux*") }
+                    } else if (os.isLinux) {
+                        exec { commandLine("zip", "-d", file.absolutePath, "resources/*win*") }
+                    }
+                } else if ("${jSerialComm.name}-${jSerialComm.version}" == file.nameWithoutExtension) {
+                    exec { commandLine("zip", "-d", file.absolutePath, "Android/*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "FreeBSD/*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "OpenBSD/*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "OSX/*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "Solaris/*") }
+                    if (os.isWindows) {
+                        exec { commandLine("zip", "-d", file.absolutePath, "Linux/*") }
+                    } else if (os.isLinux) {
+                        exec { commandLine("zip", "-d", file.absolutePath, "Windows/*") }
                     }
                 }
             }
