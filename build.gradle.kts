@@ -98,7 +98,7 @@ dependencies {
     implementation(libs.sshd.core)
     implementation(libs.commonmark)
     implementation(libs.jgit)
-    implementation(libs.jgit.sshd)
+    implementation(libs.jgit.sshd) { exclude(group = "*", module = "sshd-osgi") }
     implementation(libs.jnafilechooser)
     implementation(libs.xodus.vfs)
     implementation(libs.xodus.openAPI)
