@@ -142,6 +142,7 @@ class SystemInformationVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
                 return
             }
 
+            val regex = """\d+\.?\d*""".toRegex()
             val lines = pair.second.split(StringUtils.LF)
             for (line in lines) {
                 val isCPU = line.startsWith("%Cpu(s):", true)
@@ -154,22 +155,23 @@ class SystemInformationVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
                 if (isCPU) {
                     val parts = StringUtils.removeStartIgnoreCase(line, "%Cpu(s):").split(",").map { it.trim() }
                     for (part in parts) {
-                        if (part.endsWith("us")) {
-                            cpu.us = StringUtils.removeEnd(part, "us").trim().toDoubleOrNull() ?: 0.0
-                        } else if (part.endsWith("sy")) {
-                            cpu.sy = StringUtils.removeEnd(part, "sy").trim().toDoubleOrNull() ?: 0.0
-                        } else if (part.endsWith("ni")) {
-                            cpu.ni = StringUtils.removeEnd(part, "ni").trim().toDoubleOrNull() ?: 0.0
-                        } else if (part.endsWith("id")) {
-                            cpu.id = StringUtils.removeEnd(part, "id").trim().toDoubleOrNull() ?: 0.0
-                        } else if (part.endsWith("wa")) {
-                            cpu.wa = StringUtils.removeEnd(part, "wa").trim().toDoubleOrNull() ?: 0.0
-                        } else if (part.endsWith("hi")) {
-                            cpu.hi = StringUtils.removeEnd(part, "hi").trim().toDoubleOrNull() ?: 0.0
-                        } else if (part.endsWith("si")) {
-                            cpu.si = StringUtils.removeEnd(part, "si").trim().toDoubleOrNull() ?: 0.0
-                        } else if (part.endsWith("st")) {
-                            cpu.st = StringUtils.removeEnd(part, "st").trim().toDoubleOrNull() ?: 0.0
+                        val value = regex.find(part)?.value?.toDoubleOrNull() ?: 0.0
+                        if (part.contains("us")) {
+                            cpu.us = value
+                        } else if (part.contains("sy")) {
+                            cpu.sy = value
+                        } else if (part.contains("ni")) {
+                            cpu.ni = value
+                        } else if (part.contains("id")) {
+                            cpu.id = value
+                        } else if (part.contains("wa")) {
+                            cpu.wa = value
+                        } else if (part.contains("hi")) {
+                            cpu.hi = value
+                        } else if (part.contains("si")) {
+                            cpu.si = value
+                        } else if (part.contains("st")) {
+                            cpu.st = value
                         }
                     }
                 } else if (isMibMem || isKibMem) {
@@ -177,14 +179,15 @@ class SystemInformationVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
                         .split(",")
                         .map { it.trim() }
                     for (part in parts) {
-                        if (part.endsWith("total")) {
-                            mem.total = StringUtils.removeEnd(part, "total").trim().toDoubleOrNull() ?: 0.0
-                        } else if (part.endsWith("free")) {
-                            mem.free = StringUtils.removeEnd(part, "free").trim().toDoubleOrNull() ?: 0.0
-                        } else if (part.endsWith("used")) {
-                            mem.used = StringUtils.removeEnd(part, "used").trim().toDoubleOrNull() ?: 0.0
-                        } else if (part.endsWith("buff/cache")) {
-                            mem.buffCache = StringUtils.removeEnd(part, "buff/cache").trim().toDoubleOrNull() ?: 0.0
+                        val value = regex.find(part)?.value?.toDoubleOrNull() ?: 0.0
+                        if (part.contains("total")) {
+                            mem.total = value
+                        } else if (part.contains("free")) {
+                            mem.free = value
+                        } else if (part.contains("used")) {
+                            mem.used = value
+                        } else if (part.contains("buff/cache")) {
+                            mem.buffCache = value
                         }
                     }
 
@@ -200,12 +203,13 @@ class SystemInformationVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
                         .map { it.trim() }
 
                     for (part in parts) {
+                        val value = regex.find(part)?.value?.toDoubleOrNull() ?: 0.0
                         if (part.contains("total")) {
-                            swap.total = StringUtils.removeEnd(part, "total").trim().toDoubleOrNull() ?: 0.0
+                            swap.total = value
                         } else if (part.contains("free")) {
-                            swap.free = StringUtils.removeEnd(part, "free").trim().toDoubleOrNull() ?: 0.0
+                            swap.free = value
                         } else if (part.contains("used.")) {
-                            swap.used = part.substringBefore("used.").trim().toDoubleOrNull() ?: 0.0
+                            swap.used = value
                         }
                     }
 
