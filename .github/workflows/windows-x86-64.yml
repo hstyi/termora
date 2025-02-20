@@ -16,6 +16,11 @@ jobs:
           distribution: 'jetbrains'
           java-version: '21'
 
+      - name: Install zip
+        run: |
+          $system32 = [System.Environment]::GetEnvironmentVariable("WINDIR") + "\System32"
+          Invoke-WebRequest -Uri "http://stahlworks.com/dev/zip.exe" -OutFile "$system32\zip.exe"
+
       - uses: actions/cache@v4
         with:
           path: |
