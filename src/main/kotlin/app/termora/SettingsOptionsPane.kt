@@ -1595,7 +1595,7 @@ class SettingsOptionsPane : OptionsPane() {
 
             val key = doorman.work(passwordTextField.password)
 
-            hosts.forEach { hostManager.addHost(it, false) }
+            hosts.forEach { hostManager.addHost(it) }
             keyPairs.forEach { keyManager.addOhKeyPair(it) }
             for (e in properties) {
                 for ((k, v) in e.second) {
