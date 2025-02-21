@@ -10,16 +10,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Installing Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'jetbrains'
-          java-version: '21'
-
       - name: Install zip
         run: |
           $system32 = [System.Environment]::GetEnvironmentVariable("WINDIR") + "\System32"
           Invoke-WebRequest -Uri "http://stahlworks.com/dev/zip.exe" -OutFile "$system32\zip.exe"
+          Invoke-WebRequest -Uri "http://stahlworks.com/dev/unzip.exe" -OutFile "$system32\unzip.exe"
+
+      - name: Installing Java
+        run: |
+          curl -s --output ${{ runner.temp }}\java_package.zip -L https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-21.0.6-windows-x64-b895.91.zip
+          unzip -q ${{ runner.temp }}\java_package.zip -d ${{ runner.temp }}\jbr
+          echo "JAVA_HOME=${{ runner.temp }}\jbr\jbrsdk-21.0.6-windows-x64-b895.91" >> $env:GITHUB_ENV
 
       - uses: actions/cache@v4
         with:
