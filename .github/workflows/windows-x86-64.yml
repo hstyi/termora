@@ -16,6 +16,9 @@ jobs:
           Invoke-WebRequest -Uri "http://stahlworks.com/dev/zip.exe" -OutFile "$system32\zip.exe"
           Invoke-WebRequest -Uri "http://stahlworks.com/dev/unzip.exe" -OutFile "$system32\unzip.exe"
 
+      - name: Install 7z
+        uses: milliewalky/setup-7-zip@v2
+
       - name: Installing Java
         run: |
           curl -s --output ${{ runner.temp }}\java_package.zip -L https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-21.0.6-windows-x64-b895.91.zip
@@ -43,3 +46,4 @@ jobs:
           path: |
             build/distributions/*.zip
             build/distributions/*.msi
+            build/distributions/*.7z

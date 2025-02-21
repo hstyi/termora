@@ -407,6 +407,16 @@ tasks.register("dist") {
                 workingDir = layout.buildDirectory.dir("jpackage/images/win-msi.image/").get().asFile
             }
 
+            // 7z
+            exec {
+                commandLine(
+                    "7z", "a", "-mx=9", "-m0=lzma2", "-mmt=on", "-bso0",
+                    distributionDir.file("${finalFilenameWithoutExtension}.7z").asFile.absolutePath,
+                    project.name.uppercaseFirstChar()
+                )
+                workingDir = layout.buildDirectory.dir("jpackage/images/win-msi.image/").get().asFile
+            }
+
             // msi
             exec {
                 commandLine(
