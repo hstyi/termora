@@ -12,10 +12,11 @@ import javax.swing.SwingUtilities
 
 class SFTPTerminalTab : Disposable, TerminalTab, DataProvider {
 
-    private val transportPanel by lazy {
-        TransportPanel().apply {
-            Disposer.register(this@SFTPTerminalTab, this)
-        }
+    private val sftp get() = Database.getDatabase().sftp
+    private val transportPanel = TransportPanel()
+
+    init {
+        Disposer.register(this, transportPanel)
     }
 
     override fun getTitle(): String {
@@ -43,6 +44,11 @@ class SFTPTerminalTab : Disposable, TerminalTab, DataProvider {
 
     override fun canClose(): Boolean {
         assertEventDispatchThread()
+
+        if (sftp.pinTab) {
+            return false
+        }
+
         val transportManager = transportPanel.getData(TransportDataProviders.TransportManager) ?: return true
         if (transportManager.getTransports().isEmpty()) {
             return true

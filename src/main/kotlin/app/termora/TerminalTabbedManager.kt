@@ -1,8 +1,8 @@
 package app.termora
 
 interface TerminalTabbedManager {
-    fun addTerminalTab(tab: TerminalTab)
-    fun addTerminalTab(index: Int, tab: TerminalTab)
+    fun addTerminalTab(tab: TerminalTab, selected: Boolean = true)
+    fun addTerminalTab(index: Int, tab: TerminalTab, selected: Boolean = true)
     fun getSelectedTerminalTab(): TerminalTab?
     fun getTerminalTabs(): List<TerminalTab>
     fun setSelectedTerminalTab(tab: TerminalTab)

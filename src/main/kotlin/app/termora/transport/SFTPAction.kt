@@ -23,20 +23,22 @@ class SFTPAction : AnAction("SFTP", Icons.folder) {
      *
      * @return null 表示当前条件下无法创建
      */
-    fun openOrCreateSFTPTerminalTab(evt: AnActionEvent): SFTPTerminalTab? {
+    fun openOrCreateSFTPTerminalTab(evt: AnActionEvent, selected: Boolean = true): SFTPTerminalTab? {
         val terminalTabbedManager = evt.getData(DataProviders.TerminalTabbedManager) ?: return null
 
         val tabs = terminalTabbedManager.getTerminalTabs()
         for (tab in tabs) {
             if (tab is SFTPTerminalTab) {
-                terminalTabbedManager.setSelectedTerminalTab(tab)
+                if (selected) {
+                    terminalTabbedManager.setSelectedTerminalTab(tab)
+                }
                 return tab
             }
         }
 
         // 创建一个新的
         val tab = SFTPTerminalTab()
-        terminalTabbedManager.addTerminalTab(tab)
+        terminalTabbedManager.addTerminalTab(tab, selected)
 
         return tab
     }

@@ -4,6 +4,7 @@ import app.termora.AES.encodeBase64String
 import app.termora.Application.ohMyJson
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
+import app.termora.actions.DataProviders
 import app.termora.highlight.KeywordHighlight
 import app.termora.highlight.KeywordHighlightManager
 import app.termora.keymap.Keymap
@@ -22,6 +23,7 @@ import app.termora.terminal.CursorStyle
 import app.termora.terminal.DataKey
 import app.termora.terminal.panel.FloatingToolbarPanel
 import app.termora.terminal.panel.TerminalPanel
+import app.termora.transport.SFTPAction
 import cash.z.ecc.android.bip39.Mnemonics
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.FlatSVGIcon
@@ -43,6 +45,7 @@ import org.apache.commons.lang3.SystemUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.commons.lang3.time.DateFormatUtils
 import org.jdesktop.swingx.JXEditorPane
+import org.jdesktop.swingx.action.ActionManager
 import org.slf4j.LoggerFactory
 import java.awt.BorderLayout
 import java.awt.Component
@@ -67,6 +70,7 @@ class SettingsOptionsPane : OptionsPane() {
     private val hostManager get() = HostManager.getInstance()
     private val keymapManager get() = KeymapManager.getInstance()
     private val macroManager get() = MacroManager.getInstance()
+    private val actionManager get() = ActionManager.getInstance()
     private val keywordHighlightManager get() = KeywordHighlightManager.getInstance()
     private val keyManager get() = KeyManager.getInstance()
 
@@ -1306,9 +1310,11 @@ class SettingsOptionsPane : OptionsPane() {
 
     private inner class SFTPOption : JPanel(BorderLayout()), Option {
 
-        val editCommandField = OutlineTextField(255)
-        val sftpCommandField = OutlineTextField(255)
+        private val editCommandField = OutlineTextField(255)
+        private val sftpCommandField = OutlineTextField(255)
+        private val pinTabComboBox = YesOrNoComboBox()
         private val sftp get() = database.sftp
+        private val sftpAction get() = actionManager.getAction(Actions.SFTP) as SFTPAction
 
         init {
             initView()
@@ -1329,6 +1335,26 @@ class SettingsOptionsPane : OptionsPane() {
                     sftp.sftpCommand = sftpCommandField.text
                 }
             })
+
+            pinTabComboBox.addItemListener {
+                if (it.stateChange == ItemEvent.SELECTED) {
+                    sftp.pinTab = pinTabComboBox.selectedItem as Boolean
+                    for (window in TermoraFrameManager.getInstance().getWindows()) {
+                        val evt = AnActionEvent(window, StringUtils.EMPTY, EventObject(window))
+                        if (pinTabComboBox.selectedItem == true) {
+                            sftpAction.openOrCreateSFTPTerminalTab(evt)
+                        }
+                        val tabbed = evt.getData(DataProviders.TabbedPane) ?: continue
+                        val manager = evt.getData(DataProviders.TerminalTabbedManager) ?: continue
+                        for ((index, tab) in manager.getTerminalTabs().withIndex()) {
+                            if (tab is SFTPTerminalTab) {
+                                tabbed.setTabClosable(index, pinTabComboBox.selectedItem != true)
+                                break
+                            }
+                        }
+                    }
+                }
+            }
         }
 
 
@@ -1347,6 +1373,7 @@ class SettingsOptionsPane : OptionsPane() {
 
             editCommandField.text = sftp.editCommand
             sftpCommandField.text = sftp.sftpCommand
+            pinTabComboBox.selectedItem = sftp.pinTab
         }
 
         override fun getIcon(isSelected: Boolean): Icon {
@@ -1368,10 +1395,12 @@ class SettingsOptionsPane : OptionsPane() {
             )
 
             val builder = FormBuilder.create().layout(layout).debug(false)
-            builder.add("${I18n.getString("termora.settings.sftp.edit-command")}:").xy(1, 1)
-            builder.add(editCommandField).xy(3, 1)
-            builder.add("${I18n.getString("termora.tabbed.contextmenu.sftp-command")}:").xy(1, 3)
-            builder.add(sftpCommandField).xy(3, 3)
+            builder.add("${I18n.getString("termora.settings.sftp.fixed-tab")}:").xy(1, 1)
+            builder.add(pinTabComboBox).xy(3, 1)
+            builder.add("${I18n.getString("termora.settings.sftp.edit-command")}:").xy(1, 3)
+            builder.add(editCommandField).xy(3, 3)
+            builder.add("${I18n.getString("termora.tabbed.contextmenu.sftp-command")}:").xy(1, 5)
+            builder.add(sftpCommandField).xy(3, 5)
 
             return builder.build()
 

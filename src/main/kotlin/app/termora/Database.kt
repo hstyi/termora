@@ -599,6 +599,12 @@ class Database private constructor(private val env: Environment) : Disposable {
          */
         var sftpCommand by StringPropertyDelegate(StringUtils.EMPTY)
 
+
+        /**
+         * 是否固定在标签栏
+         */
+        var pinTab by BooleanPropertyDelegate(false)
+
     }
 
     /**

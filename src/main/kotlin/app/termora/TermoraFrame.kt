@@ -1,7 +1,6 @@
 package app.termora
 
 
-import app.termora.actions.ActionManager
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviderSupport
 import app.termora.actions.DataProviders
@@ -12,7 +11,6 @@ import com.formdev.flatlaf.util.SystemInfo
 import com.jetbrains.JBR
 import java.awt.Dimension
 import java.awt.Insets
-import java.awt.KeyboardFocusManager
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.util.*
@@ -32,7 +30,6 @@ fun assertEventDispatchThread() {
 class TermoraFrame : JFrame(), DataProvider {
 
 
-    private val actionManager get() = ActionManager.getInstance()
     private val id = UUID.randomUUID().toString()
     private val windowScope = ApplicationScope.forWindowScope(this)
     private val titleBar = LogicCustomTitleBar.createCustomTitleBar(this)
@@ -42,7 +39,7 @@ class TermoraFrame : JFrame(), DataProvider {
     private val isWindowDecorationsSupported by lazy { JBR.isWindowDecorationsSupported() }
     private val dataProviderSupport = DataProviderSupport()
     private val welcomePanel = WelcomePanel(windowScope)
-    private val keyboardFocusManager by lazy { KeyboardFocusManager.getCurrentKeyboardFocusManager() }
+    private val sftp get() = Database.getDatabase().sftp
 
 
     init {
@@ -102,6 +99,13 @@ class TermoraFrame : JFrame(), DataProvider {
 
         minimumSize = Dimension(640, 400)
         terminalTabbed.addTerminalTab(welcomePanel)
+
+        // 下一次事件循环检测是否固定 SFTP
+        SwingUtilities.invokeLater {
+            if (sftp.pinTab) {
+                terminalTabbed.addTerminalTab(SFTPTerminalTab(), false)
+            }
+        }
 
         // macOS 要避开左边的控制栏
         if (SystemInfo.isMacOS) {

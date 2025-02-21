@@ -280,7 +280,7 @@ class TerminalTabbed(
         }
 
 
-        close.isEnabled = c !is WelcomePanel
+        close.isEnabled = tab.canClose()
         rename.isEnabled = close.isEnabled
         clone.isEnabled = close.isEnabled
         openInNewWindow.isEnabled = close.isEnabled
@@ -306,7 +306,7 @@ class TerminalTabbed(
     }
 
 
-    private fun addTab(index: Int, tab: TerminalTab) {
+    private fun addTab(index: Int, tab: TerminalTab, selected: Boolean) {
         val c = tab.getJComponent()
         val title = (c.getClientProperty(titleProperty) ?: tab.getTitle()).toString()
 
@@ -317,13 +317,20 @@ class TerminalTabbed(
             StringUtils.EMPTY,
             index
         )
-        c.putClientProperty(titleProperty, title)
 
+        // 设置标题
+        c.putClientProperty(titleProperty, title)
         // 监听 icons 变化
         tab.addPropertyChangeListener(iconListener)
 
         tabs.add(index, tab)
-        tabbedPane.selectedIndex = index
+
+        if (selected) {
+            tabbedPane.selectedIndex = index
+        }
+
+        tabbedPane.setTabClosable(index, tab.canClose())
+
         Disposer.register(this, tab)
     }
 
@@ -445,12 +452,12 @@ class TerminalTabbed(
     override fun dispose() {
     }
 
-    override fun addTerminalTab(tab: TerminalTab) {
-        addTab(tabs.size, tab)
+    override fun addTerminalTab(tab: TerminalTab, selected: Boolean) {
+        addTab(tabs.size, tab, selected)
     }
 
-    override fun addTerminalTab(index: Int, tab: TerminalTab) {
-        addTab(index, tab)
+    override fun addTerminalTab(index: Int, tab: TerminalTab, selected: Boolean) {
+        addTab(index, tab, selected)
     }
 
     override fun getSelectedTerminalTab(): TerminalTab? {
