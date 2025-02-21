@@ -26,11 +26,15 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
     private val properties get() = Database.getDatabase().properties
     private val rootPanel = JPanel(BorderLayout())
     private val searchTextField = FlatTextField()
-    private val hostTree = HostTree()
+    private val hostTree = NewHostTree()
     private val bannerPanel = BannerPanel()
     private val toggle = FlatButton()
     private var fullContent = properties.getString("WelcomeFullContent", "false").toBoolean()
     private val dataProviderSupport = DataProviderSupport()
+    private val hostTreeModel = hostTree.model as NewHostTreeModel
+    private val filterableHostTreeModel = FilterableHostTreeModel(hostTree) {
+        searchTextField.text.isBlank()
+    }
 
     init {
         initView()
@@ -125,8 +129,6 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
         })
         hostTree.showsRootHandles = true
 
-        Disposer.register(this, hostTree)
-
         val scrollPane = JScrollPane(hostTree)
         scrollPane.verticalScrollBar.maximumSize = Dimension(0, 0)
         scrollPane.verticalScrollBar.preferredSize = Dimension(0, 0)
@@ -137,6 +139,11 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
         panel.add(scrollPane, BorderLayout.CENTER)
         panel.border = BorderFactory.createEmptyBorder(10, 0, 0, 0)
 
+        hostTree.model = filterableHostTreeModel
+        TreeUtils.loadExpansionState(
+            hostTree,
+            properties.getString("Welcome.HostTree.state", StringUtils.EMPTY)
+        )
 
         return panel
     }
@@ -162,48 +169,49 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
         })
 
 
-        FindEverywhereProvider.getFindEverywhereProviders(windowScope)
-            .add(object : FindEverywhereProvider {
-                override fun find(pattern: String): List<FindEverywhereResult> {
-                    var filter = TreeUtils.children(hostTree.model, hostTree.model.root)
-                        .filterIsInstance<Host>()
-                        .filter { it.protocol != Protocol.Folder }
+        FindEverywhereProvider.getFindEverywhereProviders(windowScope).add(object : FindEverywhereProvider {
+            override fun find(pattern: String): List<FindEverywhereResult> {
+                var filter = hostTreeModel.root.getAllChildren()
+                    .map { it.host }
+                    .filter { it.protocol != Protocol.Folder }
 
-                    if (pattern.isNotBlank()) {
-                        filter = filter.filter {
-                            if (it.protocol == Protocol.SSH) {
-                                it.name.contains(pattern, true) || it.host.contains(pattern, true)
-                            } else {
-                                it.name.contains(pattern, true)
-                            }
+                if (pattern.isNotBlank()) {
+                    filter = filter.filter {
+                        if (it.protocol == Protocol.SSH) {
+                            it.name.contains(pattern, true) || it.host.contains(pattern, true)
+                        } else {
+                            it.name.contains(pattern, true)
                         }
                     }
-
-                    return filter.map { HostFindEverywhereResult(it) }
                 }
 
-                override fun group(): String {
-                    return I18n.getString("termora.find-everywhere.groups.open-new-hosts")
-                }
+                return filter.map { HostFindEverywhereResult(it) }
+            }
 
-                override fun order(): Int {
-                    return Integer.MIN_VALUE + 2
-                }
-            })
+            override fun group(): String {
+                return I18n.getString("termora.find-everywhere.groups.open-new-hosts")
+            }
+
+            override fun order(): Int {
+                return Integer.MIN_VALUE + 2
+            }
+        })
+
+
+        filterableHostTreeModel.addFilter {
+            val text = searchTextField.text
+            val host = it.host
+            text.isBlank() || host.name.contains(text, true)
+                    || host.host.contains(text, true)
+                    || host.username.contains(text, true)
+        }
 
         searchTextField.document.addDocumentListener(object : DocumentAdaptor() {
-            private var state = StringUtils.EMPTY
             override fun changedUpdate(e: DocumentEvent) {
                 val text = searchTextField.text
-                if (text.isBlank()) {
-                    hostTree.setModel(hostTree.model)
-                    TreeUtils.loadExpansionState(hostTree, state)
-                    state = String()
-                } else {
-                    if (state.isBlank()) state = TreeUtils.saveExpansionState(hostTree)
-                    hostTree.setModel(hostTree.searchableModel)
-                    hostTree.searchableModel.search(text)
-                    TreeUtils.expandAll(hostTree)
+                filterableHostTreeModel.refresh()
+                if (text.isNotBlank()) {
+                    hostTree.expandAll()
                 }
             }
         })
@@ -251,8 +259,8 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
     }
 
     override fun dispose() {
-        hostTree.setModel(null)
         properties.putString("WelcomeFullContent", fullContent.toString())
+        properties.putString("Welcome.HostTree.state", TreeUtils.saveExpansionState(hostTree))
     }
 
     private inner class HostFindEverywhereResult(val host: Host) : FindEverywhereResult {
@@ -276,12 +284,10 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
         override fun getText(isSelected: Boolean): String {
             if (showMoreInfo) {
                 val color = UIManager.getColor(if (isSelected) "textHighlightText" else "textInactiveText")
-                val moreInfo = if (host.protocol == Protocol.SSH) {
-                    "${host.username}@${host.host}"
-                } else if (host.protocol == Protocol.Serial) {
-                    host.options.serialComm.port
-                } else {
-                    StringUtils.EMPTY
+                val moreInfo = when (host.protocol) {
+                    Protocol.SSH -> "${host.username}@${host.host}"
+                    Protocol.Serial -> host.options.serialComm.port
+                    else -> StringUtils.EMPTY
                 }
                 if (moreInfo.isNotBlank()) {
                     return "<html>${host.name}&nbsp;&nbsp;&nbsp;&nbsp;<font color=rgb(${color.red},${color.green},${color.blue})>${moreInfo}</font></html>"

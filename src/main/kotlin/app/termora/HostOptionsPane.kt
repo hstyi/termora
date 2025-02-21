@@ -1134,16 +1134,16 @@ open class HostOptionsPane : OptionsPane() {
         private fun initEvents() {
             addBtn.addActionListener(object : AbstractAction() {
                 override fun actionPerformed(e: ActionEvent?) {
-                    val dialog = HostTreeDialog(owner) { host ->
-                        jumpHosts.none { it.id == host.id } && filter.invoke(host)
-                    }
-
+                    val dialog = NewHostTreeDialog(owner)
+                    dialog.setFilter { node -> jumpHosts.none { it.id == node.host.id } && filter.invoke(node.host) }
+                    dialog.setTreeName("HostOptionsPane.JumpHostsOption.Tree")
                     dialog.setLocationRelativeTo(owner)
                     dialog.isVisible = true
                     val hosts = dialog.hosts
                     if (hosts.isEmpty()) {
                         return
                     }
+
                     hosts.forEach {
                         val rowCount = model.rowCount
                         jumpHosts.add(it)

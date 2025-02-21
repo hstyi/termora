@@ -57,11 +57,13 @@ class FileSystemTabbed(
 
     private fun initEvents() {
         addBtn.addActionListener {
-            val dialog = HostTreeDialog(SwingUtilities.getWindowAncestor(this))
+            val dialog = NewHostTreeDialog(SwingUtilities.getWindowAncestor(this))
             dialog.location = Point(
                 max(0, addBtn.locationOnScreen.x - dialog.width / 2 + addBtn.width / 2),
                 addBtn.locationOnScreen.y + max(tabHeight, addBtn.height)
             )
+            dialog.setFilter { it.host.protocol == Protocol.SSH }
+            dialog.setTreeName("FileSystemTabbed.Tree")
             dialog.isVisible = true
 
             for (host in dialog.hosts) {

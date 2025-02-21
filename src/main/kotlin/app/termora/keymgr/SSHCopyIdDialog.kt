@@ -42,6 +42,7 @@ class SSHCopyIdDialog(
     }
     private val terminalPanel by lazy {
         terminalPanelFactory.createTerminalPanel(terminal, PtyConnectorDelegate())
+            .apply { enableFloatingToolbar = false }
     }
     private val coroutineScope = CoroutineScope(Job() + Dispatchers.IO)
 
@@ -152,7 +153,7 @@ class SSHCopyIdDialog(
                     val baos = ByteArrayOutputStream()
                     channel.out = baos
                     if (channel.open().verify(timeout).await(timeout)) {
-                        channel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), timeout);
+                        channel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), timeout)
                     }
                     if (channel.exitStatus != 0) {
                         throw IllegalStateException("Server response: ${channel.exitStatus}")

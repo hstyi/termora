@@ -53,6 +53,15 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
     private var visualWindows = emptyArray<VisualWindow>()
 
     val scrollBar = TerminalScrollBar(this@TerminalPanel, terminalFindPanel, terminal)
+    var enableFloatingToolbar = true
+        set(value) {
+            field = value
+            if (value) {
+                layeredPane.add(floatingToolbar, JLayeredPane.POPUP_LAYER as Any)
+            } else {
+                layeredPane.remove(floatingToolbar)
+            }
+        }
 
 
     /**
@@ -125,7 +134,9 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
 
         layeredPane.add(terminalDisplay, JLayeredPane.DEFAULT_LAYER as Any)
         layeredPane.add(terminalFindPanel, JLayeredPane.POPUP_LAYER as Any)
-        layeredPane.add(floatingToolbar, JLayeredPane.POPUP_LAYER as Any)
+        if (enableFloatingToolbar) {
+            layeredPane.add(floatingToolbar, JLayeredPane.POPUP_LAYER as Any)
+        }
         add(layeredPane, BorderLayout.CENTER)
         add(scrollBar, BorderLayout.EAST)
 

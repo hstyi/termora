@@ -1,6 +1,8 @@
 package app.termora.transport
 
 import app.termora.*
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
 import app.termora.keyboardinteractive.TerminalUserInteraction
 import com.formdev.flatlaf.icons.FlatOptionPaneErrorIcon
 import com.formdev.flatlaf.icons.FlatOptionPaneInformationIcon
@@ -291,9 +293,11 @@ class SftpFileSystemPanel(
             val builder = FormBuilder.create().layout(layout).debug(false)
             builder.add(FlatOptionPaneInformationIcon()).xy(2, 2)
             builder.add(errorInfo).xyw(1, 4, 3, "fill, center")
-            builder.add(JXHyperlink(object : AbstractAction(I18n.getString("termora.transport.sftp.select-host")) {
-                override fun actionPerformed(e: ActionEvent) {
-                    val dialog = HostTreeDialog(SwingUtilities.getWindowAncestor(this@SftpFileSystemPanel))
+            builder.add(JXHyperlink(object : AnAction(I18n.getString("termora.transport.sftp.select-host")) {
+                override fun actionPerformed(evt: AnActionEvent) {
+                    val dialog = NewHostTreeDialog(evt.window)
+                    dialog.setFilter { it.host.protocol == Protocol.SSH }
+                    dialog.setTreeName("SftpFileSystemPanel.SelectHostTree")
                     dialog.allowMulti = false
                     dialog.setLocationRelativeTo(this@SelectHostPanel)
                     dialog.isVisible = true

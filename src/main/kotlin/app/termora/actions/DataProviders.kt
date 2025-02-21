@@ -17,6 +17,6 @@ object DataProviders {
 
 
     object Welcome {
-        val HostTree = DataKey(app.termora.HostTree::class)
+        val HostTree = DataKey(app.termora.NewHostTree::class)
     }
 }

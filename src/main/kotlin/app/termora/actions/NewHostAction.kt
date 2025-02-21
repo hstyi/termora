@@ -1,9 +1,6 @@
 package app.termora.actions
 
-import app.termora.Host
-import app.termora.HostDialog
-import app.termora.HostManager
-import app.termora.Protocol
+import app.termora.*
 import javax.swing.tree.TreePath
 
 class NewHostAction : AnAction() {
@@ -20,27 +17,27 @@ class NewHostAction : AnAction() {
 
     override fun actionPerformed(evt: AnActionEvent) {
         val tree = evt.getData(DataProviders.Welcome.HostTree) ?: return
-        val model = tree.model
-        var lastHost = tree.lastSelectedPathComponent ?: model.root
-        if (lastHost !is Host) {
-            return
+        var lastNode = (tree.lastSelectedPathComponent ?: tree.model.root) as? HostTreeNode ?: return
+        if (lastNode.host.protocol != Protocol.Folder) {
+            lastNode = lastNode.parent ?: return
         }
 
-        if (lastHost.protocol != Protocol.Folder) {
-            val p = model.getParent(lastHost) ?: return
-            lastHost = p
-        }
-
+        val lastHost = lastNode.host
         val dialog = HostDialog(evt.window)
         dialog.setLocationRelativeTo(evt.window)
         dialog.isVisible = true
         val host = (dialog.host ?: return).copy(parentId = lastHost.id)
 
         hostManager.addHost(host)
+        val newNode = HostTreeNode(host)
 
-        tree.expandNode(lastHost)
+        val model = if (tree.model is FilterableHostTreeModel) (tree.model as FilterableHostTreeModel).getModel()
+        else tree.model
 
-        tree.selectionPath = TreePath(model.getPathToRoot(host))
+        if (model is NewHostTreeModel) {
+            model.insertNodeInto(newNode, lastNode, lastNode.childCount)
+            tree.selectionPath = TreePath(model.getPathToRoot(newNode))
+        }
 
     }
 }

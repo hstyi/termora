@@ -260,7 +260,7 @@ data class Host(
     val tunnelings: List<Tunneling> = emptyList(),
 
     /**
-     * 排序
+     * 排序，越小越靠前
      */
     val sort: Long = 0,
     /**
@@ -306,5 +306,9 @@ data class Host(
         var result = id.hashCode()
         result = 31 * result + ownerId.hashCode()
         return result
+    }
+
+    override fun toString(): String {
+        return name
     }
 }

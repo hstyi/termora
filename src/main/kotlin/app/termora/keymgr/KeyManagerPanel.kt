@@ -211,9 +211,9 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
         }
 
         val owner = SwingUtilities.getWindowAncestor(this) ?: return
-        val hostTreeDialog = HostTreeDialog(owner) {
-            it.protocol == Protocol.SSH
-        }
+        val hostTreeDialog = NewHostTreeDialog(owner)
+        hostTreeDialog.setFilter { it.host.protocol == Protocol.SSH }
+        hostTreeDialog.setTreeName("KeyManagerPanel.SSHCopyIdTree")
         hostTreeDialog.isVisible = true
         val hosts = hostTreeDialog.hosts
         if (hosts.isEmpty()) {
