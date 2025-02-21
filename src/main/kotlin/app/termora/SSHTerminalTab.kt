@@ -42,6 +42,7 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
     }
 
     private val mutex = Mutex()
+    private val tab = this
 
     private var sshClient: SshClient? = null
     private var sshSession: ClientSession? = null
@@ -97,12 +98,20 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
 
         if (host.authentication.type == AuthenticationType.No) {
             withContext(Dispatchers.Swing) {
-                val dialog = RequestAuthenticationDialog(owner)
+                val dialog = RequestAuthenticationDialog(owner, host)
                 val authentication = dialog.getAuthentication()
-                host = host.copy(authentication = authentication)
+                host = host.copy(
+                    authentication = authentication,
+                    username = dialog.getUsername(),
+                )
                 // save
                 if (dialog.isRemembered()) {
-                    HostManager.getInstance().addHost(this@SSHTerminalTab.host.copy(authentication = authentication))
+                    HostManager.getInstance().addHost(
+                        tab.host.copy(
+                            authentication = authentication,
+                            username = dialog.getUsername(),
+                        )
+                    )
                 }
             }
         }
@@ -157,7 +166,7 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
                     if (Database.getDatabase().terminal.autoCloseTabWhenDisconnected) {
                         terminalTabbedManager?.let { manager ->
                             SwingUtilities.invokeLater {
-                                manager.closeTerminalTab(this@SSHTerminalTab, true)
+                                manager.closeTerminalTab(tab, true)
                             }
                         }
                     }

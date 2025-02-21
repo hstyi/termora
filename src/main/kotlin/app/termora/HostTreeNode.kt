@@ -3,9 +3,16 @@ package app.termora
 import javax.swing.tree.DefaultMutableTreeNode
 
 class HostTreeNode(host: Host) : DefaultMutableTreeNode(host) {
+    companion object {
+        private val hostManager get() = HostManager.getInstance()
+    }
+
     var host: Host
-        get() = userObject as Host
-        set(value) = setUserObject(value)
+        get() = hostManager.getHost((userObject as Host).id) ?: userObject as Host
+        set(value) {
+            setUserObject(value)
+            hostManager.setHost(value)
+        }
 
     val folderCount
         get() = children().toList().count { if (it is HostTreeNode) it.host.protocol == Protocol.Folder else false }

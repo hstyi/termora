@@ -1,12 +1,19 @@
 package app.termora
 
+import app.termora.Application.ohMyJson
 import app.termora.actions.AnActionEvent
 import app.termora.actions.OpenHostAction
 import app.termora.transport.SFTPAction
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.icons.FlatTreeClosedIcon
 import com.formdev.flatlaf.icons.FlatTreeOpenIcon
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.exception.ExceptionUtils
 import org.jdesktop.swingx.JXTree
 import org.jdesktop.swingx.action.ActionManager
 import org.jdesktop.swingx.tree.DefaultXTreeCellRenderer
@@ -19,6 +26,7 @@ import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.io.File
 import java.util.*
 import java.util.function.Function
 import javax.swing.*
@@ -26,6 +34,7 @@ import javax.swing.event.CellEditorListener
 import javax.swing.event.ChangeEvent
 import javax.swing.event.PopupMenuEvent
 import javax.swing.event.PopupMenuListener
+import javax.swing.filechooser.FileNameExtensionFilter
 import javax.swing.tree.TreePath
 import javax.swing.tree.TreeSelectionModel
 import kotlin.math.min
@@ -337,6 +346,8 @@ class NewHostTree : JXTree() {
         val newMenu = JMenu(I18n.getString("termora.welcome.contextmenu.new"))
         val newFolder = newMenu.add(I18n.getString("termora.welcome.contextmenu.new.folder"))
         val newHost = newMenu.add(I18n.getString("termora.welcome.contextmenu.new.host"))
+        val importMenu = JMenu(I18n.getString("termora.welcome.contextmenu.import"))
+        val windTermMenu = importMenu.add("WindTerm")
 
         val open = popupMenu.add(I18n.getString("termora.welcome.contextmenu.connect"))
         val openWith = popupMenu.add(JMenu(I18n.getString("termora.welcome.contextmenu.connect-with"))) as JMenu
@@ -352,6 +363,7 @@ class NewHostTree : JXTree() {
         val expandAll = popupMenu.add(I18n.getString("termora.welcome.contextmenu.expand-all"))
         val colspanAll = popupMenu.add(I18n.getString("termora.welcome.contextmenu.collapse-all"))
         popupMenu.addSeparator()
+        popupMenu.add(importMenu)
         popupMenu.add(newMenu)
         popupMenu.addSeparator()
         val showMoreInfo = JCheckBoxMenuItem(I18n.getString("termora.welcome.contextmenu.show-more-info"))
@@ -363,6 +375,7 @@ class NewHostTree : JXTree() {
         popupMenu.add(showMoreInfo)
         val property = popupMenu.add(I18n.getString("termora.welcome.contextmenu.property"))
 
+        windTermMenu.addActionListener { importHosts(lastNode, ImportType.WindTerm) }
         open.addActionListener { openHosts(it, false) }
         openInNewWindow.addActionListener { openHosts(it, true) }
         openWithSFTP.addActionListener { openWithSFTP(it) }
@@ -396,6 +409,15 @@ class NewHostTree : JXTree() {
                     for (c in nodes) {
                         hostManager.addHost(c.host.copy(deleted = true, updateDate = System.currentTimeMillis()))
                         model.removeNodeFromParent(c)
+                        // 将所有子孙也删除
+                        for (child in c.getAllChildren()) {
+                            hostManager.addHost(
+                                child.host.copy(
+                                    deleted = true,
+                                    updateDate = System.currentTimeMillis()
+                                )
+                            )
+                        }
                     }
                 }
             }
@@ -426,8 +448,7 @@ class NewHostTree : JXTree() {
                 dialog.isVisible = true
                 val host = (dialog.host ?: return).copy(parentId = lastHost.id)
                 hostManager.addHost(host)
-                val c = HostTreeNode(host)
-                val newNode = copyNode(c, lastHost.id)
+                val newNode = HostTreeNode(host)
                 model.insertNodeInto(newNode, lastNode, lastNode.childCount)
                 selectionPath = TreePath(model.getPathToRoot(newNode))
             }
@@ -465,14 +486,13 @@ class NewHostTree : JXTree() {
             }
         }
 
-        newFolder.isEnabled = lastHost.protocol == Protocol.Folder
-        newHost.isEnabled = newFolder.isEnabled
+        newMenu.isEnabled = lastHost.protocol == Protocol.Folder
         remove.isEnabled = getSelectionHostTreeNodes().none { it == model.root }
         copy.isEnabled = remove.isEnabled
         rename.isEnabled = remove.isEnabled
         property.isEnabled = lastHost.protocol != Protocol.Folder
         refresh.isEnabled = lastHost.protocol == Protocol.Folder
-
+        importMenu.isEnabled = lastHost.protocol == Protocol.Folder
 
         // 如果选中了 SSH 服务器，那么才启用
         openWithSFTP.isEnabled = getSelectionHostTreeNodes(true).map { it.host }.any { it.protocol == Protocol.SSH }
@@ -564,7 +584,6 @@ class NewHostTree : JXTree() {
         nodes.forEach { openHostAction.actionPerformed(OpenHostActionEvent(source, it, evt)) }
     }
 
-
     private fun openWithSFTP(evt: EventObject) {
         val nodes = getSelectionHostTreeNodes(true).map { it.host }.filter { it.protocol == Protocol.SSH }
         if (nodes.isEmpty()) return
@@ -584,6 +603,121 @@ class NewHostTree : JXTree() {
         }
     }
 
+    private fun importHosts(folder: HostTreeNode, type: ImportType) {
+        val chooser = JFileChooser()
+        chooser.fileSelectionMode = JFileChooser.FILES_ONLY
+        chooser.isAcceptAllFileFilterUsed = false
+        chooser.isMultiSelectionEnabled = false
+
+        if (type == ImportType.WindTerm) {
+            chooser.fileFilter = FileNameExtensionFilter("WindTerm(*.sessions)", "sessions")
+        }
+
+        val dir = properties.getString("NewHostTree.ImportHosts.defaultDir", StringUtils.EMPTY)
+        if (dir.isNotBlank()) {
+            val file = FileUtils.getFile(dir)
+            if (file.exists()) {
+                chooser.currentDirectory = file
+            }
+        }
+
+        val code = chooser.showOpenDialog(owner)
+        properties.putString("NewHostTree.ImportHosts.defaultDir", chooser.currentDirectory.absolutePath)
+
+        if (code != JFileChooser.APPROVE_OPTION) {
+            return
+        }
+
+        val file = chooser.selectedFile
+
+        val nodes = if (type == ImportType.WindTerm) {
+            parseFromWindTerm(file)
+        } else {
+            emptyList()
+        }
+
+
+        for (node in nodes) {
+            node.host = node.host.copy(parentId = folder.host.id)
+            model.insertNodeInto(
+                node,
+                folder,
+                if (node.host.protocol == Protocol.Folder) folder.folderCount else folder.childCount
+            )
+        }
+
+        for (node in nodes) {
+            hostManager.addHost(node.host)
+            node.getAllChildren().forEach { hostManager.addHost(it.host) }
+        }
+    }
+
+    private fun parseFromWindTerm(file: File): List<HostTreeNode> {
+        val sessions = ohMyJson.runCatching { ohMyJson.parseToJsonElement(file.readText()).jsonArray }
+            .onFailure { OptionPane.showMessageDialog(owner, ExceptionUtils.getMessage(it)) }
+            .getOrNull() ?: return emptyList()
+        val nodes = mutableListOf<HostTreeNode>()
+
+        for (i in 0 until sessions.size) {
+            val json = sessions[i].jsonObject
+            val protocol = json["session.protocol"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
+            if (protocol != "SSH") continue
+            val label = json["session.label"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
+            val target = json["session.target"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
+            val port = json["session.port"]?.jsonPrimitive?.intOrNull ?: 22
+            val group = json["session.group"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
+            val groups = group.split(">")
+
+            var p: HostTreeNode? = null
+            if (group.isNotBlank()) {
+                for (j in groups.indices) {
+                    val folders = if (j == 0 || p == null) nodes
+                    else p.children().toList().filterIsInstance<HostTreeNode>()
+                    val n = HostTreeNode(
+                        Host(
+                            name = groups[j], protocol = Protocol.Folder,
+                            parentId = p?.host?.id ?: StringUtils.EMPTY
+                        )
+                    )
+                    val cp = folders.find { it.host.protocol == Protocol.Folder && it.host.name == groups[j] }
+                    if (cp != null) {
+                        p = cp
+                        continue
+                    }
+                    if (p == null) {
+                        p = n
+                        nodes.add(n)
+                    } else {
+                        p.add(n)
+                        p = n
+                    }
+                }
+            }
+
+            val n = HostTreeNode(
+                Host(
+                    name = StringUtils.defaultIfBlank(label, target),
+                    host = target,
+                    port = port,
+                    protocol = Protocol.SSH,
+                    parentId = p?.host?.id ?: StringUtils.EMPTY,
+                )
+            )
+
+            if (p == null) {
+                nodes.add(n)
+            } else {
+                p.add(n)
+            }
+        }
+
+        return nodes
+    }
+
+
+    private enum class ImportType {
+        WindTerm
+    }
 
     private class MoveHostTransferable(val nodes: List<HostTreeNode>) : Transferable {
         companion object {

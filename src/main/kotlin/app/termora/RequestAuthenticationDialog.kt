@@ -13,12 +13,13 @@ import java.awt.event.ItemEvent
 import javax.swing.*
 import kotlin.math.max
 
-class RequestAuthenticationDialog(owner: Window) : DialogWrapper(owner) {
+class RequestAuthenticationDialog(owner: Window, host: Host) : DialogWrapper(owner) {
 
     private val authenticationTypeComboBox = FlatComboBox<AuthenticationType>()
     private val rememberCheckBox = JCheckBox("Remember")
     private val passwordPanel = JPanel(BorderLayout())
     private val passwordPasswordField = OutlinePasswordField()
+    private val usernameTextField = OutlineTextField()
     private val publicKeyComboBox = OutlineComboBox<OhKeyPair>()
     private val keyManager get() = KeyManager.getInstance()
     private var authentication = Authentication.No
@@ -64,6 +65,8 @@ class RequestAuthenticationDialog(owner: Window) : DialogWrapper(owner) {
             }
         }
 
+        usernameTextField.text = host.username
+
     }
 
     override fun createCenterPanel(): JComponent {
@@ -72,7 +75,7 @@ class RequestAuthenticationDialog(owner: Window) : DialogWrapper(owner) {
         val formMargin = "7dlu"
         val layout = FormLayout(
             "left:pref, $formMargin, default:grow",
-            "pref, $formMargin, pref"
+            "pref, $formMargin, pref, $formMargin, pref"
         )
 
         switchPasswordComponent()
@@ -81,8 +84,10 @@ class RequestAuthenticationDialog(owner: Window) : DialogWrapper(owner) {
             .layout(layout)
             .add("${I18n.getString("termora.new-host.general.authentication")}:").xy(1, 1)
             .add(authenticationTypeComboBox).xy(3, 1)
-            .add("${I18n.getString("termora.new-host.general.password")}:").xy(1, 3)
-            .add(passwordPanel).xy(3, 3)
+            .add("${I18n.getString("termora.new-host.general.username")}:").xy(1, 3)
+            .add(usernameTextField).xy(3, 3)
+            .add("${I18n.getString("termora.new-host.general.password")}:").xy(1, 5)
+            .add(passwordPanel).xy(3, 5)
             .build()
     }
 
@@ -134,13 +139,23 @@ class RequestAuthenticationDialog(owner: Window) : DialogWrapper(owner) {
 
     fun getAuthentication(): Authentication {
         isModal = true
-        SwingUtilities.invokeLater { passwordPasswordField.requestFocusInWindow() }
+        SwingUtilities.invokeLater {
+            if (usernameTextField.text.isBlank()) {
+                usernameTextField.requestFocusInWindow()
+            } else {
+                passwordPasswordField.requestFocusInWindow()
+            }
+        }
         isVisible = true
         return authentication
     }
 
     fun isRemembered(): Boolean {
         return rememberCheckBox.isSelected
+    }
+
+    fun getUsername(): String {
+        return usernameTextField.text
     }
 
 }

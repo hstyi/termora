@@ -119,13 +119,20 @@ class SftpFileSystemPanel(
                 client.serverKeyVerifier = DialogServerKeyVerifier(owner)
                 // 弹出授权框
                 if (host.authentication.type == AuthenticationType.No) {
-                    val dialog = RequestAuthenticationDialog(owner)
+                    val dialog = RequestAuthenticationDialog(owner, host)
                     val authentication = dialog.getAuthentication()
-                    host = host.copy(authentication = authentication)
+                    host = host.copy(
+                        authentication = authentication,
+                        username = dialog.getUsername(),
+                    )
                     // save
                     if (dialog.isRemembered()) {
-                        HostManager.getInstance()
-                            .addHost(host.copy(authentication = authentication))
+                        HostManager.getInstance().addHost(
+                            host.copy(
+                                authentication = authentication,
+                                username = dialog.getUsername(),
+                            )
+                        )
                     }
                 }
             }

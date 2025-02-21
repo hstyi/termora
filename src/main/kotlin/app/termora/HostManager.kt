@@ -1,37 +1,50 @@
 package app.termora
 
-import org.slf4j.LoggerFactory
-import kotlin.system.measureTimeMillis
-
 
 class HostManager private constructor() {
     companion object {
         fun getInstance(): HostManager {
             return ApplicationScope.forApplicationScope().getOrCreate(HostManager::class) { HostManager() }
         }
-
-        private val log = LoggerFactory.getLogger(HostManager::class.java)
     }
 
     private val database get() = Database.getDatabase()
+    private var hosts = mutableMapOf<String, Host>()
 
+    /**
+     * 修改缓存并存入数据库
+     */
     fun addHost(host: Host) {
         assertEventDispatchThread()
         database.addHost(host)
+        setHost(host)
     }
 
+    /**
+     * 第一次调用从数据库中获取，后续从缓存中获取
+     */
     fun hosts(): List<Host> {
-        val hosts: List<Host>
-        measureTimeMillis {
-            hosts = database.getHosts()
-                .filter { !it.deleted }
-                .sortedWith(compareBy<Host> { if (it.protocol == Protocol.Folder) 0 else 1 }.thenBy { it.sort })
-        }.let {
-            if (log.isDebugEnabled) {
-                log.debug("hosts: $it ms")
-            }
+        if (hosts.isEmpty()) {
+            database.getHosts().filter { !it.deleted }
+                .forEach { hosts[it.id] = it }
         }
-        return hosts
+        return hosts.values.filter { !it.deleted }
+            .sortedWith(compareBy<Host> { if (it.protocol == Protocol.Folder) 0 else 1 }.thenBy { it.sort })
     }
 
+    /**
+     * 从缓存中获取
+     */
+    fun getHost(id: String): Host? {
+        return hosts[id]
+    }
+
+
+    /**
+     * 仅修改缓存中的
+     */
+    fun setHost(host: Host) {
+        assertEventDispatchThread()
+        hosts[host.id] = host
+    }
 }
