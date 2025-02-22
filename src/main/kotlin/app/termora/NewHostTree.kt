@@ -7,10 +7,8 @@ import app.termora.transport.SFTPAction
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.icons.FlatTreeClosedIcon
 import com.formdev.flatlaf.icons.FlatTreeOpenIcon
-import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.*
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
 import org.apache.commons.csv.CSVPrinter
@@ -366,6 +364,7 @@ class NewHostTree : JXTree() {
         val importMenu = JMenu(I18n.getString("termora.welcome.contextmenu.import"))
         val csvMenu = importMenu.add("CSV")
         val xShellMenu = importMenu.add("Xshell")
+        val electermMenu = importMenu.add("electerm")
         val finalShellMenu = importMenu.add("FinalShell")
         val windTermMenu = importMenu.add("WindTerm")
         val secureCRTMenu = importMenu.add("SecureCRT")
@@ -399,6 +398,7 @@ class NewHostTree : JXTree() {
 
         xShellMenu.addActionListener { importHosts(lastNode, ImportType.Xshell) }
         secureCRTMenu.addActionListener { importHosts(lastNode, ImportType.SecureCRT) }
+        electermMenu.addActionListener { importHosts(lastNode, ImportType.electerm) }
         mobaXtermMenu.addActionListener { importHosts(lastNode, ImportType.MobaXterm) }
         finalShellMenu.addActionListener { importHosts(lastNode, ImportType.FinalShell) }
         csvMenu.addActionListener { importHosts(lastNode, ImportType.CSV) }
@@ -651,6 +651,7 @@ class NewHostTree : JXTree() {
             ImportType.WindTerm -> chooser.fileFilter = FileNameExtensionFilter("WindTerm (*.sessions)", "sessions")
             ImportType.CSV -> chooser.fileFilter = FileNameExtensionFilter("CSV (*.csv)", "csv")
             ImportType.SecureCRT -> chooser.fileFilter = FileNameExtensionFilter("SecureCRT (*.xml)", "xml")
+            ImportType.electerm -> chooser.fileFilter = FileNameExtensionFilter("electerm (*.json)", "json")
             ImportType.MobaXterm -> chooser.fileFilter =
                 FileNameExtensionFilter("MobaXterm (*.mobaconf,*.ini)", "ini", "mobaconf")
 
@@ -730,6 +731,7 @@ class NewHostTree : JXTree() {
             ImportType.MobaXterm -> parseFromMobaXterm(folder, file)
             ImportType.Xshell -> parseFromXshell(folder, file)
             ImportType.FinalShell -> parseFromFinalShell(folder, file)
+            ImportType.electerm -> parseFromElecterm(folder, file)
             ImportType.CSV -> file.bufferedReader().use { parseFromCSV(folder, it) }
         }
 
@@ -923,6 +925,57 @@ class NewHostTree : JXTree() {
         return parseFromCSV(folder, StringReader(sw.toString()))
     }
 
+    @Serializable
+    private data class ElectermGroup(
+        val id: String = StringUtils.EMPTY,
+        val title: String = StringUtils.EMPTY,
+        val bookmarkIds: Set<String> = emptySet(),
+        val bookmarkGroupIds: Set<String> = emptySet(),
+    )
+
+    private fun parseFromElecterm(folder: HostTreeNode, file: File): List<HostTreeNode> {
+        val json = ohMyJson.parseToJsonElement(file.readText()).jsonObject
+        val bookmarks = json["bookmarks"]?.jsonArray ?: return emptyList()
+        val bookmarkGroups = ohMyJson.decodeFromJsonElement<List<ElectermGroup>>(
+            json["bookmarkGroups"]?.jsonArray ?: JsonArray(emptyList())
+        )
+
+
+        val sw = StringWriter()
+        CSVPrinter(sw, CSVFormat.EXCEL.builder().setHeader(*CSV_HEADERS).get()).use { printer ->
+            for (i in 0 until bookmarks.size) {
+                val host = bookmarks[i].jsonObject
+                val type = host["type"]?.jsonPrimitive?.content ?: "SSH"
+                if (!StringUtils.equalsIgnoreCase(type, "SSH")) continue
+                val hostname = host["host"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
+                val id = host["id"]?.jsonPrimitive?.content ?: continue
+                val title = host["title"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
+                if (StringUtils.isAllBlank(title, hostname)) continue
+                val username = host["username"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
+                val port = host["port"]?.jsonPrimitive?.intOrNull ?: 22
+
+                val folderNames = mutableListOf<String>()
+                var group = bookmarkGroups.find { it.bookmarkIds.contains(id) }
+                while (group != null && group.id != "default") {
+                    folderNames.addFirst(group.title)
+                    group = bookmarkGroups.find { it.bookmarkGroupIds.contains(group?.id ?: StringUtils.EMPTY) }
+                }
+
+                printer.printRecord(
+                    folderNames.joinToString("/"),
+                    StringUtils.defaultIfBlank(title, hostname),
+                    hostname,
+                    port,
+                    username,
+                    "SSH"
+                )
+            }
+
+        }
+
+        return parseFromCSV(folder, StringReader(sw.toString()))
+    }
+
     private fun parseFromCSV(folderNode: HostTreeNode, sr: Reader): List<HostTreeNode> {
         val records = CSVParser.builder()
             .setFormat(CSVFormat.EXCEL.builder().setHeader(*CSV_HEADERS).setSkipHeaderRecord(true).get())
@@ -1005,6 +1058,7 @@ class NewHostTree : JXTree() {
         SecureCRT,
         MobaXterm,
         FinalShell,
+        electerm,
     }
 
     private class MoveHostTransferable(val nodes: List<HostTreeNode>) : Transferable {
