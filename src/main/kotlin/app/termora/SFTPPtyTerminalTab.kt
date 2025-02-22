@@ -50,6 +50,7 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
         // 如果配置了跳板机或者代理，那么通过 SSH 的端口转发到本地
         if (useJumpHosts) {
             host = host.copy(
+                updateDate = System.currentTimeMillis(),
                 tunnelings = listOf(
                     Tunneling(
                         type = TunnelingType.Local,
@@ -66,7 +67,11 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
             // 打开通道
             for (tunneling in host.tunnelings) {
                 val address = SshClients.openTunneling(sshSession, host, tunneling)
-                host = host.copy(host = address.hostName, port = address.port)
+                host = host.copy(
+                    host = address.hostName,
+                    port = address.port,
+                    updateDate = System.currentTimeMillis(),
+                )
             }
         }
 
@@ -128,9 +133,9 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
     private fun setAuthentication(commands: MutableList<String>, host: Host) {
         // 如果通过公钥连接
         if (host.authentication.type == AuthenticationType.PublicKey) {
-            val keyPair = keyManager.getOhKeyPair(host.authentication.password)
-            if (keyPair != null) {
-                val keyPair = OhKeyPairKeyPairProvider.generateKeyPair(keyPair)
+            val ohKeyPair = keyManager.getOhKeyPair(host.authentication.password)
+            if (ohKeyPair != null) {
+                val keyPair = OhKeyPairKeyPairProvider.generateKeyPair(ohKeyPair)
                 val privateKeyPath = Application.createSubTemporaryDir()
                 val privateKeyFile = Files.createTempFile(privateKeyPath, Application.getName(), StringUtils.EMPTY)
                 Files.newOutputStream(privateKeyFile)

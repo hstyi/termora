@@ -14,7 +14,7 @@ class SFTPAction : AnAction("SFTP", Icons.folder) {
         val tab = openOrCreateSFTPTerminalTab(evt) ?: return
 
         if (host != null) {
-            connectHost(host.copy(protocol = Protocol.SSH), tab)
+            connectHost(host.copy(protocol = Protocol.SSH, updateDate = System.currentTimeMillis()), tab)
         }
     }
 

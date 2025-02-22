@@ -9,6 +9,7 @@ trove4j = "1.0.20200330"
 kotlinx-serialization-json = "1.8.0"
 commons-codec = "1.18.0"
 commons-lang3 = "3.17.0"
+commons-csv = "1.13.0"
 commons-net = "3.11.1"
 commons-text = "1.13.0"
 commons-compress = "1.27.1"
@@ -41,7 +42,7 @@ rhino = "1.7.15"
 delight-rhino-sandbox = "0.0.17"
 testcontainers = "1.20.4"
 mixpanel = "1.5.3"
-jSerialComm="2.11.0"
+jSerialComm = "2.11.0"
 
 [libraries]
 kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
@@ -53,6 +54,7 @@ tinylog-impl = { group = "org.tinylog", name = "tinylog-impl", version.ref = "ti
 commons-codec = { group = "commons-codec", name = "commons-codec", version.ref = "commons-codec" }
 commons-net = { group = "commons-net", name = "commons-net", version.ref = "commons-net" }
 commons-lang3 = { group = "org.apache.commons", name = "commons-lang3", version.ref = "commons-lang3" }
+commons-csv = { group = "org.apache.commons", name = "commons-csv", version.ref = "commons-csv" }
 commons-text = { group = "org.apache.commons", name = "commons-text", version.ref = "commons-text" }
 commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "commons-compress" }
 pty4j = { group = "org.jetbrains.pty4j", name = "pty4j", version.ref = "pty4j" }

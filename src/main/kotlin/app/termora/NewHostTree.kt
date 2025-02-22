@@ -11,12 +11,16 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.apache.commons.csv.CSVFormat
+import org.apache.commons.csv.CSVParser
+import org.apache.commons.csv.CSVPrinter
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.jdesktop.swingx.JXTree
 import org.jdesktop.swingx.action.ActionManager
 import org.jdesktop.swingx.tree.DefaultXTreeCellRenderer
+import org.slf4j.LoggerFactory
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.datatransfer.DataFlavor
@@ -26,7 +30,7 @@ import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
-import java.io.File
+import java.io.*
 import java.util.*
 import java.util.function.Function
 import javax.swing.*
@@ -40,6 +44,11 @@ import javax.swing.tree.TreeSelectionModel
 import kotlin.math.min
 
 class NewHostTree : JXTree() {
+
+    companion object {
+        private val log = LoggerFactory.getLogger(NewHostTree::class.java)
+        private val CSV_HEADERS = arrayOf("Folders", "Label", "Hostname", "Port", "Username", "Protocol")
+    }
 
     private val tree = this
     private val editor = OutlineTextField(64)
@@ -207,7 +216,7 @@ class NewHostTree : JXTree() {
                 if (lastHost !is HostTreeNode || editor.text.isBlank() || editor.text == lastHost.host.name) {
                     return
                 }
-                lastHost.host = lastHost.host.copy(name = editor.text)
+                lastHost.host = lastHost.host.copy(name = editor.text, updateDate = System.currentTimeMillis())
                 hostManager.addHost(lastHost.host)
             }
 
@@ -298,7 +307,7 @@ class NewHostTree : JXTree() {
                 // 转移
                 for (e in nodes) {
                     model.removeNodeFromParent(e)
-                    e.host = e.host.copy(parentId = node.host.id)
+                    e.host = e.host.copy(parentId = node.host.id, updateDate = System.currentTimeMillis())
                     hostManager.addHost(e.host)
 
                     if (dropLocation.childIndex == -1) {
@@ -347,6 +356,7 @@ class NewHostTree : JXTree() {
         val newFolder = newMenu.add(I18n.getString("termora.welcome.contextmenu.new.folder"))
         val newHost = newMenu.add(I18n.getString("termora.welcome.contextmenu.new.host"))
         val importMenu = JMenu(I18n.getString("termora.welcome.contextmenu.import"))
+        val csvMenu = importMenu.add("CSV")
         val windTermMenu = importMenu.add("WindTerm")
 
         val open = popupMenu.add(I18n.getString("termora.welcome.contextmenu.connect"))
@@ -375,6 +385,9 @@ class NewHostTree : JXTree() {
         popupMenu.add(showMoreInfo)
         val property = popupMenu.add(I18n.getString("termora.welcome.contextmenu.property"))
 
+        csvMenu.addActionListener {
+            importHosts(lastNode, ImportType.CSV)
+        }
         windTermMenu.addActionListener { importHosts(lastNode, ImportType.WindTerm) }
         open.addActionListener { openHosts(it, false) }
         openInNewWindow.addActionListener { openHosts(it, true) }
@@ -604,6 +617,17 @@ class NewHostTree : JXTree() {
     }
 
     private fun importHosts(folder: HostTreeNode, type: ImportType) {
+        try {
+            doImportHosts(folder, type)
+        } catch (e: Exception) {
+            if (log.isErrorEnabled) {
+                log.error(e.message, e)
+            }
+            OptionPane.showMessageDialog(owner, ExceptionUtils.getMessage(e), messageType = JOptionPane.ERROR_MESSAGE)
+        }
+    }
+
+    private fun doImportHosts(folder: HostTreeNode, type: ImportType) {
         val chooser = JFileChooser()
         chooser.fileSelectionMode = JFileChooser.FILES_ONLY
         chooser.isAcceptAllFileFilterUsed = false
@@ -611,6 +635,8 @@ class NewHostTree : JXTree() {
 
         if (type == ImportType.WindTerm) {
             chooser.fileFilter = FileNameExtensionFilter("WindTerm(*.sessions)", "sessions")
+        } else if (type == ImportType.CSV) {
+            chooser.fileFilter = FileNameExtensionFilter("CSV(*.csv)", "csv")
         }
 
         val dir = properties.getString("NewHostTree.ImportHosts.defaultDir", StringUtils.EMPTY)
@@ -621,7 +647,47 @@ class NewHostTree : JXTree() {
             }
         }
 
+        // csv template
+        if (type == ImportType.CSV) {
+            val code = OptionPane.showConfirmDialog(
+                owner,
+                I18n.getString("termora.welcome.contextmenu.import.csv.download-template"),
+                optionType = JOptionPane.YES_NO_OPTION,
+                messageType = JOptionPane.QUESTION_MESSAGE,
+                options = arrayOf(
+                    I18n.getString("termora.welcome.contextmenu.import"),
+                    I18n.getString("termora.welcome.contextmenu.download")
+                ),
+                initialValue = I18n.getString("termora.welcome.contextmenu.import")
+            )
+            if (code == JOptionPane.DEFAULT_OPTION) {
+                return
+            } else if (code != JOptionPane.YES_OPTION) {
+                chooser.setSelectedFile(File("termora_import.csv"))
+                if (chooser.showSaveDialog(owner) == JFileChooser.APPROVE_OPTION) {
+                    CSVPrinter(
+                        FileWriter(chooser.selectedFile, Charsets.UTF_8),
+                        CSVFormat.EXCEL.builder().setHeader(*CSV_HEADERS).get()
+                    ).use { printer ->
+                        printer.printRecord("Projects/Dev", "Web Server", "192.168.1.1", "22", "root", "SSH")
+                        printer.printRecord("Projects/Prod", "Web Server", "serverhost.com", "2222", "root", "SSH")
+                        printer.printRecord(StringUtils.EMPTY, "Web Server", "serverhost.com", "2222", "user", "SSH")
+                    }
+                    OptionPane.openFileInFolder(
+                        owner,
+                        chooser.selectedFile,
+                        I18n.getString("termora.welcome.contextmenu.import.csv.download-template-done-open-folder"),
+                        I18n.getString("termora.welcome.contextmenu.import.csv.download-template-done")
+                    )
+                }
+                return
+            }
+        }
+
+        // 选择文件
         val code = chooser.showOpenDialog(owner)
+
+        // 记住目录
         properties.putString("NewHostTree.ImportHosts.defaultDir", chooser.currentDirectory.absolutePath)
 
         if (code != JFileChooser.APPROVE_OPTION) {
@@ -630,15 +696,16 @@ class NewHostTree : JXTree() {
 
         val file = chooser.selectedFile
 
-        val nodes = if (type == ImportType.WindTerm) {
-            parseFromWindTerm(file)
-        } else {
-            emptyList()
+        val nodes = when (type) {
+            ImportType.WindTerm -> parseFromWindTerm(folder, file)
+            ImportType.CSV -> file.bufferedReader().use { parseFromCSV(folder, it) }
         }
 
-
         for (node in nodes) {
-            node.host = node.host.copy(parentId = folder.host.id)
+            node.host = node.host.copy(parentId = folder.host.id, updateDate = System.currentTimeMillis())
+            if (folder.getIndex(node) != -1) {
+                continue
+            }
             model.insertNodeInto(
                 node,
                 folder,
@@ -650,36 +717,73 @@ class NewHostTree : JXTree() {
             hostManager.addHost(node.host)
             node.getAllChildren().forEach { hostManager.addHost(it.host) }
         }
+
+        // 重新加载
+        model.reload(folder)
     }
 
-    private fun parseFromWindTerm(file: File): List<HostTreeNode> {
+    private fun parseFromWindTerm(folder: HostTreeNode, file: File): List<HostTreeNode> {
         val sessions = ohMyJson.runCatching { ohMyJson.parseToJsonElement(file.readText()).jsonArray }
             .onFailure { OptionPane.showMessageDialog(owner, ExceptionUtils.getMessage(it)) }
             .getOrNull() ?: return emptyList()
-        val nodes = mutableListOf<HostTreeNode>()
 
-        for (i in 0 until sessions.size) {
-            val json = sessions[i].jsonObject
-            val protocol = json["session.protocol"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
-            if (protocol != "SSH") continue
-            val label = json["session.label"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
-            val target = json["session.target"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
-            val port = json["session.port"]?.jsonPrimitive?.intOrNull ?: 22
-            val group = json["session.group"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
-            val groups = group.split(">")
+        val sw = StringWriter()
+        CSVPrinter(sw, CSVFormat.EXCEL.builder().setHeader(*CSV_HEADERS).get()).use { printer ->
+            for (i in 0 until sessions.size) {
+                val json = sessions[i].jsonObject
+                val protocol = json["session.protocol"]?.jsonPrimitive?.content ?: "SSH"
+                if (!StringUtils.equalsIgnoreCase("SSH", protocol)) continue
+                val label = json["session.label"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
+                val target = json["session.target"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
+                val port = json["session.port"]?.jsonPrimitive?.intOrNull ?: 22
+                val group = json["session.group"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
+                val groups = group.split(">")
+                printer.printRecord(groups.joinToString("/"), label, target, port, StringUtils.EMPTY, "SSH")
+            }
+        }
+
+        return parseFromCSV(folder, StringReader(sw.toString()))
+    }
+
+    private fun parseFromCSV(folderNode: HostTreeNode, sr: Reader): List<HostTreeNode> {
+        val records = CSVParser.builder()
+            .setFormat(CSVFormat.EXCEL.builder().setHeader(*CSV_HEADERS).setSkipHeaderRecord(true).get())
+            .setCharset(Charsets.UTF_8)
+            .setReader(sr)
+            .get()
+            .use { it.records }
+        // 把现有目录提取出来，避免重复创建
+        val nodes = folderNode.clone(setOf(Protocol.Folder))
+            .childrenNode().filter { it.host.protocol == Protocol.Folder }
+            .toMutableList()
+
+        for (record in records) {
+            val map = mutableMapOf<String, String>()
+            for (e in record.parser.headerMap.keys) {
+                map[e] = record.get(e)
+            }
+
+            val folder = map["Folders"] ?: StringUtils.EMPTY
+            val label = map["Label"] ?: StringUtils.EMPTY
+            val hostname = map["Hostname"] ?: StringUtils.EMPTY
+            val port = map["Port"]?.toIntOrNull() ?: 22
+            val username = map["Username"] ?: StringUtils.EMPTY
+            val protocol = map["Protocol"] ?: "SSH"
+            if (!StringUtils.equalsIgnoreCase(protocol, "SSH")) continue
+            if (StringUtils.isAllBlank(hostname, label)) continue
 
             var p: HostTreeNode? = null
-            if (group.isNotBlank()) {
-                for (j in groups.indices) {
+            if (folder.isNotBlank()) {
+                for ((j, name) in folder.split("/").withIndex()) {
                     val folders = if (j == 0 || p == null) nodes
                     else p.children().toList().filterIsInstance<HostTreeNode>()
                     val n = HostTreeNode(
                         Host(
-                            name = groups[j], protocol = Protocol.Folder,
+                            name = name, protocol = Protocol.Folder,
                             parentId = p?.host?.id ?: StringUtils.EMPTY
                         )
                     )
-                    val cp = folders.find { it.host.protocol == Protocol.Folder && it.host.name == groups[j] }
+                    val cp = folders.find { it.host.protocol == Protocol.Folder && it.host.name == name }
                     if (cp != null) {
                         p = cp
                         continue
@@ -696,9 +800,10 @@ class NewHostTree : JXTree() {
 
             val n = HostTreeNode(
                 Host(
-                    name = StringUtils.defaultIfBlank(label, target),
-                    host = target,
+                    name = StringUtils.defaultIfBlank(label, hostname),
+                    host = hostname,
                     port = port,
+                    username = username,
                     protocol = Protocol.SSH,
                     parentId = p?.host?.id ?: StringUtils.EMPTY,
                 )
@@ -716,7 +821,8 @@ class NewHostTree : JXTree() {
 
 
     private enum class ImportType {
-        WindTerm
+        WindTerm,
+        CSV,
     }
 
     private class MoveHostTransferable(val nodes: List<HostTreeNode>) : Transferable {

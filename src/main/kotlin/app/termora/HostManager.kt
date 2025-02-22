@@ -17,7 +17,11 @@ class HostManager private constructor() {
     fun addHost(host: Host) {
         assertEventDispatchThread()
         database.addHost(host)
-        setHost(host)
+        if (host.deleted) {
+            hosts.entries.removeIf { it.value.id == host.id || it.value.parentId == host.id }
+        } else {
+            hosts[host.id] = host
+        }
     }
 
     /**
@@ -39,12 +43,4 @@ class HostManager private constructor() {
         return hosts[id]
     }
 
-
-    /**
-     * 仅修改缓存中的
-     */
-    fun setHost(host: Host) {
-        assertEventDispatchThread()
-        hosts[host.id] = host
-    }
 }

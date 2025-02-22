@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.commons.codec)
     implementation(libs.commons.io)
     implementation(libs.commons.lang3)
+    implementation(libs.commons.csv)
     implementation(libs.commons.net)
     implementation(libs.commons.text)
     implementation(libs.commons.compress)

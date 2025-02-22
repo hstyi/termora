@@ -356,7 +356,7 @@ class TerminalTabbed(
             }
 
             host = host.copy(
-                protocol = Protocol.SFTPPty,
+                protocol = Protocol.SFTPPty, updateDate = System.currentTimeMillis(),
                 options = host.options.copy(env = envs.toPropertiesString())
             )
         }

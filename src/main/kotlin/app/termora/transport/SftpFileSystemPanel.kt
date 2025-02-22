@@ -107,7 +107,7 @@ class SftpFileSystemPanel(
     private suspend fun doConnect() {
 
         val thisHost = this.host ?: return
-        var host = thisHost.copy(authentication = thisHost.authentication.copy())
+        var host = thisHost.copy(authentication = thisHost.authentication.copy(), updateDate = System.currentTimeMillis())
 
         closeIO()
 
@@ -123,14 +123,14 @@ class SftpFileSystemPanel(
                     val authentication = dialog.getAuthentication()
                     host = host.copy(
                         authentication = authentication,
-                        username = dialog.getUsername(),
+                        username = dialog.getUsername(), updateDate = System.currentTimeMillis(),
                     )
                     // save
                     if (dialog.isRemembered()) {
                         HostManager.getInstance().addHost(
                             host.copy(
                                 authentication = authentication,
-                                username = dialog.getUsername(),
+                                username = dialog.getUsername(), updateDate = System.currentTimeMillis(),
                             )
                         )
                     }

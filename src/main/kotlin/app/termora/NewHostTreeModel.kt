@@ -73,7 +73,7 @@ class NewHostTreeModel : DefaultTreeModel(
             for ((i, c) in parent.children().toList().filterIsInstance<HostTreeNode>().withIndex()) {
                 val sort = i.toLong()
                 if (c.host.sort == sort) continue
-                c.host = c.host.copy(sort = sort)
+                c.host = c.host.copy(sort = sort, updateDate = System.currentTimeMillis())
                 hostManager.addHost(c.host)
             }
         }

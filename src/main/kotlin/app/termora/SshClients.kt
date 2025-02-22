@@ -151,7 +151,7 @@ object SshClients {
                     log.info("jump host: ${currentHost.host}:${currentHost.port} , next host: ${nextHost.host}:${nextHost.port} , local address: ${address.hostName}:${address.port}")
                 }
                 // 映射完毕之后修改Host和端口
-                jumpHosts[i + 1] = nextHost.copy(host = address.hostName, port = address.port)
+                jumpHosts[i + 1] = nextHost.copy(host = address.hostName, port = address.port, updateDate = System.currentTimeMillis())
             }
         }
 
