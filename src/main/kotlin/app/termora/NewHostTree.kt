@@ -359,8 +359,9 @@ class NewHostTree : JXTree() {
         val newHost = newMenu.add(I18n.getString("termora.welcome.contextmenu.new.host"))
         val importMenu = JMenu(I18n.getString("termora.welcome.contextmenu.import"))
         val csvMenu = importMenu.add("CSV")
-        val XshellMenu = importMenu.add("Xshell")
+        val xShellMenu = importMenu.add("Xshell")
         val windTermMenu = importMenu.add("WindTerm")
+        val mobaXtermMenu = importMenu.add("MobaXterm")
 
         val open = popupMenu.add(I18n.getString("termora.welcome.contextmenu.connect"))
         val openWith = popupMenu.add(JMenu(I18n.getString("termora.welcome.contextmenu.connect-with"))) as JMenu
@@ -388,7 +389,8 @@ class NewHostTree : JXTree() {
         popupMenu.add(showMoreInfo)
         val property = popupMenu.add(I18n.getString("termora.welcome.contextmenu.property"))
 
-        XshellMenu.addActionListener { importHosts(lastNode, ImportType.Xshell) }
+        xShellMenu.addActionListener { importHosts(lastNode, ImportType.Xshell) }
+        mobaXtermMenu.addActionListener { importHosts(lastNode, ImportType.MobaXterm) }
         csvMenu.addActionListener { importHosts(lastNode, ImportType.CSV) }
         windTermMenu.addActionListener { importHosts(lastNode, ImportType.WindTerm) }
         open.addActionListener { openHosts(it, false) }
@@ -638,6 +640,9 @@ class NewHostTree : JXTree() {
         when (type) {
             ImportType.WindTerm -> chooser.fileFilter = FileNameExtensionFilter("WindTerm (*.sessions)", "sessions")
             ImportType.CSV -> chooser.fileFilter = FileNameExtensionFilter("CSV (*.csv)", "csv")
+            ImportType.MobaXterm -> chooser.fileFilter =
+                FileNameExtensionFilter("MobaXterm (*.mobaconf,*.ini)", "ini", "mobaconf")
+
             ImportType.Xshell -> {
                 chooser.fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
                 chooser.dialogTitle = "Xshell Sessions"
@@ -704,6 +709,7 @@ class NewHostTree : JXTree() {
 
         val nodes = when (type) {
             ImportType.WindTerm -> parseFromWindTerm(folder, file)
+            ImportType.MobaXterm -> parseFromMobaXterm(folder, file)
             ImportType.Xshell -> parseFromXshell(folder, file)
             ImportType.CSV -> file.bufferedReader().use { parseFromCSV(folder, it) }
         }
@@ -746,6 +752,46 @@ class NewHostTree : JXTree() {
                 val group = json["session.group"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
                 val groups = group.split(">")
                 printer.printRecord(groups.joinToString("/"), label, target, port, StringUtils.EMPTY, "SSH")
+            }
+        }
+
+        return parseFromCSV(folder, StringReader(sw.toString()))
+    }
+
+    private fun parseFromMobaXterm(folder: HostTreeNode, file: File): List<HostTreeNode> {
+        val ini = Ini()
+        ini.config.isEscapeKeyOnly = true
+        ini.load(file)
+
+        val bookmarks = mutableListOf<String>()
+        for (key in ini.keys) {
+            if (key.startsWith("Bookmarks")) {
+                bookmarks.add(key)
+            }
+        }
+
+        val sw = StringWriter()
+        CSVPrinter(sw, CSVFormat.EXCEL.builder().setHeader(*CSV_HEADERS).get()).use { printer ->
+
+            for (bookmark in bookmarks) {
+                val properties = (ini[bookmark] ?: continue).toProperties()
+                // 删除不必要元素
+                properties.remove("ImgNum")
+                val folders = FilenameUtils.separatorsToUnix(
+                    (properties.remove("SubRep")
+                        ?: StringUtils.EMPTY).toString()
+                )
+
+                for (key in properties.stringPropertyNames()) {
+                    val segments = properties.getProperty(key).split("%")
+                    if (segments.isEmpty()) continue
+                    // ssh: #109#0
+                    // telnet: #98#1
+                    if (segments.first() != "#109#0") continue
+                    val hostname = segments.getOrNull(1) ?: StringUtils.EMPTY
+                    val port = segments.getOrNull(2) ?: 22
+                    printer.printRecord(folders, key, hostname, port, StringUtils.EMPTY, "SSH")
+                }
             }
         }
 
@@ -859,6 +905,7 @@ class NewHostTree : JXTree() {
         WindTerm,
         CSV,
         Xshell,
+        MobaXterm
     }
 
     private class MoveHostTransferable(val nodes: List<HostTreeNode>) : Transferable {
