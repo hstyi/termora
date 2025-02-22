@@ -23,6 +23,8 @@ import org.jdesktop.swingx.JXTree
 import org.jdesktop.swingx.action.ActionManager
 import org.jdesktop.swingx.tree.DefaultXTreeCellRenderer
 import org.slf4j.LoggerFactory
+import org.w3c.dom.Element
+import org.w3c.dom.NodeList
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.datatransfer.DataFlavor
@@ -43,6 +45,9 @@ import javax.swing.event.PopupMenuListener
 import javax.swing.filechooser.FileNameExtensionFilter
 import javax.swing.tree.TreePath
 import javax.swing.tree.TreeSelectionModel
+import javax.xml.parsers.DocumentBuilderFactory
+import javax.xml.xpath.XPathConstants
+import javax.xml.xpath.XPathFactory
 import kotlin.math.min
 
 class NewHostTree : JXTree() {
@@ -361,6 +366,7 @@ class NewHostTree : JXTree() {
         val csvMenu = importMenu.add("CSV")
         val xShellMenu = importMenu.add("Xshell")
         val windTermMenu = importMenu.add("WindTerm")
+        val secureCRTMenu = importMenu.add("SecureCRT")
         val mobaXtermMenu = importMenu.add("MobaXterm")
 
         val open = popupMenu.add(I18n.getString("termora.welcome.contextmenu.connect"))
@@ -390,6 +396,7 @@ class NewHostTree : JXTree() {
         val property = popupMenu.add(I18n.getString("termora.welcome.contextmenu.property"))
 
         xShellMenu.addActionListener { importHosts(lastNode, ImportType.Xshell) }
+        secureCRTMenu.addActionListener { importHosts(lastNode, ImportType.SecureCRT) }
         mobaXtermMenu.addActionListener { importHosts(lastNode, ImportType.MobaXterm) }
         csvMenu.addActionListener { importHosts(lastNode, ImportType.CSV) }
         windTermMenu.addActionListener { importHosts(lastNode, ImportType.WindTerm) }
@@ -640,6 +647,7 @@ class NewHostTree : JXTree() {
         when (type) {
             ImportType.WindTerm -> chooser.fileFilter = FileNameExtensionFilter("WindTerm (*.sessions)", "sessions")
             ImportType.CSV -> chooser.fileFilter = FileNameExtensionFilter("CSV (*.csv)", "csv")
+            ImportType.SecureCRT -> chooser.fileFilter = FileNameExtensionFilter("SecureCRT (*.xml)", "xml")
             ImportType.MobaXterm -> chooser.fileFilter =
                 FileNameExtensionFilter("MobaXterm (*.mobaconf,*.ini)", "ini", "mobaconf")
 
@@ -709,10 +717,13 @@ class NewHostTree : JXTree() {
 
         val nodes = when (type) {
             ImportType.WindTerm -> parseFromWindTerm(folder, file)
+            ImportType.SecureCRT -> parseFromSecureCRT(folder, file)
             ImportType.MobaXterm -> parseFromMobaXterm(folder, file)
             ImportType.Xshell -> parseFromXshell(folder, file)
             ImportType.CSV -> file.bufferedReader().use { parseFromCSV(folder, it) }
         }
+
+        if (nodes.isEmpty()) return
 
         for (node in nodes) {
             node.host = node.host.copy(parentId = folder.host.id, updateDate = System.currentTimeMillis())
@@ -757,6 +768,43 @@ class NewHostTree : JXTree() {
 
         return parseFromCSV(folder, StringReader(sw.toString()))
     }
+
+    private fun parseFromSecureCRT(folder: HostTreeNode, file: File): List<HostTreeNode> {
+        val xPath = XPathFactory.newInstance().newXPath()
+        val db = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+        val doc = db.parse(file)
+        val sessionElement = xPath.compile("/VanDyke/key[@name='Sessions']")
+            .evaluate(doc, XPathConstants.NODE) as Element? ?: return emptyList()
+        val nodeList = xPath.compile(".//key[not(key)]").evaluate(sessionElement, XPathConstants.NODESET) as NodeList
+        if (nodeList.length == 0) return emptyList()
+
+        val sw = StringWriter()
+        CSVPrinter(sw, CSVFormat.EXCEL.builder().setHeader(*CSV_HEADERS).get()).use { printer ->
+            for (i in 0 until nodeList.length) {
+                val ele = nodeList.item(i) as Element
+                val protocol = xPath.compile("./string[@name='Protocol Name']/text()").evaluate(ele)
+                if (!StringUtils.equalsIgnoreCase(protocol, "SSH2")) continue
+                val label = ele.getAttribute("name")
+                if (StringUtils.isBlank(label)) continue
+                val hostname = xPath.compile("./string[@name='Hostname']/text()").evaluate(ele)
+                if (StringUtils.isBlank(hostname)) continue
+                val username = xPath.compile("./string[@name='Username']/text()").evaluate(ele)
+                val port = xPath.compile("./dword[@name='[SSH2] Port']/text()").evaluate(ele)?.toIntOrNull() ?: 22
+
+
+                val folders = mutableListOf<String>()
+                var p = ele.parentNode as Element
+                while (p != sessionElement) {
+                    folders.addFirst(p.getAttribute("name"))
+                    p = p.parentNode as Element
+                }
+                printer.printRecord(folders.joinToString("/"), label, hostname, port.toString(), username, "SSH")
+            }
+        }
+
+        return parseFromCSV(folder, StringReader(sw.toString()))
+    }
+
 
     private fun parseFromMobaXterm(folder: HostTreeNode, file: File): List<HostTreeNode> {
         val ini = Ini()
@@ -905,6 +953,7 @@ class NewHostTree : JXTree() {
         WindTerm,
         CSV,
         Xshell,
+        SecureCRT,
         MobaXterm
     }
 
