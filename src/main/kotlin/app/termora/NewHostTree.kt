@@ -18,6 +18,7 @@ import org.apache.commons.io.filefilter.FileFilterUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.ini4j.Ini
+import org.ini4j.Reg
 import org.jdesktop.swingx.JXTree
 import org.jdesktop.swingx.action.ActionManager
 import org.jdesktop.swingx.tree.DefaultXTreeCellRenderer
@@ -364,6 +365,7 @@ class NewHostTree : JXTree() {
         val importMenu = JMenu(I18n.getString("termora.welcome.contextmenu.import"))
         val csvMenu = importMenu.add("CSV")
         val xShellMenu = importMenu.add("Xshell")
+        val puTTYMenu = importMenu.add("PuTTY")
         val electermMenu = importMenu.add("electerm")
         val finalShellMenu = importMenu.add("FinalShell")
         val windTermMenu = importMenu.add("WindTerm")
@@ -397,6 +399,7 @@ class NewHostTree : JXTree() {
         val property = popupMenu.add(I18n.getString("termora.welcome.contextmenu.property"))
 
         xShellMenu.addActionListener { importHosts(lastNode, ImportType.Xshell) }
+        puTTYMenu.addActionListener { importHosts(lastNode, ImportType.PuTTY) }
         secureCRTMenu.addActionListener { importHosts(lastNode, ImportType.SecureCRT) }
         electermMenu.addActionListener { importHosts(lastNode, ImportType.electerm) }
         mobaXtermMenu.addActionListener { importHosts(lastNode, ImportType.MobaXterm) }
@@ -652,6 +655,7 @@ class NewHostTree : JXTree() {
             ImportType.CSV -> chooser.fileFilter = FileNameExtensionFilter("CSV (*.csv)", "csv")
             ImportType.SecureCRT -> chooser.fileFilter = FileNameExtensionFilter("SecureCRT (*.xml)", "xml")
             ImportType.electerm -> chooser.fileFilter = FileNameExtensionFilter("electerm (*.json)", "json")
+            ImportType.PuTTY -> chooser.fileFilter = FileNameExtensionFilter("PuTTY (*.reg)", "reg")
             ImportType.MobaXterm -> chooser.fileFilter =
                 FileNameExtensionFilter("MobaXterm (*.mobaconf,*.ini)", "ini", "mobaconf")
 
@@ -729,6 +733,7 @@ class NewHostTree : JXTree() {
             ImportType.WindTerm -> parseFromWindTerm(folder, file)
             ImportType.SecureCRT -> parseFromSecureCRT(folder, file)
             ImportType.MobaXterm -> parseFromMobaXterm(folder, file)
+            ImportType.PuTTY -> parseFromPuTTY(folder, file)
             ImportType.Xshell -> parseFromXshell(folder, file)
             ImportType.FinalShell -> parseFromFinalShell(folder, file)
             ImportType.electerm -> parseFromElecterm(folder, file)
@@ -817,6 +822,28 @@ class NewHostTree : JXTree() {
         return parseFromCSV(folder, StringReader(sw.toString()))
     }
 
+    private fun parseFromPuTTY(folder: HostTreeNode, file: File): List<HostTreeNode> {
+        val reg = Reg(file)
+        val prefix = "HKEY_CURRENT_USER\\Software\\SimonTatham\\PuTTY\\Sessions\\"
+
+
+        val sw = StringWriter()
+        CSVPrinter(sw, CSVFormat.EXCEL.builder().setHeader(*CSV_HEADERS).get()).use { printer ->
+            for (key in reg.keys) {
+                if (!key.startsWith(prefix)) {
+                    continue
+                }
+                val properties = reg[key]?.toProperties() ?: continue
+                val label = StringUtils.removeStart(key, prefix)
+                val hostname = properties.getProperty("HostName")
+                val username = properties.getProperty("UserName")
+                val port = properties.getProperty("PortNumber")
+                printer.printRecord(StringUtils.EMPTY, label, hostname, port.toString(), username, "SSH")
+            }
+        }
+
+        return parseFromCSV(folder, StringReader(sw.toString()))
+    }
 
     private fun parseFromMobaXterm(folder: HostTreeNode, file: File): List<HostTreeNode> {
         val ini = Ini()
@@ -1055,6 +1082,7 @@ class NewHostTree : JXTree() {
         WindTerm,
         CSV,
         Xshell,
+        PuTTY,
         SecureCRT,
         MobaXterm,
         FinalShell,
