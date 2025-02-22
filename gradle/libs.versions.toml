@@ -43,6 +43,7 @@ delight-rhino-sandbox = "0.0.17"
 testcontainers = "1.20.4"
 mixpanel = "1.5.3"
 jSerialComm = "2.11.0"
+ini4j = "0.5.5-2"
 
 [libraries]
 kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
@@ -58,6 +59,7 @@ commons-csv = { group = "org.apache.commons", name = "commons-csv", version.ref 
 commons-text = { group = "org.apache.commons", name = "commons-text", version.ref = "commons-text" }
 commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "commons-compress" }
 pty4j = { group = "org.jetbrains.pty4j", name = "pty4j", version.ref = "pty4j" }
+ini4j = { module = "org.jetbrains.intellij.deps:ini4j", version.ref = "ini4j" }
 flatlaf = { group = "com.formdev", name = "flatlaf", version.ref = "flatlaf" }
 flatlaf-extras = { group = "com.formdev", name = "flatlaf-extras", version.ref = "flatlaf" }
 trove4j = { group = "org.jetbrains.intellij.deps", name = "trove4j", version.ref = "trove4j" }

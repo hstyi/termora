@@ -42,6 +42,10 @@ commons-csv 1.13.0
 Apache License 2.0
 https://github.com/apache/commons-csv/blob/master/LICENSE.txt
 
+ini4j 0.5.5-2
+Apache License 2.0
+http://www.apache.org/licenses/LICENSE-2.0.txt
+
 eddsa 0.3.0
 Creative Commons Zero v1.0 Universal
 https://github.com/str4d/ed25519-java/blob/master/LICENSE.txt

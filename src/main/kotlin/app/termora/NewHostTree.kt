@@ -15,8 +15,10 @@ import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
 import org.apache.commons.csv.CSVPrinter
 import org.apache.commons.io.FileUtils
+import org.apache.commons.io.FilenameUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
+import org.ini4j.Ini
 import org.jdesktop.swingx.JXTree
 import org.jdesktop.swingx.action.ActionManager
 import org.jdesktop.swingx.tree.DefaultXTreeCellRenderer
@@ -357,6 +359,7 @@ class NewHostTree : JXTree() {
         val newHost = newMenu.add(I18n.getString("termora.welcome.contextmenu.new.host"))
         val importMenu = JMenu(I18n.getString("termora.welcome.contextmenu.import"))
         val csvMenu = importMenu.add("CSV")
+        val XshellMenu = importMenu.add("Xshell")
         val windTermMenu = importMenu.add("WindTerm")
 
         val open = popupMenu.add(I18n.getString("termora.welcome.contextmenu.connect"))
@@ -385,9 +388,8 @@ class NewHostTree : JXTree() {
         popupMenu.add(showMoreInfo)
         val property = popupMenu.add(I18n.getString("termora.welcome.contextmenu.property"))
 
-        csvMenu.addActionListener {
-            importHosts(lastNode, ImportType.CSV)
-        }
+        XshellMenu.addActionListener { importHosts(lastNode, ImportType.Xshell) }
+        csvMenu.addActionListener { importHosts(lastNode, ImportType.CSV) }
         windTermMenu.addActionListener { importHosts(lastNode, ImportType.WindTerm) }
         open.addActionListener { openHosts(it, false) }
         openInNewWindow.addActionListener { openHosts(it, true) }
@@ -633,10 +635,14 @@ class NewHostTree : JXTree() {
         chooser.isAcceptAllFileFilterUsed = false
         chooser.isMultiSelectionEnabled = false
 
-        if (type == ImportType.WindTerm) {
-            chooser.fileFilter = FileNameExtensionFilter("WindTerm(*.sessions)", "sessions")
-        } else if (type == ImportType.CSV) {
-            chooser.fileFilter = FileNameExtensionFilter("CSV(*.csv)", "csv")
+        when (type) {
+            ImportType.WindTerm -> chooser.fileFilter = FileNameExtensionFilter("WindTerm (*.sessions)", "sessions")
+            ImportType.CSV -> chooser.fileFilter = FileNameExtensionFilter("CSV (*.csv)", "csv")
+            ImportType.Xshell -> {
+                chooser.fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
+                chooser.dialogTitle = "Xshell Sessions"
+                chooser.isAcceptAllFileFilterUsed = true
+            }
         }
 
         val dir = properties.getString("NewHostTree.ImportHosts.defaultDir", StringUtils.EMPTY)
@@ -698,6 +704,7 @@ class NewHostTree : JXTree() {
 
         val nodes = when (type) {
             ImportType.WindTerm -> parseFromWindTerm(folder, file)
+            ImportType.Xshell -> parseFromXshell(folder, file)
             ImportType.CSV -> file.bufferedReader().use { parseFromCSV(folder, it) }
         }
 
@@ -739,6 +746,34 @@ class NewHostTree : JXTree() {
                 val group = json["session.group"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
                 val groups = group.split(">")
                 printer.printRecord(groups.joinToString("/"), label, target, port, StringUtils.EMPTY, "SSH")
+            }
+        }
+
+        return parseFromCSV(folder, StringReader(sw.toString()))
+    }
+
+    private fun parseFromXshell(folder: HostTreeNode, dir: File): List<HostTreeNode> {
+        val files = FileUtils.listFiles(dir, arrayOf("xsh"), true)
+        if (files.isEmpty()) {
+            OptionPane.showMessageDialog(
+                owner,
+                I18n.getString("termora.welcome.contextmenu.import.xshell-folder-empty")
+            )
+            return emptyList()
+        }
+
+        val sw = StringWriter()
+        CSVPrinter(sw, CSVFormat.EXCEL.builder().setHeader(*CSV_HEADERS).get()).use { printer ->
+            for (file in files) {
+                val ini = Ini(file)
+                val protocol = ini.get("CONNECTION", "Protocol") ?: "SSH"
+                if (!StringUtils.equalsIgnoreCase("SSH", protocol)) continue
+                val folders = FilenameUtils.separatorsToUnix(file.parentFile.relativeTo(dir).toString())
+                val hostname = ini.get("CONNECTION", "Host") ?: StringUtils.EMPTY
+                val label = file.nameWithoutExtension
+                val port = ini.get("CONNECTION", "Port")?.toIntOrNull() ?: 22
+                val username = ini.get("CONNECTION:AUTHENTICATION", "UserName") ?: StringUtils.EMPTY
+                printer.printRecord(folders, label, hostname, port, username, "SSH")
             }
         }
 
@@ -823,6 +858,7 @@ class NewHostTree : JXTree() {
     private enum class ImportType {
         WindTerm,
         CSV,
+        Xshell,
     }
 
     private class MoveHostTransferable(val nodes: List<HostTreeNode>) : Transferable {

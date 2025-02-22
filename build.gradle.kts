@@ -108,6 +108,7 @@ dependencies {
     implementation(libs.colorpicker)
     implementation(libs.mixpanel)
     implementation(libs.jSerialComm)
+    implementation(libs.ini4j)
 }
 
 application {
