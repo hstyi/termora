@@ -16,6 +16,7 @@ import org.apache.commons.csv.CSVParser
 import org.apache.commons.csv.CSVPrinter
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.FilenameUtils
+import org.apache.commons.io.filefilter.FileFilterUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.ini4j.Ini
@@ -365,6 +366,7 @@ class NewHostTree : JXTree() {
         val importMenu = JMenu(I18n.getString("termora.welcome.contextmenu.import"))
         val csvMenu = importMenu.add("CSV")
         val xShellMenu = importMenu.add("Xshell")
+        val finalShellMenu = importMenu.add("FinalShell")
         val windTermMenu = importMenu.add("WindTerm")
         val secureCRTMenu = importMenu.add("SecureCRT")
         val mobaXtermMenu = importMenu.add("MobaXterm")
@@ -398,6 +400,7 @@ class NewHostTree : JXTree() {
         xShellMenu.addActionListener { importHosts(lastNode, ImportType.Xshell) }
         secureCRTMenu.addActionListener { importHosts(lastNode, ImportType.SecureCRT) }
         mobaXtermMenu.addActionListener { importHosts(lastNode, ImportType.MobaXterm) }
+        finalShellMenu.addActionListener { importHosts(lastNode, ImportType.FinalShell) }
         csvMenu.addActionListener { importHosts(lastNode, ImportType.CSV) }
         windTermMenu.addActionListener { importHosts(lastNode, ImportType.WindTerm) }
         open.addActionListener { openHosts(it, false) }
@@ -656,6 +659,11 @@ class NewHostTree : JXTree() {
                 chooser.dialogTitle = "Xshell Sessions"
                 chooser.isAcceptAllFileFilterUsed = true
             }
+
+            ImportType.FinalShell -> {
+                chooser.fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
+                chooser.isAcceptAllFileFilterUsed = true
+            }
         }
 
         val dir = properties.getString("NewHostTree.ImportHosts.defaultDir", StringUtils.EMPTY)
@@ -706,20 +714,22 @@ class NewHostTree : JXTree() {
         // 选择文件
         val code = chooser.showOpenDialog(owner)
 
-        // 记住目录
-        properties.putString("NewHostTree.ImportHosts.defaultDir", chooser.currentDirectory.absolutePath)
-
         if (code != JFileChooser.APPROVE_OPTION) {
             return
         }
 
         val file = chooser.selectedFile
+        properties.putString(
+            "NewHostTree.ImportHosts.defaultDir",
+            (if (FileUtils.isDirectory(file)) file else file.parentFile).absolutePath
+        )
 
         val nodes = when (type) {
             ImportType.WindTerm -> parseFromWindTerm(folder, file)
             ImportType.SecureCRT -> parseFromSecureCRT(folder, file)
             ImportType.MobaXterm -> parseFromMobaXterm(folder, file)
             ImportType.Xshell -> parseFromXshell(folder, file)
+            ImportType.FinalShell -> parseFromFinalShell(folder, file)
             ImportType.CSV -> file.bufferedReader().use { parseFromCSV(folder, it) }
         }
 
@@ -874,6 +884,45 @@ class NewHostTree : JXTree() {
         return parseFromCSV(folder, StringReader(sw.toString()))
     }
 
+    private fun parseFromFinalShell(folder: HostTreeNode, dir: File): List<HostTreeNode> {
+        val files = FileUtils.listFiles(
+            dir,
+            FileFilterUtils.suffixFileFilter("_connect_config.json"),
+            FileFilterUtils.trueFileFilter()
+        )
+
+        if (files.isEmpty()) {
+            OptionPane.showMessageDialog(
+                owner,
+                I18n.getString("termora.welcome.contextmenu.import.finalshell-folder-empty")
+            )
+            return emptyList()
+        }
+
+        val sw = StringWriter()
+        CSVPrinter(sw, CSVFormat.EXCEL.builder().setHeader(*CSV_HEADERS).get()).use { printer ->
+            for (file in files) {
+                try {
+                    val json = ohMyJson.runCatching { ohMyJson.parseToJsonElement(file.readText()) }
+                        .getOrNull()?.jsonObject ?: continue
+                    val username = json["user_name"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
+                    val label = json["name"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
+                    val host = json["host"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
+                    val port = json["port"]?.jsonPrimitive?.intOrNull ?: 22
+                    if (StringUtils.isAllBlank(host, label)) continue
+                    val folders = FilenameUtils.separatorsToUnix(file.parentFile.relativeTo(dir).toString())
+                    printer.printRecord(folders, StringUtils.defaultIfBlank(label, host), host, port, username, "SSH")
+                } catch (e: Exception) {
+                    if (log.isErrorEnabled) {
+                        log.error(file.absolutePath, e)
+                    }
+                }
+            }
+        }
+
+        return parseFromCSV(folder, StringReader(sw.toString()))
+    }
+
     private fun parseFromCSV(folderNode: HostTreeNode, sr: Reader): List<HostTreeNode> {
         val records = CSVParser.builder()
             .setFormat(CSVFormat.EXCEL.builder().setHeader(*CSV_HEADERS).setSkipHeaderRecord(true).get())
@@ -954,7 +1003,8 @@ class NewHostTree : JXTree() {
         CSV,
         Xshell,
         SecureCRT,
-        MobaXterm
+        MobaXterm,
+        FinalShell,
     }
 
     private class MoveHostTransferable(val nodes: List<HostTreeNode>) : Transferable {
