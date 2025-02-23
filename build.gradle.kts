@@ -497,7 +497,7 @@ fun pack() {
     val projectName = project.name.uppercaseFirstChar()
 
     if (os.isWindows) {
-        packOnWindows(distributionDir, finalFilenameWithoutExtension, osName)
+        packOnWindows(distributionDir, finalFilenameWithoutExtension, projectName)
     } else if (os.isLinux) {
         packOnLinux(distributionDir, finalFilenameWithoutExtension, projectName)
     } else if (os.isMacOsX) {
