@@ -44,6 +44,7 @@ testcontainers = "1.20.4"
 mixpanel = "1.5.3"
 jSerialComm = "2.11.0"
 ini4j = "0.5.5-2"
+restart4j = "0.0.1"
 
 [libraries]
 kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
@@ -76,6 +77,7 @@ versioncompare = { module = "io.github.g00fy2:versioncompare", version.ref = "ve
 jfa = { module = "de.jangassen:jfa", version.ref = "jfa" }
 oshi-core = { module = "com.github.oshi:oshi-core", version.ref = "oshi" }
 commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
+restart4j = { module = "com.github.hstyi:restart4j", version.ref = "restart4j" }
 jbr-api = { module = "com.jetbrains:jbr-api", version.ref = "jbr-api" }
 flatlaf-swingx = { module = "com.formdev:flatlaf-swingx", version.ref = "flatlaf" }
 leveldb = { module = "org.iq80.leveldb:leveldb", version.ref = "leveldb" }

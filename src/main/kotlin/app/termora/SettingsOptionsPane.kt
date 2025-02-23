@@ -36,7 +36,6 @@ import com.jthemedetecor.OsThemeDetector
 import com.sun.jna.LastErrorException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import org.apache.commons.codec.binary.Base64
 import org.apache.commons.io.IOUtils
@@ -199,12 +198,7 @@ class SettingsOptionsPane : OptionsPane() {
                 if (it.stateChange == ItemEvent.SELECTED) {
                     appearance.language = languageComboBox.selectedItem as String
                     SwingUtilities.invokeLater {
-                        OptionPane.showMessageDialog(
-                            owner,
-                            I18n.getString("termora.settings.restart.message"),
-                            I18n.getString("termora.settings.restart.title"),
-                            messageType = JOptionPane.INFORMATION_MESSAGE,
-                        )
+                        TermoraRestarter.getInstance().scheduleRestart(owner)
                     }
                 }
             }

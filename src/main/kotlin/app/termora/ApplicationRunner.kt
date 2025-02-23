@@ -104,16 +104,8 @@ class ApplicationRunner {
     @Suppress("OPT_IN_USAGE")
     private fun clearTemporary() {
         GlobalScope.launch(Dispatchers.IO) {
-
             // 启动时清除
             FileUtils.cleanDirectory(Application.getTemporaryDir())
-
-            // 关闭时清除
-            Disposer.register(ApplicationScope.forApplicationScope(), object : Disposable {
-                override fun dispose() {
-                    FileUtils.cleanDirectory(Application.getTemporaryDir())
-                }
-            })
         }
 
     }
@@ -195,7 +187,7 @@ class ApplicationRunner {
         themeManager.change(theme, true)
 
         if (Application.isUnknownVersion())
-            FlatInspector.install("ctrl shift alt X");
+            FlatInspector.install("ctrl shift alt X")
 
         UIManager.put(FlatClientProperties.FULL_WINDOW_CONTENT, true)
         UIManager.put(FlatClientProperties.USE_WINDOW_DECORATIONS, false)

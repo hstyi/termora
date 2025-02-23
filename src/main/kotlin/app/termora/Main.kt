@@ -50,4 +50,9 @@ private fun setupNativeLibraries() {
     if (jSerialComm.exists()) {
         System.setProperty("jSerialComm.library.path", jSerialComm.absolutePath)
     }
+
+    val restart4j = FileUtils.getFile(dylib, "restart4j", "restarter")
+    if (restart4j.exists()) {
+        System.setProperty("restarter.path", restart4j.absolutePath)
+    }
 }

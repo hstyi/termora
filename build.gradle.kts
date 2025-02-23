@@ -3,6 +3,7 @@ import org.gradle.kotlin.dsl.support.uppercaseFirstChar
 import org.gradle.nativeplatform.platform.internal.ArchitectureInternal
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 import org.jetbrains.kotlin.org.apache.commons.io.FileUtils
+import org.jetbrains.kotlin.org.apache.commons.io.filefilter.FileFilterUtils
 import org.jetbrains.kotlin.org.apache.commons.lang3.StringUtils
 import java.nio.file.Files
 
@@ -109,6 +110,7 @@ dependencies {
     implementation(libs.mixpanel)
     implementation(libs.jSerialComm)
     implementation(libs.ini4j)
+    implementation(libs.restart4j)
 }
 
 application {
@@ -147,11 +149,13 @@ tasks.register<Copy>("copy-dependencies") {
     val jna = libs.jna.asProvider().get()
     val pty4j = libs.pty4j.get()
     val jSerialComm = libs.jSerialComm.get()
+    val restart4j = libs.restart4j.get()
 
     // 对 JNA 和 PTY4J 的本地库提取
     // 提取出来是为了单独签名，不然无法通过公证
     if (os.isMacOsX && macOSSign) {
         doLast {
+            val archName = if (arch.isArm) "aarch64" else "x86_64"
             val dylib = dir.get().dir("dylib").asFile
             for (file in dir.get().asFile.listFiles() ?: emptyArray()) {
                 if ("${jna.name}-${jna.version}" == file.nameWithoutExtension) {
@@ -178,7 +182,6 @@ tasks.register<Copy>("copy-dependencies") {
                     // 删除所有二进制类库
                     exec { commandLine("zip", "-d", file.absolutePath, "resources/*") }
                 } else if ("${jSerialComm.name}-${jSerialComm.version}" == file.nameWithoutExtension) {
-                    val archName = if (arch.isArm) "aarch64" else "x86_64"
                     val targetDir = FileUtils.getFile(dylib, jSerialComm.name, "OSX", archName)
                     FileUtils.forceMkdir(targetDir)
                     // @formatter:off
@@ -192,6 +195,24 @@ tasks.register<Copy>("copy-dependencies") {
                     exec { commandLine("zip", "-d", file.absolutePath, "OSX/*") }
                     exec { commandLine("zip", "-d", file.absolutePath, "Solaris/*") }
                     exec { commandLine("zip", "-d", file.absolutePath, "Windows/*") }
+                } else if ("${restart4j.name}-${restart4j.version}" == file.nameWithoutExtension) {
+                    val targetDir = FileUtils.getFile(dylib, restart4j.name)
+                    FileUtils.forceMkdir(targetDir)
+                    // @formatter:off
+                    exec { commandLine("unzip", "-j" , "-o", file.absolutePath, "darwin/${archName}/*", "-d", targetDir.absolutePath) }
+                    // @formatter:on
+                    // 删除所有二进制类库
+                    exec { commandLine("zip", "-d", file.absolutePath, "win32/*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "darwin/*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "linux/*") }
+                    // 设置可执行权限
+                    for (e in FileUtils.listFiles(
+                        targetDir,
+                        FileFilterUtils.trueFileFilter(),
+                        FileFilterUtils.falseFileFilter()
+                    )) {
+                        e.setExecutable(true)
+                    }
                 }
             }
 
@@ -216,6 +237,12 @@ tasks.register<Copy>("copy-dependencies") {
                     exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/aix-*") }
                     if (os.isWindows) {
                         exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/linux-*") }
+                        if (arch.isArm) {
+                            exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/win32-x86*") }
+                        } else {
+                            exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/win32-aarch64/*") }
+                            exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/win32-x86/*") }
+                        }
                     } else if (os.isLinux) {
                         exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/win32-*") }
                     }
@@ -224,6 +251,13 @@ tasks.register<Copy>("copy-dependencies") {
                     exec { commandLine("zip", "-d", file.absolutePath, "resources/*freebsd*") }
                     if (os.isWindows) {
                         exec { commandLine("zip", "-d", file.absolutePath, "resources/*linux*") }
+                        if (arch.isArm) {
+                            exec { commandLine("zip", "-d", file.absolutePath, "resources/*win/x86/*") }
+                            exec { commandLine("zip", "-d", file.absolutePath, "resources/*win/x86-64*") }
+                        } else {
+                            exec { commandLine("zip", "-d", file.absolutePath, "resources/*win/x86/*") }
+                            exec { commandLine("zip", "-d", file.absolutePath, "resources/*win/aarch64/*") }
+                        }
                     } else if (os.isLinux) {
                         exec { commandLine("zip", "-d", file.absolutePath, "resources/*win*") }
                     }
@@ -237,6 +271,23 @@ tasks.register<Copy>("copy-dependencies") {
                         exec { commandLine("zip", "-d", file.absolutePath, "Linux/*") }
                     } else if (os.isLinux) {
                         exec { commandLine("zip", "-d", file.absolutePath, "Windows/*") }
+                    }
+                } else if ("${restart4j.name}-${restart4j.version}" == file.nameWithoutExtension) {
+                    exec { commandLine("zip", "-d", file.absolutePath, "darwin/*") }
+                    if (os.isWindows) {
+                        exec { commandLine("zip", "-d", file.absolutePath, "linux/*") }
+                        if (arch.isArm) {
+                            exec { commandLine("zip", "-d", file.absolutePath, "win32/x86_64/*") }
+                        } else {
+                            exec { commandLine("zip", "-d", file.absolutePath, "win32/aarch64/*") }
+                        }
+                    } else if (os.isLinux) {
+                        exec { commandLine("zip", "-d", file.absolutePath, "win32/*") }
+                        if (arch.isArm) {
+                            exec { commandLine("zip", "-d", file.absolutePath, "linux/x86_64/*") }
+                        } else {
+                            exec { commandLine("zip", "-d", file.absolutePath, "linux/aarch64/*") }
+                        }
                     }
                 }
             }
@@ -489,6 +540,7 @@ Terminal=false
             sb.append("#!/bin/sh").appendLine()
             sb.append("SELF=$(readlink -f \"$0\")").appendLine()
             sb.append("HERE=\${SELF%/*}").appendLine()
+            sb.append("export LinuxAppImage=true").appendLine()
             sb.append("exec \"\${HERE}/bin/${termoraName}\" \"$@\"")
             appRun.writeText(sb.toString())
             appRun.setExecutable(true)
