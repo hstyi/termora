@@ -5,7 +5,10 @@ import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 import org.jetbrains.kotlin.org.apache.commons.io.FileUtils
 import org.jetbrains.kotlin.org.apache.commons.io.filefilter.FileFilterUtils
 import org.jetbrains.kotlin.org.apache.commons.lang3.StringUtils
+import java.io.FileNotFoundException
 import java.nio.file.Files
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
 
 plugins {
     java
@@ -424,11 +427,8 @@ tasks.register("dist") {
             throw GradleException("JVM: $vendor is not supported")
         }
 
-        val distributionDir = layout.buildDirectory.dir("distributions").get()
         val gradlew = File(projectDir, if (os.isWindows) "gradlew.bat" else "gradlew").absolutePath
-        val osName = if (os.isMacOsX) "osx" else if (os.isWindows) "windows" else "linux"
-        val finalFilenameWithoutExtension = "${project.name}-${project.version}-${osName}-${arch.name}"
-        val macOSFinalFilePath = distributionDir.file("${finalFilenameWithoutExtension}.dmg").asFile.absolutePath
+
 
         // 清空目录
         exec { commandLine(gradlew, "clean") }
@@ -448,136 +448,8 @@ tasks.register("dist") {
         // 打包
         exec { commandLine(gradlew, "jpackage") }
 
-        // pack
-        if (os.isWindows) { // zip and msi
-            // zip
-            exec {
-                commandLine(
-                    "tar", "-vacf",
-                    distributionDir.file("${finalFilenameWithoutExtension}.zip").asFile.absolutePath,
-                    project.name.uppercaseFirstChar()
-                )
-                workingDir = layout.buildDirectory.dir("jpackage/images/win-msi.image/").get().asFile
-            }
-
-            // 7z
-            exec {
-                commandLine(
-                    "7z", "a", "-mx=9", "-m0=lzma2", "-mmt=on", "-bso0",
-                    distributionDir.file("${finalFilenameWithoutExtension}.7z").asFile.absolutePath,
-                    project.name.uppercaseFirstChar()
-                )
-                workingDir = layout.buildDirectory.dir("jpackage/images/win-msi.image/").get().asFile
-            }
-
-            // msi
-            exec {
-                commandLine(
-                    "cmd", "/c", "move",
-                    "${project.name.uppercaseFirstChar()}-${project.version}.msi",
-                    "${finalFilenameWithoutExtension}.msi"
-                )
-                workingDir = distributionDir.asFile
-            }
-        } else if (os.isLinux) { // tar.gz
-            exec {
-                commandLine(
-                    "tar", "-czvf",
-                    distributionDir.file("${finalFilenameWithoutExtension}.tar.gz").asFile.absolutePath,
-                    project.name.uppercaseFirstChar()
-                )
-                workingDir = distributionDir.asFile
-            }
-        } else if (os.isMacOsX) { // rename
-            exec {
-                commandLine(
-                    "mv",
-                    distributionDir.file("${project.name.uppercaseFirstChar()}-${project.version}.dmg").asFile.absolutePath,
-                    macOSFinalFilePath,
-                )
-            }
-        } else {
-            throw GradleException("${os.name} is not supported")
-        }
-
-        // AppImage
-        if (os.isLinux) {
-
-            // Download AppImageKit
-            val appimagetool = FileUtils.getFile(projectDir, ".gradle", "appimagetool")
-            if (!appimagetool.exists()) {
-                exec {
-                    commandLine(
-                        "wget",
-                        "-O", appimagetool.absolutePath,
-                        "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-${if (arch.isArm) "aarch64" else "x86_64"}.AppImage"
-                    )
-                    workingDir = distributionDir.asFile
-                }
-
-                // AppImageKit chmod
-                exec { commandLine("chmod", "+x", appimagetool.absolutePath) }
-            }
-
-
-            // Desktop file
-            val termoraName = project.name.uppercaseFirstChar()
-            val desktopFile = distributionDir.file(termoraName + File.separator + termoraName + ".desktop").asFile
-            desktopFile.writeText(
-                """[Desktop Entry]
-Type=Application
-Name=${termoraName}
-Comment=Terminal emulator and SSH client
-Icon=/lib/${termoraName}
-Categories=Development;
-Terminal=false
-""".trimIndent()
-            )
-
-            // AppRun file
-            val appRun = File(desktopFile.parentFile, "AppRun")
-            val sb = StringBuilder()
-            sb.append("#!/bin/sh").appendLine()
-            sb.append("SELF=$(readlink -f \"$0\")").appendLine()
-            sb.append("HERE=\${SELF%/*}").appendLine()
-            sb.append("export LinuxAppImage=true").appendLine()
-            sb.append("exec \"\${HERE}/bin/${termoraName}\" \"$@\"")
-            appRun.writeText(sb.toString())
-            appRun.setExecutable(true)
-
-            exec {
-                commandLine(appimagetool.absolutePath, termoraName, "${finalFilenameWithoutExtension}.AppImage")
-                workingDir = distributionDir.asFile
-            }
-        }
-
-
-        // sign dmg
-        if (os.isMacOsX && macOSSign) {
-
-            // sign
-            signMacOSLocalFile(File(macOSFinalFilePath))
-
-            // notary
-            if (macOSNotary) {
-                exec {
-                    commandLine(
-                        "/usr/bin/xcrun", "notarytool",
-                        "submit", macOSFinalFilePath,
-                        "--keychain-profile", macOSNotaryKeychainProfile,
-                        "--wait",
-                    )
-                }
-
-                // 绑定公证信息
-                exec {
-                    commandLine(
-                        "/usr/bin/xcrun",
-                        "stapler", "staple", macOSFinalFilePath,
-                    )
-                }
-            }
-        }
+        // 根据不同的系统构建不同的二进制包
+        pack()
     }
 }
 
@@ -616,6 +488,193 @@ tasks.register("check-license") {
 }
 
 /**
+ * 构建包
+ */
+fun pack() {
+    val osName = if (os.isMacOsX) "osx" else if (os.isWindows) "windows" else "linux"
+    val distributionDir = layout.buildDirectory.dir("distributions").get()
+    val finalFilenameWithoutExtension = "${project.name}-${project.version}-${osName}-${arch.name}"
+    val projectName = project.name.uppercaseFirstChar()
+
+    if (os.isWindows) {
+        packOnWindows(distributionDir, finalFilenameWithoutExtension, osName)
+    } else if (os.isLinux) {
+        packOnLinux(distributionDir, finalFilenameWithoutExtension, projectName)
+    } else if (os.isMacOsX) {
+        packOnMac(distributionDir, finalFilenameWithoutExtension, projectName)
+    } else {
+        throw GradleException("${os.name} is not supported")
+    }
+
+}
+
+/**
+ * 创建 zip、7z、msi
+ */
+fun packOnWindows(distributionDir: Directory, finalFilenameWithoutExtension: String, projectName: String) {
+    // zip
+    exec {
+        commandLine(
+            "tar", "-vacf",
+            distributionDir.file("${finalFilenameWithoutExtension}.zip").asFile.absolutePath,
+            projectName
+        )
+        workingDir = layout.buildDirectory.dir("jpackage/images/win-msi.image/").get().asFile
+    }
+
+    // 7z
+    exec {
+        commandLine(
+            "7z", "a", "-mx=9", "-m0=lzma2", "-mmt=on", "-bso0",
+            distributionDir.file("${finalFilenameWithoutExtension}.7z").asFile.absolutePath,
+            projectName
+        )
+        workingDir = layout.buildDirectory.dir("jpackage/images/win-msi.image/").get().asFile
+    }
+
+    // msi
+    exec {
+        commandLine(
+            "cmd", "/c", "move",
+            "${projectName}-${project.version}.msi",
+            "${finalFilenameWithoutExtension}.msi"
+        )
+        workingDir = distributionDir.asFile
+    }
+}
+
+/**
+ * 对于 macOS 先对 jpackage 构建的 dmg 重命名 -> 签名 -> 公证，另外还会创建一个 zip 包
+ */
+fun packOnMac(distributionDir: Directory, finalFilenameWithoutExtension: String, projectName: String) {
+    val dmgFile = distributionDir.file("${finalFilenameWithoutExtension}.dmg").asFile
+    val zipFile = distributionDir.file("${finalFilenameWithoutExtension}.zip").asFile
+
+    // rename
+    // @formatter:off
+    exec { commandLine("mv", distributionDir.file("${projectName}-${project.version}.dmg").asFile.absolutePath, dmgFile.absolutePath,) }
+    // @formatter:on
+
+    // sign dmg
+    if (macOSSign) signMacOSLocalFile(dmgFile)
+
+    // 找到 .app
+    val imageFile = layout.buildDirectory.dir("jpackage/images/").get().asFile
+    val appFile = imageFile.listFiles()?.firstOrNull()?.listFiles()?.firstOrNull()
+        ?: throw FileNotFoundException("${projectName}.app")
+
+    // zip
+    // @formatter:off
+    exec { commandLine("ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", appFile.absolutePath, zipFile.absolutePath) }
+    // @formatter:on
+
+    // sign zip
+    if (macOSSign) signMacOSLocalFile(zipFile)
+
+    // 公证
+    if (macOSNotary) {
+        val pool = Executors.newCachedThreadPool()
+        val jobs = mutableListOf<Future<*>>()
+
+        // zip
+        pool.submit {
+            // 对 zip 公证
+            notaryMacOSLocalFile(zipFile)
+            // 对 .app 盖章
+            stapleMacOSLocalFile(appFile)
+            // 删除旧的 zip ，旧的 zip 仅仅是为了公证
+            FileUtils.deleteQuietly(zipFile)
+            // 再对盖完章的 app 打成 zip 包
+            // @formatter:off
+            exec { commandLine("ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", appFile.absolutePath, zipFile.absolutePath) }
+            // @formatter:on
+            // 再对 zip 签名
+            signMacOSLocalFile(zipFile)
+        }.apply { jobs.add(this) }
+
+        // dmg
+        pool.submit {
+            // 公证
+            notaryMacOSLocalFile(dmgFile)
+            // 盖章
+            stapleMacOSLocalFile(dmgFile)
+        }.apply { jobs.add(this) }
+
+        // join ...
+        jobs.forEach { it.get() }
+
+        // shutdown
+        pool.shutdown()
+    }
+
+}
+
+/**
+ * 创建 tar.gz 和 AppImage
+ */
+fun packOnLinux(distributionDir: Directory, finalFilenameWithoutExtension: String, projectName: String) {
+    // tar.gz
+    exec {
+        commandLine(
+            "tar", "-czvf",
+            distributionDir.file("${finalFilenameWithoutExtension}.tar.gz").asFile.absolutePath,
+            projectName
+        )
+        workingDir = distributionDir.asFile
+    }
+
+
+    // AppImage
+    // Download AppImageKit
+    val appimagetool = FileUtils.getFile(projectDir, ".gradle", "appimagetool")
+    if (!appimagetool.exists()) {
+        exec {
+            commandLine(
+                "wget",
+                "-O", appimagetool.absolutePath,
+                "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-${if (arch.isArm) "aarch64" else "x86_64"}.AppImage"
+            )
+            workingDir = distributionDir.asFile
+        }
+
+        // AppImageKit chmod
+        exec { commandLine("chmod", "+x", appimagetool.absolutePath) }
+    }
+
+
+    // Desktop file
+    val termoraName = project.name.uppercaseFirstChar()
+    val desktopFile = distributionDir.file(termoraName + File.separator + termoraName + ".desktop").asFile
+    desktopFile.writeText(
+        """[Desktop Entry]
+Type=Application
+Name=${termoraName}
+Comment=Terminal emulator and SSH client
+Icon=/lib/${termoraName}
+Categories=Development;
+Terminal=false
+""".trimIndent()
+    )
+
+    // AppRun file
+    val appRun = File(desktopFile.parentFile, "AppRun")
+    val sb = StringBuilder()
+    sb.append("#!/bin/sh").appendLine()
+    sb.append("SELF=$(readlink -f \"$0\")").appendLine()
+    sb.append("HERE=\${SELF%/*}").appendLine()
+    sb.append("export LinuxAppImage=true").appendLine()
+    sb.append("exec \"\${HERE}/bin/${termoraName}\" \"$@\"")
+    appRun.writeText(sb.toString())
+    appRun.setExecutable(true)
+
+    // AppImage
+    exec {
+        commandLine(appimagetool.absolutePath, termoraName, "${finalFilenameWithoutExtension}.AppImage")
+        workingDir = distributionDir.asFile
+    }
+}
+
+/**
  * macOS 对本地文件进行签名
  */
 fun signMacOSLocalFile(file: File) {
@@ -628,6 +687,40 @@ fun signMacOSLocalFile(file: File) {
                     "--timestamp", "--force",
                     "-vvvv", "--options", "runtime",
                     file.absolutePath,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * macOS 对本地文件进行公证
+ */
+fun notaryMacOSLocalFile(file: File) {
+    if (os.isMacOsX && macOSNotary) {
+        if (file.exists()) {
+            exec {
+                commandLine(
+                    "/usr/bin/xcrun", "notarytool",
+                    "submit", file,
+                    "--keychain-profile", macOSNotaryKeychainProfile,
+                    "--wait",
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 盖章
+ */
+fun stapleMacOSLocalFile(file: File) {
+    if (os.isMacOsX && macOSNotary) {
+        if (file.exists()) {
+            exec {
+                commandLine(
+                    "/usr/bin/xcrun",
+                    "stapler", "staple", file,
                 )
             }
         }

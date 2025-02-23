@@ -33,6 +33,16 @@ jobs:
           security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
 
+      - name: Setup the Notary Information
+        if: github.ref_type == 'tag' && github.repository == 'TermoraDev/termora'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          STORE_CREDENTIALS: ${{ secrets.TERMORA_MAC_NOTARY_KEYCHAIN_PROFILE }}
+        run: |
+          xcrun notarytool store-credentials "$STORE_CREDENTIALS" --apple-id "$APPLE_ID" --team-id "$TEAM_ID" --password "$APPLE_PASSWORD"
+
       # download jdk
       - run: wget -q -O $RUNNER_TEMP/java_package.tar.gz https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-21.0.6-osx-x64-b825.69.tar.gz
 
@@ -61,6 +71,9 @@ jobs:
         env:
           TERMORA_MAC_SIGN: ${{ github.event_name == 'push' }}
           TERMORA_MAC_SIGN_USER_NAME: ${{ secrets.TERMORA_MAC_SIGN_USER_NAME }}
+          # 只有发布版本时才需要公证
+          TERMORA_MAC_NOTARY: ${{ github.ref_type == 'tag' && github.repository == 'TermoraDev/termora' }}
+          TERMORA_MAC_NOTARY_KEYCHAIN_PROFILE: ${{ secrets.TERMORA_MAC_NOTARY_KEYCHAIN_PROFILE }}
         run: |
           ./gradlew dist --no-daemon
 
@@ -68,4 +81,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: termora-osx-x86-64
-          path: build/distributions/*.dmg
+          path: |
+            build/distributions/*.zip
+            build/distributions/*.dmg
