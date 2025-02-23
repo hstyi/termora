@@ -46,4 +46,4 @@ jobs:
           path: |
             build/distributions/*.zip
             build/distributions/*.msi
-            build/distributions/*.7z
+            build/distributions/*.exe

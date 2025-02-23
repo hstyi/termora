@@ -522,14 +522,18 @@ fun packOnWindows(distributionDir: Directory, finalFilenameWithoutExtension: Str
         workingDir = layout.buildDirectory.dir("jpackage/images/win-msi.image/").get().asFile
     }
 
-    // 7z
+    // exe
     exec {
         commandLine(
-            "7z", "a", "-mx=9", "-m0=lzma2", "-mmt=on", "-bso0",
-            distributionDir.file("${finalFilenameWithoutExtension}.7z").asFile.absolutePath,
-            projectName
+            "iscc",
+            "/DMyAppName=${projectName}",
+            "/DMyAppVersion=${project.version}",
+            "/DMyOutputDir=${distributionDir.asFile.absolutePath}",
+            "/DMySetupIconFile=${FileUtils.getFile(projectDir, "src", "main", "resources", "icons", "termora.ico")}",
+            "/DMySourceDir=${layout.buildDirectory.dir("jpackage/images/win-msi.image/${projectName}").get().asFile}",
+            "/F${finalFilenameWithoutExtension}",
+            FileUtils.getFile(projectDir, "src", "main", "resources", "termora.iss")
         )
-        workingDir = layout.buildDirectory.dir("jpackage/images/win-msi.image/").get().asFile
     }
 
     // msi

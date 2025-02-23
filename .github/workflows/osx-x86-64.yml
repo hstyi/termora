@@ -69,7 +69,7 @@ jobs:
       # dist
       - name: Dist
         env:
-          TERMORA_MAC_SIGN: ${{ github.event_name == 'push' }}
+          TERMORA_MAC_SIGN: ${{ github.event_name == 'push' && github.repository == 'TermoraDev/termora' }}
           TERMORA_MAC_SIGN_USER_NAME: ${{ secrets.TERMORA_MAC_SIGN_USER_NAME }}
           # 只有发布版本时才需要公证
           TERMORA_MAC_NOTARY: ${{ github.ref_type == 'tag' && github.repository == 'TermoraDev/termora' }}
