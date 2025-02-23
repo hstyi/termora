@@ -85,10 +85,6 @@ class TermoraRestarter {
 
     private fun doRestart() {
 
-        for (window in TermoraFrameManager.getInstance().getWindows()) {
-            window.dispose()
-        }
-
         if (SystemInfo.isMacOS) {
             Restarter.restart(arrayOf("open", "-n", macOSApplicationPath))
         } else if (SystemInfo.isWindows && startupCommand != null) {
@@ -99,6 +95,10 @@ class TermoraRestarter {
             } else if (startupCommand != null) {
                 Restarter.restart(arrayOf(startupCommand))
             }
+        }
+
+        for (window in TermoraFrameManager.getInstance().getWindows()) {
+            window.dispose()
         }
     }
 

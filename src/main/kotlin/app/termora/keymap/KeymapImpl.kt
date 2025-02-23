@@ -76,6 +76,12 @@ class KeymapImpl(private val menuShortcutKeyMaskEx: Int) : Keymap("Keymap", null
             KeyShortcut(KeyStroke.getKeyStroke(KeyEvent.VK_R, menuShortcutKeyMaskEx or InputEvent.SHIFT_DOWN_MASK))
         )
 
+        // Command + Shift + P
+        addShortcut(
+            SFTPCommandAction.SFTP_COMMAND,
+            KeyShortcut(KeyStroke.getKeyStroke(KeyEvent.VK_P, menuShortcutKeyMaskEx or InputEvent.SHIFT_DOWN_MASK))
+        )
+
 
         // switch map
         for (i in KeyEvent.VK_1..KeyEvent.VK_9) {
