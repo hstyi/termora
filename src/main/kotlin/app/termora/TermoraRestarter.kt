@@ -6,6 +6,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import java.awt.Component
+import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.JOptionPane
 import javax.swing.SwingUtilities
@@ -21,6 +22,17 @@ class TermoraRestarter {
 
         init {
             Restarter.setProcessHandler { ProcessHandle.current().pid().toInt() }
+            Restarter.setExecCommandsHandler { commands ->
+                val pb = ProcessBuilder(commands)
+                if (SystemInfo.isLinux) {
+                    // 去掉链接库变量
+                    pb.environment().remove("LD_LIBRARY_PATH")
+                }
+                pb.redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                pb.redirectError(ProcessBuilder.Redirect.DISCARD)
+                pb.directory(Paths.get(System.getProperty("user.home")).toFile())
+                pb.start()
+            }
         }
 
     }
@@ -111,9 +123,6 @@ class TermoraRestarter {
             }
             return false
         }
-
-        log.info("startupCommand: ${startupCommand}")
-        log.info("apppath: ${Application.getAppPath()}")
 
         if (SystemInfo.isWindows && startupCommand == null) {
             if (log.isWarnEnabled) {
