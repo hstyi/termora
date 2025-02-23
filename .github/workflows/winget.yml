@@ -7,6 +7,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: vedantmgoyal9/winget-releaser@main
+        if: github.repository == 'TermoraDev/termora'
         with:
           identifier: TermoraDev.Termora
           installers-regex: 'x86-64\.msi$' # Only x86-64.msi files
