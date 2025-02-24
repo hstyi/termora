@@ -29,7 +29,7 @@ class ActionManager : org.jdesktop.swingx.action.ActionManager() {
         addAction(FindEverywhereAction.FIND_EVERYWHERE, FindEverywhereAction())
 
         addAction(Actions.MULTIPLE, MultipleAction())
-        addAction(Actions.APP_UPDATE, AppUpdateAction())
+        addAction(Actions.APP_UPDATE, AppUpdateAction.getInstance())
         addAction(Actions.KEYWORD_HIGHLIGHT, KeywordHighlightAction())
         addAction(Actions.TERMINAL_LOGGER, TerminalLoggerAction())
         addAction(Actions.SFTP, SFTPAction())

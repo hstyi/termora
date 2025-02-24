@@ -526,6 +526,7 @@ fun packOnWindows(distributionDir: Directory, finalFilenameWithoutExtension: Str
     exec {
         commandLine(
             "iscc",
+            "/DMyAppId=${projectName}",
             "/DMyAppName=${projectName}",
             "/DMyAppVersion=${project.version}",
             "/DMyOutputDir=${distributionDir.asFile.absolutePath}",

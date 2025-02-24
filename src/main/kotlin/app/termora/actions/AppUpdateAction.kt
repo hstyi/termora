@@ -1,14 +1,28 @@
 package app.termora.actions
 
 import app.termora.*
+import app.termora.Application.httpClient
+import com.formdev.flatlaf.util.SystemInfo
+import com.sun.jna.platform.win32.Advapi32
+import com.sun.jna.platform.win32.WinError
+import com.sun.jna.platform.win32.WinNT
+import com.sun.jna.platform.win32.WinReg
 import io.github.g00fy2.versioncompare.Version
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
+import okhttp3.Request
+import org.apache.commons.io.FileUtils
+import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.JXEditorPane
+import org.slf4j.LoggerFactory
 import java.awt.Dimension
 import java.awt.KeyboardFocusManager
+import java.io.File
+import java.net.ProxySelector
 import java.net.URI
+import java.util.*
+import java.util.concurrent.TimeUnit
 import javax.swing.BorderFactory
 import javax.swing.JOptionPane
 import javax.swing.JScrollPane
@@ -18,10 +32,19 @@ import kotlin.concurrent.fixedRateTimer
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
-class AppUpdateAction : AnAction(
+class AppUpdateAction private constructor() : AnAction(
     StringUtils.EMPTY,
     Icons.ideUpdate
 ) {
+
+    companion object {
+        private val log = LoggerFactory.getLogger(AppUpdateAction::class.java)
+        private const val PKG_FILE_KEY = "pkgFile"
+
+        fun getInstance(): AppUpdateAction {
+            return ApplicationScope.forApplicationScope().getOrCreate(AppUpdateAction::class) { AppUpdateAction() }
+        }
+    }
 
     private val updaterManager get() = UpdaterManager.getInstance()
 
@@ -63,11 +86,75 @@ class AppUpdateAction : AnAction(
             return
         }
 
-        withContext(Dispatchers.Swing) {
-            ActionManager.getInstance()
-                .setEnabled(Actions.APP_UPDATE, true)
+        try {
+            downloadLatestPkg(latestVersion)
+        } catch (e: Exception) {
+            if (log.isErrorEnabled) {
+                log.error(e.message, e)
+            }
         }
 
+
+        withContext(Dispatchers.Swing) { isEnabled = true }
+
+    }
+
+
+    private suspend fun downloadLatestPkg(latestVersion: UpdaterManager.LatestVersion) {
+        if (SystemInfo.isLinux) return
+
+        super.putValue(PKG_FILE_KEY, null)
+        val arch = if (SystemInfo.isAARCH64) "aarch64" else "x86-64"
+        val osName = if (SystemInfo.isWindows) "windows" else "osx"
+        val suffix = if (SystemInfo.isWindows) "exe" else "dmg"
+        val filename = "termora-${latestVersion.version}-${osName}-${arch}.${suffix}"
+        val asset = latestVersion.assets.find { it.name == filename } ?: return
+
+        val response = httpClient
+            .newBuilder()
+            .callTimeout(15, TimeUnit.MINUTES)
+            .readTimeout(15, TimeUnit.MINUTES)
+            .proxySelector(ProxySelector.getDefault())
+            .build()
+            .newCall(Request.Builder().url(asset.downloadUrl).build())
+            .execute()
+        if (!response.isSuccessful) {
+            if (log.isErrorEnabled) {
+                log.warn("Failed to download latest version ${latestVersion.version}, response code ${response.code}")
+            }
+            IOUtils.closeQuietly(response)
+            return
+        }
+
+        val body = response.body
+        val input = body?.byteStream()
+        val file = FileUtils.getFile(Application.getTemporaryDir(), "${UUID.randomUUID()}-${filename}")
+        val output = file.outputStream()
+
+        val downloaded = runCatching { IOUtils.copy(input, output) }.isSuccess
+        IOUtils.closeQuietly(input, output, body, response)
+
+        if (!downloaded) {
+            if (log.isErrorEnabled) {
+                log.error("Failed to download latest version to $filename")
+            }
+            return
+        }
+
+        if (log.isInfoEnabled) {
+            log.info("Successfully downloaded latest version to $file")
+        }
+
+        withContext(Dispatchers.Swing) { setLatestPkgFile(file) }
+
+    }
+
+    private fun setLatestPkgFile(file: File) {
+        putValue(PKG_FILE_KEY, file)
+    }
+
+    private fun getLatestPkgFile(): File? {
+        return getValue(PKG_FILE_KEY) as? File
     }
 
     private fun showUpdateDialog() {
@@ -106,12 +193,59 @@ class AppUpdateAction : AnAction(
         if (option == JOptionPane.CANCEL_OPTION) {
             return
         } else if (option == JOptionPane.NO_OPTION) {
-            ActionManager.getInstance().setEnabled(Actions.APP_UPDATE, false)
-            updaterManager.ignore(updaterManager.lastVersion.version)
+            isEnabled = false
+            updaterManager.ignore(lastVersion.version)
         } else if (option == JOptionPane.YES_OPTION) {
-            ActionManager.getInstance()
-                .setEnabled(Actions.APP_UPDATE, false)
-            Application.browse(URI.create("https://github.com/TermoraDev/termora/releases/tag/${lastVersion.version}"))
+            updateSelf(lastVersion)
+        }
+    }
+
+    private fun updateSelf(latestVersion: UpdaterManager.LatestVersion) {
+        val file = getLatestPkgFile()
+        if (SystemInfo.isLinux || file == null) {
+            isEnabled = false
+            Application.browse(URI.create("https://github.com/TermoraDev/termora/releases/tag/${latestVersion.version}"))
+            return
+        }
+
+        val owner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
+        val commands = if (SystemInfo.isMacOS) listOf("open", "-n", file.absolutePath)
+        // 如果安装过，那么直接静默安装和自动启动
+        else if (isAppInstalled()) listOf(
+            file.absolutePath,
+            "/SILENT",
+            "/AUTOSTART",
+            "/NORESTART",
+            "/FORCECLOSEAPPLICATIONS"
+        )
+        // 没有安装过 则打开安装向导
+        else listOf(file.absolutePath)
+
+        println(commands)
+        TermoraRestarter.getInstance().scheduleRestart(owner, commands)
+
+    }
+
+    private fun isAppInstalled(): Boolean {
+        val keyPath = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${Application.getName()}_is1"
+        val phkKey = WinReg.HKEYByReference()
+
+        // 尝试打开注册表键
+        val result = Advapi32.INSTANCE.RegOpenKeyEx(
+            WinReg.HKEY_LOCAL_MACHINE,
+            keyPath,
+            0,
+            WinNT.KEY_READ,
+            phkKey
+        )
+
+        if (result == WinError.ERROR_SUCCESS) {
+            // 键存在，关闭句柄
+            Advapi32.INSTANCE.RegCloseKey(phkKey.getValue())
+            return true
+        } else {
+            // 键不存在或无权限
+            return false
         }
     }
 }

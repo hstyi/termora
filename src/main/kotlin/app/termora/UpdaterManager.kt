@@ -70,6 +70,9 @@ class UpdaterManager private constructor() {
                 .build()
             val response = Application.httpClient.newCall(request).execute()
             if (!response.isSuccessful) {
+                if (log.isErrorEnabled) {
+                    log.error("Failed to fetch latest version, response was ${response.code}")
+                }
                 return LatestVersion.self
             }
 
@@ -150,9 +153,5 @@ class UpdaterManager private constructor() {
 
     fun ignore(version: String) {
         properties.putString("ignored.version.$version", "true")
-    }
-
-    private fun doGetLatestVersion() {
-
     }
 }

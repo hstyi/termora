@@ -48,13 +48,13 @@ class TermoraRestarter {
         )
     }
 
-    private fun restart() {
+    private fun restart(commands: List<String>) {
         if (!isSupported) return
         if (!restarting.compareAndSet(false, true)) return
 
         SwingUtilities.invokeLater {
             try {
-                doRestart()
+                doRestart(commands)
             } catch (e: Exception) {
                 if (log.isErrorEnabled) {
                     log.error(e.message, e)
@@ -66,7 +66,7 @@ class TermoraRestarter {
     /**
      * 计划重启，如果当前进程支持重启，那么会询问用户是否重启。如果不支持重启，那么弹窗提示需要手动重启。
      */
-    fun scheduleRestart(owner: Component) {
+    fun scheduleRestart(owner: Component?, commands: List<String> = emptyList()) {
 
         if (isSupported) {
             if (OptionPane.showConfirmDialog(
@@ -82,7 +82,7 @@ class TermoraRestarter {
                     initialValue = I18n.getString("termora.settings.restart.title")
                 ) == JOptionPane.YES_OPTION
             ) {
-                restart()
+                restart(commands)
             }
         } else {
             OptionPane.showMessageDialog(
@@ -95,18 +95,22 @@ class TermoraRestarter {
 
     }
 
-    private fun doRestart() {
+    private fun doRestart(commands: List<String>) {
 
-        if (SystemInfo.isMacOS) {
-            Restarter.restart(arrayOf("open", "-n", macOSApplicationPath))
-        } else if (SystemInfo.isWindows && startupCommand != null) {
-            Restarter.restart(arrayOf(startupCommand))
-        } else if (SystemInfo.isLinux) {
-            if (isLinuxAppImage) {
-                Restarter.restart(arrayOf(System.getenv("APPIMAGE")))
-            } else if (startupCommand != null) {
+        if (commands.isEmpty()) {
+            if (SystemInfo.isMacOS) {
+                Restarter.restart(arrayOf("open", "-n", macOSApplicationPath))
+            } else if (SystemInfo.isWindows && startupCommand != null) {
                 Restarter.restart(arrayOf(startupCommand))
+            } else if (SystemInfo.isLinux) {
+                if (isLinuxAppImage) {
+                    Restarter.restart(arrayOf(System.getenv("APPIMAGE")))
+                } else if (startupCommand != null) {
+                    Restarter.restart(arrayOf(startupCommand))
+                }
             }
+        } else {
+            Restarter.restart(commands.toTypedArray())
         }
 
         for (window in TermoraFrameManager.getInstance().getWindows()) {
