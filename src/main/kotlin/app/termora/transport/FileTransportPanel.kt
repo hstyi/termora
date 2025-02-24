@@ -156,6 +156,18 @@ class FileTransportPanel(
             deleteAll.isEnabled = transportManager.getTransports().isNotEmpty()
         }
 
+        popupMenu.addSeparator()
+
+        popupMenu.add(I18n.getString("termora.transport.jobs.table.status")).addActionListener {
+            val last = transports.last()
+            OptionPane.showMessageDialog(
+                SwingUtilities.getWindowAncestor(this),
+                if (last.state == TransportState.Failed && last.stateText.isNotBlank()) last.stateText
+                else tableModel.formatStatus(last.state),
+                messageType = if (last.state == TransportState.Failed) JOptionPane.ERROR_MESSAGE else JOptionPane.INFORMATION_MESSAGE
+            )
+        }
+
         popupMenu.show(table, event.x, event.y)
     }
 

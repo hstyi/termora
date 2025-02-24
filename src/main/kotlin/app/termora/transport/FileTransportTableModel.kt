@@ -96,7 +96,7 @@ class FileTransportTableModel(transportManager: TransportManager) : DefaultTable
         }
     }
 
-    private fun formatStatus(state: TransportState): String {
+     fun formatStatus(state: TransportState): String {
         return when (state) {
             TransportState.Transporting -> I18n.getString("termora.transport.sftp.status.transporting")
             TransportState.Waiting -> I18n.getString("termora.transport.sftp.status.waiting")

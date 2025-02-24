@@ -3,6 +3,8 @@ package app.termora.transport
 import app.termora.Disposable
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.ObjectUtils
+import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.commons.net.io.CopyStreamEvent
 import org.apache.commons.net.io.CopyStreamListener
 import org.apache.commons.net.io.Util
@@ -47,6 +49,7 @@ abstract class Transport(
             field = value
             listeners.forEach { it.onTransportChanged(this) }
         }
+    var stateText: String = StringUtils.EMPTY
 
     // 0 - 1
     var progress = 0.0
@@ -186,6 +189,7 @@ class FileTransport(
                 log.error(e.message, e)
             }
             state = TransportState.Failed
+            stateText = ExceptionUtils.getRootCauseMessage(e)
         } finally {
             counter.clear()
         }
