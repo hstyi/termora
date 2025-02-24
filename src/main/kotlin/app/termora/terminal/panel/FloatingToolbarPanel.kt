@@ -59,7 +59,6 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
 
     init {
         border = FlatRoundBorder()
-        isOpaque = false
         isFocusable = false
         isFloatable = false
         isVisible = false
@@ -195,6 +194,7 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
 
     private fun initCloseActionButton(): JButton {
         val btn = JButton(Icons.closeSmall)
+        btn.toolTipText = I18n.getString("termora.floating-toolbar.close-in-current-tab")
         btn.pressedIcon = Icons.closeSmallHovered
         btn.rolloverIcon = Icons.closeSmallHovered
         btn.addActionListener {
