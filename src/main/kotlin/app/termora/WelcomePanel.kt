@@ -13,7 +13,9 @@ import com.formdev.flatlaf.extras.components.FlatTextField
 import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.action.ActionManager
 import java.awt.BorderLayout
+import java.awt.Component
 import java.awt.Dimension
+import java.awt.KeyboardFocusManager
 import java.awt.event.ActionEvent
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
@@ -32,6 +34,7 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
     private var fullContent = properties.getString("WelcomeFullContent", "false").toBoolean()
     private val dataProviderSupport = DataProviderSupport()
     private val hostTreeModel = hostTree.model as NewHostTreeModel
+    private var lastFocused: Component? = null
     private val filterableHostTreeModel = FilterableHostTreeModel(hostTree) {
         searchTextField.text.isBlank()
     }
@@ -256,6 +259,14 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
 
     override fun canClone(): Boolean {
         return false
+    }
+
+    override fun onLostFocus() {
+        lastFocused = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
+    }
+
+    override fun onGrabFocus() {
+        SwingUtilities.invokeLater { lastFocused?.requestFocusInWindow() }
     }
 
     override fun dispose() {

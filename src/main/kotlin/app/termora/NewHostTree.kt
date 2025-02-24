@@ -30,10 +30,7 @@ import java.awt.Dimension
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.Transferable
 import java.awt.datatransfer.UnsupportedFlavorException
-import java.awt.event.ActionEvent
-import java.awt.event.ActionListener
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
+import java.awt.event.*
 import java.io.*
 import java.util.*
 import java.util.function.Function
@@ -211,6 +208,26 @@ class NewHostTree : JXTree() {
                     val lastNode = lastSelectedPathComponent as? HostTreeNode ?: return
                     if (lastNode.host.protocol != Protocol.Folder) {
                         openHostAction?.actionPerformed(OpenHostActionEvent(e.source, lastNode.host, e))
+                    }
+                }
+            }
+        })
+
+        addKeyListener(object : KeyAdapter() {
+            override fun keyPressed(e: KeyEvent) {
+                if (e.keyCode == KeyEvent.VK_ENTER && doubleClickConnection) {
+                    val nodes = getSelectionHostTreeNodes(false)
+                    if (nodes.size == 1 && nodes.first().host.protocol == Protocol.Folder) {
+                        val path = TreePath(model.getPathToRoot(nodes.first()))
+                        if (isExpanded(path)) {
+                            collapsePath(path)
+                        } else {
+                            expandPath(path)
+                        }
+                    } else {
+                        for (node in getSelectionHostTreeNodes(true)) {
+                            openHostAction?.actionPerformed(OpenHostActionEvent(e.source, node.host, e))
+                        }
                     }
                 }
             }

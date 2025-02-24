@@ -78,21 +78,14 @@ class TerminalTabbed(
                 tabs[oldIndex].onLostFocus()
             }
 
+            tabbedPane.getComponentAt(newIndex).requestFocusInWindow()
+
             if (newIndex >= 0 && tabs.size > newIndex) {
                 tabs[newIndex].onGrabFocus()
             }
 
-            SwingUtilities.invokeLater { tabbedPane.getComponentAt(newIndex).requestFocusInWindow() }
-
         }
 
-        // 选择变动
-        tabbedPane.addChangeListener {
-            if (tabbedPane.selectedIndex >= 0) {
-                val c = tabbedPane.getComponentAt(tabbedPane.selectedIndex)
-                c.requestFocusInWindow()
-            }
-        }
 
         // 右键菜单
         tabbedPane.addMouseListener(object : MouseAdapter() {

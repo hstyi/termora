@@ -23,6 +23,7 @@ class MyTabbedPane : FlatTabbedPane() {
             .getData(DataProviders.TermoraFrame) as TermoraFrame
 
     init {
+        isFocusable = false
         initEvents()
     }
 
