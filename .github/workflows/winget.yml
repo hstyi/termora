@@ -10,5 +10,5 @@ jobs:
         if: github.repository == 'TermoraDev/termora'
         with:
           identifier: TermoraDev.Termora
-          installers-regex: 'x86-64\.msi$' # Only x86-64.msi files
+          installers-regex: 'x86-64\.exe$' # Only x86-64.exe files
           token: ${{ secrets.WINGET_TOKEN }}
