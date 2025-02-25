@@ -10,6 +10,7 @@ import java.awt.event.*
 import java.awt.image.BufferedImage
 import java.util.*
 import javax.swing.*
+import javax.swing.plaf.TabbedPaneUI
 import kotlin.math.abs
 
 class MyTabbedPane : FlatTabbedPane() {
@@ -21,10 +22,16 @@ class MyTabbedPane : FlatTabbedPane() {
     private val owner
         get() = AnActionEvent(this, StringUtils.EMPTY, EventObject(this))
             .getData(DataProviders.TermoraFrame) as TermoraFrame
+    private val myUI = MyFlatTabbedPaneUI()
 
     init {
         isFocusable = false
+        super.setUI(myUI)
         initEvents()
+    }
+
+    override fun setUI(ui: TabbedPaneUI?) {
+        super.setUI(myUI)
     }
 
     override fun updateUI() {
