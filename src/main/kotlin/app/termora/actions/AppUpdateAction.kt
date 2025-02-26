@@ -82,10 +82,6 @@ class AppUpdateAction private constructor() : AnAction(
             return
         }
 
-        if (updaterManager.isIgnored(latestVersion.version)) {
-            return
-        }
-
         try {
             downloadLatestPkg(latestVersion)
         } catch (e: Exception) {
@@ -194,7 +190,6 @@ class AppUpdateAction private constructor() : AnAction(
             return
         } else if (option == JOptionPane.NO_OPTION) {
             isEnabled = false
-            updaterManager.ignore(lastVersion.version)
         } else if (option == JOptionPane.YES_OPTION) {
             updateSelf(lastVersion)
         }

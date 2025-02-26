@@ -60,7 +60,6 @@ class UpdaterManager private constructor() {
         val isSelf get() = this == self
     }
 
-    private val properties get() = Database.getDatabase().properties
     var lastVersion = LatestVersion.self
 
     fun fetchLatestVersion(): LatestVersion {
@@ -146,12 +145,4 @@ class UpdaterManager private constructor() {
         return LatestVersion.self
     }
 
-
-    fun isIgnored(version: String): Boolean {
-        return properties.getString("ignored.version.$version", "false").toBoolean()
-    }
-
-    fun ignore(version: String) {
-        properties.putString("ignored.version.$version", "true")
-    }
 }
