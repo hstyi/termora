@@ -5,8 +5,6 @@ import app.termora.actions.AnActionEvent
 import app.termora.actions.OpenHostAction
 import app.termora.transport.SFTPAction
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
-import com.formdev.flatlaf.icons.FlatTreeClosedIcon
-import com.formdev.flatlaf.icons.FlatTreeOpenIcon
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 import org.apache.commons.csv.CSVFormat
@@ -19,43 +17,31 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.ini4j.Ini
 import org.ini4j.Reg
-import org.jdesktop.swingx.JXTree
 import org.jdesktop.swingx.action.ActionManager
 import org.jdesktop.swingx.tree.DefaultXTreeCellRenderer
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Element
 import org.w3c.dom.NodeList
 import java.awt.Component
-import java.awt.Dimension
-import java.awt.datatransfer.DataFlavor
-import java.awt.datatransfer.Transferable
-import java.awt.datatransfer.UnsupportedFlavorException
 import java.awt.event.*
 import java.io.*
 import java.util.*
 import java.util.function.Function
 import javax.swing.*
-import javax.swing.event.CellEditorListener
-import javax.swing.event.ChangeEvent
-import javax.swing.event.PopupMenuEvent
-import javax.swing.event.PopupMenuListener
 import javax.swing.filechooser.FileNameExtensionFilter
 import javax.swing.tree.TreePath
 import javax.swing.tree.TreeSelectionModel
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.xpath.XPathConstants
 import javax.xml.xpath.XPathFactory
-import kotlin.math.min
 
-class NewHostTree : JXTree() {
+class NewHostTree : SimpleTree() {
 
     companion object {
         private val log = LoggerFactory.getLogger(NewHostTree::class.java)
         private val CSV_HEADERS = arrayOf("Folders", "Label", "Hostname", "Port", "Username", "Protocol")
     }
 
-    private val tree = this
-    private val editor = OutlineTextField(64)
     private val hostManager get() = HostManager.getInstance()
     private val properties get() = Database.getDatabase().properties
     private val owner get() = SwingUtilities.getWindowAncestor(this)
@@ -64,7 +50,7 @@ class NewHostTree : JXTree() {
         get() = properties.getString("HostTree.showMoreInfo", "false").toBoolean()
         set(value) = properties.putString("HostTree.showMoreInfo", value.toString())
 
-    private val model = NewHostTreeModel()
+    override val model = NewHostTreeModel()
 
     /**
      * 是否允许显示右键菜单
@@ -89,7 +75,6 @@ class NewHostTree : JXTree() {
         isRootVisible = true
         dropMode = DropMode.ON_OR_INSERT
         selectionModel.selectionMode = TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION
-        editor.preferredSize = Dimension(220, 0)
 
         // renderer
         setCellRenderer(object : DefaultXTreeCellRenderer() {
@@ -135,74 +120,16 @@ class NewHostTree : JXTree() {
 
                 val c = super.getTreeCellRendererComponent(tree, text, sel, expanded, leaf, row, hasFocus)
 
-                icon = when (host.protocol) {
-                    Protocol.Folder -> if (expanded) FlatTreeOpenIcon() else FlatTreeClosedIcon()
-                    Protocol.Serial -> if (sel && tree.hasFocus()) Icons.plugin.dark else Icons.plugin
-                    else -> if (sel && tree.hasFocus()) Icons.terminal.dark else Icons.terminal
-                }
+                icon = node.getIcon(sel, expanded, hasFocus)
                 return c
             }
         })
 
-        // rename
-        setCellEditor(object : DefaultCellEditor(editor) {
-            override fun isCellEditable(e: EventObject?): Boolean {
-                if (e is MouseEvent) {
-                    return false
-                }
-                return super.isCellEditable(e)
-            }
-
-            override fun getCellEditorValue(): Any {
-                val node = lastSelectedPathComponent as HostTreeNode
-                return node.host
-            }
-        })
     }
 
     private fun initEvents() {
-        // 右键选中
+        // double click
         addMouseListener(object : MouseAdapter() {
-            override fun mousePressed(e: MouseEvent) {
-                if (!SwingUtilities.isRightMouseButton(e)) {
-                    return
-                }
-
-                requestFocusInWindow()
-
-                val selectionRows = selectionModel.selectionRows
-
-                val selRow = getClosestRowForLocation(e.x, e.y)
-                if (selRow < 0) {
-                    selectionModel.clearSelection()
-                    return
-                } else if (selectionRows != null && selectionRows.contains(selRow)) {
-                    return
-                }
-
-                selectionPath = getPathForLocation(e.x, e.y)
-
-                setSelectionRow(selRow)
-            }
-
-        })
-
-        // contextmenu
-        addMouseListener(object : MouseAdapter() {
-            override fun mousePressed(e: MouseEvent) {
-                if (!(SwingUtilities.isRightMouseButton(e))) {
-                    return
-                }
-
-                if (Objects.isNull(lastSelectedPathComponent)) {
-                    return
-                }
-
-                if (contextmenu) {
-                    SwingUtilities.invokeLater { showContextmenu(e) }
-                }
-            }
-
             override fun mouseClicked(e: MouseEvent) {
                 if (doubleClickConnection && SwingUtilities.isLeftMouseButton(e) && e.clickCount % 2 == 0) {
                     val lastNode = lastSelectedPathComponent as? HostTreeNode ?: return
@@ -216,7 +143,7 @@ class NewHostTree : JXTree() {
         addKeyListener(object : KeyAdapter() {
             override fun keyPressed(e: KeyEvent) {
                 if (e.keyCode == KeyEvent.VK_ENTER && doubleClickConnection) {
-                    val nodes = getSelectionHostTreeNodes(false)
+                    val nodes = getSelectionSimpleTreeNodes()
                     if (nodes.size == 1 && nodes.first().host.protocol == Protocol.Folder) {
                         val path = TreePath(model.getPathToRoot(nodes.first()))
                         if (isExpanded(path)) {
@@ -225,7 +152,7 @@ class NewHostTree : JXTree() {
                             expandPath(path)
                         }
                     } else {
-                        for (node in getSelectionHostTreeNodes(true)) {
+                        for (node in getSelectionSimpleTreeNodes(true)) {
                             openHostAction?.actionPerformed(OpenHostActionEvent(e.source, node.host, e))
                         }
                     }
@@ -233,145 +160,16 @@ class NewHostTree : JXTree() {
             }
         })
 
-        // rename
-        getCellEditor().addCellEditorListener(object : CellEditorListener {
-            override fun editingStopped(e: ChangeEvent) {
-                val lastHost = lastSelectedPathComponent
-                if (lastHost !is HostTreeNode || editor.text.isBlank() || editor.text == lastHost.host.name) {
-                    return
-                }
-                lastHost.host = lastHost.host.copy(name = editor.text, updateDate = System.currentTimeMillis())
-                hostManager.addHost(lastHost.host)
-            }
-
-            override fun editingCanceled(e: ChangeEvent) {
-            }
-        })
-
-        // drag
-        transferHandler = object : TransferHandler() {
-
-            override fun createTransferable(c: JComponent): Transferable? {
-                val nodes = getSelectionHostTreeNodes().toMutableList()
-                if (nodes.isEmpty()) return null
-                if (nodes.contains(model.root)) return null
-
-                val iterator = nodes.iterator()
-                while (iterator.hasNext()) {
-                    val node = iterator.next()
-                    val parents = model.getPathToRoot(node).filter { it != node }
-                    if (parents.any { nodes.contains(it) }) {
-                        iterator.remove()
-                    }
-                }
-
-                return MoveHostTransferable(nodes)
-            }
-
-            override fun getSourceActions(c: JComponent?): Int {
-                return MOVE
-            }
-
-            override fun canImport(support: TransferSupport): Boolean {
-                if (support.component != tree) return false
-                val dropLocation = support.dropLocation as? JTree.DropLocation ?: return false
-                val node = dropLocation.path.lastPathComponent as? HostTreeNode ?: return false
-                if (!support.isDataFlavorSupported(MoveHostTransferable.dataFlavor)) return false
-                val nodes = (support.transferable.getTransferData(MoveHostTransferable.dataFlavor) as? List<*>)
-                    ?.filterIsInstance<HostTreeNode>() ?: return false
-                if (nodes.isEmpty()) return false
-                if (node.host.protocol != Protocol.Folder) return false
-
-                for (e in nodes) {
-                    // 禁止拖拽到自己的子下面
-                    if (dropLocation.path.equals(TreePath(e.path)) || TreePath(e.path).isDescendant(dropLocation.path)) {
-                        return false
-                    }
-
-                    // 文件夹只能拖拽到文件夹的下面
-                    if (e.host.protocol == Protocol.Folder) {
-                        if (dropLocation.childIndex > node.folderCount) {
-                            return false
-                        }
-                    } else if (dropLocation.childIndex != -1) {
-                        // 非文件夹也不能拖拽到文件夹的上面
-                        if (dropLocation.childIndex < node.folderCount) {
-                            return false
-                        }
-                    }
-
-                    val p = e.parent ?: continue
-                    // 如果是同级目录排序，那么判断是不是自己的上下，如果是的话也禁止
-                    if (p == node && dropLocation.childIndex != -1) {
-                        val idx = p.getIndex(e)
-                        if (dropLocation.childIndex in idx..idx + 1) {
-                            return false
-                        }
-                    }
-                }
-
-                support.setShowDropLocation(true)
-
-                return true
-            }
-
-            override fun importData(support: TransferSupport): Boolean {
-                val dropLocation = support.dropLocation as? JTree.DropLocation ?: return false
-                val node = dropLocation.path.lastPathComponent as? HostTreeNode ?: return false
-                val nodes = (support.transferable.getTransferData(MoveHostTransferable.dataFlavor) as? List<*>)
-                    ?.filterIsInstance<HostTreeNode>() ?: return false
-
-                // 展开的 host id
-                val expanded = mutableSetOf(node.host.id)
-                for (e in nodes) {
-                    e.getAllChildren().filter { isExpanded(TreePath(model.getPathToRoot(it))) }
-                        .map { it.host.id }.forEach { expanded.add(it) }
-                }
-
-                // 转移
-                for (e in nodes) {
-                    model.removeNodeFromParent(e)
-                    e.host = e.host.copy(parentId = node.host.id, updateDate = System.currentTimeMillis())
-                    hostManager.addHost(e.host)
-
-                    if (dropLocation.childIndex == -1) {
-                        if (e.host.protocol == Protocol.Folder) {
-                            model.insertNodeInto(e, node, node.folderCount)
-                        } else {
-                            model.insertNodeInto(e, node, node.childCount)
-                        }
-                    } else {
-                        if (e.host.protocol == Protocol.Folder) {
-                            model.insertNodeInto(e, node, min(node.folderCount, dropLocation.childIndex))
-                        } else {
-                            model.insertNodeInto(e, node, min(node.childCount, dropLocation.childIndex))
-                        }
-                    }
-
-                    selectionPath = TreePath(model.getPathToRoot(e))
-                }
-
-                // 先展开最顶级的
-                expandPath(TreePath(model.getPathToRoot(node)))
-
-                for (child in node.getAllChildren()) {
-                    if (expanded.contains(child.host.id)) {
-                        expandPath(TreePath(model.getPathToRoot(child)))
-                    }
-                }
-
-
-
-                return true
-            }
-        }
     }
 
 
-    private fun showContextmenu(event: MouseEvent) {
+    override fun showContextmenu(evt: MouseEvent) {
+        if (!contextmenu) return
         val lastNode = lastSelectedPathComponent
         if (lastNode !is HostTreeNode) return
 
+        val nodes = getSelectionSimpleTreeNodes()
+        val fullNodes = getSelectionSimpleTreeNodes(true)
         val lastNodeParent = lastNode.parent ?: model.root
         val lastHost = lastNode.host
 
@@ -443,7 +241,6 @@ class NewHostTree : JXTree() {
         }
         remove.addActionListener(object : ActionListener {
             override fun actionPerformed(e: ActionEvent) {
-                val nodes = getSelectionHostTreeNodes()
                 if (nodes.isEmpty()) return
                 if (OptionPane.showConfirmDialog(
                         SwingUtilities.getWindowAncestor(tree),
@@ -470,7 +267,7 @@ class NewHostTree : JXTree() {
             }
         })
         copy.addActionListener {
-            for (c in getSelectionHostTreeNodes()) {
+            for (c in nodes) {
                 val p = c.parent ?: continue
                 val newNode = copyNode(c, p.host.id)
                 model.insertNodeInto(newNode, p, lastNodeParent.getIndex(c) + 1)
@@ -479,12 +276,12 @@ class NewHostTree : JXTree() {
         }
         rename.addActionListener { startEditingAtPath(TreePath(model.getPathToRoot(lastNode))) }
         expandAll.addActionListener {
-            for (node in getSelectionHostTreeNodes(true)) {
+            for (node in fullNodes) {
                 expandPath(TreePath(model.getPathToRoot(node)))
             }
         }
         colspanAll.addActionListener {
-            for (node in getSelectionHostTreeNodes(true).reversed()) {
+            for (node in fullNodes.reversed()) {
                 collapsePath(TreePath(model.getPathToRoot(node)))
             }
         }
@@ -512,29 +309,10 @@ class NewHostTree : JXTree() {
                 model.nodeStructureChanged(lastNode)
             }
         })
-        refresh.addActionListener {
-            val expanded = mutableSetOf(lastNode.host.id)
-            for (e in lastNode.getAllChildren()) {
-                if (e.host.protocol == Protocol.Folder && isExpanded(TreePath(model.getPathToRoot(e)))) {
-                    expanded.add(e.host.id)
-                }
-            }
-
-            // 刷新
-            model.reload(lastNode)
-
-            // 先展开最顶级的
-            expandPath(TreePath(model.getPathToRoot(lastNode)))
-
-            for (child in lastNode.getAllChildren()) {
-                if (expanded.contains(child.host.id)) {
-                    expandPath(TreePath(model.getPathToRoot(child)))
-                }
-            }
-        }
+        refresh.addActionListener { refreshNode(lastNode) }
 
         newMenu.isEnabled = lastHost.protocol == Protocol.Folder
-        remove.isEnabled = getSelectionHostTreeNodes().none { it == model.root }
+        remove.isEnabled = getSelectionSimpleTreeNodes().none { it == model.root }
         copy.isEnabled = remove.isEnabled
         rename.isEnabled = remove.isEnabled
         property.isEnabled = lastHost.protocol != Protocol.Folder
@@ -542,27 +320,26 @@ class NewHostTree : JXTree() {
         importMenu.isEnabled = lastHost.protocol == Protocol.Folder
 
         // 如果选中了 SSH 服务器，那么才启用
-        openWithSFTP.isEnabled = getSelectionHostTreeNodes(true).map { it.host }.any { it.protocol == Protocol.SSH }
+        openWithSFTP.isEnabled = fullNodes.map { it.host }.any { it.protocol == Protocol.SSH }
         openWithSFTPCommand.isEnabled = openWithSFTP.isEnabled
         openWith.isEnabled = openWith.menuComponents.any { it is JMenuItem && it.isEnabled }
-
-        popupMenu.addPopupMenuListener(object : PopupMenuListener {
-            override fun popupMenuWillBecomeVisible(e: PopupMenuEvent) {
-                tree.grabFocus()
-            }
-
-            override fun popupMenuWillBecomeInvisible(e: PopupMenuEvent) {
-                tree.requestFocusInWindow()
-            }
-
-            override fun popupMenuCanceled(e: PopupMenuEvent) {
-            }
-
-        })
-
-
-        popupMenu.show(this, event.x, event.y)
+        popupMenu.show(this, evt.x, evt.y)
     }
+
+    override fun onRenamed(node: SimpleTreeNode<*>, text: String) {
+        val lastNode = node as? HostTreeNode ?: return
+        lastNode.host = lastNode.host.copy(name = text, updateDate = System.currentTimeMillis())
+        model.nodeStructureChanged(lastNode)
+        hostManager.addHost(lastNode.host)
+    }
+
+    override fun rebase(node: SimpleTreeNode<*>, parent: SimpleTreeNode<*>) {
+        val nNode = node as? HostTreeNode ?: return
+        val nParent = parent as? HostTreeNode ?: return
+        nNode.data = nNode.data.copy(parentId = nParent.id, updateDate = System.currentTimeMillis())
+        hostManager.addHost(nNode.host)
+    }
+
 
     private fun copyNode(
         node: HostTreeNode,
@@ -600,30 +377,14 @@ class NewHostTree : JXTree() {
 
     }
 
-    /**
-     * 包含孙子
-     */
-    fun getSelectionHostTreeNodes(include: Boolean = false): List<HostTreeNode> {
-        val paths = selectionPaths ?: return emptyList()
-        if (paths.isEmpty()) return emptyList()
-        val nodes = mutableListOf<HostTreeNode>()
-        val parents = paths.mapNotNull { it.lastPathComponent }
-            .filterIsInstance<HostTreeNode>().toMutableList()
-
-        if (include) {
-            while (parents.isNotEmpty()) {
-                val node = parents.removeFirst()
-                nodes.add(node)
-                parents.addAll(node.children().toList().filterIsInstance<HostTreeNode>())
-            }
-        }
-
-        return if (include) nodes else parents
+    override fun getSelectionSimpleTreeNodes(include: Boolean): List<HostTreeNode> {
+        return super.getSelectionSimpleTreeNodes(include).filterIsInstance<HostTreeNode>()
     }
+
 
     private fun openHosts(evt: EventObject, openInNewWindow: Boolean) {
         assertEventDispatchThread()
-        val nodes = getSelectionHostTreeNodes(true).map { it.host }.filter { it.protocol != Protocol.Folder }
+        val nodes = getSelectionSimpleTreeNodes(true).map { it.host }.filter { it.protocol != Protocol.Folder }
         if (nodes.isEmpty()) return
         val source = if (openInNewWindow)
             TermoraFrameManager.getInstance().createWindow().apply { isVisible = true }
@@ -632,7 +393,7 @@ class NewHostTree : JXTree() {
     }
 
     private fun openWithSFTP(evt: EventObject) {
-        val nodes = getSelectionHostTreeNodes(true).map { it.host }.filter { it.protocol == Protocol.SSH }
+        val nodes = getSelectionSimpleTreeNodes(true).map { it.host }.filter { it.protocol == Protocol.SSH }
         if (nodes.isEmpty()) return
 
         val sftpAction = ActionManager.getInstance().getAction(app.termora.Actions.SFTP) as SFTPAction? ?: return
@@ -643,7 +404,7 @@ class NewHostTree : JXTree() {
     }
 
     private fun openWithSFTPCommand(evt: EventObject) {
-        val nodes = getSelectionHostTreeNodes(true).map { it.host }.filter { it.protocol == Protocol.SSH }
+        val nodes = getSelectionSimpleTreeNodes(true).map { it.host }.filter { it.protocol == Protocol.SSH }
         if (nodes.isEmpty()) return
         for (host in nodes) {
             openHostAction.actionPerformed(OpenHostActionEvent(this, host.copy(protocol = Protocol.SFTPPty), evt))
@@ -1106,28 +867,5 @@ class NewHostTree : JXTree() {
         electerm,
     }
 
-    private class MoveHostTransferable(val nodes: List<HostTreeNode>) : Transferable {
-        companion object {
-            val dataFlavor =
-                DataFlavor("${DataFlavor.javaJVMLocalObjectMimeType};class=${MoveHostTransferable::class.java.name}")
-        }
-
-
-        override fun getTransferDataFlavors(): Array<DataFlavor> {
-            return arrayOf(dataFlavor)
-        }
-
-        override fun isDataFlavorSupported(flavor: DataFlavor?): Boolean {
-            return dataFlavor == flavor
-        }
-
-        override fun getTransferData(flavor: DataFlavor?): Any {
-            if (flavor == dataFlavor) {
-                return nodes
-            }
-            throw UnsupportedFlavorException(flavor)
-        }
-
-    }
 
 }

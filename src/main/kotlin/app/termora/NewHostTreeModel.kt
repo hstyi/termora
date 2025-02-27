@@ -1,12 +1,11 @@
 package app.termora
 
 import org.apache.commons.lang3.StringUtils
-import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.MutableTreeNode
 import javax.swing.tree.TreeNode
 
 
-class NewHostTreeModel : DefaultTreeModel(
+class NewHostTreeModel : SimpleTreeModel<Host>(
     HostTreeNode(
         Host(
             id = "0",

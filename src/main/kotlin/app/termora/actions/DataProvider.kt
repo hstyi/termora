@@ -17,5 +17,5 @@ interface DataProvider {
     /**
      * 数据提供
      */
-    fun <T : Any> getData(dataKey: DataKey<T>): T?
+    fun <T : Any> getData(dataKey: DataKey<T>): T? = null
 }

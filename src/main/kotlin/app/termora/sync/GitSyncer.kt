@@ -62,6 +62,14 @@ abstract class GitSyncer : SafetySyncer() {
             }
         }
 
+        // decode Snippets
+        if (config.ranges.contains(SyncRange.Snippets)) {
+            gistResponse.gists.findLast { it.filename == "Snippets" }?.let {
+                decodeSnippets(it.content, config)
+            }
+        }
+
+
         if (log.isInfoEnabled) {
             log.info("Type: ${config.type} , Gist: ${config.gistId} Pulled")
         }
@@ -82,6 +90,16 @@ abstract class GitSyncer : SafetySyncer() {
                 log.debug("Push encryptedHosts: {}", hostsContent)
             }
             gistFiles.add(GistFile("Hosts", hostsContent))
+        }
+
+
+        // Snippets
+        if (config.ranges.contains(SyncRange.Snippets)) {
+            val snippetsContent = encodeSnippets(key)
+            if (log.isDebugEnabled) {
+                log.debug("Push encryptedSnippets: {}", snippetsContent)
+            }
+            gistFiles.add(GistFile("Snippets", snippetsContent))
         }
 
         // KeyPairs

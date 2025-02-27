@@ -6,6 +6,7 @@ import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.actions.SettingsAction
 import app.termora.findeverywhere.FindEverywhereAction
+import app.termora.snippet.SnippetAction
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
 import com.formdev.flatlaf.util.SystemInfo
 import com.jetbrains.WindowDecorations
@@ -42,6 +43,7 @@ class TermoraToolBar(
      */
     fun getAllActions(): List<ToolBarAction> {
         return listOf(
+            ToolBarAction(SnippetAction.SNIPPET, true),
             ToolBarAction(Actions.SFTP, true),
             ToolBarAction(Actions.TERMINAL_LOGGER, true),
             ToolBarAction(Actions.MACRO, true),

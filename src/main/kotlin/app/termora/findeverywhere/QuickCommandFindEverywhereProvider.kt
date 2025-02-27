@@ -5,6 +5,7 @@ import app.termora.I18n
 import app.termora.Icons
 import app.termora.actions.NewHostAction
 import app.termora.actions.OpenLocalTerminalAction
+import app.termora.snippet.SnippetAction
 import com.formdev.flatlaf.FlatLaf
 import org.jdesktop.swingx.action.ActionManager
 import javax.swing.Icon
@@ -18,6 +19,11 @@ class QuickCommandFindEverywhereProvider : FindEverywhereProvider {
 
         // Local terminal
         actionManager.getAction(OpenLocalTerminalAction.LOCAL_TERMINAL)?.let {
+            list.add(ActionFindEverywhereResult(it))
+        }
+
+        // Snippet
+        actionManager.getAction(SnippetAction.SNIPPET)?.let {
             list.add(ActionFindEverywhereResult(it))
         }
 

@@ -1,17 +1,29 @@
 package app.termora
 
-import javax.swing.tree.DefaultMutableTreeNode
+import com.formdev.flatlaf.icons.FlatTreeClosedIcon
+import com.formdev.flatlaf.icons.FlatTreeOpenIcon
+import javax.swing.Icon
 import javax.swing.tree.TreeNode
 
-class HostTreeNode(host: Host) : DefaultMutableTreeNode(host) {
+class HostTreeNode(host: Host) : SimpleTreeNode<Host>(host) {
     companion object {
         private val hostManager get() = HostManager.getInstance()
     }
 
+    var host: Host
+        get() = data
+        set(value) = setUserObject(value)
+
+    override val isFolder: Boolean
+        get() = data.protocol == Protocol.Folder
+
+    override val id: String
+        get() = data.id
+
     /**
      * 如果要重新赋值，记得修改 [Host.updateDate] 否则下次取出时可能时缓存的
      */
-    var host: Host
+    override var data: Host
         get() {
             val cacheHost = hostManager.getHost((userObject as Host).id)
             val myHost = userObject as Host
@@ -22,22 +34,23 @@ class HostTreeNode(host: Host) : DefaultMutableTreeNode(host) {
         }
         set(value) = setUserObject(value)
 
-    val folderCount
-        get() = children().toList().count { if (it is HostTreeNode) it.host.protocol == Protocol.Folder else false }
+    override val folderCount
+        get() = children().toList().count { if (it is HostTreeNode) it.data.protocol == Protocol.Folder else false }
 
     override fun getParent(): HostTreeNode? {
         return super.getParent() as HostTreeNode?
     }
 
-    fun getAllChildren(): List<HostTreeNode> {
-        val children = mutableListOf<HostTreeNode>()
-        for (child in children()) {
-            if (child is HostTreeNode) {
-                children.add(child)
-                children.addAll(child.getAllChildren())
-            }
+    override fun getAllChildren(): List<HostTreeNode> {
+        return super.getAllChildren().filterIsInstance<HostTreeNode>()
+    }
+
+    override fun getIcon(selected: Boolean, expanded: Boolean, hasFocus: Boolean): Icon {
+        return when (host.protocol) {
+            Protocol.Folder -> if (expanded) FlatTreeOpenIcon() else FlatTreeClosedIcon()
+            Protocol.Serial -> if (selected && hasFocus) Icons.plugin.dark else Icons.plugin
+            else -> if (selected && hasFocus) Icons.terminal.dark else Icons.terminal
         }
-        return children
     }
 
     fun childrenNode(): List<HostTreeNode> {
@@ -57,7 +70,7 @@ class HostTreeNode(host: Host) : DefaultMutableTreeNode(host) {
 
     private fun deepClone(newNode: HostTreeNode, oldNode: HostTreeNode, scopes: Set<Protocol> = emptySet()) {
         for (child in oldNode.childrenNode()) {
-            if (scopes.isNotEmpty() && !scopes.contains(child.host.protocol)) continue
+            if (scopes.isNotEmpty() && !scopes.contains(child.data.protocol)) continue
             val newChildNode = child.clone() as HostTreeNode
             deepClone(newChildNode, child, scopes)
             newNode.add(newChildNode)
@@ -65,7 +78,7 @@ class HostTreeNode(host: Host) : DefaultMutableTreeNode(host) {
     }
 
     override fun clone(): Any {
-        val newNode = HostTreeNode(host)
+        val newNode = HostTreeNode(data)
         newNode.children = null
         newNode.parent = null
         return newNode
@@ -74,7 +87,7 @@ class HostTreeNode(host: Host) : DefaultMutableTreeNode(host) {
     override fun isNodeChild(aNode: TreeNode?): Boolean {
         if (aNode is HostTreeNode) {
             for (node in childrenNode()) {
-                if (node.host == aNode.host) {
+                if (node.data == aNode.data) {
                     return true
                 }
             }
@@ -88,10 +101,10 @@ class HostTreeNode(host: Host) : DefaultMutableTreeNode(host) {
 
         other as HostTreeNode
 
-        return host == other.host
+        return data == other.data
     }
 
     override fun hashCode(): Int {
-        return host.hashCode()
+        return data.hashCode()
     }
 }

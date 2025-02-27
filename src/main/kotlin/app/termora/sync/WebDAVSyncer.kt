@@ -4,7 +4,6 @@ import app.termora.Application.ohMyJson
 import app.termora.ApplicationScope
 import app.termora.PBKDF2
 import app.termora.ResponseException
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -37,28 +36,45 @@ class WebDAVSyncer private constructor() : SafetySyncer() {
         val json = ohMyJson.decodeFromString<JsonObject>(text)
 
         // decode hosts
-        json["Hosts"]?.jsonPrimitive?.content?.let {
-            decodeHosts(it, config)
+        if (config.ranges.contains(SyncRange.Hosts)) {
+            json["Hosts"]?.jsonPrimitive?.content?.let {
+                decodeHosts(it, config)
+            }
         }
 
         // decode KeyPairs
-        json["KeyPairs"]?.jsonPrimitive?.content?.let {
-            decodeKeys(it, config)
+        if (config.ranges.contains(SyncRange.KeyPairs)) {
+            json["KeyPairs"]?.jsonPrimitive?.content?.let {
+                decodeKeys(it, config)
+            }
         }
 
         // decode Highlights
-        json["KeywordHighlights"]?.jsonPrimitive?.content?.let {
-            decodeKeywordHighlights(it, config)
+        if (config.ranges.contains(SyncRange.KeywordHighlights)) {
+            json["KeywordHighlights"]?.jsonPrimitive?.content?.let {
+                decodeKeywordHighlights(it, config)
+            }
         }
 
         // decode Macros
-        json["Macros"]?.jsonPrimitive?.content?.let {
-            decodeMacros(it, config)
+        if (config.ranges.contains(SyncRange.Macros)) {
+            json["Macros"]?.jsonPrimitive?.content?.let {
+                decodeMacros(it, config)
+            }
         }
 
         // decode Keymaps
-        json["Keymaps"]?.jsonPrimitive?.content?.let {
-            decodeKeymaps(it, config)
+        if (config.ranges.contains(SyncRange.Keymap)) {
+            json["Keymaps"]?.jsonPrimitive?.content?.let {
+                decodeKeymaps(it, config)
+            }
+        }
+
+        // decode Snippets
+        if (config.ranges.contains(SyncRange.Snippets)) {
+            json["Snippets"]?.jsonPrimitive?.content?.let {
+                decodeSnippets(it, config)
+            }
         }
 
         return GistResponse(config, emptyList())
@@ -75,6 +91,15 @@ class WebDAVSyncer private constructor() : SafetySyncer() {
                     log.debug("Push encryptedHosts: {}", hostsContent)
                 }
                 put("Hosts", hostsContent)
+            }
+
+            // Snippets
+            if (config.ranges.contains(SyncRange.Snippets)) {
+                val snippetsContent = encodeSnippets(key)
+                if (log.isDebugEnabled) {
+                    log.debug("Push encryptedSnippets: {}", snippetsContent)
+                }
+                put("Snippets", snippetsContent)
             }
 
             // KeyPairs

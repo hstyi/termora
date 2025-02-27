@@ -15,6 +15,8 @@ import app.termora.keymgr.OhKeyPair
 import app.termora.macro.Macro
 import app.termora.macro.MacroManager
 import app.termora.native.FileChooser
+import app.termora.snippet.Snippet
+import app.termora.snippet.SnippetManager
 import app.termora.sync.SyncConfig
 import app.termora.sync.SyncRange
 import app.termora.sync.SyncType
@@ -67,6 +69,7 @@ class SettingsOptionsPane : OptionsPane() {
     private val owner get() = SwingUtilities.getWindowAncestor(this@SettingsOptionsPane)
     private val database get() = Database.getDatabase()
     private val hostManager get() = HostManager.getInstance()
+    private val snippetManager get() = SnippetManager.getInstance()
     private val keymapManager get() = KeymapManager.getInstance()
     private val macroManager get() = MacroManager.getInstance()
     private val actionManager get() = ActionManager.getInstance()
@@ -561,6 +564,7 @@ class SettingsOptionsPane : OptionsPane() {
         val sync get() = database.sync
         val hostsCheckBox = JCheckBox(I18n.getString("termora.welcome.my-hosts"))
         val keysCheckBox = JCheckBox(I18n.getString("termora.settings.sync.range.keys"))
+        val snippetsCheckBox = JCheckBox(I18n.getString("termora.snippet.title"))
         val keywordHighlightsCheckBox = JCheckBox(I18n.getString("termora.settings.sync.range.keyword-highlights"))
         val macrosCheckBox = JCheckBox(I18n.getString("termora.macro"))
         val keymapCheckBox = JCheckBox(I18n.getString("termora.settings.keymap"))
@@ -665,6 +669,7 @@ class SettingsOptionsPane : OptionsPane() {
 
             keysCheckBox.addActionListener { refreshButtons() }
             hostsCheckBox.addActionListener { refreshButtons() }
+            snippetsCheckBox.addActionListener { refreshButtons() }
             keywordHighlightsCheckBox.addActionListener { refreshButtons() }
 
         }
@@ -672,6 +677,7 @@ class SettingsOptionsPane : OptionsPane() {
         private fun refreshButtons() {
             sync.rangeKeyPairs = keysCheckBox.isSelected
             sync.rangeHosts = hostsCheckBox.isSelected
+            sync.rangeSnippets = snippetsCheckBox.isSelected
             sync.rangeKeywordHighlights = keywordHighlightsCheckBox.isSelected
 
             downloadConfigButton.isEnabled = keysCheckBox.isSelected || hostsCheckBox.isSelected
@@ -848,6 +854,17 @@ class SettingsOptionsPane : OptionsPane() {
                 }
             }
 
+            if (ranges.contains(SyncRange.Snippets)) {
+                val snippets = json["snippets"]
+                if (snippets is JsonArray) {
+                    ohMyJson.runCatching { decodeFromJsonElement<List<Snippet>>(snippets.jsonArray) }.onSuccess {
+                        for (snippet in it) {
+                            snippetManager.addSnippet(snippet)
+                        }
+                    }
+                }
+            }
+
             if (ranges.contains(SyncRange.KeyPairs)) {
                 val keyPairs = json["keyPairs"]
                 if (keyPairs is JsonArray) {
@@ -908,6 +925,9 @@ class SettingsOptionsPane : OptionsPane() {
                 put("exportDateHuman", DateFormatUtils.ISO_8601_EXTENDED_DATETIME_TIME_ZONE_FORMAT.format(Date(now)))
                 if (syncConfig.ranges.contains(SyncRange.Hosts)) {
                     put("hosts", ohMyJson.encodeToJsonElement(hostManager.hosts()))
+                }
+                if (syncConfig.ranges.contains(SyncRange.Snippets)) {
+                    put("snippets", ohMyJson.encodeToJsonElement(snippetManager.snippets()))
                 }
                 if (syncConfig.ranges.contains(SyncRange.KeyPairs)) {
                     put("keyPairs", ohMyJson.encodeToJsonElement(keyManager.getOhKeyPairs()))
@@ -977,6 +997,9 @@ class SettingsOptionsPane : OptionsPane() {
             }
             if (keymapCheckBox.isSelected) {
                 range.add(SyncRange.Keymap)
+            }
+            if (snippetsCheckBox.isSelected) {
+                range.add(SyncRange.Snippets)
             }
             return SyncConfig(
                 type = typeComboBox.selectedItem as SyncType,
@@ -1054,6 +1077,7 @@ class SettingsOptionsPane : OptionsPane() {
                 keymapCheckBox.isEnabled = false
                 keywordHighlightsCheckBox.isEnabled = false
                 hostsCheckBox.isEnabled = false
+                snippetsCheckBox.isEnabled = false
                 domainTextField.isEnabled = false
 
                 if (push) {
@@ -1083,6 +1107,7 @@ class SettingsOptionsPane : OptionsPane() {
                 uploadConfigButton.isEnabled = true
                 keysCheckBox.isEnabled = true
                 hostsCheckBox.isEnabled = true
+                snippetsCheckBox.isEnabled = true
                 typeComboBox.isEnabled = true
                 macrosCheckBox.isEnabled = true
                 keymapCheckBox.isEnabled = true
@@ -1144,12 +1169,14 @@ class SettingsOptionsPane : OptionsPane() {
             typeComboBox.addItem(SyncType.WebDAV)
 
             hostsCheckBox.isFocusable = false
+            snippetsCheckBox.isFocusable = false
             keysCheckBox.isFocusable = false
             keywordHighlightsCheckBox.isFocusable = false
             macrosCheckBox.isFocusable = false
             keymapCheckBox.isFocusable = false
 
             hostsCheckBox.isSelected = sync.rangeHosts
+            snippetsCheckBox.isSelected = sync.rangeSnippets
             keysCheckBox.isSelected = sync.rangeKeyPairs
             keywordHighlightsCheckBox.isSelected = sync.rangeKeywordHighlights
             macrosCheckBox.isSelected = sync.rangeMacros
@@ -1236,7 +1263,7 @@ class SettingsOptionsPane : OptionsPane() {
                 .layout(
                     FormLayout(
                         "left:pref, $formMargin, left:pref, $formMargin, left:pref",
-                        "pref, $formMargin, pref"
+                        "pref, 2dlu, pref"
                     )
                 )
                 .add(hostsCheckBox).xy(1, 1)
@@ -1244,6 +1271,7 @@ class SettingsOptionsPane : OptionsPane() {
                 .add(keywordHighlightsCheckBox).xy(5, 1)
                 .add(macrosCheckBox).xy(1, 3)
                 .add(keymapCheckBox).xy(3, 3)
+                .add(snippetsCheckBox).xy(5, 3)
                 .build()
 
             var rows = 1
@@ -1612,13 +1640,15 @@ class SettingsOptionsPane : OptionsPane() {
 
             val hosts = hostManager.hosts()
             val keyPairs = keyManager.getOhKeyPairs()
+            val snippets = snippetManager.snippets()
+
             // 获取到安全的属性，如果设置密码那表示之前并未加密
             // 这里取出来之后重新存储加密
             val properties = database.getSafetyProperties().map { Pair(it, it.getProperties()) }
-
             val key = doorman.work(passwordTextField.password)
 
             hosts.forEach { hostManager.addHost(it) }
+            snippets.forEach { snippetManager.addSnippet(it) }
             keyPairs.forEach { keyManager.addOhKeyPair(it) }
             for (e in properties) {
                 for ((k, v) in e.second) {

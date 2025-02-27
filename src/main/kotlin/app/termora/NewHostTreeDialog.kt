@@ -60,7 +60,7 @@ class NewHostTreeDialog(
     }
 
     override fun doOKAction() {
-        hosts = tree.getSelectionHostTreeNodes(true)
+        hosts = tree.getSelectionSimpleTreeNodes(true)
             .filter { filter.apply(it) }
             .map { it.host }
 

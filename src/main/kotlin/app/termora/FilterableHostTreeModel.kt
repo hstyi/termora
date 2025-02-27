@@ -41,7 +41,7 @@ class FilterableHostTreeModel(
                 continue
             }
 
-            if (c.host.protocol != Protocol.Folder) {
+            if (c.data.protocol != Protocol.Folder) {
                 if (filters.isNotEmpty() && filters.none { it.apply(c) }) {
                     continue
                 }

@@ -5,6 +5,8 @@ import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviders
+import app.termora.snippet.SnippetAction
+import app.termora.snippet.SnippetTreeDialog
 import app.termora.terminal.DataKey
 import app.termora.terminal.panel.vw.NvidiaSMIVisualWindow
 import app.termora.terminal.panel.vw.SystemInformationVisualWindow
@@ -95,7 +97,7 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
             }
         }
 
-        if (isVisible == true) {
+        if (isVisible) {
             isVisible = false
             firePropertyChange("visible", true, false)
         }
@@ -107,6 +109,9 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
 
         // 服务器信息
         add(initServerInfoActionButton())
+
+        // Snippet
+        add(initSnippetActionButton())
 
         // Nvidia 显卡信息
         add(initNvidiaSMIActionButton())
@@ -141,6 +146,24 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
                 val visualWindowPanel = SystemInformationVisualWindow(tab, terminalPanel)
                 terminalPanel.addVisualWindow(visualWindowPanel)
 
+            }
+        })
+        return btn
+    }
+
+    private fun initSnippetActionButton(): JButton {
+        val btn = JButton(Icons.codeSpan)
+        btn.toolTipText = I18n.getString("termora.snippet.title")
+        btn.addActionListener(object : AnAction() {
+            override fun actionPerformed(evt: AnActionEvent) {
+                val tab = evt.getData(DataProviders.TerminalTab) ?: return
+                val terminal = tab.getData(DataProviders.Terminal) ?: return
+                val dialog = SnippetTreeDialog(evt.window)
+                dialog.setLocationRelativeTo(btn)
+                dialog.setLocation(dialog.x, btn.locationOnScreen.y + height + 2)
+                dialog.isVisible = true
+                val node = dialog.getSelectedNode() ?: return
+                SnippetAction.getInstance().runSnippet(node.data, terminal)
             }
         })
         return btn

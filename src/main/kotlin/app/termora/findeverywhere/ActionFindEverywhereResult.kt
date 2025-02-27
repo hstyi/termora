@@ -6,6 +6,7 @@ import org.jdesktop.swingx.action.AbstractActionExt
 import java.awt.event.ActionEvent
 import javax.swing.Action
 import javax.swing.Icon
+import javax.swing.SwingUtilities
 
 open class ActionFindEverywhereResult(private val action: Action) : FindEverywhereResult {
     private val isState: Boolean
@@ -26,7 +27,7 @@ open class ActionFindEverywhereResult(private val action: Action) : FindEverywhe
         if (isState) {
             action.putValue(Action.SELECTED_KEY, !isSelected)
         }
-        action.actionPerformed(e)
+        SwingUtilities.invokeLater { action.actionPerformed(e) }
     }
 
     override fun getIcon(isSelected: Boolean): Icon {

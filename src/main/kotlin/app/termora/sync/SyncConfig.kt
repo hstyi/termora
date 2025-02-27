@@ -13,6 +13,7 @@ enum class SyncRange {
     KeywordHighlights,
     Macros,
     Keymap,
+    Snippets,
 }
 
 data class SyncConfig(

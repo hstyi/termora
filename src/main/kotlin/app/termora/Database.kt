@@ -5,6 +5,7 @@ import app.termora.highlight.KeywordHighlight
 import app.termora.keymap.Keymap
 import app.termora.keymgr.OhKeyPair
 import app.termora.macro.Macro
+import app.termora.snippet.Snippet
 import app.termora.sync.SyncType
 import app.termora.terminal.CursorStyle
 import jetbrains.exodus.bindings.StringBinding
@@ -12,7 +13,6 @@ import jetbrains.exodus.env.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import kotlinx.serialization.encodeToString
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
@@ -26,6 +26,7 @@ class Database private constructor(private val env: Environment) : Disposable {
     companion object {
         private const val KEYMAP_STORE = "Keymap"
         private const val HOST_STORE = "Host"
+        private const val SNIPPET_STORE = "Snippet"
         private const val KEYWORD_HIGHLIGHT_STORE = "KeywordHighlight"
         private const val MACRO_STORE = "Macro"
         private const val KEY_PAIR_STORE = "KeyPair"
@@ -105,17 +106,6 @@ class Database private constructor(private val env: Environment) : Disposable {
         }
     }
 
-    fun removeAllHost() {
-        env.executeInTransaction { tx ->
-            val store = env.openStore(HOST_STORE, StoreConfig.WITHOUT_DUPLICATES_WITH_PREFIXING, tx)
-            store.openCursor(tx).use {
-                while (it.next) {
-                    it.deleteCurrent()
-                }
-            }
-        }
-    }
-
     fun removeAllKeyPair() {
         env.executeInTransaction { tx ->
             val store = env.openStore(KEY_PAIR_STORE, StoreConfig.WITHOUT_DUPLICATES_WITH_PREFIXING, tx)
@@ -152,12 +142,29 @@ class Database private constructor(private val env: Environment) : Disposable {
         }
     }
 
-    fun removeHost(id: String) {
+    fun addSnippet(snippet: Snippet) {
+        var text = ohMyJson.encodeToString(snippet)
+        if (doorman.isWorking()) {
+            text = doorman.encrypt(text)
+        }
         env.executeInTransaction {
-            delete(it, HOST_STORE, id)
+            put(it, SNIPPET_STORE, snippet.id, text)
             if (log.isDebugEnabled) {
-                log.debug("Removed Host: $id")
+                log.debug("Added Snippet: ${snippet.id} , ${snippet.name}")
             }
+        }
+    }
+
+
+    fun getSnippets(): Collection<Snippet> {
+        val isWorking = doorman.isWorking()
+        return env.computeInTransaction { tx ->
+            openCursor<Snippet>(tx, SNIPPET_STORE) { _, value ->
+                if (isWorking)
+                    ohMyJson.decodeFromString(doorman.decrypt(value))
+                else
+                    ohMyJson.decodeFromString(value)
+            }.values
         }
     }
 
@@ -621,6 +628,7 @@ class Database private constructor(private val env: Environment) : Disposable {
          */
         var rangeHosts by BooleanPropertyDelegate(true)
         var rangeKeyPairs by BooleanPropertyDelegate(true)
+        var rangeSnippets by BooleanPropertyDelegate(true)
         var rangeKeywordHighlights by BooleanPropertyDelegate(true)
         var rangeMacros by BooleanPropertyDelegate(true)
         var rangeKeymap by BooleanPropertyDelegate(true)

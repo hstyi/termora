@@ -1,8 +1,8 @@
 package app.termora
 
+import org.apache.commons.lang3.StringUtils
 import javax.swing.JTree
 import javax.swing.tree.TreeModel
-import javax.swing.tree.TreeNode
 
 object TreeUtils {
     /**
@@ -31,16 +31,6 @@ object TreeUtils {
         return nodes
     }
 
-    fun parents(node: TreeNode): List<Any> {
-        val parents = mutableListOf<Any>()
-        var p = node.parent
-        while (p != null) {
-            parents.add(p)
-            p = p.parent
-        }
-        return parents
-    }
-
     fun saveExpansionState(tree: JTree): String {
         val rows = mutableListOf<Int>()
         for (i in 0 until tree.rowCount) {
@@ -63,15 +53,15 @@ object TreeUtils {
             }
     }
 
-    fun expandAll(tree: JTree) {
-        var j = tree.rowCount
-        var i = 0
-        while (i < j) {
-            tree.expandRow(i)
-            i += 1
-            j = tree.rowCount
-        }
+    fun saveSelectionRows(tree: JTree): String {
+        return tree.selectionRows?.joinToString(",") ?: StringUtils.EMPTY
     }
 
+    fun loadSelectionRows(tree: JTree, state: String) {
+        if (state.isBlank()) return
+        for (row in state.split(",").mapNotNull { it.toIntOrNull() }) {
+            tree.addSelectionRow(row)
+        }
+    }
 
 }

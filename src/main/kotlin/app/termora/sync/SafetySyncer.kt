@@ -14,7 +14,8 @@ import app.termora.keymgr.KeyManager
 import app.termora.keymgr.OhKeyPair
 import app.termora.macro.Macro
 import app.termora.macro.MacroManager
-import kotlinx.serialization.encodeToString
+import app.termora.snippet.Snippet
+import app.termora.snippet.SnippetManager
 import kotlinx.serialization.json.JsonObject
 import org.apache.commons.lang3.ArrayUtils
 import org.slf4j.LoggerFactory
@@ -32,6 +33,7 @@ abstract class SafetySyncer : Syncer {
     protected val keywordHighlightManager get() = KeywordHighlightManager.getInstance()
     protected val macroManager get() = MacroManager.getInstance()
     protected val keymapManager get() = KeymapManager.getInstance()
+    protected val snippetManager get() = SnippetManager.getInstance()
 
     protected fun decodeHosts(text: String, config: SyncConfig) {
         // aes key
@@ -128,6 +130,61 @@ abstract class SafetySyncer : Syncer {
         }
 
         return ohMyJson.encodeToString(encryptedHosts)
+
+    }
+
+    protected fun decodeSnippets(text: String, config: SyncConfig) {
+        // aes key
+        val key = getKey(config)
+        val encryptedSnippets = ohMyJson.decodeFromString<List<Snippet>>(text)
+        val snippets = snippetManager.snippets().associateBy { it.id }
+
+        for (encryptedSnippet in encryptedSnippets) {
+            val oldHost = snippets[encryptedSnippet.id]
+
+            // 如果一样，则无需配置
+            if (oldHost != null) {
+                if (oldHost.updateDate == encryptedSnippet.updateDate) {
+                    continue
+                }
+            }
+
+            try {
+                // aes iv
+                val iv = getIv(encryptedSnippet.id)
+                val snippet = encryptedSnippet.copy(
+                    name = encryptedSnippet.name.decodeBase64().aesCBCDecrypt(key, iv).decodeToString(),
+                    parentId = encryptedSnippet.parentId.decodeBase64().aesCBCDecrypt(key, iv).decodeToString(),
+                    snippet = encryptedSnippet.snippet.decodeBase64().aesCBCDecrypt(key, iv).decodeToString(),
+                )
+                SwingUtilities.invokeLater { snippetManager.addSnippet(snippet) }
+            } catch (e: Exception) {
+                if (log.isWarnEnabled) {
+                    log.warn("Decode snippet: ${encryptedSnippet.id} failed. error: {}", e.message, e)
+                }
+            }
+        }
+
+
+        if (log.isDebugEnabled) {
+            log.debug("Decode hosts: {}", text)
+        }
+    }
+
+    protected fun encodeSnippets(key: ByteArray): String {
+        val snippets = mutableListOf<Snippet>()
+        for (snippet in snippetManager.snippets()) {
+            // aes iv
+            val iv = ArrayUtils.subarray(snippet.id.padEnd(16, '0').toByteArray(), 0, 16)
+            snippets.add(
+                snippet.copy(
+                    name = snippet.name.aesCBCEncrypt(key, iv).encodeBase64String(),
+                    snippet = snippet.snippet.aesCBCEncrypt(key, iv).encodeBase64String(),
+                    parentId = snippet.parentId.aesCBCEncrypt(key, iv).encodeBase64String(),
+                )
+            )
+        }
+        return ohMyJson.encodeToString(snippets)
 
     }
 

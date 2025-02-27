@@ -1,10 +1,11 @@
 package app.termora
 
+import app.termora.actions.DataProvider
 import java.beans.PropertyChangeListener
 import javax.swing.Icon
 import javax.swing.JComponent
 
-interface TerminalTab : Disposable {
+interface TerminalTab : Disposable, DataProvider {
 
     /**
      * 标题
