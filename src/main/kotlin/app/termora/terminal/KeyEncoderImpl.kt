@@ -55,14 +55,14 @@ open class KeyEncoderImpl(private val terminal: Terminal) : KeyEncoder, DataList
         putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F2), encode = "${ControlCharacters.ESC}OQ")
         putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F3), encode = "${ControlCharacters.ESC}OR")
         putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F4), encode = "${ControlCharacters.ESC}OS")
-        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F5), encode = "${ControlCharacters.ESC}[15~");
-        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F6), encode = "${ControlCharacters.ESC}[17~");
-        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F7), encode = "${ControlCharacters.ESC}[18~");
-        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F8), encode = "${ControlCharacters.ESC}[19~");
-        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F9), encode = "${ControlCharacters.ESC}[20~");
-        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F10), encode = "${ControlCharacters.ESC}[21~");
-        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F11), encode = "${ControlCharacters.ESC}[23~");
-        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F12), encode = "${ControlCharacters.ESC}[24~");
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F5), encode = "${ControlCharacters.ESC}[15~")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F6), encode = "${ControlCharacters.ESC}[17~")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F7), encode = "${ControlCharacters.ESC}[18~")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F8), encode = "${ControlCharacters.ESC}[19~")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F9), encode = "${ControlCharacters.ESC}[20~")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F10), encode = "${ControlCharacters.ESC}[21~")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F11), encode = "${ControlCharacters.ESC}[23~")
+        putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_F12), encode = "${ControlCharacters.ESC}[24~")
 
         terminal.getTerminalModel().addDataListener(object : DataListener {
             override fun onChanged(key: DataKey<*>, data: Any) {
@@ -73,7 +73,40 @@ open class KeyEncoderImpl(private val terminal: Terminal) : KeyEncoder, DataList
     }
 
     override fun encode(event: TerminalKeyEvent): String {
-        return mapping[event] ?: nothing
+        if (mapping.containsKey(event)) {
+            return mapping.getValue(event)
+        }
+
+        var bytes = (mapping[TerminalKeyEvent(event.keyCode, 0)] ?: return nothing).toByteArray()
+
+        if (alwaysSendEsc(event.keyCode) && (event.modifiers and TerminalEvent.ALT_MASK) != 0) {
+            bytes = insertCodeAt(bytes, makeCode(ControlCharacters.ESC.code), 0)
+            return String(bytes)
+        }
+
+        if (alwaysSendEsc(event.keyCode) && (event.modifiers and TerminalEvent.META_MASK) != 0) {
+            bytes = insertCodeAt(bytes, makeCode(ControlCharacters.ESC.code), 0)
+            return String(bytes)
+        }
+
+        if (isCursorKey(event.keyCode) || isFunctionKey(event.keyCode)) {
+            bytes = getCodeWithModifiers(bytes, event.modifiers)
+            return String(bytes)
+        }
+
+        return String(bytes)
+    }
+
+    private fun makeCode(vararg bytesAsInt: Int): ByteArray {
+        val bytes = ByteArray(bytesAsInt.size)
+        for ((i, byteAsInt) in bytesAsInt.withIndex()) {
+            bytes[i] = byteAsInt.toByte()
+        }
+        return bytes
+    }
+
+    private fun alwaysSendEsc(key: Int): Boolean {
+        return isCursorKey(key) || key == '\b'.code
     }
 
     override fun getTerminal(): Terminal {
@@ -82,6 +115,91 @@ open class KeyEncoderImpl(private val terminal: Terminal) : KeyEncoder, DataList
 
     private fun putCode(event: TerminalKeyEvent, encode: String) {
         mapping[event] = encode
+    }
+
+
+    /**
+     * Refer to section PC-Style Function Keys in http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+     */
+    private fun getCodeWithModifiers(bytes: ByteArray, modifiers: Int): ByteArray {
+        val code = modifiersToCode(modifiers)
+
+        if (code > 0 && bytes.size > 2) {
+            // SS3 needs to become CSI.
+            if (bytes[0].toInt() == ControlCharacters.ESC.code && bytes[1] == 'O'.code.toByte()) {
+                bytes[1] = '['.code.toByte()
+            }
+            // If the control sequence has no parameters, it needs a default parameter.
+            // Either way it also needs a semicolon separator.
+            val prefix = if (bytes.size == 3) "1;" else ";"
+            return insertCodeAt(
+                bytes,
+                (prefix + code).toByteArray(),
+                bytes.size - 1
+            )
+        }
+
+        return bytes
+    }
+
+    private fun insertCodeAt(bytes: ByteArray, code: ByteArray, at: Int): ByteArray {
+        val res = ByteArray(bytes.size + code.size)
+        System.arraycopy(bytes, 0, res, 0, bytes.size)
+        System.arraycopy(bytes, at, res, at + code.size, bytes.size - at)
+        System.arraycopy(code, 0, res, at, code.size)
+        return res
+    }
+
+    /**
+     *
+     * Code     Modifiers
+     * ------+--------------------------
+     * 2     | Shift
+     * 3     | Alt
+     * 4     | Shift + Alt
+     * 5     | Control
+     * 6     | Shift + Control
+     * 7     | Alt + Control
+     * 8     | Shift + Alt + Control
+     * 9     | Meta
+     * 10    | Meta + Shift
+     * 11    | Meta + Alt
+     * 12    | Meta + Alt + Shift
+     * 13    | Meta + Ctrl
+     * 14    | Meta + Ctrl + Shift
+     * 15    | Meta + Ctrl + Alt
+     * 16    | Meta + Ctrl + Alt + Shift
+     * ------+--------------------------
+     * @param modifiers
+     * @return
+     */
+    private fun modifiersToCode(modifiers: Int): Int {
+        var code = 0
+        if ((modifiers and TerminalEvent.SHIFT_MASK) != 0) {
+            code = code or 1
+        }
+        if ((modifiers and TerminalEvent.ALT_MASK) != 0) {
+            code = code or 2
+        }
+        if ((modifiers and TerminalEvent.CTRL_MASK) != 0) {
+            code = code or 4
+        }
+        if ((modifiers and TerminalEvent.META_MASK) != 0) {
+            code = code or 8
+        }
+        return if (code != 0) code + 1 else 0
+    }
+
+    private fun isCursorKey(key: Int): Boolean {
+        return key == KeyEvent.VK_DOWN || key == KeyEvent.VK_UP
+                || key == KeyEvent.VK_LEFT || key == KeyEvent.VK_RIGHT
+                || key == KeyEvent.VK_HOME || key == KeyEvent.VK_END
+    }
+
+    private fun isFunctionKey(key: Int): Boolean {
+        return key >= KeyEvent.VK_F1 && key <= KeyEvent.VK_F12
+                || key == KeyEvent.VK_INSERT || key == KeyEvent.VK_DELETE
+                || key == KeyEvent.VK_PAGE_UP || key == KeyEvent.VK_PAGE_DOWN
     }
 
     fun arrowKeysApplicationSequences() {

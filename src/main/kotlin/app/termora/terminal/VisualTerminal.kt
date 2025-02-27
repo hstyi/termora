@@ -1,7 +1,7 @@
 package app.termora.terminal
 
 import org.slf4j.LoggerFactory
-import kotlin.math.min
+import kotlin.math.max
 
 open class VisualTerminal : Terminal {
 
@@ -119,6 +119,9 @@ open class VisualTerminal : Terminal {
 
 private class MyProcessor(private val terminal: Terminal, reader: TerminalReader) {
     private var state: ProcessorState = TerminalState.READY
+    private val document get() = terminal.getDocument()
+    private val cursorModel get() = terminal.getCursorModel()
+    private val terminalModel get() = terminal.getTerminalModel()
 
     companion object {
         private val log = LoggerFactory.getLogger(MyProcessor::class.java)
@@ -135,7 +138,7 @@ private class MyProcessor(private val terminal: Terminal, reader: TerminalReader
 
     fun process(ch: Char) {
         if (log.isTraceEnabled) {
-            val position = terminal.getCursorModel().getPosition()
+            val position = cursorModel.getPosition()
             log.trace("process [${printChar(ch)}]  , state: $state , position: $position")
         }
 
@@ -155,16 +158,29 @@ private class MyProcessor(private val terminal: Terminal, reader: TerminalReader
             }
 
             ControlCharacters.CR -> {
-                terminal.getCursorModel().move(CursorMove.RowHome)
+                cursorModel.move(CursorMove.RowHome)
                 TerminalState.READY
             }
 
             ControlCharacters.TAB -> {
-                val position = terminal.getCursorModel().getPosition()
+                val position = cursorModel.getPosition()
                 // Next tab + 1，如果当前 x = 11，那么下一个就是 16，因为在 TerminalLineBuffer#writeTerminalLineChar 的时候会 - 1 会导致错乱一位
-                var nextTab = terminal.getTabulator().nextTab(position.x) + 1
-                nextTab = min(terminal.getTerminalModel().getCols(), nextTab)
-                terminal.getCursorModel().move(row = position.y, col = nextTab)
+                val nextTab = terminal.getTabulator().nextTab(position.x - 1) + 1
+                val length = if (terminalModel.isAlternateScreenBuffer()) {
+                    document.getCurrentTerminalLineBuffer()
+                        .getLineAt(position.y - 1).getText().length
+                } else {
+                    document.getCurrentTerminalLineBuffer()
+                        .getScreenLineAt(position.y - 1)
+                        .getText().length
+                }
+
+                val x = max(position.x - 1, length)
+                if (x < nextTab) {
+                    cursorModel.move(row = position.y, col = (position.x - 1) + (nextTab - x))
+                } else {
+                    cursorModel.move(row = position.y, col = nextTab)
+                }
                 TerminalState.READY
             }
 
@@ -176,12 +192,12 @@ private class MyProcessor(private val terminal: Terminal, reader: TerminalReader
             }
 
             ControlCharacters.BS -> {
-                terminal.getCursorModel().move(CursorMove.Left)
+                cursorModel.move(CursorMove.Left)
                 TerminalState.READY
             }
 
             ControlCharacters.SI -> {
-                terminal.getTerminalModel().getData(DataKey.GraphicCharacterSet).use(Graphic.G0)
+                terminalModel.getData(DataKey.GraphicCharacterSet).use(Graphic.G0)
                 if (log.isDebugEnabled) {
                     log.debug("Use Graphic.G0")
                 }
@@ -189,7 +205,7 @@ private class MyProcessor(private val terminal: Terminal, reader: TerminalReader
             }
 
             ControlCharacters.SO -> {
-                terminal.getTerminalModel().getData(DataKey.GraphicCharacterSet).use(Graphic.G1)
+                terminalModel.getData(DataKey.GraphicCharacterSet).use(Graphic.G1)
                 if (log.isDebugEnabled) {
                     log.debug("Use Graphic.G1")
                 }

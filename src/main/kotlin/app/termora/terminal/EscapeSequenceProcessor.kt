@@ -171,7 +171,7 @@ class EscapeSequenceProcessor(terminal: Terminal, reader: TerminalReader) : Abst
                     }
                 } else {
                     val x = terminal.getCursorModel().getPosition().x
-                    terminal.getTabulator().setTabStop(x)
+                    terminal.getTabulator().setTabStop(x - 1)
                     if (log.isDebugEnabled) {
                         log.debug("Horizontal Tab Set (HTS). col: $x")
                     }

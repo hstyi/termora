@@ -384,7 +384,7 @@ class ControlSequenceIntroducerProcessor(terminal: Terminal, reader: TerminalRea
                 val mode = args.toInt(0)
                 if (mode == 0) {
                     val x = terminal.getCursorModel().getPosition().x
-                    terminal.getTabulator().clearTabStop(x)
+                    terminal.getTabulator().clearTabStop(x - 1)
                     if (log.isDebugEnabled) {
                         log.debug("Tab Clear (TBC). clearTabStop($x)")
                     }
