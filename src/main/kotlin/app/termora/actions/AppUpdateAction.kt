@@ -47,6 +47,7 @@ class AppUpdateAction private constructor() : AnAction(
     }
 
     private val updaterManager get() = UpdaterManager.getInstance()
+    private var isRemindMeNextTime = false
 
     init {
         isEnabled = false
@@ -65,7 +66,9 @@ class AppUpdateAction private constructor() : AnAction(
             initialDelay = 3.minutes.inWholeMilliseconds,
             period = 5.hours.inWholeMilliseconds, daemon = true
         ) {
-            GlobalScope.launch(Dispatchers.IO) { supervisorScope { launch { checkUpdate() } } }
+            if (!isRemindMeNextTime) {
+                GlobalScope.launch(Dispatchers.IO) { supervisorScope { launch { checkUpdate() } } }
+            }
         }
     }
 
@@ -190,6 +193,7 @@ class AppUpdateAction private constructor() : AnAction(
             return
         } else if (option == JOptionPane.NO_OPTION) {
             isEnabled = false
+            isRemindMeNextTime = true
         } else if (option == JOptionPane.YES_OPTION) {
             updateSelf(lastVersion)
         }
