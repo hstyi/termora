@@ -14,6 +14,7 @@ import org.apache.commons.io.FilenameUtils
 import org.apache.commons.io.filefilter.FileFilterUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
+import org.apache.sshd.client.config.hosts.HostConfigEntry
 import org.ini4j.Ini
 import org.ini4j.Reg
 import org.jdesktop.swingx.action.ActionManager
@@ -185,7 +186,9 @@ class NewHostTree : SimpleTree() {
         val finalShellMenu = importMenu.add("FinalShell")
         val windTermMenu = importMenu.add("WindTerm")
         val secureCRTMenu = importMenu.add("SecureCRT")
+        val sshMenu = importMenu.add(".ssh/config")
         val mobaXtermMenu = importMenu.add("MobaXterm")
+
 
         val open = popupMenu.add(I18n.getString("termora.welcome.contextmenu.connect"))
         val openWith = popupMenu.add(JMenu(I18n.getString("termora.welcome.contextmenu.connect-with"))) as JMenu
@@ -218,6 +221,7 @@ class NewHostTree : SimpleTree() {
         secureCRTMenu.addActionListener { importHosts(lastNode, ImportType.SecureCRT) }
         electermMenu.addActionListener { importHosts(lastNode, ImportType.electerm) }
         mobaXtermMenu.addActionListener { importHosts(lastNode, ImportType.MobaXterm) }
+        sshMenu.addActionListener { importHosts(lastNode, ImportType.SSH) }
         finalShellMenu.addActionListener { importHosts(lastNode, ImportType.FinalShell) }
         csvMenu.addActionListener { importHosts(lastNode, ImportType.CSV) }
         windTermMenu.addActionListener { importHosts(lastNode, ImportType.WindTerm) }
@@ -428,6 +432,7 @@ class NewHostTree : SimpleTree() {
 
         when (type) {
             ImportType.WindTerm -> chooser.fileFilter = FileNameExtensionFilter("WindTerm (*.sessions)", "sessions")
+            ImportType.SSH -> chooser.fileFilter = FileNameExtensionFilter("SSH (config)", "config")
             ImportType.CSV -> chooser.fileFilter = FileNameExtensionFilter("CSV (*.csv)", "csv")
             ImportType.SecureCRT -> chooser.fileFilter = FileNameExtensionFilter("SecureCRT (*.xml)", "xml")
             ImportType.electerm -> chooser.fileFilter = FileNameExtensionFilter("electerm (*.json)", "json")
@@ -493,19 +498,23 @@ class NewHostTree : SimpleTree() {
         }
 
         // 选择文件
-        val code = chooser.showOpenDialog(owner)
-
-        if (code != JFileChooser.APPROVE_OPTION) {
-            return
+        if (type != ImportType.SSH) {
+            val code = chooser.showOpenDialog(owner)
+            if (code != JFileChooser.APPROVE_OPTION) {
+                return
+            }
         }
 
         val file = chooser.selectedFile
-        properties.putString(
-            "NewHostTree.ImportHosts.defaultDir",
-            (if (FileUtils.isDirectory(file)) file else file.parentFile).absolutePath
-        )
+        if (file != null && file.parentFile != null) {
+            properties.putString(
+                "NewHostTree.ImportHosts.defaultDir",
+                (if (FileUtils.isDirectory(file)) file else file.parentFile).absolutePath
+            )
+        }
 
         val nodes = when (type) {
+            ImportType.SSH -> parseFromSSH(folder)
             ImportType.WindTerm -> parseFromWindTerm(folder, file)
             ImportType.SecureCRT -> parseFromSecureCRT(folder, file)
             ImportType.MobaXterm -> parseFromMobaXterm(folder, file)
@@ -537,6 +546,9 @@ class NewHostTree : SimpleTree() {
 
         // 重新加载
         model.reload(folder)
+
+        // expand root
+        expandPath(TreePath(model.getPathToRoot(folder)))
     }
 
     private fun parseFromWindTerm(folder: HostTreeNode, file: File): List<HostTreeNode> {
@@ -556,6 +568,26 @@ class NewHostTree : SimpleTree() {
                 val group = json["session.group"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
                 val groups = group.split(">")
                 printer.printRecord(groups.joinToString("/"), label, target, port, StringUtils.EMPTY, "SSH")
+            }
+        }
+
+        return parseFromCSV(folder, StringReader(sw.toString()))
+    }
+
+    private fun parseFromSSH(folder: HostTreeNode): List<HostTreeNode> {
+        val entries = HostConfigEntry.readHostConfigEntries(HostConfigEntry.getDefaultHostConfigFile())
+
+        val sw = StringWriter()
+        CSVPrinter(sw, CSVFormat.EXCEL.builder().setHeader(*CSV_HEADERS).get()).use { printer ->
+            for (entry in entries) {
+                printer.printRecord(
+                    StringUtils.EMPTY,
+                    StringUtils.defaultString(entry.host),
+                    StringUtils.defaultString(entry.hostName),
+                    if (entry.port == 0) 22 else entry.port,
+                    StringUtils.defaultString(entry.username),
+                    "SSH"
+                )
             }
         }
 
@@ -861,6 +893,7 @@ class NewHostTree : SimpleTree() {
         PuTTY,
         SecureCRT,
         MobaXterm,
+        SSH,
         FinalShell,
         electerm,
     }
