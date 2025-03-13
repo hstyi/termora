@@ -86,11 +86,6 @@ class TerminalLine {
             if (chars.size() > i) {
                 if (chars.get(i).isNull) {
                     chars.set(i, Char.Space)
-                    // 如果等于默认，那么替换成当前的样式
-                    // 如果不是默认，那么不需要替换样式
-                    if (styles.getTextStyle(i) == TextStyle.Default) {
-                        styles.set(i, buffer.style)
-                    }
                 }
             } else {
                 break
