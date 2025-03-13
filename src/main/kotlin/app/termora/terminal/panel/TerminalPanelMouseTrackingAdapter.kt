@@ -11,7 +11,7 @@ import kotlin.math.abs
 class TerminalPanelMouseTrackingAdapter(
     private val terminalPanel: TerminalPanel,
     private val terminal: Terminal,
-    private val ptyConnector: PtyConnector
+    private val writer: TerminalWriter
 ) : MouseAdapter() {
 
     companion object {
@@ -70,14 +70,18 @@ class TerminalPanelMouseTrackingAdapter(
             val encode = terminal.getKeyEncoder()
                 .encode(TerminalKeyEvent(if (e.wheelRotation < 0) KeyEvent.VK_UP else KeyEvent.VK_DOWN))
             if (encode.isBlank()) return
-            val bytes = encode.toByteArray(ptyConnector.getCharset())
+            val bytes = encode.toByteArray(writer.getCharset())
             for (i in 0 until abs(unitsToScroll)) {
-                ptyConnector.write(bytes)
+                writer.write(TerminalWriter.WriteRequest.fromBytes(bytes))
             }
         }
     }
 
-    private fun sendMouseEvent(position: Position, event: TerminalMouseEvent, eventType: TerminalMouseEventType) {
+    private fun sendMouseEvent(
+        position: Position,
+        event: TerminalMouseEvent,
+        eventType: TerminalMouseEventType
+    ) {
         if (event.button == TerminalMouseButton.None) {
             return
         }
@@ -112,7 +116,9 @@ class TerminalPanelMouseTrackingAdapter(
 
     }
 
-    private fun mouseReport(cb: Int, x: Int, y: Int) {
+    private fun mouseReport(
+        cb: Int, x: Int, y: Int
+    ) {
         val sb = StringBuilder()
         var charset = Charsets.UTF_8
 
@@ -143,7 +149,7 @@ class TerminalPanelMouseTrackingAdapter(
                 .append((32 + cb).toChar()).append((32 + x).toChar()).append(x).append((32 + y).toChar())
         }
 
-        ptyConnector.write(sb.toString().toByteArray(charset))
+        writer.write(TerminalWriter.WriteRequest.fromBytes(sb.toString().toByteArray(charset)))
 
         if (log.isTraceEnabled) {
             log.trace("Send ESC{}", sb.substring(1))

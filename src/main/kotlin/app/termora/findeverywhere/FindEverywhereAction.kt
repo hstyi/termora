@@ -46,7 +46,7 @@ class FindEverywhereAction : AnAction(StringUtils.EMPTY, Icons.find) {
             return
         }
 
-        val dialog = FindEverywhere(owner)
+        val dialog = FindEverywhere(owner, scope)
         for (provider in FindEverywhereProvider.getFindEverywhereProviders(scope)) {
             dialog.registerProvider(provider)
         }

@@ -1,6 +1,7 @@
 package app.termora.terminal
 
 import app.termora.assertEventDispatchThread
+import app.termora.terminal.panel.TerminalWriter
 import org.slf4j.LoggerFactory
 import kotlin.math.max
 import kotlin.math.min
@@ -476,20 +477,20 @@ class ControlSequenceIntroducerProcessor(terminal: Terminal, reader: TerminalRea
             return
         }
 
-        if (!terminalModel.hasData(DataKey.PtyConnector)) {
+        if (!terminalModel.hasData(DataKey.TerminalWriter)) {
             return
         }
 
-        val ptyConnector = terminalModel.getData(DataKey.PtyConnector)
+        val writer = terminalModel.getData(DataKey.TerminalWriter)
 
         val m = args.first()
         if (m == '6') {
             val position = terminal.getCursorModel().getPosition()
-            val bytes = "${ControlCharacters.ESC}[${position.y};${position.x}R".toByteArray(ptyConnector.getCharset())
-            ptyConnector.write(bytes)
+            val bytes = "${ControlCharacters.ESC}[${position.y};${position.x}R".toByteArray(writer.getCharset())
+            writer.write(TerminalWriter.WriteRequest.fromBytes(bytes))
         } else if (m == '5') {
-            val bytes = "${ControlCharacters.ESC}[0n".toByteArray(ptyConnector.getCharset())
-            ptyConnector.write(bytes)
+            val bytes = "${ControlCharacters.ESC}[0n".toByteArray(writer.getCharset())
+            writer.write(TerminalWriter.WriteRequest.fromBytes(bytes))
         }
 
     }

@@ -157,13 +157,13 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
         btn.addActionListener(object : AnAction() {
             override fun actionPerformed(evt: AnActionEvent) {
                 val tab = evt.getData(DataProviders.TerminalTab) ?: return
-                val terminal = tab.getData(DataProviders.Terminal) ?: return
+                val writer = tab.getData(DataProviders.TerminalWriter) ?: return
                 val dialog = SnippetTreeDialog(evt.window)
                 dialog.setLocationRelativeTo(btn)
                 dialog.setLocation(dialog.x, btn.locationOnScreen.y + height + 2)
                 dialog.isVisible = true
                 val node = dialog.getSelectedNode() ?: return
-                SnippetAction.getInstance().runSnippet(node.data, terminal)
+                SnippetAction.getInstance().runSnippet(node.data, writer)
             }
         })
         return btn

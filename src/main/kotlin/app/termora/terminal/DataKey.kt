@@ -189,9 +189,9 @@ class DataKey<T : Any>(val clazz: KClass<T>) {
         val CursorStyle = DataKey(app.termora.terminal.CursorStyle::class)
 
         /**
-         * Pty Connector
+         * TerminalWriter
          */
-        val PtyConnector = DataKey(app.termora.terminal.PtyConnector::class)
+        val TerminalWriter = DataKey(app.termora.terminal.panel.TerminalWriter::class)
     }
 }
 

@@ -1,6 +1,5 @@
 package app.termora.terminal.panel
 
-import app.termora.terminal.PtyConnector
 import app.termora.terminal.Terminal
 import org.slf4j.LoggerFactory
 import java.awt.event.ComponentAdapter
@@ -11,7 +10,7 @@ class TerminalPanelComponentAdapter(
     private val terminalPanel: TerminalPanel,
     private val terminalDisplay: TerminalDisplay,
     private val terminal: Terminal,
-    private val ptyConnector: PtyConnector
+    private val writer: TerminalWriter
 ) : ComponentAdapter() {
 
     companion object {
@@ -30,7 +29,7 @@ class TerminalPanelComponentAdapter(
         // 修改大小
         terminal.getTerminalModel().resize(rows = rows, cols = cols)
         // 修改终端大小
-        ptyConnector.resize(rows, cols)
+        writer.resize(rows, cols)
 
         if (log.isTraceEnabled) {
             log.trace("size: {} , cols: {} , rows: {}", terminalPanel.size, cols, rows)

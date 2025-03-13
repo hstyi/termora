@@ -2,12 +2,6 @@ package app.termora
 
 object Actions {
 
-
-    /**
-     * 将命令发送到多个会话
-     */
-    const val MULTIPLE = "MultipleAction"
-
     /**
      * 关键词高亮
      */

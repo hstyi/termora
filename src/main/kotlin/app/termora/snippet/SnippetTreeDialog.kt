@@ -4,9 +4,12 @@ import app.termora.*
 import org.apache.commons.lang3.StringUtils
 import java.awt.Dimension
 import java.awt.Window
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import javax.swing.BorderFactory
 import javax.swing.JComponent
 import javax.swing.JScrollPane
+import javax.swing.SwingUtilities
 
 class SnippetTreeDialog(owner: Window) : DialogWrapper(owner) {
     private val snippetTree = SnippetTree()
@@ -23,6 +26,15 @@ class SnippetTreeDialog(owner: Window) : DialogWrapper(owner) {
         setLocationRelativeTo(null)
         init()
 
+        snippetTree.addMouseListener(object : MouseAdapter() {
+            override fun mouseClicked(e: MouseEvent) {
+                if (SwingUtilities.isLeftMouseButton(e) && e.clickCount % 2 == 0) {
+                    val node = snippetTree.getLastSelectedPathNode() ?: return
+                    if (node.isFolder) return
+                    doOKAction()
+                }
+            }
+        })
 
         Disposer.register(disposable, object : Disposable {
             override fun dispose() {

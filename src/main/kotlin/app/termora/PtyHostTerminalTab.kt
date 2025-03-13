@@ -23,15 +23,8 @@ abstract class PtyHostTerminalTab(
 
     private var readerJob: Job? = null
     private val ptyConnectorDelegate = PtyConnectorDelegate()
-
-    private val terminalPanelFactory = TerminalPanelFactory.getInstance()
-    protected val terminalPanel = terminalPanelFactory.createTerminalPanel(terminal, ptyConnectorDelegate)
-        .apply { Disposer.register(this@PtyHostTerminalTab, this) }
+    protected val terminalPanel = TerminalPanelFactory.getInstance().createTerminalPanel(terminal, ptyConnectorDelegate)
     protected val ptyConnectorFactory get() = PtyConnectorFactory.getInstance()
-
-    init {
-        terminal.getTerminalModel().setData(DataKey.PtyConnector, ptyConnectorDelegate)
-    }
 
     override fun start() {
         coroutineScope.launch(Dispatchers.IO) {
@@ -122,9 +115,8 @@ abstract class PtyHostTerminalTab(
 
     override fun dispose() {
         stop()
-        terminalPanel
+        Disposer.dispose(terminalPanel)
         super.dispose()
-
 
         if (log.isInfoEnabled) {
             log.info("Host: {} disposed", host.name)
@@ -141,6 +133,8 @@ abstract class PtyHostTerminalTab(
     override fun <T : Any> getData(dataKey: DataKey<T>): T? {
         if (dataKey == DataProviders.TerminalPanel) {
             return terminalPanel as T?
+        } else if (dataKey == DataProviders.TerminalWriter) {
+            return terminalPanel.getData(DataKey.TerminalWriter) as T?
         }
         return super.getData(dataKey)
     }

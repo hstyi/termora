@@ -1,7 +1,9 @@
 package app.termora
 
 
-import app.termora.actions.ActionManager
+import app.termora.actions.AnActionEvent
+import app.termora.actions.DataProviders
+import app.termora.actions.MultipleAction
 import app.termora.terminal.Terminal
 import app.termora.terminal.TerminalColor
 import app.termora.terminal.TextStyle
@@ -9,8 +11,10 @@ import app.termora.terminal.panel.FloatingToolbarPanel
 import app.termora.terminal.panel.TerminalDisplay
 import app.termora.terminal.panel.TerminalPaintListener
 import app.termora.terminal.panel.TerminalPanel
+import org.apache.commons.lang3.StringUtils
 import java.awt.Color
 import java.awt.Graphics
+import java.util.*
 
 class MultipleTerminalListener : TerminalPaintListener {
     override fun after(
@@ -21,9 +25,9 @@ class MultipleTerminalListener : TerminalPaintListener {
         terminalDisplay: TerminalDisplay,
         terminal: Terminal
     ) {
-        if (!ActionManager.getInstance().isSelected(Actions.MULTIPLE)) {
-            return
-        }
+        val windowScope = AnActionEvent(terminalPanel, StringUtils.EMPTY, EventObject(terminalPanel))
+            .getData(DataProviders.WindowScope) ?: return
+        if (!MultipleAction.getInstance(windowScope).isSelected) return
 
         val oldFont = g.font
         val colorPalette = terminal.getTerminalModel().getColorPalette()

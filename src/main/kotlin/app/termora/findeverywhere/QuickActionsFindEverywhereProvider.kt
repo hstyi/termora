@@ -2,21 +2,32 @@ package app.termora.findeverywhere
 
 import app.termora.Actions
 import app.termora.I18n
+import app.termora.WindowScope
+import app.termora.actions.MultipleAction
 
 import org.jdesktop.swingx.action.ActionManager
 
-class QuickActionsFindEverywhereProvider : FindEverywhereProvider {
+class QuickActionsFindEverywhereProvider(private val windowScope: WindowScope) : FindEverywhereProvider {
     private val actions = listOf(
         Actions.KEY_MANAGER,
         Actions.KEYWORD_HIGHLIGHT,
-        Actions.MULTIPLE,
+        MultipleAction.MULTIPLE,
     )
 
     override fun find(pattern: String): List<FindEverywhereResult> {
         val actionManager = ActionManager.getInstance()
-        return actions
-            .mapNotNull { actionManager.getAction(it) }
-            .map { ActionFindEverywhereResult(it) }
+        val results = ArrayList<FindEverywhereResult>()
+        for (action in actions) {
+            val ac = actionManager.getAction(action)
+            if (ac == null) {
+                if (action == MultipleAction.MULTIPLE) {
+                    results.add(ActionFindEverywhereResult(MultipleAction.getInstance(windowScope)))
+                }
+            } else {
+                results.add(ActionFindEverywhereResult(ac))
+            }
+        }
+        return results
     }
 
 

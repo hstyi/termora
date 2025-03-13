@@ -3,6 +3,7 @@ package app.termora.findeverywhere
 import app.termora.DialogWrapper
 import app.termora.DynamicColor
 import app.termora.I18n
+import app.termora.WindowScope
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.macro.MacroFindEverywhereProvider
@@ -18,7 +19,7 @@ import javax.swing.*
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
-class FindEverywhere(owner: Window) : DialogWrapper(owner) {
+class FindEverywhere(owner: Window, windowScope: WindowScope) : DialogWrapper(owner) {
     private val searchTextField = FlatTextField()
     private val model = DefaultListModel<FindEverywhereResult>()
     private val resultList = FindEverywhereXList(model)
@@ -26,7 +27,7 @@ class FindEverywhere(owner: Window) : DialogWrapper(owner) {
     private val providers = mutableListOf<FindEverywhereProvider>(
         BasicFilterFindEverywhereProvider(QuickCommandFindEverywhereProvider()),
         BasicFilterFindEverywhereProvider(SettingsFindEverywhereProvider()),
-        BasicFilterFindEverywhereProvider(QuickActionsFindEverywhereProvider()),
+        BasicFilterFindEverywhereProvider(QuickActionsFindEverywhereProvider(windowScope)),
         BasicFilterFindEverywhereProvider(MacroFindEverywhereProvider()),
     )
 

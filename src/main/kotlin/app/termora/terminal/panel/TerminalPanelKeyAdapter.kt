@@ -2,7 +2,6 @@ package app.termora.terminal.panel
 
 import app.termora.keymap.KeyShortcut
 import app.termora.keymap.KeymapManager
-import app.termora.terminal.PtyConnector
 import app.termora.terminal.Terminal
 import com.formdev.flatlaf.util.SystemInfo
 import java.awt.event.InputEvent
@@ -13,7 +12,7 @@ import javax.swing.KeyStroke
 class TerminalPanelKeyAdapter(
     private val terminalPanel: TerminalPanel,
     private val terminal: Terminal,
-    private val ptyConnector: PtyConnector
+    private val writer: TerminalWriter
 ) : KeyAdapter() {
 
     private val activeKeymap get() = KeymapManager.getInstance().getActiveKeymap()
@@ -24,7 +23,13 @@ class TerminalPanelKeyAdapter(
         }
 
         terminal.getSelectionModel().clearSelection()
-        ptyConnector.write("${e.keyChar}".toByteArray(ptyConnector.getCharset()))
+
+        writer.write(
+            TerminalWriter.WriteRequest.fromBytes(
+                "${e.keyChar}".toByteArray(writer.getCharset())
+            )
+        )
+
         terminal.getScrollingModel().scrollTo(Int.MAX_VALUE)
 
     }
@@ -47,7 +52,11 @@ class TerminalPanelKeyAdapter(
 
         val encode = terminal.getKeyEncoder().encode(AWTTerminalKeyEvent(e))
         if (encode.isNotEmpty()) {
-            ptyConnector.write(encode.toByteArray(ptyConnector.getCharset()))
+            writer.write(
+                TerminalWriter.WriteRequest.fromBytes(
+                    "${e.keyChar}".toByteArray(writer.getCharset())
+                )
+            )
         }
 
         // https://github.com/TermoraDev/termora/issues/52
@@ -64,7 +73,11 @@ class TerminalPanelKeyAdapter(
             terminal.getSelectionModel().clearSelection()
             // 如果不为空表示已经发送过了，所以这里为空的时候再发送
             if (encode.isEmpty()) {
-                ptyConnector.write("${e.keyChar}".toByteArray(ptyConnector.getCharset()))
+                writer.write(
+                    TerminalWriter.WriteRequest.fromBytes(
+                        "${e.keyChar}".toByteArray(writer.getCharset())
+                    )
+                )
             }
             terminal.getScrollingModel().scrollTo(Int.MAX_VALUE)
         }

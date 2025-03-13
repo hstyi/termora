@@ -19,7 +19,8 @@ class PtyConnectorFactory : Disposable {
     companion object {
         private val log = LoggerFactory.getLogger(PtyConnectorFactory::class.java)
         fun getInstance(): PtyConnectorFactory {
-            return ApplicationScope.forApplicationScope().getOrCreate(PtyConnectorFactory::class) { PtyConnectorFactory() }
+            return ApplicationScope.forApplicationScope()
+                .getOrCreate(PtyConnectorFactory::class) { PtyConnectorFactory() }
         }
     }
 
@@ -86,18 +87,12 @@ class PtyConnectorFactory : Disposable {
     }
 
     fun decorate(ptyConnector: PtyConnector): PtyConnector {
-        // 集成转发，如果PtyConnector支持转发那么应该在当前注释行前面代理
-        val multiplePtyConnector = MultiplePtyConnector(ptyConnector)
-        // 宏应该在转发前面执行，不然会导致重复录制
-        val macroPtyConnector = MacroPtyConnector(multiplePtyConnector)
+        // 宏
+        val macroPtyConnector = MacroPtyConnector(ptyConnector)
         // 集成自动删除
         val autoRemovePtyConnector = AutoRemovePtyConnector(macroPtyConnector)
         ptyConnectors.add(autoRemovePtyConnector)
         return autoRemovePtyConnector
-    }
-
-    fun getPtyConnectors(): List<PtyConnector> {
-        return ptyConnectors
     }
 
     private inner class AutoRemovePtyConnector(connector: PtyConnector) : PtyConnectorDelegate(connector) {

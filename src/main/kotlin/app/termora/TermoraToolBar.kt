@@ -1,10 +1,7 @@
 package app.termora
 
 import app.termora.Application.ohMyJson
-import app.termora.actions.ActionManager
-import app.termora.actions.AnAction
-import app.termora.actions.AnActionEvent
-import app.termora.actions.SettingsAction
+import app.termora.actions.*
 import app.termora.findeverywhere.FindEverywhereAction
 import app.termora.snippet.SnippetAction
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
@@ -27,6 +24,7 @@ data class ToolBarAction(
 )
 
 class TermoraToolBar(
+    private val windowScope: WindowScope,
     private val titleBar: WindowDecorations.CustomTitleBar,
     private val tabbedPane: FlatTabbedPane
 ) {
@@ -49,7 +47,7 @@ class TermoraToolBar(
             ToolBarAction(Actions.MACRO, true),
             ToolBarAction(Actions.KEYWORD_HIGHLIGHT, true),
             ToolBarAction(Actions.KEY_MANAGER, true),
-            ToolBarAction(Actions.MULTIPLE, true),
+            ToolBarAction(MultipleAction.MULTIPLE, true),
             ToolBarAction(FindEverywhereAction.FIND_EVERYWHERE, true),
             ToolBarAction(SettingsAction.SETTING, true),
         )
@@ -126,8 +124,13 @@ class TermoraToolBar(
         // 获取显示的Action，如果不是 false 那么就是显示出来
         for (action in getActions()) {
             if (action.visible) {
-                actionManager.getAction(action.id)?.let {
-                    toolbar.add(actionContainerFactory.createButton(it))
+                val ac = actionManager.getAction(action.id)
+                if (ac == null) {
+                    if (action.id == MultipleAction.MULTIPLE) {
+                        toolbar.add(actionContainerFactory.createButton(MultipleAction.getInstance(windowScope)))
+                    }
+                } else {
+                    toolbar.add(actionContainerFactory.createButton(ac))
                 }
             }
         }

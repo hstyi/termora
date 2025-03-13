@@ -34,7 +34,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 
-class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnector) :
+class TerminalPanel(val terminal: Terminal, private val writer: TerminalWriter) :
     JPanel(BorderLayout()), DataProvider, Disposable, VisualWindowManager {
 
     companion object {
@@ -117,6 +117,9 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
 
 
     private fun initView() {
+
+        writer.onMounted(this)
+
         isFocusable = true
         isRequestFocusEnabled = true
         focusTraversalKeysEnabled = false
@@ -146,13 +149,13 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
         // DataProviders
         dataProviderSupport.addData(DataProviders.TerminalPanel, this)
         dataProviderSupport.addData(DataProviders.Terminal, terminal)
-        dataProviderSupport.addData(DataProviders.PtyConnector, ptyConnector)
+        dataProviderSupport.addData(DataProviders.TerminalWriter, writer)
         dataProviderSupport.addData(FloatingToolbarPanel.FloatingToolbar, floatingToolbar)
     }
 
     private fun initEvents() {
 
-        this.addKeyListener(TerminalPanelKeyAdapter(this, terminal, ptyConnector))
+        this.addKeyListener(TerminalPanelKeyAdapter(this, terminal, writer))
 
         this.addFocusListener(object : FocusAdapter() {
             override fun focusLost(e: FocusEvent) {
@@ -165,7 +168,7 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
                 repaintImmediate()
             }
         })
-        this.addComponentListener(TerminalPanelComponentAdapter(this, terminalDisplay, terminal, ptyConnector))
+        this.addComponentListener(TerminalPanelComponentAdapter(this, terminalDisplay, terminal, writer))
 
         // 选中相关
         val mouseAdapter = TerminalPanelMouseSelectionAdapter(this, terminal)
@@ -177,7 +180,7 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
         this.addMouseListener(hyperlinkAdapter)
 
         // 鼠标跟踪
-        val trackingAdapter = TerminalPanelMouseTrackingAdapter(this, terminal, ptyConnector)
+        val trackingAdapter = TerminalPanelMouseTrackingAdapter(this, terminal, writer)
         this.addMouseListener(trackingAdapter)
         this.addMouseWheelListener(trackingAdapter)
 
@@ -329,7 +332,11 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
 
         // 输入法提交
         if (committedCharacterCount > 0) {
-            ptyConnector.write(sb.toString().toByteArray(ptyConnector.getCharset()))
+            writer.write(
+                TerminalWriter.WriteRequest.fromBytes(
+                    sb.toString().toByteArray(writer.getCharset())
+                )
+            )
         } else {
             val breakIterator = BreakIterator.getCharacterInstance()
             val chars = mutableListOf<Char>()
@@ -439,13 +446,17 @@ class TerminalPanel(val terminal: Terminal, private val ptyConnector: PtyConnect
         content = content.replace('\n', '\r')
 
         if (terminal.getTerminalModel().getData(DataKey.BracketedPasteMode, false)) {
-            ptyConnector.write(
-                "${ControlCharacters.ESC}[200~${content}${ControlCharacters.ESC}[201~".toByteArray(
-                    ptyConnector.getCharset()
+            writer.write(
+                TerminalWriter.WriteRequest.fromBytes(
+                    "${ControlCharacters.ESC}[200~${content}${ControlCharacters.ESC}[201~".toByteArray(writer.getCharset())
                 )
             )
         } else {
-            ptyConnector.write(content.toByteArray(ptyConnector.getCharset()))
+            writer.write(
+                TerminalWriter.WriteRequest.fromBytes(
+                    content.toByteArray(writer.getCharset())
+                )
+            )
         }
 
         terminal.getScrollingModel().scrollToRow(

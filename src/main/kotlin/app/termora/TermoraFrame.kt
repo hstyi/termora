@@ -35,7 +35,7 @@ class TermoraFrame : JFrame(), DataProvider {
     private val windowScope = ApplicationScope.forWindowScope(this)
     private val titleBar = LogicCustomTitleBar.createCustomTitleBar(this)
     private val tabbedPane = MyTabbedPane()
-    private val toolbar = TermoraToolBar(titleBar, tabbedPane)
+    private val toolbar = TermoraToolBar(windowScope, titleBar, tabbedPane)
     private val terminalTabbed = TerminalTabbed(windowScope, toolbar, tabbedPane)
     private val isWindowDecorationsSupported by lazy { JBR.isWindowDecorationsSupported() }
     private val dataProviderSupport = DataProviderSupport()
