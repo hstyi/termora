@@ -22,6 +22,7 @@ class OpenLocalTerminalAction : AnAction(
             OpenHostActionEvent(
                 evt.source,
                 Host(
+                    id = "local",
                     name = name,
                     protocol = Protocol.Local
                 ),

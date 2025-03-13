@@ -214,6 +214,21 @@ class TerminalTabbed(
             }
         }
 
+        // 编辑
+        val edit = popupMenu.add(I18n.getString("termora.keymgr.edit"))
+        edit.addActionListener(object : AnAction() {
+            private val hostManager get() = HostManager.getInstance()
+            override fun actionPerformed(evt: AnActionEvent) {
+                if (tab is HostTerminalTab) {
+                    val host = hostManager.getHost(tab.host.id) ?: return
+                    val dialog = HostDialog(evt.window, host)
+                    dialog.setLocationRelativeTo(evt.window)
+                    dialog.isVisible = true
+                    hostManager.addHost(dialog.host ?: return)
+                }
+            }
+        })
+
         // 在新窗口中打开
         val openInNewWindow = popupMenu.add(I18n.getString("termora.tabbed.contextmenu.open-in-new-window"))
         openInNewWindow.addActionListener(object : AnAction() {
@@ -275,6 +290,7 @@ class TerminalTabbed(
         close.isEnabled = tab.canClose()
         rename.isEnabled = close.isEnabled
         clone.isEnabled = close.isEnabled
+        edit.isEnabled = tab is HostTerminalTab && tab.host.id != "local"
         openInNewWindow.isEnabled = close.isEnabled
 
         // 如果不允许克隆
