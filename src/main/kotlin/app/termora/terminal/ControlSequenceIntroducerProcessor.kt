@@ -897,7 +897,6 @@ class ControlSequenceIntroducerProcessor(terminal: Terminal, reader: TerminalRea
                             }
                         }
                     }
-                    break
                 }
 
                 // foreground default
@@ -937,7 +936,6 @@ class ControlSequenceIntroducerProcessor(terminal: Terminal, reader: TerminalRea
                             }
                         }
                     }
-                    break
                 }
 
                 // background default
