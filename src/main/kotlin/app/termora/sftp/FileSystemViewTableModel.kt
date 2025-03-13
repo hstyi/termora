@@ -175,7 +175,11 @@ class FileSystemViewTableModel : DefaultTableModel() {
         /**
          * 文件类型
          */
-        open val type by lazy { NativeFileIcons.getIcon(name, isFile).second }
+        open val type by lazy {
+            if (path.fileSystem.isWindows()) NativeFileIcons.getIcon(name, isFile).second
+            else if (isSymbolicLink) I18n.getString("termora.transport.table.type.symbolic-link")
+            else NativeFileIcons.getIcon(name, isFile).second
+        }
 
         /**
          * 大小
@@ -212,6 +216,8 @@ class FileSystemViewTableModel : DefaultTableModel() {
          */
         open val isHidden by lazy { path.isHidden() }
 
+        open val isSymbolicLink by lazy { path.isSymbolicLink() }
+
         /**
          * 获取权限
          */
@@ -241,6 +247,7 @@ class FileSystemViewTableModel : DefaultTableModel() {
         override val modified = 0L
         override val type = StringUtils.EMPTY
         override val icon by lazy { NativeFileIcons.getFolderIcon() }
+        override val isSymbolicLink = false
 
     }
 
@@ -248,7 +255,8 @@ class FileSystemViewTableModel : DefaultTableModel() {
     class SftpAttr(sftpPath: SftpPath) : Attr(sftpPath) {
         private val attributes = sftpPath.attributes
 
-        override val isDirectory = attributes.isDirectory
+        override val isSymbolicLink = attributes.isSymbolicLink
+        override val isDirectory = if (isSymbolicLink) sftpPath.isDirectory() else attributes.isDirectory
         override val isHidden = name.startsWith(".")
         override val size = attributes.size
         override val owner: String = StringUtils.defaultString(attributes.owner)
