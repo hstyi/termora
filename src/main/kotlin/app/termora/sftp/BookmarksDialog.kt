@@ -1,4 +1,4 @@
-package app.termora.transport
+package app.termora.sftp
 
 import app.termora.DialogWrapper
 import app.termora.DynamicColor

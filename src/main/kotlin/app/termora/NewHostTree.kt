@@ -1,9 +1,8 @@
 package app.termora
 
 import app.termora.Application.ohMyJson
-import app.termora.actions.AnActionEvent
 import app.termora.actions.OpenHostAction
-import app.termora.transport.SFTPAction
+import app.termora.sftp.SFTPActionEvent
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
@@ -46,6 +45,7 @@ class NewHostTree : SimpleTree() {
     private val properties get() = Database.getDatabase().properties
     private val owner get() = SwingUtilities.getWindowAncestor(this)
     private val openHostAction get() = ActionManager.getInstance().getAction(OpenHostAction.OPEN_HOST)
+    private val sftpAction get() = ActionManager.getInstance().getAction(app.termora.Actions.SFTP)
     private var isShowMoreInfo
         get() = properties.getString("HostTree.showMoreInfo", "false").toBoolean()
         set(value) = properties.putString("HostTree.showMoreInfo", value.toString())
@@ -396,10 +396,8 @@ class NewHostTree : SimpleTree() {
         val nodes = getSelectionSimpleTreeNodes(true).map { it.host }.filter { it.protocol == Protocol.SSH }
         if (nodes.isEmpty()) return
 
-        val sftpAction = ActionManager.getInstance().getAction(app.termora.Actions.SFTP) as SFTPAction? ?: return
-        val tab = sftpAction.openOrCreateSFTPTerminalTab(AnActionEvent(this, StringUtils.EMPTY, evt)) ?: return
         for (node in nodes) {
-            sftpAction.connectHost(node, tab)
+            sftpAction.actionPerformed(SFTPActionEvent(this, node.id, evt))
         }
     }
 

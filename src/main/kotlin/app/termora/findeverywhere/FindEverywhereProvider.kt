@@ -5,6 +5,9 @@ import app.termora.Scope
 interface FindEverywhereProvider {
 
     companion object {
+
+        const val SKIP_FIND_EVERYWHERE = "SKIP_FIND_EVERYWHERE"
+
         @Suppress("UNCHECKED_CAST")
         fun getFindEverywhereProviders(scope: Scope): MutableList<FindEverywhereProvider> {
             var list = scope.getAnyOrNull("FindEverywhereProviders")

@@ -47,6 +47,7 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
 
     private fun initView() {
         putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, false)
+        putClientProperty(FindEverywhereProvider.SKIP_FIND_EVERYWHERE, true)
 
         val panel = JPanel(BorderLayout())
         panel.add(createSearchPanel(), BorderLayout.NORTH)

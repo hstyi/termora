@@ -7,6 +7,7 @@ import com.formdev.flatlaf.FlatSystemProperties
 import com.formdev.flatlaf.extras.FlatDesktop
 import com.formdev.flatlaf.extras.FlatDesktop.QuitResponse
 import com.formdev.flatlaf.extras.FlatInspector
+import com.formdev.flatlaf.ui.FlatTableCellBorder
 import com.formdev.flatlaf.util.SystemInfo
 import com.jthemedetecor.OsThemeDetector
 import com.mixpanel.mixpanelapi.ClientDelivery
@@ -29,7 +30,6 @@ import java.nio.channels.FileLock
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.util.*
-import java.util.function.Consumer
 import javax.swing.*
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
@@ -120,15 +120,12 @@ class ApplicationRunner {
 
     private fun startMainFrame() {
 
+
         TermoraFrameManager.getInstance().createWindow().isVisible = true
 
         if (SystemUtils.IS_OS_MAC_OSX) {
             SwingUtilities.invokeLater {
-                FlatDesktop.setQuitHandler(object : Consumer<QuitResponse> {
-                    override fun accept(response: QuitResponse) {
-                        quitHandler(response)
-                    }
-                })
+                FlatDesktop.setQuitHandler { response -> quitHandler(response) }
             }
         }
     }
@@ -172,6 +169,15 @@ class ApplicationRunner {
             JDialog.setDefaultLookAndFeelDecorated(true)
         }
 
+        UIManager.put(
+            "FileChooser.${if (SystemInfo.isWindows) "win32" else "other"}.newFolder",
+            I18n.getString("termora.welcome.contextmenu.new.folder.name")
+        )
+        UIManager.put(
+            "FileChooser.${if (SystemInfo.isWindows) "win32" else "other"}.newFolder.subsequent",
+            "${I18n.getString("termora.welcome.contextmenu.new.folder.name")}.{0}"
+        )
+
         val themeManager = ThemeManager.getInstance()
         val appearance = Database.getDatabase().appearance
         var theme = appearance.theme
@@ -185,6 +191,7 @@ class ApplicationRunner {
         }
 
         themeManager.change(theme, true)
+
 
         if (Application.isUnknownVersion())
             FlatInspector.install("ctrl shift alt X")
@@ -218,9 +225,8 @@ class ApplicationRunner {
         }
 
         UIManager.put("Table.rowHeight", 24)
-        UIManager.put("Table.cellNoFocusBorder", BorderFactory.createEmptyBorder())
-        UIManager.put("Table.focusCellHighlightBorder", BorderFactory.createEmptyBorder())
-        UIManager.put("Table.focusSelectedCellHighlightBorder", BorderFactory.createEmptyBorder())
+        UIManager.put("Table.focusCellHighlightBorder", FlatTableCellBorder.Default())
+        UIManager.put("Table.focusSelectedCellHighlightBorder", FlatTableCellBorder.Default())
         UIManager.put("Table.selectionArc", UIManager.getInt("Component.arc"))
 
         UIManager.put("Tree.rowHeight", 24)

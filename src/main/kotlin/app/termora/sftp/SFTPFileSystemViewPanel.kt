@@ -1,11 +1,9 @@
-package app.termora.transport
+package app.termora.sftp
 
 import app.termora.*
-import app.termora.actions.AnAction
-import app.termora.actions.AnActionEvent
-import app.termora.keyboardinteractive.TerminalUserInteraction
+import app.termora.actions.DataProvider
+import app.termora.terminal.DataKey
 import com.formdev.flatlaf.icons.FlatOptionPaneErrorIcon
-import com.formdev.flatlaf.icons.FlatOptionPaneInformationIcon
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import kotlinx.coroutines.*
@@ -23,15 +21,18 @@ import org.slf4j.LoggerFactory
 import java.awt.BorderLayout
 import java.awt.CardLayout
 import java.awt.event.ActionEvent
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.*
 
-class SftpFileSystemPanel(
-    var host: Host? = null
-) : JPanel(BorderLayout()), Disposable {
+class SFTPFileSystemViewPanel(
+    var host: Host? = null,
+    private val transportManager: TransportManager,
+) : JPanel(BorderLayout()), Disposable, DataProvider {
 
     companion object {
-        private val log = LoggerFactory.getLogger(SftpFileSystemPanel::class.java)
+        private val log = LoggerFactory.getLogger(SFTPFileSystemViewPanel::class.java)
 
         private enum class State {
             Initialized,
@@ -50,11 +51,14 @@ class SftpFileSystemPanel(
     private val selectHostPanel = SelectHostPanel()
     private val connectFailedPanel = ConnectFailedPanel()
     private val isDisposed = AtomicBoolean(false)
+    private val that = this
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val properties get() = Database.getDatabase().properties
 
     private var client: SshClient? = null
     private var session: ClientSession? = null
     private var fileSystem: SftpFileSystem? = null
-    var fileSystemPanel: FileSystemPanel? = null
+    private var fileSystemPanel: FileSystemViewPanel? = null
 
 
     init {
@@ -71,12 +75,11 @@ class SftpFileSystemPanel(
     }
 
     private fun initEvents() {
-
+        Disposer.register(this, selectHostPanel)
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
     fun connect() {
-        GlobalScope.launch(Dispatchers.IO) {
+        coroutineScope.launch {
             if (state != State.Connecting) {
                 state = State.Connecting
 
@@ -100,42 +103,17 @@ class SftpFileSystemPanel(
                     connectingPanel.stop()
                 }
             }
-
         }
     }
 
     private suspend fun doConnect() {
-
         val thisHost = this.host ?: return
-        var host = thisHost.copy(authentication = thisHost.authentication.copy(), updateDate = System.currentTimeMillis())
 
         closeIO()
 
         try {
-            val client = SshClients.openClient(host).apply { client = this }
-            withContext(Dispatchers.Swing) {
-                val owner = SwingUtilities.getWindowAncestor(this@SftpFileSystemPanel)
-                client.userInteraction = TerminalUserInteraction(owner)
-                client.serverKeyVerifier = DialogServerKeyVerifier(owner)
-                // 弹出授权框
-                if (host.authentication.type == AuthenticationType.No) {
-                    val dialog = RequestAuthenticationDialog(owner, host)
-                    val authentication = dialog.getAuthentication()
-                    host = host.copy(
-                        authentication = authentication,
-                        username = dialog.getUsername(), updateDate = System.currentTimeMillis(),
-                    )
-                    // save
-                    if (dialog.isRemembered()) {
-                        HostManager.getInstance().addHost(
-                            host.copy(
-                                authentication = authentication,
-                                username = dialog.getUsername(), updateDate = System.currentTimeMillis(),
-                            )
-                        )
-                    }
-                }
-            }
+            val (client, host) = SshClients.openClient(thisHost, SwingUtilities.getWindowAncestor(that))
+            this.client = client
             val session = SshClients.openSession(host, client).apply { session = this }
             fileSystem = SftpClientFactory.instance().createSftpFileSystem(session)
             session.addCloseFutureListener { onClose() }
@@ -152,18 +130,10 @@ class SftpFileSystemPanel(
 
         withContext(Dispatchers.Swing) {
             state = State.Connected
-
-            val fileSystemPanel = FileSystemPanel(fileSystem, host)
-
+            val fileSystemPanel = FileSystemViewPanel(thisHost, fileSystem, transportManager, coroutineScope)
             cardPanel.add(fileSystemPanel, State.Connected.name)
             cardLayout.show(cardPanel, State.Connected.name)
-
-            firePropertyChange("TabName", StringUtils.EMPTY, host.name)
-
-            this@SftpFileSystemPanel.fileSystemPanel = fileSystemPanel
-
-            // 立即加载
-            fileSystemPanel.reload()
+            that.fileSystemPanel = fileSystemPanel
         }
 
     }
@@ -199,6 +169,7 @@ class SftpFileSystemPanel(
     override fun dispose() {
         if (isDisposed.compareAndSet(false, true)) {
             closeIO()
+            coroutineScope.cancel()
         }
     }
 
@@ -269,7 +240,7 @@ class SftpFileSystemPanel(
                 AbstractAction(I18n.getString("termora.transport.sftp.select-another-host")) {
                 override fun actionPerformed(e: ActionEvent) {
                     state = State.Initialized
-                    this@SftpFileSystemPanel.firePropertyChange("TabName", StringUtils.SPACE, StringUtils.EMPTY)
+                    that.setTabTitle(I18n.getString("termora.transport.sftp.select-host"))
                     cardLayout.show(cardPanel, State.Initialized.name)
                 }
             }).apply {
@@ -281,44 +252,65 @@ class SftpFileSystemPanel(
         }
     }
 
-    private inner class SelectHostPanel : JPanel(BorderLayout()) {
+    private inner class SelectHostPanel : JPanel(BorderLayout()), Disposable {
+        private val tree = NewHostTree()
+
         init {
             initView()
+            initEvents()
         }
 
         private fun initView() {
-            val formMargin = "4dlu"
-            val layout = FormLayout(
-                "default:grow, pref, default:grow",
-                "40dlu, pref, $formMargin, pref, $formMargin, pref"
-            )
+            tree.contextmenu = false
+            tree.dragEnabled = false
+            tree.doubleClickConnection = false
 
+            val scrollPane = JScrollPane(tree)
+            scrollPane.border = BorderFactory.createEmptyBorder(4, 4, 4, 4)
+            add(scrollPane, BorderLayout.CENTER)
 
-            val errorInfo = JLabel(I18n.getString("termora.transport.sftp.connect-a-host"))
-            errorInfo.horizontalAlignment = SwingConstants.CENTER
+            TreeUtils.loadExpansionState(tree, properties.getString("SFTPTabbed.Tree.state", StringUtils.EMPTY))
+        }
 
-            val builder = FormBuilder.create().layout(layout).debug(false)
-            builder.add(FlatOptionPaneInformationIcon()).xy(2, 2)
-            builder.add(errorInfo).xyw(1, 4, 3, "fill, center")
-            builder.add(JXHyperlink(object : AnAction(I18n.getString("termora.transport.sftp.select-host")) {
-                override fun actionPerformed(evt: AnActionEvent) {
-                    val dialog = NewHostTreeDialog(evt.window)
-                    dialog.setFilter { it.host.protocol == Protocol.SSH }
-                    dialog.setTreeName("SftpFileSystemPanel.SelectHostTree")
-                    dialog.allowMulti = false
-                    dialog.setLocationRelativeTo(this@SelectHostPanel)
-                    dialog.isVisible = true
-                    this@SftpFileSystemPanel.host = dialog.hosts.firstOrNull() ?: return
-                    connect()
+        private fun initEvents() {
+            tree.addMouseListener(object : MouseAdapter() {
+                override fun mouseClicked(e: MouseEvent) {
+                    if (SwingUtilities.isLeftMouseButton(e) && e.clickCount % 2 == 0) {
+                        val node = tree.getLastSelectedPathNode() ?: return
+                        if (node.isFolder) return
+                        val host = node.data as Host
+                        that.setTabTitle(host.name)
+                        that.host = host
+                        that.connect()
+                    }
                 }
-            }).apply {
-                horizontalAlignment = SwingConstants.CENTER
-                verticalAlignment = SwingConstants.CENTER
-                isFocusable = false
-            }).xy(2, 6)
-            add(builder.build(), BorderLayout.CENTER)
+            })
+        }
+
+        override fun dispose() {
+            properties.putString("SFTPTabbed.Tree.state", TreeUtils.saveExpansionState(tree))
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : Any> getData(dataKey: DataKey<T>): T? {
+        return when (dataKey) {
+            SFTPDataProviders.FileSystemViewPanel -> fileSystemPanel as T?
+            SFTPDataProviders.CoroutineScope -> coroutineScope as T?
+            else -> null
+        }
+    }
+
+    private fun setTabTitle(title: String) {
+        val tabbed = SwingUtilities.getAncestorOfClass(JTabbedPane::class.java, that)
+        if (tabbed is JTabbedPane) {
+            for (i in 0 until tabbed.tabCount) {
+                if (tabbed.getComponentAt(i) == that) {
+                    tabbed.setTitleAt(i, title)
+                    break
+                }
+            }
+        }
+    }
 
 }

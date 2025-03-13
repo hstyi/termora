@@ -6,9 +6,9 @@ import app.termora.findeverywhere.FindEverywhereAction
 import app.termora.highlight.KeywordHighlightAction
 import app.termora.keymgr.KeyManagerAction
 import app.termora.macro.MacroAction
+import app.termora.sftp.SFTPAction
 import app.termora.snippet.SnippetAction
 import app.termora.tlog.TerminalLoggerAction
-import app.termora.transport.SFTPAction
 import javax.swing.Action
 
 class ActionManager : org.jdesktop.swingx.action.ActionManager() {

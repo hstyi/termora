@@ -43,6 +43,8 @@ interface TerminalTab : Disposable, DataProvider {
      */
     fun canClose(): Boolean = true
 
+    fun willBeClose(): Boolean = true
+
     /**
      * 是否可以克隆
      */

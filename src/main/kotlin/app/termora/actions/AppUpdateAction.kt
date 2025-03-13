@@ -73,6 +73,9 @@ class AppUpdateAction private constructor() : AnAction(
     }
 
     private suspend fun checkUpdate() {
+        if (Application.isUnknownVersion()) {
+            return
+        }
 
         val latestVersion = updaterManager.fetchLatestVersion()
         if (latestVersion.isSelf) {
@@ -220,7 +223,10 @@ class AppUpdateAction private constructor() : AnAction(
         // 没有安装过 则打开安装向导
         else listOf(file.absolutePath)
 
-        println(commands)
+        if (log.isInfoEnabled) {
+            log.info("restart {}", commands.joinToString(StringUtils.SPACE))
+        }
+
         TermoraRestarter.getInstance().scheduleRestart(owner, commands)
 
     }

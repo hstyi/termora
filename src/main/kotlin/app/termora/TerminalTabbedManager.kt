@@ -7,4 +7,5 @@ interface TerminalTabbedManager {
     fun getTerminalTabs(): List<TerminalTab>
     fun setSelectedTerminalTab(tab: TerminalTab)
     fun closeTerminalTab(tab: TerminalTab, disposable: Boolean = true)
+    fun refreshTerminalTabs()
 }

@@ -13,6 +13,7 @@ object Icons {
     val openInNewWindow by lazy { DynamicIcon("icons/openInNewWindow.svg", "icons/openInNewWindow_dark.svg") }
     val openInToolWindow by lazy { DynamicIcon("icons/openInToolWindow.svg", "icons/openInToolWindow_dark.svg") }
     val searchHistory by lazy { DynamicIcon("icons/searchHistory.svg", "icons/searchHistory_dark.svg") }
+    val inspectionsEye by lazy { DynamicIcon("icons/inspectionsEye.svg", "icons/inspectionsEye_dark.svg") }
     val eye by lazy { DynamicIcon("icons/eye.svg", "icons/eye_dark.svg") }
     val eyeClose by lazy { DynamicIcon("icons/eyeClose.svg", "icons/eyeClose_dark.svg") }
     val matchCase by lazy { DynamicIcon("icons/matchCase.svg", "icons/matchCase_dark.svg") }
@@ -32,6 +33,7 @@ object Icons {
     val percentage by lazy { DynamicIcon("icons/percentage.svg", "icons/percentage_dark.svg") }
     val text by lazy { DynamicIcon("icons/text.svg", "icons/text_dark.svg") }
     val errorIntroduction by lazy { DynamicIcon("icons/errorIntroduction.svg", "icons/errorIntroduction_dark.svg") }
+    val warningIntroduction by lazy { DynamicIcon("icons/warningIntroduction.svg", "icons/warningIntroduction_dark.svg") }
     val networkPolicy by lazy { DynamicIcon("icons/networkPolicy.svg", "icons/networkPolicy_dark.svg") }
     val clusterRole by lazy { DynamicIcon("icons/clusterRole.svg", "icons/clusterRole_dark.svg") }
     val daemonSets by lazy { DynamicIcon("icons/daemonSets.svg", "icons/daemonSets_dark.svg") }
@@ -50,6 +52,7 @@ object Icons {
     val moreVertical by lazy { DynamicIcon("icons/moreVertical.svg", "icons/moreVertical_dark.svg") }
     val colors by lazy { DynamicIcon("icons/colors.svg", "icons/colors_dark.svg") }
     val chevronDown by lazy { DynamicIcon("icons/chevronDownLarge.svg", "icons/chevronDownLarge_dark.svg") }
+    val chevronRight by lazy { DynamicIcon("icons/chevronRight.svg", "icons/chevronRight_dark.svg") }
     val homeFolder by lazy { DynamicIcon("icons/homeFolder.svg", "icons/homeFolder_dark.svg") }
     val openNewTab by lazy { DynamicIcon("icons/openNewTab.svg", "icons/openNewTab_dark.svg") }
     val import by lazy { DynamicIcon("icons/import.svg", "icons/import_dark.svg") }

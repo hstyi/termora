@@ -6,7 +6,6 @@ import app.termora.findeverywhere.BasicFilterFindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereResult
 import app.termora.terminal.DataKey
-import app.termora.transport.TransportPanel
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
@@ -121,7 +120,7 @@ class TerminalTabbed(
                     val results = mutableListOf<FindEverywhereResult>()
                     for (i in 0 until tabbedPane.tabCount) {
                         val c = tabbedPane.getComponentAt(i)
-                        if (c is WelcomePanel || c is TransportPanel) {
+                        if (c is JComponent && c.getClientProperty(FindEverywhereProvider.SKIP_FIND_EVERYWHERE) != null) {
                             continue
                         }
                         results.add(
@@ -155,7 +154,7 @@ class TerminalTabbed(
             val tab = tabs[index]
 
             if (disposable) {
-                if (!tab.canClose()) {
+                if (!tab.willBeClose()) {
                     return
                 }
             }
@@ -326,6 +325,13 @@ class TerminalTabbed(
 
         Disposer.register(this, tab)
     }
+
+    override fun refreshTerminalTabs() {
+        for (i in 0 until tabbedPane.tabCount) {
+            tabbedPane.setTabClosable(i, tabs[i].canClose())
+        }
+    }
+
 
     private fun openSFTPPtyTab(tab: HostTerminalTab, openHostAction: Action, evt: EventObject) {
         if (!SFTPPtyTerminalTab.canSupports) {

@@ -3,11 +3,10 @@ package app.termora
 import org.apache.commons.lang3.StringUtils
 import java.awt.Dimension
 import java.awt.Window
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import java.util.function.Function
-import javax.swing.BorderFactory
-import javax.swing.JComponent
-import javax.swing.JScrollPane
-import javax.swing.UIManager
+import javax.swing.*
 
 class NewHostTreeDialog(
     owner: Window,
@@ -19,7 +18,7 @@ class NewHostTreeDialog(
     private val tree = NewHostTree()
 
     init {
-        size = Dimension(UIManager.getInt("Dialog.width") - 200, UIManager.getInt("Dialog.height") - 150)
+        size = Dimension(UIManager.getInt("Dialog.width") - 250, UIManager.getInt("Dialog.height") - 150)
         isModal = true
         isResizable = false
         controlsVisible = false
@@ -29,6 +28,15 @@ class NewHostTreeDialog(
         tree.doubleClickConnection = false
         tree.dragEnabled = false
 
+        tree.addMouseListener(object : MouseAdapter() {
+            override fun mouseClicked(e: MouseEvent) {
+                if (SwingUtilities.isLeftMouseButton(e) && e.clickCount % 2 == 0) {
+                    val node = tree.getLastSelectedPathNode() ?: return
+                    if (node.isFolder) return
+                    doOKAction()
+                }
+            }
+        })
 
 
         init()

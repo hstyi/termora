@@ -4,7 +4,7 @@ import java.util.*
 
 @Suppress("MemberVisibilityCanBePrivate")
 class TerminalReader {
-    private val buffer = LinkedList<Char>()
+    private val buffer = ArrayDeque<Char>()
 
 
     fun addLast(char: Char) {
@@ -12,7 +12,9 @@ class TerminalReader {
     }
 
     fun addFirst(chars: List<Char>) {
-        buffer.addAll(0, chars)
+        for (i in chars.size - 1 downTo 0) {
+            addFirst(chars[i])
+        }
     }
 
 
@@ -25,7 +27,7 @@ class TerminalReader {
     }
 
     fun addLast(text: String) {
-        text.toCharArray().forEach { addLast(it) }
+        text.forEach { addLast(it) }
     }
 
     fun read(): Char {

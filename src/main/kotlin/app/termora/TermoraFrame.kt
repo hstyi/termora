@@ -4,6 +4,7 @@ package app.termora
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviderSupport
 import app.termora.actions.DataProviders
+import app.termora.sftp.SFTPTab
 import app.termora.terminal.DataKey
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatLaf
@@ -103,7 +104,7 @@ class TermoraFrame : JFrame(), DataProvider {
         // 下一次事件循环检测是否固定 SFTP
         SwingUtilities.invokeLater {
             if (sftp.pinTab) {
-                terminalTabbed.addTerminalTab(SFTPTerminalTab(), false)
+                terminalTabbed.addTerminalTab(SFTPTab(), false)
             }
         }
 

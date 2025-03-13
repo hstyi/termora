@@ -606,11 +606,21 @@ class Database private constructor(private val env: Environment) : Disposable {
          */
         var sftpCommand by StringPropertyDelegate(StringUtils.EMPTY)
 
+        /**
+         * defaultDirectory
+         */
+        var defaultDirectory by StringPropertyDelegate(StringUtils.EMPTY)
+
 
         /**
          * 是否固定在标签栏
          */
         var pinTab by BooleanPropertyDelegate(false)
+
+        /**
+         * 是否保留原始文件时间
+         */
+        var preserveModificationTime by BooleanPropertyDelegate(false)
 
     }
 

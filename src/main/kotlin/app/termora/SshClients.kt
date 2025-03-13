@@ -1,7 +1,11 @@
 package app.termora
 
+import app.termora.keyboardinteractive.TerminalUserInteraction
 import app.termora.keymgr.OhKeyPairKeyPairProvider
 import app.termora.terminal.TerminalSize
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.swing.Swing
+import kotlinx.coroutines.withContext
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.sshd.client.ClientBuilder
@@ -16,6 +20,7 @@ import org.apache.sshd.client.keyverifier.KnownHostsServerKeyVerifier
 import org.apache.sshd.client.keyverifier.ModifiedServerKeyAcceptor
 import org.apache.sshd.client.keyverifier.ServerKeyVerifier
 import org.apache.sshd.client.session.ClientSession
+import org.apache.sshd.common.AttributeRepository
 import org.apache.sshd.common.SshException
 import org.apache.sshd.common.channel.PtyChannelConfiguration
 import org.apache.sshd.common.config.keys.KeyUtils
@@ -48,6 +53,9 @@ import javax.swing.SwingUtilities
 import kotlin.math.max
 
 object SshClients {
+
+    val HOST_KEY = AttributeRepository.AttributeKey<Host>()
+
     private val timeout = Duration.ofSeconds(30)
     private val log by lazy { LoggerFactory.getLogger(SshClients::class.java) }
 
@@ -151,7 +159,8 @@ object SshClients {
                     log.info("jump host: ${currentHost.host}:${currentHost.port} , next host: ${nextHost.host}:${nextHost.port} , local address: ${address.hostName}:${address.port}")
                 }
                 // 映射完毕之后修改Host和端口
-                jumpHosts[i + 1] = nextHost.copy(host = address.hostName, port = address.port, updateDate = System.currentTimeMillis())
+                jumpHosts[i + 1] =
+                    nextHost.copy(host = address.hostName, port = address.port, updateDate = System.currentTimeMillis())
             }
         }
 
@@ -191,6 +200,8 @@ object SshClients {
             throw SshException("Authentication failed")
         }
 
+        session.setAttribute(HOST_KEY, host)
+
         return session
     }
 
@@ -228,6 +239,29 @@ object SshClients {
         }
 
         return sshdSocketAddress
+    }
+
+    suspend fun openClient(host: Host, owner: Window): Pair<SshClient, Host> {
+        val client = openClient(host)
+        var myHost = host
+        withContext(Dispatchers.Swing) {
+            client.userInteraction = TerminalUserInteraction(owner)
+            client.serverKeyVerifier = DialogServerKeyVerifier(owner)
+            // 弹出授权框
+            if (host.authentication.type == AuthenticationType.No) {
+                val dialog = RequestAuthenticationDialog(owner, host)
+                val authentication = dialog.getAuthentication()
+                myHost = myHost.copy(
+                    authentication = authentication,
+                    username = dialog.getUsername(), updateDate = System.currentTimeMillis(),
+                )
+                // save
+                if (dialog.isRemembered()) {
+                    HostManager.getInstance().addHost(myHost)
+                }
+            }
+        }
+        return client to myHost
     }
 
     /**

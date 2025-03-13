@@ -35,6 +35,11 @@ class FileChooser {
         } else {
             val fileChooser = JnaFileChooser()
             fileChooser.isMultiSelectionEnabled = allowsMultiSelection
+            when (fileSelectionMode) {
+                JFileChooser.DIRECTORIES_ONLY -> fileChooser.mode = JnaFileChooser.Mode.Directories
+                JFileChooser.FILES_ONLY -> fileChooser.mode = JnaFileChooser.Mode.Files
+                JFileChooser.FILES_AND_DIRECTORIES -> fileChooser.mode = JnaFileChooser.Mode.FilesAndDirectories
+            }
             fileChooser.setTitle(title)
 
             if (defaultDirectory.isNotBlank()) {

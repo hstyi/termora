@@ -47,6 +47,8 @@ class EditHostOptionsPane(private val host: Host) : HostOptionsPane() {
         serialCommOption.parityComboBox.selectedItem = serialComm.parity
         serialCommOption.stopBitsComboBox.selectedItem = serialComm.stopBits
         serialCommOption.flowControlComboBox.selectedItem = serialComm.flowControl
+
+        sftpOption.defaultDirectoryField.text = host.options.sftpDefaultDirectory
     }
 
     override fun getHost(): Host {

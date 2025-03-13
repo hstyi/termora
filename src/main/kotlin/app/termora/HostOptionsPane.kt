@@ -29,6 +29,7 @@ open class HostOptionsPane : OptionsPane() {
     protected val terminalOption = TerminalOption()
     protected val jumpHostsOption = JumpHostsOption()
     protected val serialCommOption = SerialCommOption()
+    protected val sftpOption = SFTPOption()
     protected val owner: Window get() = SwingUtilities.getWindowAncestor(this)
 
     init {
@@ -38,6 +39,7 @@ open class HostOptionsPane : OptionsPane() {
         addOption(jumpHostsOption)
         addOption(terminalOption)
         addOption(serialCommOption)
+        addOption(sftpOption)
 
         setContentBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8))
     }
@@ -91,7 +93,8 @@ open class HostOptionsPane : OptionsPane() {
             startupCommand = terminalOption.startupCommandTextField.text,
             heartbeatInterval = (terminalOption.heartbeatIntervalTextField.value ?: 30) as Int,
             jumpHosts = jumpHostsOption.jumpHosts.map { it.id },
-            serialComm = serialComm
+            serialComm = serialComm,
+            sftpDefaultDirectory = sftpOption.defaultDirectoryField.text
         )
 
         return Host(
@@ -662,6 +665,54 @@ open class HostOptionsPane : OptionsPane() {
                 .add("${I18n.getString("termora.new-host.terminal.env")}:").xy(1, rows)
                 .add(JScrollPane(environmentTextArea).apply { border = FlatTextBorder() }).xy(3, rows)
                 .apply { rows += step }
+                .build()
+
+
+            return panel
+        }
+    }
+
+    protected inner class SFTPOption : JPanel(BorderLayout()), Option {
+        val defaultDirectoryField = OutlineTextField(255)
+
+
+        init {
+            initView()
+            initEvents()
+        }
+
+        private fun initView() {
+            add(getCenterComponent(), BorderLayout.CENTER)
+        }
+
+        private fun initEvents() {
+
+        }
+
+
+        override fun getIcon(isSelected: Boolean): Icon {
+            return Icons.folder
+        }
+
+        override fun getTitle(): String {
+            return "SFTP"
+        }
+
+        override fun getJComponent(): JComponent {
+            return this
+        }
+
+        private fun getCenterComponent(): JComponent {
+            val layout = FormLayout(
+                "left:pref, $formMargin, default:grow, $formMargin",
+                "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
+            )
+
+            var rows = 1
+            val step = 2
+            val panel = FormBuilder.create().layout(layout)
+                .add("${I18n.getString("termora.settings.sftp.default-directory")}:").xy(1, rows)
+                .add(defaultDirectoryField).xy(3, rows).apply { rows += step }
                 .build()
 
 

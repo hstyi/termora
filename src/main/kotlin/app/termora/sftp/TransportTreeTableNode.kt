@@ -1,0 +1,72 @@
+package app.termora.sftp
+
+import app.termora.I18n
+import app.termora.formatBytes
+import app.termora.formatSeconds
+import org.apache.commons.io.file.PathUtils
+import org.apache.sshd.sftp.client.fs.SftpFileSystem
+import org.eclipse.jgit.internal.transport.sshd.JGitClientSession
+import org.jdesktop.swingx.treetable.DefaultMutableTreeTableNode
+import java.nio.file.Path
+import kotlin.io.path.absolutePathString
+
+class TransportTreeTableNode(transport: Transport) : DefaultMutableTreeTableNode(transport) {
+    val transport get() = userObject as Transport
+
+    override fun getValueAt(column: Int): Any {
+        val isProcessing = transport.status == TransportStatus.Processing
+        val speed = if (isProcessing) transport.speed else 0
+        val estimatedTime = if (isProcessing && speed > 0)
+            (transport.filesize.get() - transport.transferredFilesize.get()) / speed else 0
+
+        return when (column) {
+            TransportTableModel.COLUMN_NAME -> PathUtils.getFileNameString(transport.source)
+            TransportTableModel.COLUMN_STATUS -> formatStatus(transport.status)
+            TransportTableModel.COLUMN_SIZE -> size()
+            TransportTableModel.COLUMN_SPEED -> if (isProcessing) formatBytes(speed) + "/s" else "-"
+            TransportTableModel.COLUMN_ESTIMATED_TIME -> if (isProcessing) formatSeconds(estimatedTime) else "-"
+            TransportTableModel.COLUMN_SOURCE_PATH -> formatPath(transport.source)
+            TransportTableModel.COLUMN_TARGET_PATH -> formatPath(transport.target)
+            else -> super.getValueAt(column)
+        }
+    }
+
+    private fun formatPath(path: Path): String {
+        if (path.fileSystem.isSFTP()) {
+            val hostname = ((path.fileSystem as SftpFileSystem).session as JGitClientSession).hostConfigEntry.hostName
+            return hostname + ":" + path.absolutePathString()
+        }
+        return path.toUri().scheme + ":" + path.absolutePathString()
+    }
+
+    private fun formatStatus(status: TransportStatus): String {
+        return when (status) {
+            TransportStatus.Processing -> I18n.getString("termora.transport.sftp.status.transporting")
+            TransportStatus.Ready -> I18n.getString("termora.transport.sftp.status.waiting")
+            TransportStatus.Done -> I18n.getString("termora.transport.sftp.status.done")
+            TransportStatus.Failed -> I18n.getString("termora.transport.sftp.status.failed")
+        }
+    }
+
+    private fun size(): String {
+        val transferredFilesize = transport.transferredFilesize.get()
+        val filesize = transport.filesize.get()
+        if (transferredFilesize <= 0) return formatBytes(filesize)
+        return "${formatBytes(transferredFilesize)}/${formatBytes(filesize)}"
+    }
+
+    override fun getColumnCount(): Int {
+        return TransportTableModel.COLUMN_COUNT
+    }
+
+    fun visit(consumer: (TransportTreeTableNode) -> Unit) {
+        if (childCount == 0) return
+        for (child in children()) {
+            if (child is TransportTreeTableNode) {
+                child.visit(consumer)
+                consumer.invoke(child)
+            }
+        }
+    }
+
+}

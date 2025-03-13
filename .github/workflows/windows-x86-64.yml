@@ -45,5 +45,4 @@ jobs:
           name: termora-windows-x86-64
           path: |
             build/distributions/*.zip
-            build/distributions/*.msi
             build/distributions/*.exe

@@ -132,6 +132,11 @@ data class Options(
      * 串口配置
      */
     val serialComm: SerialComm = SerialComm(),
+
+    /**
+     * SFTP 默认目录
+     */
+    val sftpDefaultDirectory: String = StringUtils.EMPTY,
 ) {
     companion object {
         val Default = Options()

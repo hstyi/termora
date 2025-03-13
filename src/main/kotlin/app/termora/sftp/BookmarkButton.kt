@@ -1,15 +1,10 @@
-package app.termora.transport
+package app.termora.sftp
 
+import app.termora.*
 import app.termora.Application.ohMyJson
-import app.termora.DynamicColor
-import app.termora.I18n
-import app.termora.Icons
-import app.termora.assertEventDispatchThread
-import app.termora.Database
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.ui.FlatUIUtils
-import kotlinx.serialization.encodeToString
 import org.apache.commons.lang3.StringUtils
 import java.awt.*
 import java.awt.event.ActionEvent
@@ -23,6 +18,7 @@ class BookmarkButton : JButton(Icons.bookmarks) {
     private val properties by lazy { Database.getDatabase().properties }
     private val arrowWidth = 16
     private val arrowSize = 6
+    private val button = this
 
     /**
      * 为 true 表示在书签内
@@ -49,13 +45,15 @@ class BookmarkButton : JButton(Icons.bookmarks) {
             override fun mouseClicked(e: MouseEvent) {
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     if (e.x < oldWidth) {
-                        super@BookmarkButton.fireActionPerformed(
-                            ActionEvent(
-                                this@BookmarkButton,
-                                ActionEvent.ACTION_PERFORMED,
-                                StringUtils.EMPTY
+                        for (listener in actionListeners) {
+                            listener.actionPerformed(
+                                ActionEvent(
+                                    button,
+                                    ActionEvent.ACTION_PERFORMED,
+                                    StringUtils.EMPTY
+                                )
                             )
-                        )
+                        }
                     } else {
                         showBookmarks(e)
                     }
@@ -80,13 +78,15 @@ class BookmarkButton : JButton(Icons.bookmarks) {
             popupMenu.addSeparator()
             for (bookmark in bookmarks) {
                 popupMenu.add(bookmark).addActionListener {
-                    super@BookmarkButton.fireActionPerformed(
-                        ActionEvent(
-                            this@BookmarkButton,
-                            ActionEvent.ACTION_PERFORMED,
-                            bookmark
+                    for (listener in actionListeners) {
+                        listener.actionPerformed(
+                            ActionEvent(
+                                button,
+                                ActionEvent.ACTION_PERFORMED,
+                                bookmark
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
@@ -140,7 +140,7 @@ class BookmarkButton : JButton(Icons.bookmarks) {
 
         g.color = if (FlatLaf.isLafDark()) Color(206, 208, 214) else Color(108, 112, 126)
 
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         FlatUIUtils.paintArrow(
             g2d, x, preferredSize.height / 2 - arrowSize, arrowWidth, arrowWidth, SwingConstants.SOUTH,
             false, arrowSize, 0f, 0f, 0f

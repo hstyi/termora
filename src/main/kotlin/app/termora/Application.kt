@@ -150,6 +150,16 @@ object Application {
             ProcessBuilder("xdg-open", uri.toString()).start()
         }
     }
+
+    fun browseInFolder(file: File) {
+        if (SystemInfo.isWindows) {
+            ProcessBuilder("explorer", "/select," + file.absolutePath).start()
+        } else if (SystemInfo.isMacOS) {
+            ProcessBuilder("open", "-R", file.absolutePath).start()
+        } else if (Desktop.getDesktop().isSupported(Desktop.Action.BROWSE_FILE_DIR)) {
+            Desktop.getDesktop().browseFileDirectory(file)
+        }
+    }
 }
 
 fun formatBytes(bytes: Long): String {
@@ -159,7 +169,7 @@ fun formatBytes(bytes: Long): String {
     val exp = (ln(bytes.toDouble()) / ln(1024.0)).toInt()
     val value = bytes / 1024.0.pow(exp.toDouble())
 
-    return String.format("%.2f %s", value, units[exp])
+    return String.format("%.2f%s", value, units[exp])
 }
 
 fun formatSeconds(seconds: Long): String {
@@ -168,11 +178,33 @@ fun formatSeconds(seconds: Long): String {
     val minutes = (seconds % 3600) / 60
     val remainingSeconds = seconds % 60
 
+
     return when {
-        days > 0 -> "${days}天${hours}小时${minutes}分${remainingSeconds}秒"
-        hours > 0 -> "${hours}小时${minutes}分${remainingSeconds}秒"
-        minutes > 0 -> "${minutes}分${remainingSeconds}秒"
-        else -> "${remainingSeconds}秒"
+        days > 0 -> I18n.getString(
+            "termora.transport.jobs.table.estimated-time-days-format",
+            days,
+            hours,
+            minutes,
+            remainingSeconds
+        )
+
+        hours > 0 -> I18n.getString(
+            "termora.transport.jobs.table.estimated-time-hours-format",
+            hours,
+            minutes,
+            remainingSeconds
+        )
+
+        minutes > 0 -> I18n.getString(
+            "termora.transport.jobs.table.estimated-time-minutes-format",
+            minutes,
+            remainingSeconds
+        )
+
+        else -> I18n.getString(
+            "termora.transport.jobs.table.estimated-time-seconds-format",
+            remainingSeconds
+        )
     }
 }
 

@@ -33,14 +33,21 @@ class PtyConnectorFactory : Disposable {
         if (SystemUtils.IS_OS_UNIX) {
             commands.add("-l")
         }
-        return createPtyConnector(commands.toTypedArray(), rows, cols, env, charset)
+        return createPtyConnector(
+            commands = commands.toTypedArray(),
+            rows = rows,
+            cols = cols,
+            env = env,
+            charset = charset
+        )
     }
 
     fun createPtyConnector(
         commands: Array<String>,
         rows: Int = 24, cols: Int = 80,
         env: Map<String, String> = emptyMap(),
-        charset: Charset = StandardCharsets.UTF_8
+        directory: String = SystemUtils.USER_HOME,
+        charset: Charset = StandardCharsets.UTF_8,
     ): PtyConnector {
         val envs = mutableMapOf<String, String>()
         envs.putAll(System.getenv())
@@ -67,7 +74,7 @@ class PtyConnectorFactory : Disposable {
             .setInitialRows(rows)
             .setInitialColumns(cols)
             .setConsole(false)
-            .setDirectory(SystemUtils.USER_HOME)
+            .setDirectory(StringUtils.defaultIfBlank(directory, SystemUtils.USER_HOME))
             .setCygwin(false)
             .setUseWinConPty(SystemUtils.IS_OS_WINDOWS)
             .setRedirectErrorStream(false)

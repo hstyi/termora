@@ -8,6 +8,7 @@ import org.apache.commons.io.Charsets
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.SystemUtils
 import org.apache.sshd.client.ClientBuilder
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.session.ClientSession
@@ -28,6 +29,11 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
     private var sshSession: ClientSession? = null
     private var lastPasswordReporterDataListener: PasswordReporterDataListener? = null
     private val sftpCommand get() = Database.getDatabase().sftp.sftpCommand
+    private val defaultDirectory get() = Database.getDatabase().sftp.defaultDirectory
+
+    init {
+        terminalPanel.dropFiles = true
+    }
 
     companion object {
         val canSupports by lazy {
@@ -115,16 +121,21 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
         if (envs.containsKey("CurrentDir")) {
             val currentDir = envs.getValue("CurrentDir")
             commands.add("${host.username}@${host.host}:${currentDir}")
+        } else if (host.options.sftpDefaultDirectory.isNotBlank()) {
+            commands.add("${host.username}@${host.host}:${host.options.sftpDefaultDirectory.trim()}")
         } else {
             commands.add("${host.username}@${host.host}")
         }
 
+        val directory = FileUtils.getFile(StringUtils.defaultIfBlank(defaultDirectory, SystemUtils.USER_HOME))
+
         val winSize = terminalPanel.winSize()
         val ptyConnector = ptyConnectorFactory.createPtyConnector(
-            commands.toTypedArray(),
-            winSize.rows, winSize.cols,
-            host.options.envs(),
-            Charsets.toCharset(host.options.encoding, StandardCharsets.UTF_8),
+            commands = commands.toTypedArray(),
+            rows = winSize.rows, cols = winSize.cols,
+            env = host.options.envs(),
+            charset = Charsets.toCharset(host.options.encoding, StandardCharsets.UTF_8),
+            directory = if (directory.exists()) directory.absolutePath else SystemUtils.USER_HOME
         )
 
         return ptyConnector
