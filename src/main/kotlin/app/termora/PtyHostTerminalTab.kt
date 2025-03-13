@@ -13,7 +13,7 @@ import kotlin.time.Duration.Companion.milliseconds
 abstract class PtyHostTerminalTab(
     windowScope: WindowScope,
     host: Host,
-    terminal: Terminal = TerminalFactory.getInstance(windowScope).createTerminal()
+    terminal: Terminal = TerminalFactory.getInstance().createTerminal()
 ) : HostTerminalTab(windowScope, host, terminal) {
 
     companion object {
@@ -24,10 +24,10 @@ abstract class PtyHostTerminalTab(
     private var readerJob: Job? = null
     private val ptyConnectorDelegate = PtyConnectorDelegate()
 
-    private val terminalPanelFactory = TerminalPanelFactory.getInstance(windowScope)
+    private val terminalPanelFactory = TerminalPanelFactory.getInstance()
     protected val terminalPanel = terminalPanelFactory.createTerminalPanel(terminal, ptyConnectorDelegate)
         .apply { Disposer.register(this@PtyHostTerminalTab, this) }
-    protected val ptyConnectorFactory get() = PtyConnectorFactory.getInstance(windowScope)
+    protected val ptyConnectorFactory get() = PtyConnectorFactory.getInstance()
 
     init {
         terminal.getTerminalModel().setData(DataKey.PtyConnector, ptyConnectorDelegate)

@@ -340,7 +340,7 @@ class SettingsOptionsPane : OptionsPane() {
             floatingToolbarComboBox.addItemListener { e ->
                 if (e.stateChange == ItemEvent.SELECTED) {
                     terminalSetting.floatingToolbar = floatingToolbarComboBox.selectedItem as Boolean
-                    TerminalPanelFactory.getAllTerminalPanel().forEach { tp ->
+                    TerminalPanelFactory.getInstance().getTerminalPanels().forEach { tp ->
                         if (terminalSetting.floatingToolbar && FloatingToolbarPanel.isPined) {
                             tp.getData(FloatingToolbarPanel.FloatingToolbar)?.triggerShow()
                         } else {
@@ -369,7 +369,7 @@ class SettingsOptionsPane : OptionsPane() {
                 if (it.stateChange == ItemEvent.SELECTED) {
                     val style = cursorStyleComboBox.selectedItem as CursorStyle
                     terminalSetting.cursor = style
-                    TerminalFactory.getInstance(ApplicationScope.forWindowScope(owner)).getTerminals().forEach { e ->
+                    TerminalFactory.getInstance().getTerminals().forEach { e ->
                         e.getTerminalModel().setData(DataKey.CursorStyle, style)
                     }
                 }
@@ -379,7 +379,7 @@ class SettingsOptionsPane : OptionsPane() {
             debugComboBox.addItemListener { e ->
                 if (e.stateChange == ItemEvent.SELECTED) {
                     terminalSetting.debug = debugComboBox.selectedItem as Boolean
-                    TerminalFactory.getInstance(ApplicationScope.forWindowScope(owner)).getTerminals().forEach {
+                    TerminalFactory.getInstance().getTerminals().forEach {
                         it.getTerminalModel().setData(TerminalPanel.Debug, terminalSetting.debug)
                     }
                 }
@@ -408,10 +408,8 @@ class SettingsOptionsPane : OptionsPane() {
         }
 
         private fun fireFontChanged() {
-            ApplicationScope.windowScopes().forEach {
-                TerminalPanelFactory.getInstance(it)
+                TerminalPanelFactory.getInstance()
                     .fireResize()
-            }
         }
 
         private fun initView() {

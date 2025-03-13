@@ -19,14 +19,9 @@ class TerminalPanelFactory : Disposable {
 
         private val Factory = DataKey(TerminalPanelFactory::class)
 
-        fun getInstance(scope: Scope): TerminalPanelFactory {
-            return scope.getOrCreate(TerminalPanelFactory::class) { TerminalPanelFactory() }
-        }
-
-        fun getAllTerminalPanel(): Array<TerminalPanel> {
-            return ApplicationScope.forApplicationScope().windowScopes()
-                .map { getInstance(it) }
-                .flatMap { it.terminalPanels }.toTypedArray()
+        fun getInstance(): TerminalPanelFactory {
+            return ApplicationScope.forApplicationScope()
+                .getOrCreate(TerminalPanelFactory::class) { TerminalPanelFactory() }
         }
     }
 
@@ -97,10 +92,7 @@ class TerminalPanelFactory : Disposable {
             coroutineScope.launch {
                 while (coroutineScope.isActive) {
                     delay(500.milliseconds)
-                    SwingUtilities.invokeLater {
-                        ApplicationScope.forApplicationScope().windowScopes()
-                            .map { getInstance(it) }.forEach { it.repaintAll() }
-                    }
+                    SwingUtilities.invokeLater { TerminalPanelFactory.getInstance().repaintAll() }
                 }
             }
         }

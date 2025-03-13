@@ -4,7 +4,6 @@ import app.termora.*
 import app.termora.AES.decodeBase64
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
-import app.termora.actions.DataProviders
 import app.termora.native.FileChooser
 import com.formdev.flatlaf.extras.components.FlatComboBox
 import com.formdev.flatlaf.extras.components.FlatTable
@@ -196,7 +195,6 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
     }
 
     private fun sshCopyId(evt: AnActionEvent) {
-        val windowScope = evt.getData(DataProviders.WindowScope) ?: return
         val keyPairs = keyPairTable.selectedRows.map { keyPairTableModel.getOhKeyPair(it) }
         val publicKeys = mutableListOf<Pair<String, String>>()
         for (keyPair in keyPairs) {
@@ -220,7 +218,7 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
             return
         }
 
-        SSHCopyIdDialog(owner, windowScope, hosts, publicKeys).start()
+        SSHCopyIdDialog(owner, hosts, publicKeys).start()
     }
 
     private fun exportKeyPairs(file: File, keyPairs: List<OhKeyPair>) {

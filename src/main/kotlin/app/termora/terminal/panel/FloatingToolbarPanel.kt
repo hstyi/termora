@@ -41,13 +41,13 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
                     actionListeners.forEach { it.actionPerformed(evt) }
 
                     if (isSelected) {
-                        TerminalPanelFactory.getAllTerminalPanel().forEach {
+                        TerminalPanelFactory.getInstance().getTerminalPanels().forEach {
                             it.getData(FloatingToolbar)?.triggerShow()
                         }
                     } else {
                         // 触发者的不隐藏
                         val c = evt.getData(FloatingToolbar)
-                        TerminalPanelFactory.getAllTerminalPanel().forEach {
+                        TerminalPanelFactory.getInstance().getTerminalPanels().forEach {
                             val e = it.getData(FloatingToolbar)
                             if (c != e) {
                                 e?.triggerHide()

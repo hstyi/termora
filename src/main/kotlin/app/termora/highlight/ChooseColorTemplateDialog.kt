@@ -1,6 +1,5 @@
 package app.termora.highlight
 
-import app.termora.ApplicationScope
 import app.termora.DialogWrapper
 import app.termora.TerminalFactory
 import com.formdev.flatlaf.util.SystemInfo
@@ -31,7 +30,7 @@ class ChooseColorTemplateDialog(owner: Window, title: String) : DialogWrapper(ow
 
     override fun createCenterPanel(): JComponent {
         val panel = JPanel(GridLayout(2, 8, 4, 4))
-        val colorPalette = TerminalFactory.getInstance(ApplicationScope.forWindowScope(this))
+        val colorPalette = TerminalFactory.getInstance()
             .createTerminal().getTerminalModel().getColorPalette()
         for (i in 1..16) {
             val c = JPanel()

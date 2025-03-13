@@ -1,6 +1,5 @@
 package app.termora.actions
 
-import app.termora.ApplicationScope
 import app.termora.Database
 import app.termora.TerminalPanelFactory
 
@@ -13,10 +12,8 @@ abstract class TerminalZoomAction : AnAction() {
         evt.getData(DataProviders.TerminalPanel) ?: return
 
         if (zoom()) {
-            ApplicationScope.windowScopes().forEach {
-                TerminalPanelFactory.getInstance(it)
+                TerminalPanelFactory.getInstance()
                     .fireResize()
-            }
             evt.consume()
         }
     }

@@ -1,6 +1,8 @@
 package app.termora.actions
 
-import app.termora.*
+import app.termora.I18n
+import app.termora.Icons
+import app.termora.TerminalPanelFactory
 
 class MultipleAction : AnAction(
     I18n.getString("termora.tools.multiple"),
@@ -11,7 +13,6 @@ class MultipleAction : AnAction(
     }
 
     override fun actionPerformed(evt: AnActionEvent) {
-        ApplicationScope.windowScopes().map { TerminalPanelFactory.getInstance(it) }
-            .forEach { it.repaintAll() }
+        TerminalPanelFactory.getInstance().repaintAll()
     }
 }

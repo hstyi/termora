@@ -1,8 +1,8 @@
 package app.termora.highlight
 
 import app.termora.ApplicationScope
-import app.termora.TerminalPanelFactory
 import app.termora.Database
+import app.termora.TerminalPanelFactory
 import org.slf4j.LoggerFactory
 
 class KeywordHighlightManager private constructor() {
@@ -27,7 +27,7 @@ class KeywordHighlightManager private constructor() {
     fun addKeywordHighlight(keywordHighlight: KeywordHighlight) {
         database.addKeywordHighlight(keywordHighlight)
         keywordHighlights[keywordHighlight.id] = keywordHighlight
-        ApplicationScope.windowScopes().forEach { TerminalPanelFactory.getInstance(it).repaintAll() }
+        TerminalPanelFactory.getInstance().repaintAll()
 
         if (log.isDebugEnabled) {
             log.debug("Keyword highlighter added. {}", keywordHighlight)
@@ -37,7 +37,7 @@ class KeywordHighlightManager private constructor() {
     fun removeKeywordHighlight(id: String) {
         database.removeKeywordHighlight(id)
         keywordHighlights.remove(id)
-        ApplicationScope.windowScopes().forEach { TerminalPanelFactory.getInstance(it).repaintAll() }
+        TerminalPanelFactory.getInstance().repaintAll()
 
         if (log.isDebugEnabled) {
             log.debug("Keyword highlighter removed. {}", id)

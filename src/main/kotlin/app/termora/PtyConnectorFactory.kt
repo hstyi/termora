@@ -18,8 +18,8 @@ class PtyConnectorFactory : Disposable {
 
     companion object {
         private val log = LoggerFactory.getLogger(PtyConnectorFactory::class.java)
-        fun getInstance(scope: Scope): PtyConnectorFactory {
-            return scope.getOrCreate(PtyConnectorFactory::class) { PtyConnectorFactory() }
+        fun getInstance(): PtyConnectorFactory {
+            return ApplicationScope.forApplicationScope().getOrCreate(PtyConnectorFactory::class) { PtyConnectorFactory() }
         }
     }
 

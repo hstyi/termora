@@ -23,7 +23,6 @@ import javax.swing.UIManager
 
 class SSHCopyIdDialog(
     owner: Window,
-    private val windowScope: WindowScope,
     private val hosts: List<Host>,
     // key: name , value: public key
     private val publicKeys: List<Pair<String, String>>,
@@ -33,9 +32,9 @@ class SSHCopyIdDialog(
         private val log = LoggerFactory.getLogger(SSHCopyIdDialog::class.java)
     }
 
-    private val terminalPanelFactory = TerminalPanelFactory.getInstance(windowScope)
+    private val terminalPanelFactory = TerminalPanelFactory.getInstance()
     private val terminal by lazy {
-        TerminalFactory.getInstance(windowScope).createTerminal().apply {
+        TerminalFactory.getInstance().createTerminal().apply {
             getTerminalModel().setData(DataKey.ShowCursor, false)
             getTerminalModel().setData(DataKey.AutoNewline, true)
         }

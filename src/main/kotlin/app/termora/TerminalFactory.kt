@@ -10,8 +10,8 @@ class TerminalFactory private constructor() : Disposable {
     private val terminals = mutableListOf<Terminal>()
 
     companion object {
-        fun getInstance(scope: WindowScope): TerminalFactory {
-            return scope.getOrCreate(TerminalFactory::class) { TerminalFactory() }
+        fun getInstance(): TerminalFactory {
+            return ApplicationScope.forApplicationScope().getOrCreate(TerminalFactory::class) { TerminalFactory() }
         }
     }
 

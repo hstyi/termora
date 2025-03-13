@@ -13,7 +13,7 @@ import javax.swing.Icon
 abstract class HostTerminalTab(
     val windowScope: WindowScope,
     val host: Host,
-    protected val terminal: Terminal = TerminalFactory.getInstance(windowScope).createTerminal()
+    protected val terminal: Terminal = TerminalFactory.getInstance().createTerminal()
 ) : PropertyTerminalTab(), DataProvider {
     companion object {
         val Host = DataKey(app.termora.Host::class)

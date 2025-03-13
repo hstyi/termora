@@ -1,7 +1,6 @@
 package app.termora
 
 import app.termora.actions.AnActionEvent
-import app.termora.actions.DataProvider
 import app.termora.actions.DataProviders
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
 import org.apache.commons.lang3.StringUtils
@@ -237,11 +236,8 @@ class MyTabbedPane : FlatTabbedPane() {
 
         private fun dragToAnotherWindow(oldFrame: TermoraFrame, frame: TermoraFrame) {
             val tab = this.terminalTab ?: return
-            val terminalPanel = (tab as DataProvider?)?.getData(DataProviders.TerminalPanel) ?: return
             val tabbedManager = frame.getData(DataProviders.TerminalTabbed) ?: return
             val tabbedPane = frame.getData(DataProviders.TabbedPane) ?: return
-            val windowScope = frame.getData(DataProviders.WindowScope) ?: return
-            val oldWindowScope = oldFrame.getData(DataProviders.WindowScope) ?: return
             val location = Point(MouseInfo.getPointerInfo().location)
             SwingUtilities.convertPointFromScreen(location, tabbedPane)
             val index = tabbedPane.indexAtLocation(location.x, location.y)
@@ -252,11 +248,6 @@ class MyTabbedPane : FlatTabbedPane() {
                 tab,
                 index
             )
-
-            TerminalPanelFactory.getInstance(oldWindowScope).removeTerminalPanel(terminalPanel)
-            TerminalPanelFactory.getInstance(windowScope).addTerminalPanel(terminalPanel)
-
-
 
             if (frame.hasFocus()) {
                 return

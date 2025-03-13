@@ -14,9 +14,7 @@ class MultiplePtyConnector(
 
     private val isMultiple get() = ActionManager.getInstance().isSelected(Actions.MULTIPLE)
     private val ptyConnectors
-        get() = ApplicationScope.forApplicationScope()
-            .windowScopes().map { PtyConnectorFactory.getInstance(it).getPtyConnectors() }
-            .flatten()
+        get() = PtyConnectorFactory.getInstance().getPtyConnectors()
 
     override fun write(buffer: ByteArray, offset: Int, len: Int) {
         if (isMultiple) {

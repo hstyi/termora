@@ -21,7 +21,7 @@ class KeywordHighlightDialog(owner: Window) : DialogWrapper(owner) {
     private val table = FlatTable()
     private val keywordHighlightManager by lazy { KeywordHighlightManager.getInstance() }
     private val colorPalette by lazy {
-        TerminalFactory.getInstance(ApplicationScope.forWindowScope(this)).createTerminal().getTerminalModel()
+        TerminalFactory.getInstance().createTerminal().getTerminalModel()
             .getColorPalette()
     }
 
