@@ -32,7 +32,6 @@ class TerminalCopyAction : AnAction() {
         }
 
         systemClipboard.setContents(StringSelection(text), null)
-        terminalPanel.toast(I18n.getString("termora.terminal.copied"))
         if (log.isTraceEnabled) {
             log.trace("Copy to clipboard. {}", text)
         }
