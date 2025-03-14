@@ -11,6 +11,7 @@ import app.termora.terminal.panel.TerminalPanel
 import app.termora.terminal.panel.TerminalWriter
 import kotlinx.coroutines.*
 import org.apache.commons.lang3.StringUtils
+import org.slf4j.LoggerFactory
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import java.nio.charset.Charset
@@ -105,6 +106,10 @@ class TerminalPanelFactory : Disposable {
     }
 
     private class MyTerminalWriter(private val ptyConnector: PtyConnector) : TerminalWriter {
+        companion object {
+            private val log = LoggerFactory.getLogger(MyTerminalWriter::class.java)
+        }
+
         private lateinit var evt: AnActionEvent
 
         override fun onMounted(c: JComponent) {
@@ -112,6 +117,11 @@ class TerminalPanelFactory : Disposable {
         }
 
         override fun write(request: TerminalWriter.WriteRequest) {
+
+            if (log.isDebugEnabled) {
+                log.debug("write: ${String(request.buffer, getCharset())}")
+            }
+
             val windowScope = evt.getData(DataProviders.WindowScope)
             if (windowScope == null) {
                 ptyConnector.write(request.buffer)

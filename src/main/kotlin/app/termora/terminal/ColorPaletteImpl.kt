@@ -58,11 +58,10 @@ open class ColorPaletteImpl(private val terminal: Terminal) : ColorPalette {
             for (g in 0 until 6) {
                 for (b in 0 until 6) {
                     val idx = 36 * r + 6 * g + b
-                    xterm256Colors[idx] = Color(
-                        getCubeColorValue(r),
-                        getCubeColorValue(g),
-                        getCubeColorValue(b),
-                    ).rgb
+                    val x = getCubeColorValue(r)
+                    val y = getCubeColorValue(g)
+                    val z = getCubeColorValue(b)
+                    xterm256Colors[idx] = 65536 * x + 256 * y + z
                 }
             }
         }
@@ -70,7 +69,7 @@ open class ColorPaletteImpl(private val terminal: Terminal) : ColorPalette {
         for (gray in 0..23) {
             val a = 10 * gray + 8
             val idx = 216 + gray
-            xterm256Colors[idx] = Color(a, a, a).rgb
+            xterm256Colors[idx] = 65536 * a + 256 * a + a
         }
     }
 
