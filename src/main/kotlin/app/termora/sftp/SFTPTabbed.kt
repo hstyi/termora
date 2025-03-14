@@ -29,14 +29,6 @@ class SFTPTabbed(private val transportManager: TransportManager) : FlatTabbedPan
         super.setTabLayoutPolicy(SCROLL_TAB_LAYOUT)
         super.setTabsClosable(true)
         super.setTabType(TabType.underlined)
-        super.setStyleMap(
-            mapOf(
-                "focusColor" to UIManager.getColor("TabbedPane.selectedBackground"),
-                "hoverColor" to UIManager.getColor("TabbedPane.background"),
-                "tabHeight" to 30
-            )
-        )
-
 
         val toolbar = JToolBar()
         toolbar.add(addBtn)
@@ -99,6 +91,14 @@ class SFTPTabbed(private val transportManager: TransportManager) : FlatTabbedPan
         return null
     }
 
+    override fun updateUI() {
+        styleMap = mapOf(
+            "focusColor" to UIManager.getColor("TabbedPane.selectedBackground"),
+            "hoverColor" to UIManager.getColor("TabbedPane.background"),
+            "tabHeight" to 30
+        )
+        super.updateUI()
+    }
 
     override fun removeTabAt(index: Int) {
         val c = getComponentAt(index)
