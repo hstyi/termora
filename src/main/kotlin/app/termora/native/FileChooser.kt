@@ -1,7 +1,7 @@
 package app.termora.native
 
-import app.termora.native.osx.DispatchNative
 import com.formdev.flatlaf.util.SystemInfo
+import de.jangassen.jfa.ThreadUtils
 import de.jangassen.jfa.foundation.Foundation
 import jnafilechooser.api.JnaFileChooser
 import org.apache.commons.lang3.StringUtils
@@ -94,7 +94,7 @@ class FileChooser {
 
 
     private fun showMacOSOpenDialog(future: CompletableFuture<List<File>>) {
-        DispatchNative.getInstance().dispatch_async(object : Runnable {
+        ThreadUtils.dispatch_async(object : Runnable {
             override fun run() {
                 val pool = Foundation.NSAutoreleasePool()
                 try {
@@ -170,7 +170,7 @@ class FileChooser {
     }
 
     private fun showMacOSSaveDialog(filename: String, future: CompletableFuture<File?>) {
-        DispatchNative.getInstance().dispatch_async(object : Runnable {
+        ThreadUtils.dispatch_async(object : Runnable {
             override fun run() {
                 val pool = Foundation.NSAutoreleasePool()
                 try {

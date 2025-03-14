@@ -127,7 +127,6 @@ application {
     )
 
     if (os.isMacOsX) {
-        args.add("--add-opens java.desktop/sun.lwawt.macosx.concurrent=ALL-UNNAMED")
         args.add("-Dsun.java2d.metal=true")
         args.add("-Dapple.awt.application.appearance=system")
     }
