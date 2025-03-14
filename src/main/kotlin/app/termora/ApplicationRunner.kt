@@ -5,7 +5,6 @@ import app.termora.keymap.KeymapManager
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatSystemProperties
 import com.formdev.flatlaf.extras.FlatDesktop
-import com.formdev.flatlaf.extras.FlatDesktop.QuitResponse
 import com.formdev.flatlaf.extras.FlatInspector
 import com.formdev.flatlaf.ui.FlatTableCellBorder
 import com.formdev.flatlaf.util.SystemInfo
@@ -23,7 +22,6 @@ import org.apache.commons.lang3.SystemUtils
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
 import org.tinylog.configuration.Configuration
-import java.awt.KeyboardFocusManager
 import java.io.File
 import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
@@ -124,29 +122,14 @@ class ApplicationRunner {
         TermoraFrameManager.getInstance().createWindow().isVisible = true
 
         if (SystemUtils.IS_OS_MAC_OSX) {
-            SwingUtilities.invokeLater {
-                FlatDesktop.setQuitHandler { response -> quitHandler(response) }
-            }
+            SwingUtilities.invokeLater { FlatDesktop.setQuitHandler { quitHandler() } }
         }
     }
 
-    private fun quitHandler(response: QuitResponse) {
-        val keyboardFocusManager = KeyboardFocusManager.getCurrentKeyboardFocusManager()
-
-        if (OptionPane.showConfirmDialog(
-                keyboardFocusManager.focusedWindow,
-                I18n.getString("termora.quit-confirm", Application.getName()),
-                optionType = JOptionPane.YES_NO_OPTION,
-            ) != JOptionPane.YES_OPTION
-        ) {
-            response.cancelQuit()
-            return
-        }
-
+    private fun quitHandler() {
         for (frame in TermoraFrameManager.getInstance().getWindows()) {
             frame.dispose()
         }
-
     }
 
     private fun loadSettings() {
