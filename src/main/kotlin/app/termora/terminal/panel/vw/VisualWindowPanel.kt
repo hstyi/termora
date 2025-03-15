@@ -17,7 +17,7 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
     protected val properties get() = Database.getDatabase().properties
     private val titleLabel = JLabel()
     private val toolbar = FlatToolBar()
-    private val visualWindow = this
+    private val visualWindow get() = this
     private val resizer = VisualWindowResizer(this) { !isWindow }
     private var isWindow = false
         set(value) {
@@ -82,8 +82,7 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
         toolbar.addMouseListener(dragListener)
         toolbar.addMouseMotionListener(dragListener)
 
-        // 监听全局事件
-        Toolkit.getDefaultToolkit().addAWTEventListener(object : AWTEventListener {
+        val awtEventListener = object : AWTEventListener {
             override fun eventDispatched(event: AWTEvent) {
                 if (event is MouseEvent) {
                     if (event.id == MouseEvent.MOUSE_PRESSED) {
@@ -95,7 +94,16 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
                 }
             }
 
-        }, MouseEvent.MOUSE_EVENT_MASK)
+        }
+
+        // 监听全局事件
+        toolkit.addAWTEventListener(awtEventListener, MouseEvent.MOUSE_EVENT_MASK)
+
+        Disposer.register(this, object : Disposable {
+            override fun dispose() {
+                toolkit.removeAWTEventListener(awtEventListener)
+            }
+        })
 
         // 阻止事件穿透
         addMouseListener(object : MouseAdapter() {})
