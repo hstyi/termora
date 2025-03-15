@@ -7,6 +7,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
 import okio.withLock
 import org.apache.commons.lang3.ArrayUtils
+import org.apache.commons.lang3.exception.ExceptionUtils
 import org.jdesktop.swingx.treetable.DefaultMutableTreeTableNode
 import org.jdesktop.swingx.treetable.DefaultTreeTableModel
 import org.jdesktop.swingx.treetable.MutableTreeTableNode
@@ -291,6 +292,10 @@ class TransportTableModel(private val coroutineScope: CoroutineScope) :
                 changeStatus(transport, TransportStatus.Done)
             }
         } catch (e: Exception) {
+
+            // 记录异常
+            transport.exception = ExceptionUtils.getRootCause(e)
+
             if (e is TransportStatusException) {
                 if (log.isWarnEnabled) {
                     log.warn("{}: {}", transport.source.name, e.message)

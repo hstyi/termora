@@ -21,7 +21,7 @@ class TransportTreeTableNode(transport: Transport) : DefaultMutableTreeTableNode
 
         return when (column) {
             TransportTableModel.COLUMN_NAME -> PathUtils.getFileNameString(transport.source)
-            TransportTableModel.COLUMN_STATUS -> formatStatus(transport.status)
+            TransportTableModel.COLUMN_STATUS -> formatStatus(transport)
             TransportTableModel.COLUMN_SIZE -> size()
             TransportTableModel.COLUMN_SPEED -> if (isProcessing) formatBytes(speed) + "/s" else "-"
             TransportTableModel.COLUMN_ESTIMATED_TIME -> if (isProcessing) formatSeconds(estimatedTime) else "-"
@@ -39,12 +39,12 @@ class TransportTreeTableNode(transport: Transport) : DefaultMutableTreeTableNode
         return path.toUri().scheme + ":" + path.absolutePathString()
     }
 
-    private fun formatStatus(status: TransportStatus): String {
-        return when (status) {
+    private fun formatStatus(transport: Transport): String {
+        return when (transport.status) {
             TransportStatus.Processing -> I18n.getString("termora.transport.sftp.status.transporting")
             TransportStatus.Ready -> I18n.getString("termora.transport.sftp.status.waiting")
             TransportStatus.Done -> I18n.getString("termora.transport.sftp.status.done")
-            TransportStatus.Failed -> I18n.getString("termora.transport.sftp.status.failed")
+            TransportStatus.Failed -> I18n.getString("termora.transport.sftp.status.failed") + ": " + transport.exception.message
         }
     }
 

@@ -58,6 +58,7 @@ class Transport(
 
     companion object {
         val idGenerator = AtomicLong(0)
+        private val exception = RuntimeException("Nothing")
         private val log = LoggerFactory.getLogger(Transport::class.java)
         private val isPreserveModificationTime get() = Database.getDatabase().sftp.preserveModificationTime
     }
@@ -110,6 +111,11 @@ class Transport(
     var status: TransportStatus = TransportStatus.Ready
         private set
 
+    /**
+     * 失败异常
+     */
+    var exception: Throwable = Transport.exception
+
 
     fun scanned() {
         scanned.compareAndSet(false, true)
@@ -155,6 +161,7 @@ class Transport(
                         log.warn("Directory ${target.name} already exists")
                     }
                 } catch (e: Exception) {
+                    exception = e
                     throw e
                 }
             }
