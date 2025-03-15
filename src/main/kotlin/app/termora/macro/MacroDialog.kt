@@ -83,8 +83,11 @@ class MacroDialog(owner: Window) : DialogWrapper(owner) {
             val index = list.selectedIndex
             if (index >= 0) {
                 val macro = model.getElementAt(index)
-                val dialog = InputDialog(owner = this, title = macro.name, text = macro.name)
-                val text = dialog.getText() ?: String()
+                val text = OptionPane.showInputDialog(
+                    this,
+                    title = macro.name,
+                    value = macro.name
+                ) ?: String()
                 if (text.isNotBlank()) {
                     val newMacro = macro.copy(name = text)
                     macroManager.addMacro(newMacro)

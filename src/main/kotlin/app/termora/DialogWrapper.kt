@@ -2,8 +2,8 @@ package app.termora
 
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
+import app.termora.native.osx.NativeMacLibrary
 import com.formdev.flatlaf.FlatClientProperties
-import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.util.SystemInfo
 import com.jetbrains.JBR
 import java.awt.*
@@ -12,29 +12,60 @@ import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import javax.swing.*
 
-
 abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
-    private val rootPanel = JPanel(BorderLayout())
     private val titleLabel = JLabel()
-    private val titleBar by lazy { LogicCustomTitleBar.createCustomTitleBar(this) }
     val disposable = Disposer.newDisposable()
+    private val customTitleBar = if (SystemInfo.isMacOS && JBR.isWindowDecorationsSupported())
+        JBR.getWindowDecorations().createCustomTitleBar() else null
 
     companion object {
         const val DEFAULT_ACTION = "DEFAULT_ACTION"
         private const val PROCESS_GLOBAL_KEYMAP = "PROCESS_GLOBAL_KEYMAP"
     }
 
-
     protected var controlsVisible = true
         set(value) {
             field = value
-            titleBar.putProperty("controls.visible", value)
+            if (SystemInfo.isMacOS) {
+                if (customTitleBar != null) {
+                    customTitleBar.putProperty("controls.visible", value)
+                } else {
+                    NativeMacLibrary.setControlsVisible(this, value)
+                }
+            } else {
+                rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_ICONIFFY, value)
+                rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_MAXIMIZE, value)
+                rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_CLOSE, value)
+            }
         }
 
-    protected var titleBarHeight = UIManager.getInt("TabbedPane.tabHeight").toFloat()
+    protected var fullWindowContent = false
         set(value) {
-            titleBar.height = value
             field = value
+            rootPane.putClientProperty(FlatClientProperties.FULL_WINDOW_CONTENT, value)
+        }
+
+    protected var titleVisible = true
+        set(value) {
+            field = value
+            rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_TITLE, value)
+        }
+
+    protected var titleIconVisible = false
+        set(value) {
+            field = value
+            rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_ICON, value)
+        }
+
+
+    protected var titleBarHeight = UIManager.getInt("TabbedPane.tabHeight")
+        set(value) {
+            field = value
+            if (SystemInfo.isMacOS) {
+                customTitleBar?.height = height.toFloat()
+            } else {
+                rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_HEIGHT, value)
+            }
         }
 
     protected var lostFocusDispose = false
@@ -51,24 +82,42 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
             super.rootPane.putClientProperty(PROCESS_GLOBAL_KEYMAP, value)
         }
 
+    init {
+        super.setDefaultCloseOperation(DISPOSE_ON_CLOSE)
+
+        // 使用 FlatLaf 的 TitlePane
+        if (SystemInfo.isWindows || SystemInfo.isLinux) {
+            rootPane.windowDecorationStyle = JRootPane.PLAIN_DIALOG
+        }
+    }
+
     protected fun init() {
-
-
-        defaultCloseOperation = DISPOSE_ON_CLOSE
-
-        initTitleBar()
         initEvents()
 
-        if (JBR.isWindowDecorationsSupported()) {
-            if (rootPane.getClientProperty(FlatClientProperties.TITLE_BAR_SHOW_TITLE) != false) {
-                val titlePanel = createTitlePanel()
-                if (titlePanel != null) {
-                    rootPanel.add(titlePanel, BorderLayout.NORTH)
-                }
+        val rootPanel = JPanel(BorderLayout())
+        rootPanel.add(createCenterPanel(), BorderLayout.CENTER)
+
+        if (SystemInfo.isMacOS) {
+            rootPane.putClientProperty("apple.awt.windowTitleVisible", false)
+            rootPane.putClientProperty("apple.awt.fullWindowContent", true)
+            rootPane.putClientProperty("apple.awt.transparentTitleBar", true)
+            rootPane.putClientProperty(
+                FlatClientProperties.MACOS_WINDOW_BUTTONS_SPACING,
+                FlatClientProperties.MACOS_WINDOW_BUTTONS_SPACING_MEDIUM
+            )
+
+            val titlePanel = createTitlePanel()
+            if (titlePanel != null) {
+                rootPanel.add(titlePanel, BorderLayout.NORTH)
+            }
+
+            val customTitleBar = this.customTitleBar
+            if (customTitleBar != null) {
+                customTitleBar.putProperty("controls.visible", controlsVisible)
+                customTitleBar.height = titleBarHeight.toFloat()
+                JBR.getWindowDecorations().setCustomTitleBar(this, customTitleBar)
             }
         }
-
-        rootPanel.add(createCenterPanel(), BorderLayout.CENTER)
 
         val southPanel = createSouthPanel()
         if (southPanel != null) {
@@ -122,7 +171,7 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
 
         val panel = JPanel(BorderLayout())
         panel.add(titleLabel, BorderLayout.CENTER)
-        panel.preferredSize = Dimension(-1, titleBar.height.toInt())
+        panel.preferredSize = Dimension(-1, titleBarHeight)
 
 
         return panel
@@ -191,30 +240,20 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
             }
         })
 
-        if (SystemInfo.isWindows) {
-            addWindowListener(object : WindowAdapter(), ThemeChangeListener {
-                override fun windowClosed(e: WindowEvent) {
-                    ThemeManager.getInstance().removeThemeChangeListener(this)
-                }
-
-                override fun windowOpened(e: WindowEvent) {
-                    onChanged()
-                    ThemeManager.getInstance().addThemeChangeListener(this)
-                }
-
-                override fun onChanged() {
-                    titleBar.putProperty("controls.dark", FlatLaf.isLafDark())
-                }
-            })
-        }
     }
 
-    private fun initTitleBar() {
-        titleBar.height = titleBarHeight
-        titleBar.putProperty("controls.visible", controlsVisible)
-        if (JBR.isWindowDecorationsSupported()) {
-            JBR.getWindowDecorations().setCustomTitleBar(this, titleBar)
+    override fun addNotify() {
+        super.addNotify()
+
+        // 显示后触发一次重绘制
+        if (SystemInfo.isWindows || SystemInfo.isLinux) {
+            this.controlsVisible = controlsVisible
+            this.titleBarHeight = titleBarHeight
+            this.titleIconVisible = titleIconVisible
+            this.titleVisible = titleVisible
+            this.fullWindowContent = fullWindowContent
         }
+
     }
 
     protected open fun doOKAction() {

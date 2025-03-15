@@ -7,9 +7,7 @@ import app.termora.WindowScope
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.macro.MacroFindEverywhereProvider
-import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatTextField
-import com.jetbrains.JBR
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Insets
@@ -45,17 +43,10 @@ class FindEverywhere(owner: Window, windowScope: WindowScope) : DialogWrapper(ow
         minimumSize = Dimension(size.width / 2, size.height / 2)
         isModal = false
         lostFocusDispose = true
-        controlsVisible = false
-        defaultCloseOperation = WindowConstants.DISPOSE_ON_CLOSE
         setLocationRelativeTo(null)
 
-        // 不支持装饰，铺满
-        if (!JBR.isWindowDecorationsSupported()) {
-            rootPane.putClientProperty(FlatClientProperties.FULL_WINDOW_CONTENT, true)
-            rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_CLOSE, false)
-        }
 
-        rootPane.background = DynamicColor("desktop")
+        val desktopBackground = DynamicColor("desktop")
         centerPanel.background = DynamicColor("desktop")
         centerPanel.border = BorderFactory.createEmptyBorder(12, 12, 12, 12)
 
@@ -70,7 +61,7 @@ class FindEverywhere(owner: Window, windowScope: WindowScope) : DialogWrapper(ow
         resultList.isRolloverEnabled = false
         resultList.selectionMode = ListSelectionModel.SINGLE_SELECTION
         resultList.border = BorderFactory.createEmptyBorder(5, 0, 0, 0)
-        resultList.background = rootPane.background
+        resultList.background = desktopBackground
 
 
         val scrollPane = JScrollPane(resultList)
@@ -226,5 +217,11 @@ class FindEverywhere(owner: Window, windowScope: WindowScope) : DialogWrapper(ow
         super.setVisible(visible)
     }
 
+    override fun addNotify() {
+        super.addNotify()
+
+        controlsVisible = false
+        fullWindowContent = true
+    }
 
 }

@@ -7,21 +7,19 @@ import app.termora.actions.DataProviders
 import app.termora.sftp.SFTPTab
 import app.termora.terminal.DataKey
 import com.formdev.flatlaf.FlatClientProperties
-import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.util.SystemInfo
 import com.jetbrains.JBR
+import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Insets
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.awt.event.MouseListener
+import java.awt.event.MouseMotionListener
 import java.util.*
 import javax.imageio.ImageIO
-import javax.swing.Box
-import javax.swing.JFrame
-import javax.swing.SwingUtilities
+import javax.swing.*
 import javax.swing.SwingUtilities.isEventDispatchThread
-import javax.swing.UIManager
-import kotlin.math.max
 
 fun assertEventDispatchThread() {
     if (!isEventDispatchThread()) throw WrongThreadException("AWT EventQueue")
@@ -33,14 +31,13 @@ class TermoraFrame : JFrame(), DataProvider {
 
     private val id = UUID.randomUUID().toString()
     private val windowScope = ApplicationScope.forWindowScope(this)
-    private val titleBar = LogicCustomTitleBar.createCustomTitleBar(this)
     private val tabbedPane = MyTabbedPane()
-    private val toolbar = TermoraToolBar(windowScope, titleBar, tabbedPane)
+    private val toolbar = TermoraToolBar(windowScope, this, tabbedPane)
     private val terminalTabbed = TerminalTabbed(windowScope, toolbar, tabbedPane)
-    private val isWindowDecorationsSupported by lazy { JBR.isWindowDecorationsSupported() }
     private val dataProviderSupport = DataProviderSupport()
     private val welcomePanel = WelcomePanel(windowScope)
     private val sftp get() = Database.getDatabase().sftp
+    private val myUI = MyFlatRootPaneUI()
 
 
     init {
@@ -49,44 +46,146 @@ class TermoraFrame : JFrame(), DataProvider {
     }
 
     private fun initEvents() {
+        if (SystemInfo.isLinux) {
+            val mouseAdapter = object : MouseAdapter() {
+                override fun mouseClicked(e: MouseEvent) {
+                    getMouseHandler()?.mouseClicked(e)
+                }
 
-        forceHitTest()
+                override fun mousePressed(e: MouseEvent) {
+                    getMouseHandler()?.mousePressed(e)
+                }
 
-        // macos 需要判断是否全部删除
-        // 当 Tab 为 0 的时候，需要加一个边距，避开控制栏
-        if (SystemInfo.isMacOS && isWindowDecorationsSupported) {
-            tabbedPane.addChangeListener {
-                tabbedPane.leadingComponent = if (tabbedPane.tabCount == 0) {
-                    Box.createHorizontalStrut(titleBar.leftInset.toInt())
-                } else {
-                    null
+                override fun mouseDragged(e: MouseEvent) {
+                    val mouseLayer = getMouseLayer() ?: return
+                    getMouseMotionListener()?.mouseDragged(
+                        MouseEvent(
+                            mouseLayer,
+                            e.id,
+                            e.`when`,
+                            e.modifiersEx,
+                            e.x,
+                            e.y,
+                            e.clickCount,
+                            e.isPopupTrigger,
+                            e.button
+                        )
+                    )
+                }
+
+                private fun getMouseHandler(): MouseListener? {
+                    return getHandler() as? MouseListener
+                }
+
+                private fun getMouseMotionListener(): MouseMotionListener? {
+                    return getHandler() as? MouseMotionListener
+                }
+
+                private fun getMouseLayer(): JComponent? {
+                    val titlePane = myUI.getTitlePane() ?: return null
+                    val handlerField = titlePane.javaClass.getDeclaredField("mouseLayer") ?: return null
+                    handlerField.isAccessible = true
+                    return handlerField.get(titlePane) as? JComponent
+                }
+
+                private fun getHandler(): Any? {
+                    val titlePane = myUI.getTitlePane() ?: return null
+                    val handlerField = titlePane.javaClass.getDeclaredField("handler") ?: return null
+                    handlerField.isAccessible = true
+                    return handlerField.get(titlePane)
                 }
             }
+            toolbar.getJToolBar().addMouseListener(mouseAdapter)
+            toolbar.getJToolBar().addMouseMotionListener(mouseAdapter)
         }
 
+        /// force hit
+        if (SystemInfo.isMacOS) {
+            if (JBR.isWindowDecorationsSupported()) {
+                val height = UIManager.getInt("TabbedPane.tabHeight") + tabbedPane.tabAreaInsets.top
+                val customTitleBar = JBR.getWindowDecorations().createCustomTitleBar()
+                customTitleBar.height = height.toFloat()
 
-        // 监听主题变化 需要动态修改控制栏颜色
-        if (SystemInfo.isWindows && isWindowDecorationsSupported) {
-            ThemeManager.getInstance().addThemeChangeListener(object : ThemeChangeListener {
-                override fun onChanged() {
-                    titleBar.putProperty("controls.dark", FlatLaf.isLafDark())
+                val mouseAdapter = object : MouseAdapter() {
+
+                    private fun hit(e: MouseEvent) {
+                        if (e.source == tabbedPane) {
+                            val index = tabbedPane.indexAtLocation(e.x, e.y)
+                            if (index >= 0) {
+                                return
+                            }
+                        }
+                        customTitleBar.forceHitTest(false)
+                    }
+
+                    override fun mouseClicked(e: MouseEvent) {
+                        hit(e)
+                    }
+
+                    override fun mousePressed(e: MouseEvent) {
+                        hit(e)
+                    }
+
+                    override fun mouseReleased(e: MouseEvent) {
+                        hit(e)
+                    }
+
+                    override fun mouseEntered(e: MouseEvent) {
+                        hit(e)
+                    }
+
+                    override fun mouseDragged(e: MouseEvent) {
+                        hit(e)
+                    }
+
+                    override fun mouseMoved(e: MouseEvent) {
+                        hit(e)
+                    }
                 }
-            })
-        }
 
+                terminalTabbed.addMouseListener(mouseAdapter)
+                terminalTabbed.addMouseMotionListener(mouseAdapter)
+
+                tabbedPane.addMouseListener(mouseAdapter)
+                tabbedPane.addMouseMotionListener(mouseAdapter)
+
+                toolbar.getJToolBar().addMouseListener(mouseAdapter)
+                toolbar.getJToolBar().addMouseMotionListener(mouseAdapter)
+
+                JBR.getWindowDecorations().setCustomTitleBar(this, customTitleBar)
+            }
+        }
     }
 
 
     private fun initView() {
-        if (isWindowDecorationsSupported) {
-            titleBar.height = UIManager.getInt("TabbedPane.tabHeight").toFloat()
-            titleBar.putProperty("controls.dark", FlatLaf.isLafDark())
-            JBR.getWindowDecorations().setCustomTitleBar(this, titleBar)
+
+        // macOS 要避开左边的控制栏
+        if (SystemInfo.isMacOS) {
+            tabbedPane.tabAreaInsets = Insets(0, 76, 0, 0)
+        } else if (SystemInfo.isWindows) {
+            // Windows 10 会有1像素误差
+            tabbedPane.tabAreaInsets = Insets(if (SystemInfo.isWindows_11_orLater) 1 else 2, 2, 0, 0)
+        } else if (SystemInfo.isLinux) {
+            rootPane.setUI(myUI)
+            tabbedPane.tabAreaInsets = Insets(1, 2, 0, 0)
         }
 
-        if (SystemInfo.isLinux) {
+        val height = UIManager.getInt("TabbedPane.tabHeight") + tabbedPane.tabAreaInsets.top
+
+        if (SystemInfo.isWindows || SystemInfo.isLinux) {
             rootPane.putClientProperty(FlatClientProperties.FULL_WINDOW_CONTENT, true)
-            rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_HEIGHT, UIManager.getInt("TabbedPane.tabHeight"))
+            rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_ICON, false)
+            rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_TITLE, false)
+            rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_HEIGHT, height)
+        } else if (SystemInfo.isMacOS) {
+            rootPane.putClientProperty("apple.awt.windowTitleVisible", false)
+            rootPane.putClientProperty("apple.awt.fullWindowContent", true)
+            rootPane.putClientProperty("apple.awt.transparentTitleBar", true)
+            rootPane.putClientProperty(
+                FlatClientProperties.MACOS_WINDOW_BUTTONS_SPACING,
+                FlatClientProperties.MACOS_WINDOW_BUTTONS_SPACING_MEDIUM
+            )
         }
 
         if (SystemInfo.isWindows || SystemInfo.isLinux) {
@@ -102,86 +201,19 @@ class TermoraFrame : JFrame(), DataProvider {
         terminalTabbed.addTerminalTab(welcomePanel)
 
         // 下一次事件循环检测是否固定 SFTP
-        SwingUtilities.invokeLater {
-            if (sftp.pinTab) {
+        if (sftp.pinTab) {
+            SwingUtilities.invokeLater {
                 terminalTabbed.addTerminalTab(SFTPTab(), false)
             }
         }
 
-        // macOS 要避开左边的控制栏
-        if (SystemInfo.isMacOS) {
-            val left = max(titleBar.leftInset.toInt(), 76)
-            if (tabbedPane.tabCount == 0) {
-                tabbedPane.leadingComponent = Box.createHorizontalStrut(left)
-            } else {
-                tabbedPane.tabAreaInsets = Insets(0, left, 0, 0)
-            }
-        }
 
         Disposer.register(windowScope, terminalTabbed)
-        add(terminalTabbed)
+        add(terminalTabbed, BorderLayout.CENTER)
 
         dataProviderSupport.addData(DataProviders.TabbedPane, tabbedPane)
         dataProviderSupport.addData(DataProviders.TermoraFrame, this)
         dataProviderSupport.addData(DataProviders.WindowScope, windowScope)
-    }
-
-
-    private fun forceHitTest() {
-        val mouseAdapter = object : MouseAdapter() {
-
-            private fun hit(e: MouseEvent) {
-                if (e.source == tabbedPane) {
-                    val index = tabbedPane.indexAtLocation(e.x, e.y)
-                    if (index >= 0) {
-                        return
-                    }
-                }
-                titleBar.forceHitTest(false)
-            }
-
-            override fun mouseClicked(e: MouseEvent) {
-                hit(e)
-            }
-
-            override fun mousePressed(e: MouseEvent) {
-                if (e.source == toolbar.getJToolBar()) {
-                    if (!isWindowDecorationsSupported && SwingUtilities.isLeftMouseButton(e)) {
-                        if (JBR.isWindowMoveSupported()) {
-                            JBR.getWindowMove().startMovingTogetherWithMouse(this@TermoraFrame, e.button)
-                        }
-                    }
-                }
-                hit(e)
-            }
-
-            override fun mouseReleased(e: MouseEvent) {
-                hit(e)
-            }
-
-            override fun mouseEntered(e: MouseEvent) {
-                hit(e)
-            }
-
-            override fun mouseDragged(e: MouseEvent) {
-
-                hit(e)
-            }
-
-            override fun mouseMoved(e: MouseEvent) {
-                hit(e)
-            }
-        }
-
-
-        terminalTabbed.addMouseListener(mouseAdapter)
-        terminalTabbed.addMouseMotionListener(mouseAdapter)
-
-        tabbedPane.addMouseListener(mouseAdapter)
-        tabbedPane.addMouseMotionListener(mouseAdapter)
-
-        toolbar.getJToolBar().addMouseListener(mouseAdapter)
-        toolbar.getJToolBar().addMouseMotionListener(mouseAdapter)
     }
 
     override fun <T : Any> getData(dataKey: DataKey<T>): T? {
@@ -204,5 +236,22 @@ class TermoraFrame : JFrame(), DataProvider {
         return id.hashCode()
     }
 
+    override fun addNotify() {
+        super.addNotify()
 
+        val dialog = object : DialogWrapper(this@TermoraFrame) {
+            init {
+                init()
+                controlsVisible = false
+            }
+
+            override fun createCenterPanel(): JComponent {
+                return JPanel()
+            }
+        }
+        dialog.title = "Hello"
+        dialog.size = Dimension(800, 600)
+        dialog.setLocationRelativeTo(this)
+//        dialog.isVisible = true
+    }
 }

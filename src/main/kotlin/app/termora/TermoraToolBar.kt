@@ -4,13 +4,13 @@ import app.termora.Application.ohMyJson
 import app.termora.actions.*
 import app.termora.findeverywhere.FindEverywhereAction
 import app.termora.snippet.SnippetAction
+import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
 import com.formdev.flatlaf.util.SystemInfo
-import com.jetbrains.WindowDecorations
 import kotlinx.serialization.Serializable
 import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.action.ActionContainerFactory
-import java.awt.Insets
+import java.awt.Rectangle
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
 import javax.swing.Box
@@ -25,7 +25,7 @@ data class ToolBarAction(
 
 class TermoraToolBar(
     private val windowScope: WindowScope,
-    private val titleBar: WindowDecorations.CustomTitleBar,
+    private val frame: TermoraFrame,
     private val tabbedPane: FlatTabbedPane
 ) {
     private val properties by lazy { Database.getDatabase().properties }
@@ -155,14 +155,11 @@ class TermoraToolBar(
         }
 
         fun adjust() {
-            if (SystemInfo.isMacOS) {
-                val left = titleBar.leftInset.toInt()
-                if (tabbedPane.tabAreaInsets.left != left) {
-                    tabbedPane.tabAreaInsets = Insets(0, left, 0, 0)
-                }
-            } else if (SystemInfo.isWindows || SystemInfo.isLinux) {
-
-                val right = titleBar.rightInset.toInt()
+            if (SystemInfo.isWindows || SystemInfo.isLinux) {
+                val rectangle =
+                    frame.rootPane.getClientProperty(FlatClientProperties.FULL_WINDOW_CONTENT_BUTTONS_BOUNDS)
+                            as? Rectangle ?: return
+                val right = rectangle.width
                 val toolbar = this@MyToolBar
                 for (i in 0 until toolbar.componentCount) {
                     val c = toolbar.getComponent(i)

@@ -1,11 +1,13 @@
 package app.termora
 
+import app.termora.native.osx.NativeMacLibrary
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatTextPane
 import com.formdev.flatlaf.util.SystemInfo
 import com.jetbrains.JBR
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
+import org.apache.commons.lang3.StringUtils
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Desktop
@@ -113,6 +115,36 @@ object OptionPane {
         dialog.dispose()
     }
 
+    fun showInputDialog(
+        parentComponent: Component?,
+        title: String = UIManager.getString("OptionPane.messageDialogTitle"),
+        value: String = StringUtils.EMPTY,
+        placeholder: String = StringUtils.EMPTY,
+    ): String? {
+        val pane = JOptionPane(StringUtils.EMPTY, JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION)
+        val dialog = initDialog(pane.createDialog(parentComponent, title))
+        pane.wantsInput = true
+        pane.initialSelectionValue = value
+
+        val textField = SwingUtils.getDescendantsOfType(JTextField::class.java, pane, true).firstOrNull()
+        if (textField?.name == "OptionPane.textField") {
+            textField.border = BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, DynamicColor.BorderColor),
+                BorderFactory.createEmptyBorder(0, 0, 2, 0)
+            )
+            textField.background = UIManager.getColor("window")
+            textField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, placeholder)
+        }
+
+        dialog.isVisible = true
+        dialog.dispose()
+
+        val inputValue = pane.inputValue
+        if (inputValue == JOptionPane.UNINITIALIZED_VALUE) return null
+
+        return inputValue as? String
+    }
+
     fun openFileInFolder(
         parentComponent: Component,
         file: File,
@@ -140,14 +172,31 @@ object OptionPane {
     }
 
     private fun initDialog(dialog: JDialog): JDialog {
+        if (SystemInfo.isWindows || SystemInfo.isLinux) {
+            dialog.rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_CLOSE, false)
+            dialog.rootPane.putClientProperty(
+                FlatClientProperties.TITLE_BAR_HEIGHT,
+                UIManager.getInt("TabbedPane.tabHeight")
+            )
+        } else if (SystemInfo.isMacOS) {
+            dialog.rootPane.putClientProperty("apple.awt.windowTitleVisible", false)
+            dialog.rootPane.putClientProperty("apple.awt.fullWindowContent", true)
+            dialog.rootPane.putClientProperty("apple.awt.transparentTitleBar", true)
+            dialog.rootPane.putClientProperty(
+                FlatClientProperties.MACOS_WINDOW_BUTTONS_SPACING,
+                FlatClientProperties.MACOS_WINDOW_BUTTONS_SPACING_MEDIUM
+            )
 
-        if (JBR.isWindowDecorationsSupported()) {
 
-            val windowDecorations = JBR.getWindowDecorations()
-            val titleBar = windowDecorations.createCustomTitleBar()
-            titleBar.putProperty("controls.visible", false)
-            titleBar.height = UIManager.getInt("TabbedPane.tabHeight") - if (SystemInfo.isMacOS) 10f else 6f
-            windowDecorations.setCustomTitleBar(dialog, titleBar)
+            val height = UIManager.getInt("TabbedPane.tabHeight") - 10
+            if (JBR.isWindowDecorationsSupported()) {
+                val customTitleBar = JBR.getWindowDecorations().createCustomTitleBar()
+                customTitleBar.putProperty("controls.visible", false)
+                customTitleBar.height = height.toFloat()
+                JBR.getWindowDecorations().setCustomTitleBar(dialog, customTitleBar)
+            } else {
+                NativeMacLibrary.setControlsVisible(dialog, false)
+            }
 
             val label = JLabel(dialog.title)
             label.putClientProperty(FlatClientProperties.STYLE, "font: bold")
@@ -155,11 +204,9 @@ object OptionPane {
             box.add(Box.createHorizontalGlue())
             box.add(label)
             box.add(Box.createHorizontalGlue())
-            box.preferredSize = Dimension(-1, titleBar.height.toInt())
-
+            box.preferredSize = Dimension(-1, height)
             dialog.contentPane.add(box, BorderLayout.NORTH)
         }
-
         return dialog
     }
 }

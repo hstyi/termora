@@ -119,10 +119,11 @@ class KeymapPanel : JPanel(BorderLayout()) {
             val keymap = getCurrentKeymap()
             val index = keymapComboBox.selectedIndex
             if (keymap != null && !keymap.isReadonly && index >= 0) {
-                val text = InputDialog(
+                val text = OptionPane.showInputDialog(
                     SwingUtilities.getWindowAncestor(this@KeymapPanel),
-                    title = renameBtn.toolTipText, text = keymap.name
-                ).getText()
+                    title = renameBtn.toolTipText,
+                    value = keymap.name
+                )
                 if (!text.isNullOrBlank()) {
                     if (text != keymap.name) {
                         keymapManager.removeKeymap(keymap.name)

@@ -103,7 +103,9 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
 
     private fun initEvents() {
         generateBtn.addActionListener {
-            val dialog = GenerateKeyDialog(SwingUtilities.getWindowAncestor(this))
+            val owner = SwingUtilities.getWindowAncestor(this)
+            val dialog = GenerateKeyDialog(owner)
+            dialog.setLocationRelativeTo(owner)
             dialog.isVisible = true
             if (dialog.ohKeyPair != OhKeyPair.empty) {
                 val keyPair = dialog.ohKeyPair
@@ -142,12 +144,14 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
         editBtn.addActionListener {
             val row = keyPairTable.selectedRow
             if (row >= 0) {
+                val owner = SwingUtilities.getWindowAncestor(this)
                 var ohKeyPair = keyPairTableModel.getOhKeyPair(row)
                 val dialog = GenerateKeyDialog(
-                    SwingUtilities.getWindowAncestor(this),
+                    owner,
                     ohKeyPair,
                     true
                 )
+                dialog.setLocationRelativeTo(owner)
                 dialog.title = ohKeyPair.name
                 dialog.isVisible = true
                 ohKeyPair = dialog.ohKeyPair
@@ -342,7 +346,6 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
 
             pack()
             size = Dimension(UIManager.getInt("Dialog.width") - 300, size.height)
-            setLocationRelativeTo(null)
 
         }
 
@@ -354,7 +357,7 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
 
             var rows = 1
             val step = 2
-            return FormBuilder.create().layout(layout).padding("0dlu, $formMargin, $formMargin, $formMargin")
+            return FormBuilder.create().layout(layout).padding("2dlu, $formMargin, $formMargin, $formMargin")
                 .add("${I18n.getString("termora.keymgr.table.type")}:").xy(1, rows)
                 .add(typeComboBox).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.keymgr.table.length")}:").xy(1, rows)
@@ -512,7 +515,7 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
 
             var rows = 1
             val step = 2
-            return FormBuilder.create().layout(layout).padding("0dlu, $formMargin, $formMargin, $formMargin")
+            return FormBuilder.create().layout(layout).padding("2dlu, $formMargin, $formMargin, $formMargin")
                 .add("File:").xy(1, rows)
                 .add(fileTextField).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.keymgr.table.type")}:").xy(1, rows)
@@ -587,8 +590,10 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
             try {
                 val provider = FileKeyPairProvider(file.toPath())
                 provider.passwordFinder = FilePasswordProvider { _, _, _ ->
-                    val dialog = InputDialog(owner = this@ImportKeyDialog, title = "Password")
-                    dialog.getText() ?: String()
+                    OptionPane.showInputDialog(
+                        SwingUtilities.getWindowAncestor(this),
+                        title = I18n.getString("termora.new-host.general.password"),
+                    ) ?: String()
                 }
                 val keyPair = provider.loadKeys(null).firstOrNull()
                     ?: throw IllegalStateException("Failed to load the key file")

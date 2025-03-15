@@ -144,22 +144,13 @@ class ApplicationRunner {
 
     private fun setupLaf() {
 
-        System.setProperty(FlatSystemProperties.USE_WINDOW_DECORATIONS, "${SystemInfo.isLinux}")
+        System.setProperty(FlatSystemProperties.USE_WINDOW_DECORATIONS, "${SystemInfo.isLinux || SystemInfo.isWindows}")
         System.setProperty(FlatSystemProperties.USE_ROUNDED_POPUP_BORDER, "false")
 
         if (SystemInfo.isLinux) {
             JFrame.setDefaultLookAndFeelDecorated(true)
             JDialog.setDefaultLookAndFeelDecorated(true)
         }
-
-        UIManager.put(
-            "FileChooser.${if (SystemInfo.isWindows) "win32" else "other"}.newFolder",
-            I18n.getString("termora.welcome.contextmenu.new.folder.name")
-        )
-        UIManager.put(
-            "FileChooser.${if (SystemInfo.isWindows) "win32" else "other"}.newFolder.subsequent",
-            "${I18n.getString("termora.welcome.contextmenu.new.folder.name")}.{0}"
-        )
 
         val themeManager = ThemeManager.getInstance()
         val appearance = Database.getDatabase().appearance
@@ -176,8 +167,8 @@ class ApplicationRunner {
         themeManager.change(theme, true)
 
 
-        if (Application.isUnknownVersion())
-            FlatInspector.install("ctrl shift alt X")
+//        if (Application.isUnknownVersion())
+            FlatInspector.install("ctrl X")
 
         UIManager.put(FlatClientProperties.FULL_WINDOW_CONTENT, true)
         UIManager.put(FlatClientProperties.USE_WINDOW_DECORATIONS, false)

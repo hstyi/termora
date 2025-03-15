@@ -414,12 +414,11 @@ class FileSystemViewTable(
         val index = selectedRow
         if (index < 0) return
         val attr = model.getAttr(index)
-        val dialog = InputDialog(
+        val text = OptionPane.showInputDialog(
             owner,
-            title = attr.name,
-            text = attr.name,
-        )
-        val text = dialog.getText() ?: return
+            value = attr.name,
+            title = I18n.getString("termora.transport.table.contextmenu.rename")
+        ) ?: return
         if (text.isBlank() || text == attr.name) return
         if (model.getPathNames().contains(text)) {
             OptionPane.showMessageDialog(
@@ -544,12 +543,7 @@ class FileSystemViewTable(
     private fun newFolderOrFile(isFile: Boolean) {
         val name = if (isFile) I18n.getString("termora.transport.table.contextmenu.new.file")
         else I18n.getString("termora.welcome.contextmenu.new.folder.name")
-        val dialog = InputDialog(
-            owner,
-            title = name,
-            text = name,
-        )
-        val text = dialog.getText() ?: return
+        val text = OptionPane.showInputDialog(owner, title = name, value = name) ?: return
         if (text.isBlank()) return
         if (model.getPathNames().contains(text)) {
             OptionPane.showMessageDialog(

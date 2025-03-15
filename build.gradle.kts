@@ -118,7 +118,6 @@ dependencies {
 
 application {
     val args = mutableListOf(
-        "--add-exports java.base/sun.nio.ch=ALL-UNNAMED",
         "-Xmx2g",
         "-XX:+UseZGC",
         "-XX:+ZUncommit",
@@ -127,6 +126,10 @@ application {
     )
 
     if (os.isMacOsX) {
+        // macOS NSWindow
+        args.add("--add-opens java.desktop/java.awt=ALL-UNNAMED")
+        args.add("--add-opens java.desktop/sun.lwawt=ALL-UNNAMED")
+        args.add("--add-opens java.desktop/sun.lwawt.macosx=ALL-UNNAMED")
         args.add("-Dsun.java2d.metal=true")
         args.add("-Dapple.awt.application.appearance=system")
     }
@@ -344,6 +347,10 @@ tasks.register<Exec>("jpackage") {
     options.add("-Dsun.java2d.metal=true")
 
     if (os.isMacOsX) {
+        // NSWindow
+        options.add("--add-opens java.desktop/java.awt=ALL-UNNAMED")
+        options.add("--add-opens java.desktop/sun.lwawt=ALL-UNNAMED")
+        options.add("--add-opens java.desktop/sun.lwawt.macosx=ALL-UNNAMED")
         options.add("-Dapple.awt.application.appearance=system")
         options.add("--add-opens java.desktop/sun.lwawt.macosx.concurrent=ALL-UNNAMED")
     }
@@ -420,14 +427,8 @@ tasks.register<Exec>("jpackage") {
 
 tasks.register("dist") {
     doLast {
-        val vendor = Jvm.current().vendor ?: StringUtils.EMPTY
-        @Suppress("UnstableApiUsage")
-        if (!JvmVendorSpec.JETBRAINS.matches(vendor)) {
-            throw GradleException("JVM: $vendor is not supported")
-        }
 
         val gradlew = File(projectDir, if (os.isWindows) "gradlew.bat" else "gradlew").absolutePath
-
 
         // 清空目录
         exec { commandLine(gradlew, "clean") }
@@ -735,8 +736,6 @@ fun stapleMacOSLocalFile(file: File) {
 kotlin {
     jvmToolchain {
         languageVersion = JavaLanguageVersion.of(21)
-        @Suppress("UnstableApiUsage")
-        vendor = JvmVendorSpec.JETBRAINS
     }
 }
 

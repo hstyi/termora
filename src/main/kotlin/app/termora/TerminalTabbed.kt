@@ -190,12 +190,11 @@ class TerminalTabbed(
         val rename = popupMenu.add(I18n.getString("termora.tabbed.contextmenu.rename"))
         rename.addActionListener {
             if (tabIndex > 0) {
-                val dialog = InputDialog(
+                val text = OptionPane.showInputDialog(
                     SwingUtilities.getWindowAncestor(this),
                     title = rename.text,
-                    text = tabbedPane.getTitleAt(tabIndex),
+                    value = tabbedPane.getTitleAt(tabIndex)
                 )
-                val text = dialog.getText()
                 if (!text.isNullOrBlank()) {
                     tabbedPane.setTitleAt(tabIndex, text)
                     c.putClientProperty(titleProperty, text)
