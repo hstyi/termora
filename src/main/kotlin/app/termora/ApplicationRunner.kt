@@ -147,8 +147,8 @@ class ApplicationRunner {
         themeManager.change(theme, true)
 
 
-//        if (Application.isUnknownVersion())
-        FlatInspector.install("ctrl X")
+        if (Application.isUnknownVersion())
+            FlatInspector.install("ctrl shift alt X")
 
         UIManager.put(FlatClientProperties.FULL_WINDOW_CONTENT, true)
         UIManager.put(FlatClientProperties.USE_WINDOW_DECORATIONS, false)
