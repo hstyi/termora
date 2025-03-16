@@ -5,7 +5,9 @@ import org.slf4j.LoggerFactory
 import java.awt.Frame
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
+import javax.swing.JFrame
 import javax.swing.JOptionPane
+import javax.swing.SwingUtilities
 import javax.swing.UIManager
 import javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE
 import kotlin.math.max
@@ -94,6 +96,21 @@ class TermoraFrameManager {
                 }
             }
         })
+    }
+
+    fun tick() {
+        if (SwingUtilities.isEventDispatchThread()) {
+            val windows = getWindows()
+            if (windows.isEmpty()) return
+            for (window in windows) {
+                if (window.extendedState and JFrame.ICONIFIED == JFrame.ICONIFIED) {
+                    window.extendedState = window.extendedState and JFrame.ICONIFIED.inv()
+                }
+            }
+            windows.last().toFront()
+        } else {
+            SwingUtilities.invokeLater { tick() }
+        }
     }
 
     private fun dispose() {

@@ -13,8 +13,6 @@ import java.nio.channels.FileLock
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.util.concurrent.atomic.AtomicBoolean
-import javax.swing.JFrame
-import javax.swing.SwingUtilities
 
 class ApplicationSingleton private constructor() : Disposable {
 
@@ -195,19 +193,7 @@ class ApplicationSingleton private constructor() : Disposable {
             }
 
             private fun onTick() {
-                SwingUtilities.invokeLater(object : Runnable {
-                    override fun run() {
-                        val windows = TermoraFrameManager.getInstance().getWindows()
-                        if (windows.isEmpty()) return
-                        for (window in windows) {
-                            if (window.extendedState and JFrame.ICONIFIED == JFrame.ICONIFIED) {
-                                window.extendedState = window.extendedState and JFrame.ICONIFIED.inv()
-                            }
-                        }
-                        windows.last().toFront()
-                    }
-                })
-
+                TermoraFrameManager.getInstance().tick()
             }
 
         }

@@ -18,8 +18,11 @@ import java.awt.event.MouseListener
 import java.awt.event.MouseMotionListener
 import java.util.*
 import javax.imageio.ImageIO
-import javax.swing.*
+import javax.swing.JComponent
+import javax.swing.JFrame
+import javax.swing.SwingUtilities
 import javax.swing.SwingUtilities.isEventDispatchThread
+import javax.swing.UIManager
 
 fun assertEventDispatchThread() {
     if (!isEventDispatchThread()) throw WrongThreadException("AWT EventQueue")
@@ -236,22 +239,4 @@ class TermoraFrame : JFrame(), DataProvider {
         return id.hashCode()
     }
 
-    override fun addNotify() {
-        super.addNotify()
-
-        val dialog = object : DialogWrapper(this@TermoraFrame) {
-            init {
-                init()
-                controlsVisible = false
-            }
-
-            override fun createCenterPanel(): JComponent {
-                return JPanel()
-            }
-        }
-        dialog.title = "Hello"
-        dialog.size = Dimension(800, 600)
-        dialog.setLocationRelativeTo(this)
-//        dialog.isVisible = true
-    }
 }
