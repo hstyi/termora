@@ -61,8 +61,8 @@ class TerminalLineBuffer(
                 if (!resizing) {
                     while (size > terminalModel.getMaxRows()) {
                         removeFirst()
-                        // 因为第一行被删除了，所以这里要删除这一行的荧光笔
-                        terminal.getMarkupModel().removeAllHighlightersInLine(0)
+                        // 超出的行数，前 N 行已经被清理
+                        terminal.getTerminalModel().setData(DocumentImpl.OverflowLines, 1)
                     }
                 }
             }

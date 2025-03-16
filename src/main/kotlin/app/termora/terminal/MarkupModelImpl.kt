@@ -4,6 +4,20 @@ package app.termora.terminal
 open class MarkupModelImpl(private val terminal: Terminal) : MarkupModel {
     private val highlighters = mutableMapOf<Int, MutableList<Highlighter>>()
 
+    init {
+        terminal.getTerminalModel().addDataListener(object : DataListener {
+            override fun onChanged(key: DataKey<*>, data: Any) {
+                if (key != DocumentImpl.OverflowLines) return
+                if (highlighters.isEmpty()) return
+                val row = data as Int
+                // 因为第 N 行被删除了，所以这里要删除这一行的荧光笔
+                for (i in 0 until row) {
+                    terminal.getMarkupModel().removeAllHighlightersInLine(0)
+                }
+            }
+        })
+    }
+
     override fun addHighlighter(highlighter: Highlighter) {
         val range = highlighter.getHighlighterRange()
         highlighters.getOrPut(range.start.y) { mutableListOf() }.addLast(highlighter)

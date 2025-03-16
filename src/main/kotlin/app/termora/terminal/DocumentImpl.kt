@@ -14,6 +14,11 @@ open class DocumentImpl(private val terminal: Terminal) : Document {
 
     companion object {
         private val log = LoggerFactory.getLogger(DocumentImpl::class.java)
+
+        /**
+         * 超出的行数
+         */
+        val OverflowLines = DataKey(Int::class)
     }
 
     init {

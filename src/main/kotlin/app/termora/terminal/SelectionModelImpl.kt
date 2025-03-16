@@ -32,6 +32,34 @@ open class SelectionModelImpl(private val terminal: Terminal) : SelectionModel {
         }
     }
 
+    init {
+        terminal.getTerminalModel().addDataListener(object : DataListener {
+            private val cols get() = terminal.getTerminalModel().getCols()
+            override fun onChanged(key: DataKey<*>, data: Any) {
+                if (key != DocumentImpl.OverflowLines) return
+                if (!hasSelection() || isSelectAll()) return
+                val row = data as Int
+
+                val startPosition = startPosition.copy(y = max(startPosition.y - row, 1))
+                val endPosition = endPosition.copy(y = endPosition.y - row)
+                if (endPosition.y < 1 || endPosition.y < startPosition.y) {
+                    clearSelection()
+                    return
+                }
+
+                // 设置新的选择区域
+                setSelection(startPosition, endPosition)
+
+            }
+
+            private fun isSelectAll(): Boolean {
+                return hasSelection() &&
+                        startPosition.y == 1 && startPosition.x == 1 &&
+                        endPosition.y == document.getLineCount() && endPosition.x == cols
+            }
+        })
+    }
+
     override fun getSelectedText(): String {
         val sb = StringBuilder()
 
