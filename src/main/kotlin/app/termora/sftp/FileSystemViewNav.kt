@@ -166,6 +166,13 @@ class FileSystemViewNav(
             override fun actionPerformed(e: ActionEvent) {
                 val name = textField.text.trim()
                 if (name.isBlank()) return
+                try {
+                    changeSelectedPath(fileSystem.getPath(name))
+                } catch (e: Exception) {
+                    if (log.isErrorEnabled) {
+                        log.error(e.message, e)
+                    }
+                }
             }
         })
     }
