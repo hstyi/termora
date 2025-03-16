@@ -14,6 +14,7 @@ import kotlin.math.min
 open class VisualWindowPanel(protected val id: String, protected val visualWindowManager: VisualWindowManager) :
     JPanel(BorderLayout()), VisualWindow {
 
+    private val stickPx = 2
     protected val properties get() = Database.getDatabase().properties
     private val titleLabel = JLabel()
     private val toolbar = FlatToolBar()
@@ -141,8 +142,11 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
         addPropertyChangeListener("ancestor", object : PropertyChangeListener {
             override fun propertyChange(evt: PropertyChangeEvent) {
                 removePropertyChangeListener("ancestor", this)
-                // 是否吸附
-                isStick = properties.getString("VisualWindow.${id}.stick", "false").toBoolean()
+                // 获取缓存是否是粘附
+                val isStick = properties.getString("VisualWindow.${id}.stick", "false").toBoolean()
+                if (isStick && bounds.y <= stickPx) {
+                    visualWindow.isStick = true
+                }
             }
         })
 
@@ -245,7 +249,6 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
 
     private inner class DragListener : MouseAdapter() {
         private var startPoint: Point? = null
-        private val stickPx = 2
 
         override fun mousePressed(e: MouseEvent) {
             if (isWindow) {
