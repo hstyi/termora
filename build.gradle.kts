@@ -48,11 +48,13 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.hutool)
     testImplementation(libs.sshj)
-    testImplementation(libs.jsch)
     testImplementation(libs.rhino)
     testImplementation(libs.delight.rhino.sandbox)
     testImplementation(platform(libs.testcontainers.bom))
     testImplementation(libs.testcontainers)
+
+    implementation(libs.vfs2)
+    implementation(libs.jsch)
 
 //    implementation(platform(libs.koin.bom))
 //    implementation(libs.koin.core)
