@@ -21,34 +21,16 @@ import org.apache.commons.lang3.LocaleUtils
 import org.apache.commons.lang3.SystemUtils
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
-import org.tinylog.configuration.Configuration
-import java.io.File
-import java.nio.channels.FileChannel
-import java.nio.channels.FileLock
-import java.nio.file.Paths
-import java.nio.file.StandardOpenOption
 import java.util.*
 import javax.swing.*
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
 
 class ApplicationRunner {
-    private lateinit var singletonChannel: FileChannel
-    private lateinit var singletonLock: FileLock
-    private val log by lazy {
-        if (!::singletonLock.isInitialized) {
-            throw UnsupportedOperationException("Singleton lock is not initialized")
-        }
-        LoggerFactory.getLogger(ApplicationRunner::class.java)
-    }
+    private val log by lazy { LoggerFactory.getLogger(ApplicationRunner::class.java) }
 
     fun run() {
         measureTimeMillis {
-            // 覆盖 tinylog 配置
-            val setupTinylog = measureTimeMillis { setupTinylog() }
-
-            // 是否单例
-            val checkSingleton = measureTimeMillis { checkSingleton() }
 
             // 打印系统信息
             val printSystemInfo = measureTimeMillis { printSystemInfo() }
@@ -82,8 +64,6 @@ class ApplicationRunner {
             val startMainFrame = measureTimeMillis { startMainFrame() }
 
             if (log.isDebugEnabled) {
-                log.debug("setupTinylog: {}ms", setupTinylog)
-                log.debug("checkSingleton: {}ms", checkSingleton)
                 log.debug("printSystemInfo: {}ms", printSystemInfo)
                 log.debug("openDatabase: {}ms", openDatabase)
                 log.debug("loadSettings: {}ms", loadSettings)
@@ -168,7 +148,7 @@ class ApplicationRunner {
 
 
 //        if (Application.isUnknownVersion())
-            FlatInspector.install("ctrl X")
+        FlatInspector.install("ctrl X")
 
         UIManager.put(FlatClientProperties.FULL_WINDOW_CONTENT, true)
         UIManager.put(FlatClientProperties.USE_WINDOW_DECORATIONS, false)
@@ -231,36 +211,6 @@ class ApplicationRunner {
             )
             log.debug("Base config dir: ${Application.getBaseDataDir().absolutePath}")
         }
-    }
-
-
-    /**
-     * Windows 情况覆盖
-     */
-    private fun setupTinylog() {
-        if (SystemInfo.isWindows) {
-            val dir = File(Application.getBaseDataDir(), "logs")
-            FileUtils.forceMkdir(dir)
-            Configuration.set("writer_file.latest", "${dir.absolutePath}/${Application.getName().lowercase()}.log")
-            Configuration.set("writer_file.file", "${dir.absolutePath}/{date:yyyy}-{date:MM}-{date:dd}.log")
-        }
-    }
-
-
-    private fun checkSingleton() {
-        singletonChannel = FileChannel.open(
-            Paths.get(Application.getBaseDataDir().absolutePath, "lock"),
-            StandardOpenOption.CREATE,
-            StandardOpenOption.WRITE,
-        )
-
-        val lock = singletonChannel.tryLock()
-        if (lock == null) {
-            System.err.println("Program is already running")
-            exitProcess(1)
-        }
-
-        singletonLock = lock
     }
 
 

@@ -22,7 +22,7 @@ class NativeStringComparator private constructor() : Comparator<String> {
     override fun compare(o1: String, o2: String): Int {
         if (SystemInfo.isWindows) {
             // CompareStringEx returns 1, 2, 3 respectively instead of -1, 0, 1
-            return Kernel32.INSTANCE.CompareStringEx(SORT_DIGITSASNUMBERS, o1, o2) - 2
+            return MyKernel32.INSTANCE.CompareStringEx(SORT_DIGITSASNUMBERS, o1, o2) - 2
         } else if (SystemInfo.isMacOS) {
             val pool = NSAutoreleasePool()
             try {
