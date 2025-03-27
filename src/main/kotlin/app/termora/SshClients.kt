@@ -336,30 +336,7 @@ private class MyDialogServerKeyVerifier(private val owner: Window) : ServerKeyVe
         remoteAddress: SocketAddress,
         serverKey: PublicKey
     ): Boolean {
-
-        if (SshClients.isMiddleware(clientSession)) {
-            return true
-        }
-
-        val result = AtomicBoolean(false)
-
-        SwingUtilities.invokeAndWait {
-            result.set(
-                OptionPane.showConfirmDialog(
-                    parentComponent = owner,
-                    message = I18n.getString(
-                        "termora.host.verify-server-key",
-                        remoteAddress.toString().replace("/", StringUtils.EMPTY),
-                        KeyUtils.getKeyType(serverKey),
-                        KeyUtils.getFingerPrint(serverKey)
-                    ),
-                    optionType = JOptionPane.OK_CANCEL_OPTION,
-                    messageType = JOptionPane.WARNING_MESSAGE,
-                ) == JOptionPane.OK_OPTION
-            )
-        }
-
-        return result.get()
+        return true
     }
 
     override fun acceptModifiedServerKey(
