@@ -16,9 +16,7 @@ import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.KeyboardFocusManager
-import java.awt.event.ActionEvent
-import java.awt.event.ComponentAdapter
-import java.awt.event.ComponentEvent
+import java.awt.event.*
 import javax.swing.*
 import javax.swing.event.DocumentEvent
 import kotlin.math.max
@@ -216,6 +214,26 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
                 filterableHostTreeModel.refresh()
                 if (text.isNotBlank()) {
                     hostTree.expandAll()
+                }
+            }
+        })
+
+        searchTextField.addKeyListener(object : KeyAdapter() {
+            private val event = ActionEvent(hostTree, ActionEvent.ACTION_PERFORMED, StringUtils.EMPTY)
+            private val openHostAction get() = ActionManager.getInstance().getAction(OpenHostAction.OPEN_HOST)
+
+            override fun keyPressed(e: KeyEvent) {
+                if (e.keyCode == KeyEvent.VK_DOWN || e.keyCode == KeyEvent.VK_ENTER || e.keyCode == KeyEvent.VK_UP) {
+                    when (e.keyCode) {
+                        KeyEvent.VK_UP -> hostTree.actionMap.get("selectPrevious")?.actionPerformed(event)
+                        KeyEvent.VK_DOWN -> hostTree.actionMap.get("selectNext")?.actionPerformed(event)
+                        else -> {
+                            for (node in hostTree.getSelectionSimpleTreeNodes(true)) {
+                                openHostAction?.actionPerformed(OpenHostActionEvent(hostTree, node.host, e))
+                            }
+                        }
+                    }
+                    e.consume()
                 }
             }
         })
