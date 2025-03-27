@@ -4,6 +4,7 @@ import app.termora.keymap.KeyShortcut
 import app.termora.keymap.KeymapManager
 import app.termora.terminal.Terminal
 import com.formdev.flatlaf.util.SystemInfo
+import org.slf4j.LoggerFactory
 import java.awt.event.InputEvent
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
@@ -17,6 +18,7 @@ class TerminalPanelKeyAdapter(
 
     companion object {
         private const val ASCII_ESC = 27.toChar()
+        private val log = LoggerFactory.getLogger(TerminalPanelKeyAdapter::class.java)
     }
 
     private val activeKeymap get() = KeymapManager.getInstance().getActiveKeymap()
@@ -38,8 +40,18 @@ class TerminalPanelKeyAdapter(
         // 重置
         isIgnoreKeyTyped = false
 
-        // 处理
-        doKeyPressed(e)
+        try {
+            // 处理
+            doKeyPressed(e)
+        } catch (e: Exception) {
+            if (log.isErrorEnabled) {
+                log.error(e.message, e)
+            }
+            // https://github.com/TermoraDev/termora/issues/388
+            terminal.getSelectionModel().clearSelection()
+            terminal.getScrollingModel().scrollTo(Int.MAX_VALUE)
+            return
+        }
 
         // 如果已经处理，那么忽略 keyTyped 事件
         if (e.isConsumed) {
@@ -119,7 +131,7 @@ class TerminalPanelKeyAdapter(
     private fun simpleMapKeyCodeToChar(e: KeyEvent): Char {
         // zsh requires proper case of letter
         if (e.isShiftDown) return Character.toUpperCase(e.keyCode.toChar())
-        return Character.toLowerCase(e.keyCode.toChar());
+        return Character.toLowerCase(e.keyCode.toChar())
     }
 
 }
