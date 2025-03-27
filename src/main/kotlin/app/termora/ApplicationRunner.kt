@@ -21,7 +21,13 @@ import org.apache.commons.lang3.LocaleUtils
 import org.apache.commons.lang3.SystemUtils
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
+import java.awt.MenuItem
+import java.awt.PopupMenu
+import java.awt.SystemTray
+import java.awt.TrayIcon
+import java.awt.event.ActionEvent
 import java.util.*
+import javax.imageio.ImageIO
 import javax.swing.*
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
@@ -63,6 +69,9 @@ class ApplicationRunner {
             // 启动主窗口
             val startMainFrame = measureTimeMillis { startMainFrame() }
 
+            // 设置托盘
+            val setupSystemTray = measureTimeMillis { SwingUtilities.invokeLater { setupSystemTray() } }
+
             if (log.isDebugEnabled) {
                 log.debug("printSystemInfo: {}ms", printSystemInfo)
                 log.debug("openDatabase: {}ms", openDatabase)
@@ -71,6 +80,7 @@ class ApplicationRunner {
                 log.debug("setupLaf: {}ms", setupLaf)
                 log.debug("openDoor: {}ms", openDoor)
                 log.debug("startMainFrame: {}ms", startMainFrame)
+                log.debug("setupSystemTray: {}ms", setupSystemTray)
             }
         }.let {
             if (log.isDebugEnabled) {
@@ -104,6 +114,37 @@ class ApplicationRunner {
         if (SystemUtils.IS_OS_MAC_OSX) {
             SwingUtilities.invokeLater { FlatDesktop.setQuitHandler { quitHandler() } }
         }
+    }
+
+    private fun setupSystemTray() {
+        if (!SystemInfo.isWindows || !SystemTray.isSupported()) return
+
+        val tray = SystemTray.getSystemTray()
+        val image = ImageIO.read(TermoraFrame::class.java.getResourceAsStream("/icons/termora_16x16.png"))
+        val trayIcon = TrayIcon(image)
+        val popupMenu = PopupMenu()
+        trayIcon.popupMenu = popupMenu
+        trayIcon.toolTip = Application.getName()
+
+        // PopupMenu 不支持中文
+        val exitMenu = MenuItem("Exit")
+        exitMenu.addActionListener { SwingUtilities.invokeLater { quitHandler() } }
+        popupMenu.add(exitMenu)
+
+        // double click
+        trayIcon.addActionListener(object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent) {
+                TermoraFrameManager.getInstance().tick()
+            }
+        })
+
+        tray.add(trayIcon)
+
+        Disposer.register(ApplicationScope.forApplicationScope(), object : Disposable {
+            override fun dispose() {
+                tray.remove(trayIcon)
+            }
+        })
     }
 
     private fun quitHandler() {

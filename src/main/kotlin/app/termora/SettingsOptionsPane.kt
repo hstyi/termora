@@ -129,6 +129,7 @@ class SettingsOptionsPane : OptionsPane() {
         val themeManager = ThemeManager.getInstance()
         val themeComboBox = FlatComboBox<String>()
         val languageComboBox = FlatComboBox<String>()
+        val backgroundComBoBox = YesOrNoComboBox()
         val followSystemCheckBox = JCheckBox(I18n.getString("termora.settings.appearance.follow-system"))
         val preferredThemeBtn = JButton(Icons.settings)
         private val appearance get() = database.appearance
@@ -142,6 +143,7 @@ class SettingsOptionsPane : OptionsPane() {
 
             followSystemCheckBox.isSelected = appearance.followSystem
             preferredThemeBtn.isEnabled = followSystemCheckBox.isSelected
+            backgroundComBoBox.selectedItem = appearance.backgroundRunning
 
             themeComboBox.isEnabled = !followSystemCheckBox.isSelected
             themeManager.themes.keys.forEach { themeComboBox.addItem(it) }
@@ -175,6 +177,12 @@ class SettingsOptionsPane : OptionsPane() {
                 if (it.stateChange == ItemEvent.SELECTED) {
                     appearance.theme = themeComboBox.selectedItem as String
                     SwingUtilities.invokeLater { themeManager.change(themeComboBox.selectedItem as String) }
+                }
+            }
+
+            backgroundComBoBox.addItemListener {
+                if (it.stateChange == ItemEvent.SELECTED) {
+                    appearance.backgroundRunning = backgroundComBoBox.selectedItem as Boolean
                 }
             }
 
@@ -276,7 +284,7 @@ class SettingsOptionsPane : OptionsPane() {
         private fun getFormPanel(): JPanel {
             val layout = FormLayout(
                 "left:pref, $formMargin, default:grow, $formMargin, default, default:grow",
-                "pref, $formMargin, pref, $formMargin"
+                "pref, $formMargin, pref, $formMargin, pref"
             )
             val box = FlatToolBar()
             box.add(followSystemCheckBox)
@@ -285,7 +293,7 @@ class SettingsOptionsPane : OptionsPane() {
 
             var rows = 1
             val step = 2
-            return FormBuilder.create().layout(layout)
+            val builder = FormBuilder.create().layout(layout)
                 .add("${I18n.getString("termora.settings.appearance.theme")}:").xy(1, rows)
                 .add(themeComboBox).xy(3, rows)
                 .add(box).xy(5, rows).apply { rows += step }
@@ -296,7 +304,13 @@ class SettingsOptionsPane : OptionsPane() {
                         Application.browse(URI.create("https://github.com/TermoraDev/termora/tree/main/src/main/resources/i18n"))
                     }
                 })).xy(5, rows).apply { rows += step }
-                .build()
+
+            if (SystemInfo.isWindows) {
+                builder.add("${I18n.getString("termora.settings.appearance.background-running")}:").xy(1, rows)
+                    .add(backgroundComBoBox).xy(3, rows)
+            }
+
+            return builder.build()
         }
 
 
@@ -408,8 +422,8 @@ class SettingsOptionsPane : OptionsPane() {
         }
 
         private fun fireFontChanged() {
-                TerminalPanelFactory.getInstance()
-                    .fireResize()
+            TerminalPanelFactory.getInstance()
+                .fireResize()
         }
 
         private fun initView() {
@@ -470,7 +484,7 @@ class SettingsOptionsPane : OptionsPane() {
 
             shellComboBox.selectedItem = terminalSetting.localShell
 
-            val fonts = linkedSetOf<String>("JetBrains Mono", "Source Code Pro", "Monospaced")
+            val fonts = linkedSetOf("JetBrains Mono", "Source Code Pro", "Monospaced")
             FontUtils.getAllFonts().forEach {
                 if (!fonts.contains(it.family)) {
                     fonts.addLast(it.family)

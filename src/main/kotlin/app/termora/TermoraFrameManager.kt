@@ -26,6 +26,7 @@ class TermoraFrameManager {
 
     private val frames = mutableListOf<TermoraFrame>()
     private val properties get() = Database.getDatabase().properties
+    private val isBackgroundRunning get() = Database.getDatabase().appearance.backgroundRunning
 
     fun createWindow(): TermoraFrame {
         val frame = TermoraFrame().apply { registerCloseCallback(this) }
@@ -83,13 +84,20 @@ class TermoraFrameManager {
 
             override fun windowClosing(e: WindowEvent) {
                 if (ApplicationScope.windowScopes().size == 1) {
-                    if (OptionPane.showConfirmDialog(
-                            window,
-                            I18n.getString("termora.quit-confirm", Application.getName()),
-                            optionType = JOptionPane.YES_NO_OPTION,
-                        ) == JOptionPane.YES_OPTION
-                    ) {
-                        window.dispose()
+                    if (SystemInfo.isWindows && isBackgroundRunning) {
+                        // 最小化
+                        window.extendedState = window.extendedState or JFrame.ICONIFIED
+                        // 隐藏
+                        window.isVisible = false
+                    } else {
+                        if (OptionPane.showConfirmDialog(
+                                window,
+                                I18n.getString("termora.quit-confirm", Application.getName()),
+                                optionType = JOptionPane.YES_NO_OPTION,
+                            ) == JOptionPane.YES_OPTION
+                        ) {
+                            window.dispose()
+                        }
                     }
                 } else {
                     window.dispose()
@@ -106,6 +114,7 @@ class TermoraFrameManager {
                 if (window.extendedState and JFrame.ICONIFIED == JFrame.ICONIFIED) {
                     window.extendedState = window.extendedState and JFrame.ICONIFIED.inv()
                 }
+                window.isVisible = true
             }
             windows.last().toFront()
         } else {

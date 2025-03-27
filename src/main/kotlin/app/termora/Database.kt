@@ -581,6 +581,11 @@ class Database private constructor(private val env: Environment) : Disposable {
         var lightTheme by StringPropertyDelegate("Light")
 
         /**
+         * 允许后台运行，也就是托盘
+         */
+        var backgroundRunning by BooleanPropertyDelegate(false)
+
+        /**
          * 语言
          */
         var language by StringPropertyLazyDelegate {
