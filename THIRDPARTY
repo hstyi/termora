@@ -1,244 +1,240 @@
-annotations 24.0.1
+annotations
 Apache License 2.0
 https://github.com/JetBrains/java-annotations/blob/master/LICENSE.txt
 
-bip39-lib-jvm 1.0.8
+kotlin-bip39
 MIT License
 https://github.com/Electric-Coin-Company/kotlin-bip39/blob/main/LICENSE
 
-colorpicker 2.0.1
+colorpicker
 BSD 3-Clause "New" or "Revised" License
 https://github.com/dheid/colorpicker/blob/main/LICENSE
 
-commonmark 0.24.0
+commonmark
 BSD 2-Clause "Simplified" License
 https://github.com/commonmark/commonmark-java/blob/main/LICENSE.txt
 
-commons-codec 1.18.0
+commons-codec
 Apache License 2.0
 https://github.com/apache/commons-codec/blob/master/LICENSE.txt
 
-commons-compress 1.27.1
+commons-compress
 Apache License 2.0
 https://github.com/apache/commons-compress/blob/master/LICENSE.txt
 
-commons-io 2.18.0
+commons-io
 Apache License 2.0
 https://github.com/apache/commons-io/blob/master/LICENSE.txt
 
-commons-lang3 3.17.0
+commons-lang3
 Apache License 2.0
 https://github.com/apache/commons-lang/blob/master/LICENSE.txt
 
-commons-net 3.11.1
+commons-net
 Apache License 2.0
 https://github.com/apache/commons-net/blob/master/LICENSE.txt
 
-commons-text 1.13.0
+commons-text
 Apache License 2.0
 https://github.com/apache/commons-text/blob/master/LICENSE.txt
 
-commons-csv 1.13.0
+commons-csv
 Apache License 2.0
 https://github.com/apache/commons-csv/blob/master/LICENSE.txt
 
-ini4j 0.5.5-2
+ini4j
 Apache License 2.0
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
-eddsa 0.3.0
+eddsa
 Creative Commons Zero v1.0 Universal
 https://github.com/str4d/ed25519-java/blob/master/LICENSE.txt
 
-flatlaf 3.5.4
+flatlaf
 Apache License 2.0
 https://github.com/JFormDesigner/FlatLaf/blob/main/LICENSE
 
-flatlaf 3.5.4-no-natives
+flatlaf-no-natives
 Apache License 2.0
 https://github.com/JFormDesigner/FlatLaf/blob/main/LICENSE
 
-flatlaf-extras 3.5.4
+flatlaf-extras
 Apache License 2.0
 https://github.com/JFormDesigner/FlatLaf/blob/main/LICENSE
 
-flatlaf-swingx 3.5.4
+flatlaf-swingx
 Apache License 2.0
 https://github.com/JFormDesigner/FlatLaf/blob/main/LICENSE
 
-JavaEWAH 1.2.3
+JavaEWAH
 Apache License 2.0
 https://github.com/lemire/javaewah/blob/master/LICENSE
 
-jbr-api 17.1.10.1
+jbr-api
 Apache License 2.0
 https://github.com/JetBrains/JetBrainsRuntimeApi/blob/main/LICENSE
 
-jcl-over-slf4j 1.7.36
+jcl-over-slf4j
 Apache License 2.0
 https://www.apache.org/licenses/LICENSE-2.0.txt
 
-jfa 1.2.0
+jfa
 Apache License 2.0
 https://github.com/0x4a616e/jfa/blob/main/LICENSE
 
-jgoodies-common 1.8.1
+jgoodies-common
 BSD-2-Clause License
 http://www.opensource.org/licenses/bsd-license.html
 
-jgoodies-forms 1.9.0
+jgoodies-forms
 BSD-2-Clause License
 http://www.opensource.org/licenses/bsd-license.html
 
-jna 5.16.0
+jna
 Apache License 2.0
 https://github.com/java-native-access/jna/blob/master/AL2.0
 
-jna-platform 5.16.0
+jna-platform
 Apache License 2.0
 https://github.com/java-native-access/jna/blob/master/AL2.0
 
-jnafilechooser-api 1.1.2
+jnafilechooser-api
 BSD 3-Clause "New" or "Revised" License
 https://github.com/steos/jnafilechooser/blob/master/LICENSE
 
-jnafilechooser-win32 1.1.2
+jnafilechooser-win32
 BSD 3-Clause "New" or "Revised" License
 https://github.com/steos/jnafilechooser/blob/master/LICENSE
 
-jsvg 1.4.0
+jsvg
 MIT License
 https://github.com/weisJ/jsvg/blob/master/LICENSE
 
-jSystemThemeDetector 3.9.1
+jSystemThemeDetector
 Apache License 2.0
 https://github.com/Dansoftowner/jSystemThemeDetector/blob/master/LICENSE
 
-kotlin-logging 1.7.9
+kotlin-logging
 Apache License 2.0
 https://github.com/oshai/kotlin-logging/blob/master/LICENSE
 
-kotlin-stdlib 2.1.10
+kotlin-stdlib
 Apache License 2.0
 https://github.com/JetBrains/kotlin/blob/master/license/LICENSE.txt
 
-kotlin-stdlib-jdk7 1.9.10
+kotlin-stdlib-jdk7
 Apache License 2.0
 https://github.com/JetBrains/kotlin/blob/master/license/LICENSE.txt
 
-kotlin-stdlib-jdk8 1.9.10
+kotlin-stdlib-jdk8
 Apache License 2.0
 https://github.com/JetBrains/kotlin/blob/master/license/LICENSE.txt
 
-kotlin-stdlib-jdk8 1.9.10
+kotlin-stdlib-jdk8
 Apache License 2.0
 https://github.com/JetBrains/kotlin/blob/master/license/LICENSE.txt
 
-restart4j 0.0.1
+restart4j
 Apache License 2.0
 https://github.com/hstyi/restart4j/blob/main/LICENSE
 
-kotlinx-coroutines-core-jvm 1.10.1
+kotlinx-coroutines-core
 Apache License 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 
-kotlinx-coroutines-swing 1.10.1
+kotlinx-coroutines-swing
 Apache License 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 
-kotlinx-serialization-core-jvm 1.8.0
+kotlinx-serialization-json
 Apache License 2.0
 https://github.com/Kotlin/kotlinx.serialization/blob/master/LICENSE.txt
 
-kotlinx-serialization-json-jvm 1.8.0
-Apache License 2.0
-https://github.com/Kotlin/kotlinx.serialization/blob/master/LICENSE.txt
-
-logging-interceptor 4.12.0
+logging-interceptor
 Apache License 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 
-okhttp 4.12.0
+okhttp
 Apache License 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 
-okio-jvm 3.6.0
+okio-jvm
 Apache License 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 
-org.eclipse.jgit.ssh.apache 7.1.0.202411261347-r
+org.eclipse.jgit.ssh.apache
 Eclipse Distribution License
 https://www.eclipse.org/org/documents/edl-v10.php
 
-org.eclipse.jgit 7.1.0.202411261347-r
+org.eclipse.jgit
 Eclipse Distribution License
 https://www.eclipse.org/org/documents/edl-v10.php
 
-oshi-core 6.6.5
+oshi-core
 MIT License
 https://github.com/oshi/oshi/blob/master/LICENSE
 
-pty4j 0.13.2
+pty4j
 Eclipse Public License 1.0
 https://github.com/JetBrains/pty4j/blob/master/LICENSE
 
-slf4j-api 2.0.16
+slf4j-api
 MIT License
 https://github.com/qos-ch/slf4j/blob/master/LICENSE.txt
 
-slf4j-tinylog 2.7.0
+slf4j-tinylog
 Apache License 2.0
 https://github.com/tinylog-org/tinylog/blob/v2.7/license.txt
 
-sshd-common 2.14.0
+sshd-common
 Apache License 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 
-sshd-core 2.14.0
+sshd-core
 Apache License 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 
-sshd-osgi 2.14.0
+sshd-osgi
 Apache License 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 
-sshd-sftp 2.14.0
+sshd-sftp
 Apache License 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 
-swingx-all 1.6.5-1
+swingx-all
 GNU LESSER GENERAL PUBLIC LICENSE v3
 https://www.gnu.org/licenses/lgpl-3.0
 
-tinylog-api 2.7.0
+tinylog-api
 Apache License 2.0
 https://github.com/tinylog-org/tinylog/blob/v2.7/license.txt
 
-tinylog-impl 2.7.0
+tinylog-impl
 Apache License 2.0
 https://github.com/tinylog-org/tinylog/blob/v2.7/license.txt
 
-versioncompare 1.4.1
+versioncompare
 Apache License 2.0
 https://github.com/G00fY2/version-compare/blob/main/LICENSE
 
-xodus-compress 2.0.1
+xodus-compress
 Apache License 2.0
 https://github.com/JetBrains/xodus/blob/master/LICENSE.txt
 
-xodus-environment 2.0.1
+xodus-environment
 Apache License 2.0
 https://github.com/JetBrains/xodus/blob/master/LICENSE.txt
 
-xodus-openAPI 2.0.1
+xodus-openAPI
 Apache License 2.0
 https://github.com/JetBrains/xodus/blob/master/LICENSE.txt
 
-xodus-utils 2.0.1
+xodus-utils
 Apache License 2.0
 https://github.com/JetBrains/xodus/blob/master/LICENSE.txt
 
-xodus-vfs 2.0.1
+xodus-vfs
 Apache License 2.0
 https://github.com/JetBrains/xodus/blob/master/LICENSE.txt
 
@@ -246,7 +242,7 @@ jediterm
 Apache License 2.0
 https://github.com/JetBrains/jediterm/blob/master/LICENSE-APACHE-2.0.txt
 
-mixpanel-java 1.5.3
+mixpanel-java
 Apache License 2.0
 https://github.com/mixpanel/mixpanel-java/blob/master/LICENSE
 
@@ -254,6 +250,6 @@ json-20231013
 Public Domain.
 https://github.com/stleary/JSON-java/blob/master/LICENSE
 
-jSerialComm 2.11.0
+jSerialComm
 Apache License 2.0
 https://github.com/Fazecast/jSerialComm/blob/master/LICENSE-APACHE-2.0

@@ -5,7 +5,6 @@ pty4j = "0.13.2"
 tinylog = "2.7.0"
 kotlinx-coroutines = "1.10.1"
 flatlaf = "3.5.4"
-trove4j = "1.0.20200330"
 kotlinx-serialization-json = "1.8.0"
 commons-codec = "1.18.0"
 commons-lang3 = "3.17.0"
@@ -13,7 +12,6 @@ commons-csv = "1.13.0"
 commons-net = "3.11.1"
 commons-text = "1.13.0"
 commons-compress = "1.27.1"
-koin-bom = "4.0.0"
 swingx = "1.6.5-1"
 jgoodies-forms = "1.9.0"
 jfa = "1.2.0"
@@ -23,13 +21,9 @@ jna = "5.16.0"
 jSystemThemeDetector = "3.9.1"
 commons-io = "2.18.0"
 jbr-api = "17.1.10.1"
-leveldb = "0.12"
-guava = "33.3.1-jre"
-credential-secure-storage = "1.0.3"
 hutool = "5.8.34"
 jsch = "0.2.21"
 okhttp = "4.12.0"
-bcprov = "1.79"
 sshj = "0.39.0"
 sshd-core = "2.14.0"
 jgit = "7.1.0.202411261347-r"
@@ -63,11 +57,8 @@ pty4j = { group = "org.jetbrains.pty4j", name = "pty4j", version.ref = "pty4j" }
 ini4j = { module = "org.jetbrains.intellij.deps:ini4j", version.ref = "ini4j" }
 flatlaf = { group = "com.formdev", name = "flatlaf", version.ref = "flatlaf" }
 flatlaf-extras = { group = "com.formdev", name = "flatlaf-extras", version.ref = "flatlaf" }
-trove4j = { group = "org.jetbrains.intellij.deps", name = "trove4j", version.ref = "trove4j" }
-koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin-bom" }
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }
 testcontainers = { module = "org.testcontainers:testcontainers" }
-koin-core = { module = "io.insert-koin:koin-core" }
 swingx = { module = "org.swinglabs.swingx:swingx-all", version.ref = "swingx" }
 jgoodies-forms = { module = "com.jgoodies:jgoodies-forms", version.ref = "jgoodies-forms" }
 jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
@@ -80,26 +71,20 @@ commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
 restart4j = { module = "com.github.hstyi:restart4j", version.ref = "restart4j" }
 jbr-api = { module = "com.jetbrains:jbr-api", version.ref = "jbr-api" }
 flatlaf-swingx = { module = "com.formdev:flatlaf-swingx", version.ref = "flatlaf" }
-leveldb = { module = "org.iq80.leveldb:leveldb", version.ref = "leveldb" }
-guava = { module = "com.google.guava:guava", version.ref = "guava" }
 hutool = { module = "cn.hutool:hutool-all", version.ref = "hutool" }
-credential-secure-storage = { module = "com.microsoft:credential-secure-storage", version.ref = "credential-secure-storage" }
 jsch = { module = "com.github.mwiede:jsch", version.ref = "jsch" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 okhttp-logging = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "okhttp" }
-bcprov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bcprov" }
 sshj = { module = "com.hierynomus:sshj", version.ref = "sshj" }
 sshd-core = { module = "org.apache.sshd:sshd-core", version.ref = "sshd-core" }
 jgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "jgit" }
 commonmark = { module = "org.commonmark:commonmark", version.ref = "commonmark" }
 jgit-sshd = { module = "org.eclipse.jgit:org.eclipse.jgit.ssh.apache", version.ref = "jgit" }
 xodus-openAPI = { module = "org.jetbrains.xodus:xodus-openAPI", version.ref = "xodus" }
-xodus-entity-store = { module = "org.jetbrains.xodus:xodus-entity-store", version.ref = "xodus" }
 xodus-environment = { module = "org.jetbrains.xodus:xodus-environment", version.ref = "xodus" }
-xodus-crypto = { module = "org.jetbrains.xodus:xodus-crypto", version.ref = "xodus" }
 xodus-vfs = { module = "org.jetbrains.xodus:xodus-vfs", version.ref = "xodus" }
 jnafilechooser = { module = "com.github.steos.jnafilechooser:jnafilechooser-api", version.ref = "jnafilechooser" }
-bip39 = { module = "cash.z.ecc.android:kotlin-bip39-jvm", version.ref = "bip39" }
+bip39 = { module = "cash.z.ecc.android:kotlin-bip39", version.ref = "bip39" }
 rhino = { module = "org.mozilla:rhino", version.ref = "rhino" }
 delight-rhino-sandbox = { module = "org.javadelight:delight-rhino-sandbox", version.ref = "delight-rhino-sandbox" }
 colorpicker = { module = "org.drjekyll:colorpicker", version.ref = "colorpicker" }

@@ -455,33 +455,26 @@ tasks.register("dist") {
 
 tasks.register("check-license") {
     doLast {
-        val thirdParty = mutableMapOf<String, String>()
         val iterator = File(projectDir, "THIRDPARTY").readLines().iterator()
         val thirdPartyNames = mutableSetOf<String>()
 
         while (iterator.hasNext()) {
-            val nameWithVersion = iterator.next()
-            if (nameWithVersion.isBlank()) {
+            val name = iterator.next()
+            if (name.isBlank()) {
                 continue
             }
 
             // ignore license name
             iterator.next()
+            // ignore license url
+            iterator.next()
 
-            val license = iterator.next()
-            thirdParty[nameWithVersion.replace(StringUtils.SPACE, "-")] = license
-            thirdPartyNames.add(nameWithVersion.split(StringUtils.SPACE).first())
+            thirdPartyNames.add(name)
         }
 
-        for (file in configurations.runtimeClasspath.get()) {
-            val name = file.nameWithoutExtension
-            if (!thirdParty.containsKey(name)) {
-                if (logger.isWarnEnabled) {
-                    logger.warn("$name does not exist in third-party")
-                }
-                if (!thirdPartyNames.contains(name)) {
-                    throw GradleException("$name No license found")
-                }
+        for (dependency in configurations.runtimeClasspath.get().allDependencies) {
+            if (!thirdPartyNames.contains(dependency.name)) {
+                throw GradleException("${dependency.name} No license found")
             }
         }
     }
