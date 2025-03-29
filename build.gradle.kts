@@ -124,7 +124,6 @@ application {
         "-XX:+ZUncommit",
         "-XX:+ZGenerational",
         "-XX:ZUncommitDelay=60",
-        "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
     )
 
     if (os.isMacOsX) {
