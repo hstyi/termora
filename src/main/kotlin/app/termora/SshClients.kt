@@ -1,15 +1,15 @@
 package app.termora
 
 import app.termora.keyboardinteractive.TerminalUserInteraction
+import app.termora.keymgr.KeyManager
 import app.termora.keymgr.OhKeyPairKeyPairProvider
 import app.termora.terminal.TerminalSize
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.swing.Swing
-import kotlinx.coroutines.withContext
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.sshd.client.ClientBuilder
 import org.apache.sshd.client.SshClient
+import org.apache.sshd.client.auth.password.PasswordIdentityProvider
+import org.apache.sshd.client.auth.password.UserAuthPasswordFactory
 import org.apache.sshd.client.channel.ChannelShell
 import org.apache.sshd.client.channel.ClientChannelEvent
 import org.apache.sshd.client.config.hosts.HostConfigEntry
@@ -27,6 +27,7 @@ import org.apache.sshd.common.config.keys.KeyUtils
 import org.apache.sshd.common.global.KeepAliveHandler
 import org.apache.sshd.common.kex.BuiltinDHFactories
 import org.apache.sshd.common.keyprovider.KeyIdentityProvider
+import org.apache.sshd.common.session.SessionContext
 import org.apache.sshd.common.util.net.SshdSocketAddress
 import org.apache.sshd.core.CoreModuleProperties
 import org.apache.sshd.server.forward.AcceptAllForwardingFilter
@@ -44,6 +45,7 @@ import java.net.Proxy
 import java.net.SocketAddress
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.security.KeyPair
 import java.security.PublicKey
 import java.time.Duration
 import java.util.*
@@ -57,6 +59,7 @@ object SshClients {
     val HOST_KEY = AttributeRepository.AttributeKey<Host>()
 
     private val timeout = Duration.ofSeconds(30)
+    private val hostManager get() = HostManager.getInstance()
     private val log by lazy { LoggerFactory.getLogger(SshClients::class.java) }
 
     /**
@@ -119,16 +122,16 @@ object SshClients {
      * 打开一个会话
      */
     fun openSession(host: Host, client: SshClient): ClientSession {
-
+        val h = hostManager.getHost(host.id) ?: host
 
         // 如果没有跳板机直接连接
-        if (host.options.jumpHosts.isEmpty()) {
-            return doOpenSession(host, client)
+        if (h.options.jumpHosts.isEmpty()) {
+            return doOpenSession(h, client)
         }
 
         val jumpHosts = mutableListOf<Host>()
         val hosts = HostManager.getInstance().hosts().associateBy { it.id }
-        for (jumpHostId in host.options.jumpHosts) {
+        for (jumpHostId in h.options.jumpHosts) {
             val e = hosts[jumpHostId]
             if (e == null) {
                 if (log.isWarnEnabled) {
@@ -140,7 +143,7 @@ object SshClients {
         }
 
         // 最后一跳是目标机器
-        jumpHosts.add(host)
+        jumpHosts.add(h)
 
         val sessions = mutableListOf<ClientSession>()
         for (i in 0 until jumpHosts.size) {
@@ -187,12 +190,23 @@ object SshClients {
         entry.hostName = host.host
         entry.setProperty("Middleware", middleware.toString())
 
-        val session = client.connect(entry)
-            .verify(timeout).session
+        val session = client.connect(entry).verify(timeout).session
         if (host.authentication.type == AuthenticationType.Password) {
             session.addPasswordIdentity(host.authentication.password)
         } else if (host.authentication.type == AuthenticationType.PublicKey) {
             session.keyIdentityProvider = OhKeyPairKeyPairProvider(host.authentication.password)
+        }
+
+        val owner = client.properties["owner"] as Window?
+        if (owner != null) {
+            val identityProvider = IdentityProvider(host, owner)
+            session.passwordIdentityProvider = identityProvider
+            val combinedKeyIdentityProvider = CombinedKeyIdentityProvider()
+            if (session.keyIdentityProvider != null) {
+                combinedKeyIdentityProvider.addKeyKeyIdentityProvider(session.keyIdentityProvider)
+            }
+            combinedKeyIdentityProvider.addKeyKeyIdentityProvider(identityProvider)
+            session.keyIdentityProvider = combinedKeyIdentityProvider
         }
 
         val verifyTimeout = Duration.ofSeconds(timeout.seconds * 5)
@@ -241,27 +255,13 @@ object SshClients {
         return sshdSocketAddress
     }
 
-    suspend fun openClient(host: Host, owner: Window): Pair<SshClient, Host> {
-        val client = openClient(host)
-        var myHost = host
-        withContext(Dispatchers.Swing) {
-            client.userInteraction = TerminalUserInteraction(owner)
-            client.serverKeyVerifier = DialogServerKeyVerifier(owner)
-            // 弹出授权框
-            if (host.authentication.type == AuthenticationType.No) {
-                val dialog = RequestAuthenticationDialog(owner, host)
-                val authentication = dialog.getAuthentication()
-                myHost = myHost.copy(
-                    authentication = authentication,
-                    username = dialog.getUsername(), updateDate = System.currentTimeMillis(),
-                )
-                // save
-                if (dialog.isRemembered()) {
-                    HostManager.getInstance().addHost(myHost)
-                }
-            }
-        }
-        return client to myHost
+    fun openClient(host: Host, owner: Window): SshClient {
+        val h = hostManager.getHost(host.id) ?: host
+        val client = openClient(h)
+        client.userInteraction = TerminalUserInteraction(owner)
+        client.serverKeyVerifier = DialogServerKeyVerifier(owner)
+        client.properties["owner"] = owner
+        return client
     }
 
     /**
@@ -298,6 +298,28 @@ object SshClients {
         // JGit 会尝试读取本地的私钥或缓存的私钥
         sshClient.keyIdentityProvider = KeyIdentityProvider { mutableListOf() }
 
+        // 设置优先级
+        if (host.authentication.type == AuthenticationType.PublicKey) {
+            CoreModuleProperties.PREFERRED_AUTHS.set(
+                sshClient,
+                listOf(
+                    UserAuthPasswordFactory.PUBLIC_KEY,
+                    UserAuthPasswordFactory.PASSWORD,
+                    UserAuthPasswordFactory.KB_INTERACTIVE
+                ).joinToString(",")
+            )
+        } else {
+            CoreModuleProperties.PREFERRED_AUTHS.set(
+                sshClient,
+                listOf(
+                    UserAuthPasswordFactory.PASSWORD,
+                    UserAuthPasswordFactory.PUBLIC_KEY,
+                    UserAuthPasswordFactory.KB_INTERACTIVE
+                ).joinToString(",")
+            )
+        }
+
+
         val heartbeatInterval = max(host.options.heartbeatInterval, 3)
         CoreModuleProperties.HEARTBEAT_INTERVAL.set(sshClient, Duration.ofSeconds(heartbeatInterval.toLong()))
         CoreModuleProperties.ALLOW_DHG1_KEX_FALLBACK.set(sshClient, true)
@@ -327,71 +349,123 @@ object SshClients {
         sshClient.start()
         return sshClient
     }
-}
 
 
-private class MyDialogServerKeyVerifier(private val owner: Window) : ServerKeyVerifier, ModifiedServerKeyAcceptor {
-    override fun verifyServerKey(
-        clientSession: ClientSession,
-        remoteAddress: SocketAddress,
-        serverKey: PublicKey
-    ): Boolean {
-        return true
-    }
-
-    override fun acceptModifiedServerKey(
-        clientSession: ClientSession?,
-        remoteAddress: SocketAddress?,
-        entry: KnownHostEntry?,
-        expected: PublicKey?,
-        actual: PublicKey?
-    ): Boolean {
-        val result = AtomicBoolean(false)
-
-        SwingUtilities.invokeAndWait {
-            result.set(
-                OptionPane.showConfirmDialog(
-                    parentComponent = owner,
-                    message = I18n.getString(
-                        "termora.host.modified-server-key",
-                        remoteAddress.toString().replace("/", StringUtils.EMPTY),
-                        KeyUtils.getKeyType(expected),
-                        KeyUtils.getFingerPrint(expected),
-                        KeyUtils.getKeyType(actual),
-                        KeyUtils.getFingerPrint(actual),
-                    ),
-                    optionType = JOptionPane.OK_CANCEL_OPTION,
-                    messageType = JOptionPane.WARNING_MESSAGE,
-                ) == JOptionPane.OK_OPTION
-            )
+    private class MyDialogServerKeyVerifier(private val owner: Window) : ServerKeyVerifier, ModifiedServerKeyAcceptor {
+        override fun verifyServerKey(
+            clientSession: ClientSession,
+            remoteAddress: SocketAddress,
+            serverKey: PublicKey
+        ): Boolean {
+            return true
         }
 
-        return result.get()
-    }
-}
+        override fun acceptModifiedServerKey(
+            clientSession: ClientSession?,
+            remoteAddress: SocketAddress?,
+            entry: KnownHostEntry?,
+            expected: PublicKey?,
+            actual: PublicKey?
+        ): Boolean {
+            val result = AtomicBoolean(false)
 
-class DialogServerKeyVerifier(
-    owner: Window,
-) : KnownHostsServerKeyVerifier(
-    MyDialogServerKeyVerifier(owner),
-    Paths.get(Application.getBaseDataDir().absolutePath, "known_hosts")
-) {
-    init {
-        modifiedServerKeyAcceptor = delegateVerifier as ModifiedServerKeyAcceptor
+            SwingUtilities.invokeAndWait {
+                result.set(
+                    OptionPane.showConfirmDialog(
+                        parentComponent = owner,
+                        message = I18n.getString(
+                            "termora.host.modified-server-key",
+                            remoteAddress.toString().replace("/", StringUtils.EMPTY),
+                            KeyUtils.getKeyType(expected),
+                            KeyUtils.getFingerPrint(expected),
+                            KeyUtils.getKeyType(actual),
+                            KeyUtils.getFingerPrint(actual),
+                        ),
+                        optionType = JOptionPane.OK_CANCEL_OPTION,
+                        messageType = JOptionPane.WARNING_MESSAGE,
+                    ) == JOptionPane.OK_OPTION
+                )
+            }
+
+            return result.get()
+        }
     }
 
-    override fun updateKnownHostsFile(
-        clientSession: ClientSession?,
-        remoteAddress: SocketAddress?,
-        serverKey: PublicKey?,
-        file: Path?,
-        knownHosts: Collection<HostEntryPair?>?
-    ): KnownHostEntry? {
-        if (clientSession is JGitClientSession) {
-            if (SshClients.isMiddleware(clientSession)) {
-                return null
+    private class DialogServerKeyVerifier(
+        owner: Window,
+    ) : KnownHostsServerKeyVerifier(
+        MyDialogServerKeyVerifier(owner),
+        Paths.get(Application.getBaseDataDir().absolutePath, "known_hosts")
+    ) {
+        init {
+            modifiedServerKeyAcceptor = delegateVerifier as ModifiedServerKeyAcceptor
+        }
+
+        override fun updateKnownHostsFile(
+            clientSession: ClientSession?,
+            remoteAddress: SocketAddress?,
+            serverKey: PublicKey?,
+            file: Path?,
+            knownHosts: Collection<HostEntryPair?>?
+        ): KnownHostEntry? {
+            if (clientSession is JGitClientSession) {
+                if (isMiddleware(clientSession)) {
+                    return null
+                }
+            }
+            return super.updateKnownHostsFile(clientSession, remoteAddress, serverKey, file, knownHosts)
+        }
+    }
+
+
+    private class IdentityProvider(private val host: Host, private val owner: Window) : PasswordIdentityProvider,
+        KeyIdentityProvider {
+        private val asked = AtomicBoolean(false)
+        private val hostManager get() = HostManager.getInstance()
+        private val keyManager get() = KeyManager.getInstance()
+        private var authentication = Authentication.No
+
+        override fun loadPasswords(session: SessionContext): MutableIterable<String> {
+            val authentication = ask()
+            if (authentication.type != AuthenticationType.Password) {
+                return mutableListOf()
+            }
+            return mutableListOf(authentication.password)
+        }
+
+        override fun loadKeys(session: SessionContext): MutableIterable<KeyPair> {
+            val authentication = ask()
+            if (authentication.type != AuthenticationType.PublicKey) {
+                return mutableListOf()
+            }
+            val ohKeyPair = keyManager.getOhKeyPair(authentication.password) ?: return mutableListOf()
+            return mutableListOf(OhKeyPairKeyPairProvider.generateKeyPair(ohKeyPair))
+        }
+
+        private fun ask(): Authentication {
+            if (asked.compareAndSet(false, true)) {
+               askNow()
+            }
+            return authentication
+        }
+
+        private fun askNow() {
+            if (SwingUtilities.isEventDispatchThread()) {
+                val dialog = RequestAuthenticationDialog(owner, host)
+                dialog.setLocationRelativeTo(owner)
+                authentication = dialog.getAuthentication()
+                // save
+                if (dialog.isRemembered()) {
+                    val host = host.copy(
+                        authentication = authentication,
+                        username = dialog.getUsername(), updateDate = System.currentTimeMillis(),
+                    )
+                    hostManager.addHost(host)
+                }
+            } else {
+                SwingUtilities.invokeAndWait { askNow() }
             }
         }
-        return super.updateKnownHostsFile(clientSession, remoteAddress, serverKey, file, knownHosts)
     }
 }
+

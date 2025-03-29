@@ -4,7 +4,6 @@ import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProviders
 import app.termora.actions.TabReconnectAction
 import app.termora.addons.zmodem.ZModemPtyConnectorAdaptor
-import app.termora.keyboardinteractive.TerminalUserInteraction
 import app.termora.keymap.KeyShortcut
 import app.termora.keymap.KeymapManager
 import app.termora.terminal.ControlCharacters
@@ -89,35 +88,8 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
             terminal.write("SSH client is opening...\r\n")
         }
 
-        var host =
-            this.host.copy(authentication = this.host.authentication.copy(), updateDate = System.currentTimeMillis())
         val owner = SwingUtilities.getWindowAncestor(terminalPanel)
-        val client = SshClients.openClient(host).also { sshClient = it }
-        client.serverKeyVerifier = DialogServerKeyVerifier(owner)
-        // keyboard interactive
-        client.userInteraction = TerminalUserInteraction(owner)
-
-        if (host.authentication.type == AuthenticationType.No) {
-            withContext(Dispatchers.Swing) {
-                val dialog = RequestAuthenticationDialog(owner, host)
-                val authentication = dialog.getAuthentication()
-                host = host.copy(
-                    authentication = authentication,
-                    username = dialog.getUsername(),
-                    updateDate = System.currentTimeMillis(),
-                )
-                // save
-                if (dialog.isRemembered()) {
-                    HostManager.getInstance().addHost(
-                        tab.host.copy(
-                            authentication = authentication,
-                            username = dialog.getUsername(), updateDate = System.currentTimeMillis(),
-                        )
-                    )
-                }
-            }
-        }
-
+        val client = SshClients.openClient(host, owner).also { sshClient = it }
         val sessionListener = MySessionListener()
         val channelListener = MyChannelListener()
 

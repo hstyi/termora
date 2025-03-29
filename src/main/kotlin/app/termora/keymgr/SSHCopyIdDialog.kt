@@ -144,7 +144,7 @@ class SSHCopyIdDialog(
                 }
 
                 try {
-                    val client = SshClients.openClient(host).apply { myClient = this }
+                    val client = SshClients.openClient(host, this).apply { myClient = this }
                     client.userInteraction = TerminalUserInteraction(owner)
                     val session = SshClients.openSession(host, client).apply { mySession = this }
                     val channel =

@@ -112,9 +112,9 @@ class SFTPFileSystemViewPanel(
         closeIO()
 
         try {
-            val (client, host) = SshClients.openClient(thisHost, SwingUtilities.getWindowAncestor(that))
-            this.client = client
-            val session = SshClients.openSession(host, client).apply { session = this }
+            val owner = SwingUtilities.getWindowAncestor(that)
+            val client = SshClients.openClient(thisHost, owner).apply { client = this }
+            val session = SshClients.openSession(thisHost, client).apply { session = this }
             fileSystem = SftpClientFactory.instance().createSftpFileSystem(session)
             session.addCloseFutureListener { onClose() }
         } catch (e: Exception) {

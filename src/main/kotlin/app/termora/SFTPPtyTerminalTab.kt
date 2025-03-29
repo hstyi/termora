@@ -30,6 +30,7 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
     private var lastPasswordReporterDataListener: PasswordReporterDataListener? = null
     private val sftpCommand get() = Database.getDatabase().sftp.sftpCommand
     private val defaultDirectory get() = Database.getDatabase().sftp.defaultDirectory
+    private val owner get() = SwingUtilities.getWindowAncestor(terminalPanel)
 
     init {
         terminalPanel.dropFiles = true
@@ -67,7 +68,7 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
                 )
             )
 
-            val sshClient = SshClients.openClient(host).apply { sshClient = this }
+            val sshClient = SshClients.openClient(host, owner).apply { sshClient = this }
             val sshSession = SshClients.openSession(host, sshClient).apply { sshSession = this }
 
             // 打开通道

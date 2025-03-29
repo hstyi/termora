@@ -34,8 +34,8 @@ class RequestAuthenticationDialog(owner: Window, host: Host) : DialogWrapper(own
         pack()
 
         size = Dimension(max(380, size.width), size.height)
-
-        setLocationRelativeTo(null)
+        preferredSize = size
+        minimumSize = size
 
         publicKeyComboBox.renderer = object : DefaultListCellRenderer() {
             override fun getListCellRendererComponent(
@@ -63,6 +63,10 @@ class RequestAuthenticationDialog(owner: Window, host: Host) : DialogWrapper(own
             if (it.stateChange == ItemEvent.SELECTED) {
                 switchPasswordComponent()
             }
+        }
+
+        if (host.authentication.type != AuthenticationType.No) {
+            authenticationTypeComboBox.selectedItem = host.authentication.type
         }
 
         usernameTextField.text = host.username

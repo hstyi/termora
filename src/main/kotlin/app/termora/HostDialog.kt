@@ -2,7 +2,6 @@ package app.termora
 
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
-import app.termora.keyboardinteractive.TerminalUserInteraction
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
 import org.apache.commons.lang3.exception.ExceptionUtils
@@ -103,8 +102,7 @@ class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
         var client: SshClient? = null
         var session: ClientSession? = null
         try {
-            client = SshClients.openClient(host)
-            client.userInteraction = TerminalUserInteraction(owner)
+            client = SshClients.openClient(host, this)
             session = SshClients.openSession(host, client)
         } finally {
             session?.close()
