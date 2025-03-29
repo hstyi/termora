@@ -680,7 +680,7 @@ class FileSystemViewTable(
 
             coroutineScope.launch {
                 try {
-                    doTransfer(arrayOf(attr), fromLocalSystem, targetWorkdir)
+                    doTransfer(attr, fromLocalSystem, targetWorkdir)
                 } catch (e: Exception) {
                     if (log.isErrorEnabled) {
                         log.error(e.message, e)
@@ -829,78 +829,69 @@ class FileSystemViewTable(
      * 开始查找所有子，查找到之后立即添加任务，如果添加失败（任意一个）那么立即终止
      */
     private fun doTransfer(
-        attrs: Array<FileSystemViewTableModel.Attr>,
+        attr: FileSystemViewTableModel.Attr,
         fromLocalSystem: Boolean,
         targetWorkdir: Path?
     ) {
-        if (attrs.isEmpty()) return
         val sftpPanel = this.sftpPanel
         val target = sftpPanel.getTarget(table) ?: return
-        var isTerminate = false
+
+        /**
+         * 定义一个添加器，它可以自动的判断导入/拖拽行为
+         */
+        val adder = object {
+            fun add(transport: Transport): Boolean {
+                return addTransport(
+                    sftpPanel,
+                    if (fromLocalSystem) attr.path.parent else null,
+                    target,
+                    targetWorkdir,
+                    transport
+                )
+            }
+        }
+
+        if (attr.isFile) {
+            if (!adder.add(createTransport(attr.path, false, 0).apply { scanned() })) {
+                return
+            }
+        }
+
         val queue = ArrayDeque<Transport>()
+        var isTerminate = false
 
-        for (attr in attrs) {
-
-            /**
-             * 定义一个添加器，它可以自动的判断导入/拖拽行为
-             */
-            val adder = object {
-                fun add(transport: Transport): Boolean {
-                    return addTransport(
-                        sftpPanel,
-                        if (fromLocalSystem) attr.path.parent else null,
-                        target,
-                        targetWorkdir,
-                        transport
-                    )
+        try {
+            walk(attr.path, object : FileVisitor<Path> {
+                override fun preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult {
+                    val transport = createTransport(dir, true, queue.lastOrNull()?.id ?: 0L)
+                        .apply { queue.addLast(this) }
+                    if (adder.add(transport)) return FileVisitResult.CONTINUE
+                    return FileVisitResult.TERMINATE.apply { isTerminate = true }
                 }
-            }
 
-            if (attr.isFile) {
-                if (!adder.add(createTransport(attr.path, false, 0).apply { scanned() })) {
-                    isTerminate = true
-                    break
+                override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
+                    if (queue.isEmpty()) return FileVisitResult.SKIP_SIBLINGS
+                    val transport = createTransport(file, false, queue.last().id).apply { scanned() }
+                    if (adder.add(transport)) return FileVisitResult.CONTINUE
+                    return FileVisitResult.TERMINATE.apply { isTerminate = true }
                 }
-                continue
-            }
 
-            queue.clear()
-
-            try {
-                walk(attr.path, object : FileVisitor<Path> {
-                    override fun preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult {
-                        val transport = createTransport(dir, true, queue.lastOrNull()?.id ?: 0L)
-                            .apply { queue.addLast(this) }
-                        if (adder.add(transport)) return FileVisitResult.CONTINUE
-                        return FileVisitResult.TERMINATE.apply { isTerminate = true }
-                    }
-
-                    override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
-                        if (queue.isEmpty()) return FileVisitResult.SKIP_SIBLINGS
-                        val transport = createTransport(file, false, queue.last().id).apply { scanned() }
-                        if (adder.add(transport)) return FileVisitResult.CONTINUE
-                        return FileVisitResult.TERMINATE.apply { isTerminate = true }
-                    }
-
-                    override fun visitFileFailed(file: Path, exc: IOException): FileVisitResult {
-                        return FileVisitResult.CONTINUE
-                    }
-
-                    override fun postVisitDirectory(dir: Path, exc: IOException?): FileVisitResult {
-                        // 标记为扫描完毕
-                        queue.removeLast().scanned()
-                        return FileVisitResult.CONTINUE
-                    }
-
-                })
-            } catch (e: Exception) {
-                if (log.isErrorEnabled) {
-                    log.error(e.message, e)
+                override fun visitFileFailed(file: Path, exc: IOException): FileVisitResult {
+                    return FileVisitResult.CONTINUE
                 }
-                isTerminate = true
-            }
 
-            if (isTerminate) break
+                override fun postVisitDirectory(dir: Path, exc: IOException?): FileVisitResult {
+                    // 标记为扫描完毕
+                    queue.removeLast().scanned()
+                    return FileVisitResult.CONTINUE
+                }
+
+            })
+        } catch (e: Exception) {
+            if (log.isErrorEnabled) {
+                log.error(e.message, e)
+            }
+            isTerminate = true
         }
 
         if (isTerminate) {
@@ -960,7 +951,11 @@ class FileSystemViewTable(
         targetWorkdir: Path?,
         transport: Transport
     ): Boolean {
-        return sftpPanel.addTransport(table, sourceWorkdir, target, targetWorkdir, transport)
+        return try {
+            sftpPanel.addTransport(table, sourceWorkdir, target, targetWorkdir, transport)
+        } catch (e: Exception) {
+            false
+        }
     }
 
     private fun createTransport(source: Path, isDirectory: Boolean, parentId: Long): Transport {

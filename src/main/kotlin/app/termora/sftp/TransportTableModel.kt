@@ -12,8 +12,10 @@ import org.jdesktop.swingx.treetable.DefaultMutableTreeTableNode
 import org.jdesktop.swingx.treetable.DefaultTreeTableModel
 import org.jdesktop.swingx.treetable.MutableTreeTableNode
 import org.slf4j.LoggerFactory
+import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 import javax.swing.SwingUtilities
+import kotlin.collections.ArrayDeque
 import kotlin.io.path.name
 import kotlin.math.abs
 import kotlin.math.max
@@ -27,7 +29,7 @@ class TransportTableModel(private val coroutineScope: CoroutineScope) :
 
     val lock = ReentrantLock()
 
-    private val transports = linkedMapOf<Long, TransportTreeTableNode>()
+    private val transports = Collections.synchronizedMap(linkedMapOf<Long, TransportTreeTableNode>())
     private val reporter = SpeedReporter(coroutineScope)
     private var listeners = emptyArray<TransportListener>()
     private val activeTransports = linkedMapOf<Long, Job>()
@@ -104,8 +106,15 @@ class TransportTableModel(private val coroutineScope: CoroutineScope) :
             transports[transport.id] = newNode
 
             if ((transports.containsKey(parentId) || p == root) && transports.containsKey(transport.id)) {
-                // 同步加入节点
-                SwingUtilities.invokeLater { insertNodeInto(newNode, p, p.childCount) }
+                // 主线程加入节点
+                SwingUtilities.invokeLater {
+                    // 因为是异步的，父节点此时可能已经被移除了
+                    if (p == root || transports.containsKey(parentId)) {
+                        insertNodeInto(newNode, p, p.childCount)
+                    } else {
+                        removeTransport(transport.id)
+                    }
+                }
             }
 
             return@withLock true
