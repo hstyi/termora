@@ -29,6 +29,7 @@ object OptionPane {
         icon: Icon? = null,
         options: Array<Any>? = null,
         initialValue: Any? = null,
+        customizeDialog: (JDialog) -> Unit = {},
     ): Int {
 
         val panel = if (message is JComponent) {
@@ -47,6 +48,9 @@ object OptionPane {
             override fun selectInitialValue() {
                 super.selectInitialValue()
                 if (message is JComponent) {
+                    if (message.getClientProperty("SKIP_requestFocusInWindow") == true) {
+                        return
+                    }
                     message.requestFocusInWindow()
                 }
             }
@@ -58,6 +62,7 @@ object OptionPane {
             }
         })
         dialog.setLocationRelativeTo(parentComponent)
+        customizeDialog.invoke(dialog)
         dialog.isVisible = true
         dialog.dispose()
         val selectedValue = pane.value

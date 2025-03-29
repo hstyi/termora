@@ -7,6 +7,7 @@ import com.formdev.flatlaf.icons.FlatTreeLeafIcon
 import com.formdev.flatlaf.util.SystemInfo
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.FilenameUtils
+import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
 import org.eclipse.jgit.util.LRUMap
 import java.util.*
@@ -24,7 +25,7 @@ object NativeFileIcons {
 
     init {
         if (SystemUtils.IS_OS_UNIX) {
-            cache[SystemUtils.USER_HOME] = Pair(FlatTreeClosedIcon(), I18n.getString("termora.folder"))
+            cache[SystemUtils.USER_HOME] = Pair(folderIcon, I18n.getString("termora.folder"))
         }
     }
 
@@ -36,35 +37,30 @@ object NativeFileIcons {
         return getIcon(filename, true).first
     }
 
-    fun getIcon(filename: String, isFile: Boolean = true): Pair<Icon, String> {
-        if (isFile) {
-            val extension = FilenameUtils.getExtension(filename)
-            if (cache.containsKey(extension)) {
-                return cache.getValue(extension)
-            }
-        } else {
-            if (cache.containsKey(SystemUtils.USER_HOME)) {
-                return cache.getValue(SystemUtils.USER_HOME)
-            }
+    fun getIcon(filename: String, isFile: Boolean = true, width: Int = 16, height: Int = 16): Pair<Icon, String> {
+        val key = if (isFile) FilenameUtils.getExtension(filename) + "." + width + "@" + height
+        else SystemUtils.USER_HOME + "." + width + "@" + height
+
+        if (cache.containsKey(key)) {
+            return cache.getValue(key)
         }
 
         val isDirectory = !isFile
 
         if (SystemInfo.isWindows) {
+
             val file = if (isDirectory) FileUtils.getFile(SystemUtils.USER_HOME) else
                 FileUtils.getFile(Application.getTemporaryDir(), "${UUID.randomUUID()}.${filename}")
             if (isFile && !file.exists()) {
                 file.createNewFile()
             }
-            val icon = getFileSystemView().getSystemIcon(file, 16, 16)
+
+            val icon = getFileSystemView().getSystemIcon(file, width, height) ?: if (isFile) fileIcon else folderIcon
             val description = getFileSystemView().getSystemTypeDescription(file)
+                ?: StringUtils.defaultString(file.extension)
             val pair = icon to description
 
-            if (isDirectory) {
-                cache[SystemUtils.USER_HOME] = pair
-            } else {
-                cache[FilenameUtils.getExtension(file.name)] = pair
-            }
+            cache[key] = pair
 
             if (isFile) FileUtils.deleteQuietly(file)
 

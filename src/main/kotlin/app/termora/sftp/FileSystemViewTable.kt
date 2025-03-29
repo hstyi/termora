@@ -4,13 +4,17 @@ import app.termora.*
 import app.termora.actions.AnActionEvent
 import app.termora.actions.SettingsAction
 import com.formdev.flatlaf.FlatClientProperties
+import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.util.SystemInfo
+import com.jgoodies.forms.builder.FormBuilder
+import com.jgoodies.forms.layout.FormLayout
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
+import org.apache.commons.lang3.time.DateFormatUtils
 import org.apache.sshd.sftp.client.SftpClient
 import org.apache.sshd.sftp.client.fs.SftpFileSystem
 import org.apache.sshd.sftp.client.fs.SftpPath
@@ -18,6 +22,7 @@ import org.apache.sshd.sftp.client.fs.SftpPosixFileAttributes
 import org.jdesktop.swingx.action.ActionManager
 import org.slf4j.LoggerFactory
 import java.awt.Component
+import java.awt.Dimension
 import java.awt.Insets
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
@@ -37,6 +42,7 @@ import javax.swing.*
 import javax.swing.table.DefaultTableCellRenderer
 import kotlin.collections.ArrayDeque
 import kotlin.io.path.*
+import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
 
 
@@ -556,22 +562,6 @@ class FileSystemViewTable(
         fileSystemViewPanel.newFolderOrFile(text, isFile)
     }
 
-    private fun transfer(
-        attrs: Array<FileSystemViewTableModel.Attr>,
-        fromLocalSystem: Boolean = false,
-        targetWorkdir: Path? = null
-    ) {
-        coroutineScope.launch {
-            try {
-                doTransfer(attrs, fromLocalSystem, targetWorkdir)
-            } catch (e: Exception) {
-                if (log.isErrorEnabled) {
-                    log.error(e.message, e)
-                }
-            }
-        }
-    }
-
     private fun deletePaths(paths: Array<Path>, rm: Boolean = false) {
         if (OptionPane.showConfirmDialog(
                 SwingUtilities.getWindowAncestor(this),
@@ -654,6 +644,183 @@ class FileSystemViewTable(
         } else {
             sftpClient.remove(path.toString())
         }
+
+    }
+
+    private fun transfer(
+        attrs: Array<FileSystemViewTableModel.Attr>,
+        fromLocalSystem: Boolean = false,
+        targetWorkdir: Path? = null
+    ) {
+
+        assertEventDispatchThread()
+
+        val target = sftpPanel.getTarget(table) ?: return
+        val table = target.getData(SFTPDataProviders.FileSystemViewTable) ?: return
+        var overwriteAll = false
+
+        for (attr in attrs) {
+
+            if (!overwriteAll) {
+                val targetAttr = 0.rangeUntil(table.model.rowCount).map { table.model.getAttr(it) }
+                    .find { it.name == attr.name }
+                if (targetAttr != null) {
+                    val askTransfer = askTransfer(attr, targetAttr)
+                    if (askTransfer.option != JOptionPane.YES_OPTION) {
+                        continue
+                    }
+                    if (askTransfer.action == AskTransfer.Action.Skip) {
+                        if (askTransfer.applyAll) break
+                        continue
+                    } else if (askTransfer.action == AskTransfer.Action.Overwrite) {
+                        overwriteAll = askTransfer.applyAll
+                    }
+                }
+            }
+
+            coroutineScope.launch {
+                try {
+                    doTransfer(arrayOf(attr), fromLocalSystem, targetWorkdir)
+                } catch (e: Exception) {
+                    if (log.isErrorEnabled) {
+                        log.error(e.message, e)
+                    }
+                }
+            }
+        }
+
+    }
+
+    private data class AskTransfer(
+        val option: Int,
+        val action: Action,
+        val applyAll: Boolean
+    ) {
+        enum class Action {
+            Overwrite,
+            Skip
+        }
+    }
+
+    private fun askTransfer(
+        sourceAttr: FileSystemViewTableModel.Attr,
+        targetAttr: FileSystemViewTableModel.Attr
+    ): AskTransfer {
+        val formMargin = "7dlu"
+        val layout = FormLayout(
+            "left:pref, $formMargin, default:grow, 2dlu, left:pref",
+            "pref, 12dlu, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, 16dlu, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
+        )
+
+        val iconSize = 36
+
+        val targetIcon = if (SystemInfo.isWindows)
+            NativeFileIcons.getIcon(targetAttr.name, targetAttr.isFile, iconSize, iconSize).first
+        else if (targetAttr.isDirectory) {
+            FlatSVGIcon(Icons.folder.name, iconSize, iconSize)
+        } else {
+            FlatSVGIcon(Icons.file.name, iconSize, iconSize)
+        }
+
+        val sourceIcon = if (SystemInfo.isWindows)
+            NativeFileIcons.getIcon(sourceAttr.name, sourceAttr.isFile, iconSize, iconSize).first
+        else if (sourceAttr.isDirectory) {
+            FlatSVGIcon(Icons.folder.name, iconSize, iconSize)
+        } else {
+            FlatSVGIcon(Icons.file.name, iconSize, iconSize)
+        }
+
+        val sourceModified = if (sourceAttr.modified > 0) DateFormatUtils.format(
+            Date(sourceAttr.modified),
+            "yyyy/MM/dd HH:mm"
+        ) else "-"
+
+        val targetModified = if (targetAttr.modified > 0) DateFormatUtils.format(
+            Date(targetAttr.modified),
+            "yyyy/MM/dd HH:mm"
+        ) else "-"
+
+        val actionsComBoBox = JComboBox<AskTransfer.Action>()
+        actionsComBoBox.addItem(AskTransfer.Action.Overwrite)
+        actionsComBoBox.addItem(AskTransfer.Action.Skip)
+        actionsComBoBox.renderer = object : DefaultListCellRenderer() {
+            override fun getListCellRendererComponent(
+                list: JList<*>?,
+                value: Any?,
+                index: Int,
+                isSelected: Boolean,
+                cellHasFocus: Boolean
+            ): Component {
+                var text = value?.toString() ?: StringUtils.EMPTY
+                if (value == AskTransfer.Action.Overwrite) {
+                    text = I18n.getString("termora.transport.sftp.already-exists.overwrite")
+                } else if (value == AskTransfer.Action.Skip) {
+                    text = I18n.getString("termora.transport.sftp.already-exists.skip")
+                }
+                return super.getListCellRendererComponent(list, text, index, isSelected, cellHasFocus)
+            }
+        }
+        val applyAllCheckbox = JCheckBox(I18n.getString("termora.transport.sftp.already-exists.apply-all"))
+        val box = Box.createHorizontalBox()
+        box.add(actionsComBoBox)
+        box.add(Box.createHorizontalStrut(8))
+        box.add(applyAllCheckbox)
+        box.add(Box.createHorizontalGlue())
+
+        val ttBox = Box.createVerticalBox()
+        ttBox.add(JLabel(I18n.getString("termora.transport.sftp.already-exists.message1")))
+        ttBox.add(JLabel(I18n.getString("termora.transport.sftp.already-exists.message2")))
+
+        val warningIcon = FlatSVGIcon(
+            Icons.warningIntroduction.name,
+            iconSize,
+            iconSize
+        )
+
+        var rows = 1
+        val step = 2
+        val panel = FormBuilder.create().layout(layout)
+            // tip
+            .add(JLabel(warningIcon)).xy(1, rows, "center, fill")
+            .add(ttBox).xyw(3, rows, 3).apply { rows += step }
+            // name
+            .add(JLabel("${I18n.getString("termora.transport.sftp.already-exists.name")}:")).xy(1, rows)
+            .add(sourceAttr.name).xyw(3, rows, 3).apply { rows += step }
+            // separator
+            .addSeparator(StringUtils.EMPTY).xyw(1, rows, 5).apply { rows += step }
+            // Destination
+            .add("${I18n.getString("termora.transport.sftp.already-exists.destination")}:").xy(1, rows)
+            .apply { rows += step }
+            // Folder
+            .add(JLabel(targetIcon)).xy(1, rows, "center, fill")
+            .add(targetModified).xyw(3, rows, 3).apply { rows += step }
+            // Source
+            .add("${I18n.getString("termora.transport.sftp.already-exists.source")}:").xy(1, rows)
+            .apply { rows += step }
+            // Folder
+            .add(JLabel(sourceIcon)).xy(1, rows, "center, fill")
+            .add(sourceModified).xyw(3, rows, 3).apply { rows += step }
+            // separator
+            .addSeparator(StringUtils.EMPTY).xyw(1, rows, 5).apply { rows += step }
+            // name
+            .add(JLabel("${I18n.getString("termora.transport.sftp.already-exists.actions")}:")).xy(1, rows)
+            .add(box).xyw(3, rows, 3).apply { rows += step }
+            .build()
+        panel.putClientProperty("SKIP_requestFocusInWindow", true)
+
+        return AskTransfer(
+            option = OptionPane.showConfirmDialog(
+                owner, panel,
+                messageType = JOptionPane.PLAIN_MESSAGE,
+                optionType = JOptionPane.OK_CANCEL_OPTION,
+                title = sourceAttr.name,
+                initialValue = JOptionPane.YES_OPTION,
+            ) {
+                it.size = Dimension(max(UIManager.getInt("Dialog.width") - 220, it.width), it.height)
+            },
+            action = actionsComBoBox.selectedItem as AskTransfer.Action,
+            applyAll = applyAllCheckbox.isSelected
+        )
 
     }
 

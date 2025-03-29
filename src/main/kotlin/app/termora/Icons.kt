@@ -93,6 +93,7 @@ object Icons {
     val sortedSet by lazy { DynamicIcon("icons/sortedSet.svg", "icons/sortedSet_dark.svg") }
     val colorPicker by lazy { DynamicIcon("icons/colorPicker.svg", "icons/colorPicker_dark.svg") }
     val folder by lazy { DynamicIcon("icons/folder.svg", "icons/folder_dark.svg") }
+    val file by lazy { DynamicIcon("icons/file.svg", "icons/file_dark.svg") }
     val listFiles by lazy { DynamicIcon("icons/listFiles.svg", "icons/listFiles_dark.svg") }
     val left by lazy { DynamicIcon("icons/left.svg", "icons/left_dark.svg") }
     val right by lazy { DynamicIcon("icons/right.svg", "icons/right_dark.svg") }
