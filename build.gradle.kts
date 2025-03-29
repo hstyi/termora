@@ -104,6 +104,7 @@ dependencies {
     implementation(libs.commonmark)
     implementation(libs.jgit)
     implementation(libs.jgit.sshd) { exclude(group = "*", module = "sshd-osgi") }
+    implementation(libs.jgit.agent) { exclude(group = "*", module = "sshd-osgi") }
     implementation(libs.jnafilechooser)
     implementation(libs.xodus.vfs)
     implementation(libs.xodus.openAPI)
@@ -123,6 +124,7 @@ application {
         "-XX:+ZUncommit",
         "-XX:+ZGenerational",
         "-XX:ZUncommitDelay=60",
+        "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
     )
 
     if (os.isMacOsX) {
