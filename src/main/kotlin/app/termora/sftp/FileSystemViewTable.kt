@@ -137,7 +137,7 @@ class FileSystemViewTable(
                         table.requestFocusInWindow()
                     }
 
-                    showContextMenu(rows, e)
+                    showContextMenu(rows.sortedArray(), e)
                 } else if (SwingUtilities.isLeftMouseButton(e) && e.clickCount % 2 == 0) {
                     val row = table.selectedRow
                     if (row <= 0 || row >= table.rowCount) return
@@ -852,9 +852,8 @@ class FileSystemViewTable(
         }
 
         if (attr.isFile) {
-            if (!adder.add(createTransport(attr.path, false, 0).apply { scanned() })) {
-                return
-            }
+            adder.add(createTransport(attr.path, false, 0).apply { scanned() })
+            return
         }
 
         val queue = ArrayDeque<Transport>()
