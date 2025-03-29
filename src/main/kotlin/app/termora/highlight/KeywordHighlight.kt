@@ -62,5 +62,10 @@ data class KeywordHighlight(
     /**
      * 排序
      */
-    val sort: Long = System.currentTimeMillis()
+    val sort: Long = System.currentTimeMillis(),
+
+    /**
+     * 更新时间
+     */
+    val updateDate: Long = System.currentTimeMillis(),
 )

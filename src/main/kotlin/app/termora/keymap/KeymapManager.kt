@@ -89,6 +89,7 @@ class KeymapManager private constructor() : Disposable {
     fun removeKeymap(name: String) {
         keymaps.remove(name)
         database.removeKeymap(name)
+        DeleteDataManager.getInstance().removeKeymap(name)
     }
 
     private inner class KeymapKeyEventDispatcher : KeyEventDispatcher {

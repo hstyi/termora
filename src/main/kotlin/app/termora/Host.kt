@@ -214,6 +214,27 @@ data class EncryptedHost(
     var updateDate: Long = 0L,
 )
 
+/**
+ * 被删除的数据
+ */
+@Serializable
+data class DeletedData(
+    /**
+     * 被删除的 ID
+     */
+    val id: String = StringUtils.EMPTY,
+
+    /**
+     * 数据类型：Host、Keymap、KeyPair、KeywordHighlight、Macro、Snippet
+     */
+    val type: String = StringUtils.EMPTY,
+
+    /**
+     * 被删除的时间
+     */
+    val deleteDate: Long,
+)
+
 
 @Serializable
 data class Host(

@@ -2,6 +2,7 @@ package app.termora.sync
 
 import app.termora.Application.ohMyJson
 import app.termora.ApplicationScope
+import app.termora.DeletedData
 import app.termora.PBKDF2
 import app.termora.ResponseException
 import kotlinx.serialization.json.JsonObject
@@ -27,6 +28,9 @@ class WebDAVSyncer private constructor() : SafetySyncer() {
     override fun pull(config: SyncConfig): GistResponse {
         val response = httpClient.newCall(newRequestBuilder(config).get().build()).execute()
         if (!response.isSuccessful) {
+            if (response.code == 404) {
+                return GistResponse(config, emptyList())
+            }
             throw ResponseException(response.code, response)
         }
 
@@ -34,46 +38,48 @@ class WebDAVSyncer private constructor() : SafetySyncer() {
             ?: throw ResponseException(response.code, response)
 
         val json = ohMyJson.decodeFromString<JsonObject>(text)
+        val deletedData = mutableListOf<DeletedData>()
+        json["DeletedData"]?.jsonPrimitive?.content?.let { deletedData.addAll(decodeDeletedData(it, config)) }
 
         // decode hosts
         if (config.ranges.contains(SyncRange.Hosts)) {
             json["Hosts"]?.jsonPrimitive?.content?.let {
-                decodeHosts(it, config)
+                decodeHosts(it, deletedData.filter { e -> e.type == "Host" }, config)
             }
         }
 
         // decode KeyPairs
         if (config.ranges.contains(SyncRange.KeyPairs)) {
             json["KeyPairs"]?.jsonPrimitive?.content?.let {
-                decodeKeys(it, config)
+                decodeKeys(it, deletedData.filter { e -> e.type == "KeyPair" }, config)
             }
         }
 
         // decode Highlights
         if (config.ranges.contains(SyncRange.KeywordHighlights)) {
             json["KeywordHighlights"]?.jsonPrimitive?.content?.let {
-                decodeKeywordHighlights(it, config)
+                decodeKeywordHighlights(it, deletedData.filter { e -> e.type == "KeywordHighlight" }, config)
             }
         }
 
         // decode Macros
         if (config.ranges.contains(SyncRange.Macros)) {
             json["Macros"]?.jsonPrimitive?.content?.let {
-                decodeMacros(it, config)
+                decodeMacros(it, deletedData.filter { e -> e.type == "Macro" }, config)
             }
         }
 
         // decode Keymaps
         if (config.ranges.contains(SyncRange.Keymap)) {
             json["Keymaps"]?.jsonPrimitive?.content?.let {
-                decodeKeymaps(it, config)
+                decodeKeymaps(it, deletedData.filter { e -> e.type == "Keymap" }, config)
             }
         }
 
         // decode Snippets
         if (config.ranges.contains(SyncRange.Snippets)) {
             json["Snippets"]?.jsonPrimitive?.content?.let {
-                decodeSnippets(it, config)
+                decodeSnippets(it, deletedData.filter { e -> e.type == "Snippet" }, config)
             }
         }
 
@@ -137,6 +143,13 @@ class WebDAVSyncer private constructor() : SafetySyncer() {
                 }
                 put("Keymaps", keymapsContent)
             }
+
+            // deletedData
+            val deletedData = encodeDeletedData(config)
+            if (log.isDebugEnabled) {
+                log.debug("Push DeletedData: {}", deletedData)
+            }
+            put("DeletedData", deletedData)
         }
 
         val response = httpClient.newCall(

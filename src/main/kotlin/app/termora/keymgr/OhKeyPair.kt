@@ -15,6 +15,7 @@ data class OhKeyPair(
     val remark: String,
     val length: Int,
     val sort: Long,
+    val updateDate: Long = System.currentTimeMillis(),
 ) {
     companion object {
         val empty = OhKeyPair(String(), String(), String(), String(), String(), String(), 0, 0)

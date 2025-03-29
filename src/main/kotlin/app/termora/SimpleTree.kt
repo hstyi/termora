@@ -197,6 +197,7 @@ open class SimpleTree : JXTree() {
             }
 
             override fun importData(support: TransferSupport): Boolean {
+                if (!support.isDrop) return false
                 val dropLocation = support.dropLocation as? JTree.DropLocation ?: return false
                 val node = dropLocation.path.lastPathComponent as? SimpleTreeNode<*> ?: return false
                 val nodes = (support.transferable.getTransferData(MoveNodeTransferable.dataFlavor) as? List<*>)
@@ -277,7 +278,7 @@ open class SimpleTree : JXTree() {
 
     protected open fun onRenamed(node: SimpleTreeNode<*>, text: String) {}
 
-    protected open fun refreshNode(node: SimpleTreeNode<*>) {
+    open fun refreshNode(node: SimpleTreeNode<*> = model.root) {
         val state = TreeUtils.saveExpansionState(tree)
         val rows = selectionRows
 

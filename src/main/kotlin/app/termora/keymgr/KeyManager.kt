@@ -2,6 +2,7 @@ package app.termora.keymgr
 
 import app.termora.ApplicationScope
 import app.termora.Database
+import app.termora.DeleteDataManager
 
 class KeyManager private constructor() {
     companion object {
@@ -29,6 +30,7 @@ class KeyManager private constructor() {
     fun removeOhKeyPair(id: String) {
         keyPairs.removeIf { it.id == id }
         database.removeKeyPair(id)
+        DeleteDataManager.getInstance().removeKeyPair(id)
     }
 
     fun getOhKeyPairs(): List<OhKeyPair> {
@@ -37,11 +39,6 @@ class KeyManager private constructor() {
 
     fun getOhKeyPair(id: String): OhKeyPair? {
         return keyPairs.findLast { it.id == id }
-    }
-
-    fun removeAll() {
-        keyPairs.clear()
-        database.removeAllKeyPair()
     }
 
 }

@@ -16,12 +16,18 @@ class HostManager private constructor() {
      */
     fun addHost(host: Host) {
         assertEventDispatchThread()
-        database.addHost(host)
         if (host.deleted) {
-            hosts.entries.removeIf { it.value.id == host.id || it.value.parentId == host.id }
+            removeHost(host.id)
         } else {
+            database.addHost(host)
             hosts[host.id] = host
         }
+    }
+
+    fun removeHost(id: String) {
+        hosts.entries.removeIf { it.value.id == id || it.value.parentId == id }
+        database.removeHost(id)
+        DeleteDataManager.getInstance().removeHost(id)
     }
 
     /**

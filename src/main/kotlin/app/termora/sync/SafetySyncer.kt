@@ -34,8 +34,9 @@ abstract class SafetySyncer : Syncer {
     protected val macroManager get() = MacroManager.getInstance()
     protected val keymapManager get() = KeymapManager.getInstance()
     protected val snippetManager get() = SnippetManager.getInstance()
+    protected val deleteDataManager get() = DeleteDataManager.getInstance()
 
-    protected fun decodeHosts(text: String, config: SyncConfig) {
+    protected fun decodeHosts(text: String, deletedData: List<DeletedData>, config: SyncConfig) {
         // aes key
         val key = getKey(config)
         val encryptedHosts = ohMyJson.decodeFromString<List<EncryptedHost>>(text)
@@ -44,9 +45,9 @@ abstract class SafetySyncer : Syncer {
         for (encryptedHost in encryptedHosts) {
             val oldHost = hosts[encryptedHost.id]
 
-            // 如果一样，则无需配置
+            // 如果本地的修改时间大于云端时间，那么跳过
             if (oldHost != null) {
-                if (oldHost.updateDate == encryptedHost.updateDate) {
+                if (oldHost.updateDate >= encryptedHost.updateDate) {
                     continue
                 }
             }
@@ -83,7 +84,6 @@ abstract class SafetySyncer : Syncer {
                     creatorId = encryptedHost.creatorId.decodeBase64().aesCBCDecrypt(key, iv).decodeToString(),
                     createDate = encryptedHost.createDate,
                     updateDate = encryptedHost.updateDate,
-                    deleted = encryptedHost.deleted
                 )
                 SwingUtilities.invokeLater { hostManager.addHost(host) }
             } catch (e: Exception) {
@@ -93,6 +93,12 @@ abstract class SafetySyncer : Syncer {
             }
         }
 
+        SwingUtilities.invokeLater {
+            deletedData.forEach {
+                hostManager.removeHost(it.id)
+                deleteDataManager.removeHost(it.id, it.deleteDate)
+            }
+        }
 
         if (log.isDebugEnabled) {
             log.debug("Decode hosts: {}", text)
@@ -120,7 +126,6 @@ abstract class SafetySyncer : Syncer {
             encryptedHost.tunnelings =
                 ohMyJson.encodeToString(host.tunnelings).aesCBCEncrypt(key, iv).encodeBase64String()
             encryptedHost.sort = host.sort
-            encryptedHost.deleted = host.deleted
             encryptedHost.parentId = host.parentId.aesCBCEncrypt(key, iv).encodeBase64String()
             encryptedHost.ownerId = host.ownerId.aesCBCEncrypt(key, iv).encodeBase64String()
             encryptedHost.creatorId = host.creatorId.aesCBCEncrypt(key, iv).encodeBase64String()
@@ -133,7 +138,18 @@ abstract class SafetySyncer : Syncer {
 
     }
 
-    protected fun decodeSnippets(text: String, config: SyncConfig) {
+    protected fun encodeDeletedData(config: SyncConfig): String {
+        return ohMyJson.encodeToString(deleteDataManager.getDeletedData())
+    }
+
+    protected fun decodeDeletedData(text: String, config: SyncConfig): List<DeletedData> {
+        val deletedData = ohMyJson.decodeFromString<List<DeletedData>>(text).toMutableList()
+        // 和本地融合
+        deletedData.addAll(deleteDataManager.getDeletedData())
+        return deletedData
+    }
+
+    protected fun decodeSnippets(text: String, deletedData: List<DeletedData>, config: SyncConfig) {
         // aes key
         val key = getKey(config)
         val encryptedSnippets = ohMyJson.decodeFromString<List<Snippet>>(text)
@@ -144,7 +160,7 @@ abstract class SafetySyncer : Syncer {
 
             // 如果一样，则无需配置
             if (oldHost != null) {
-                if (oldHost.updateDate == encryptedSnippet.updateDate) {
+                if (oldHost.updateDate >= encryptedSnippet.updateDate) {
                     continue
                 }
             }
@@ -165,9 +181,15 @@ abstract class SafetySyncer : Syncer {
             }
         }
 
+        SwingUtilities.invokeLater {
+            deletedData.forEach {
+                snippetManager.removeSnippet(it.id)
+                deleteDataManager.removeSnippet(it.id, it.deleteDate)
+            }
+        }
 
         if (log.isDebugEnabled) {
-            log.debug("Decode hosts: {}", text)
+            log.debug("Decode Snippets: {}", text)
         }
     }
 
@@ -188,12 +210,20 @@ abstract class SafetySyncer : Syncer {
 
     }
 
-    protected fun decodeKeys(text: String, config: SyncConfig) {
+    protected fun decodeKeys(text: String, deletedData: List<DeletedData>, config: SyncConfig) {
         // aes key
         val key = getKey(config)
         val encryptedKeys = ohMyJson.decodeFromString<List<OhKeyPair>>(text)
+        val keys = keyManager.getOhKeyPairs().associateBy { it.id }
 
         for (encryptedKey in encryptedKeys) {
+            val k = keys[encryptedKey.id]
+            if (k != null) {
+                if (k.updateDate > encryptedKey.updateDate) {
+                    continue
+                }
+            }
+
             try {
                 // aes iv
                 val iv = getIv(encryptedKey.id)
@@ -212,6 +242,13 @@ abstract class SafetySyncer : Syncer {
                 if (log.isWarnEnabled) {
                     log.warn("Decode key: ${encryptedKey.id} failed. error: {}", e.message, e)
                 }
+            }
+        }
+
+        SwingUtilities.invokeLater {
+            deletedData.forEach {
+                keyManager.removeOhKeyPair(it.id)
+                deleteDataManager.removeKeyPair(it.id, it.deleteDate)
             }
         }
 
@@ -240,12 +277,20 @@ abstract class SafetySyncer : Syncer {
         return ohMyJson.encodeToString(encryptedKeys)
     }
 
-    protected fun decodeKeywordHighlights(text: String, config: SyncConfig) {
+    protected fun decodeKeywordHighlights(text: String, deletedData: List<DeletedData>, config: SyncConfig) {
         // aes key
         val key = getKey(config)
         val encryptedKeywordHighlights = ohMyJson.decodeFromString<List<KeywordHighlight>>(text)
+        val keywordHighlights = keywordHighlightManager.getKeywordHighlights().associateBy { it.id }
 
         for (e in encryptedKeywordHighlights) {
+            val keywordHighlight = keywordHighlights[e.id]
+            if (keywordHighlight != null) {
+                if (keywordHighlight.updateDate >= e.updateDate) {
+                    continue
+                }
+            }
+
             try {
                 // aes iv
                 val iv = getIv(e.id)
@@ -259,6 +304,13 @@ abstract class SafetySyncer : Syncer {
                 if (log.isWarnEnabled) {
                     log.warn("Decode KeywordHighlight: ${e.id} failed. error: {}", ex.message, ex)
                 }
+            }
+        }
+
+        SwingUtilities.invokeLater {
+            deletedData.forEach {
+                keywordHighlightManager.removeKeywordHighlight(it.id)
+                deleteDataManager.removeKeywordHighlight(it.id, it.deleteDate)
             }
         }
 
@@ -281,12 +333,19 @@ abstract class SafetySyncer : Syncer {
         return ohMyJson.encodeToString(keywordHighlights)
     }
 
-    protected fun decodeMacros(text: String, config: SyncConfig) {
+    protected fun decodeMacros(text: String, deletedData: List<DeletedData>, config: SyncConfig) {
         // aes key
         val key = getKey(config)
         val encryptedMacros = ohMyJson.decodeFromString<List<Macro>>(text)
-
+        val macros = macroManager.getMacros().associateBy { it.id }
         for (e in encryptedMacros) {
+            val macro = macros[e.id]
+            if (macro != null) {
+                if (macro.updateDate >= e.updateDate) {
+                    continue
+                }
+            }
+
             try {
                 // aes iv
                 val iv = getIv(e.id)
@@ -300,6 +359,13 @@ abstract class SafetySyncer : Syncer {
                 if (log.isWarnEnabled) {
                     log.warn("Decode Macro: ${e.id} failed. error: {}", ex.message, ex)
                 }
+            }
+        }
+
+        SwingUtilities.invokeLater {
+            deletedData.forEach {
+                macroManager.removeMacro(it.id)
+                deleteDataManager.removeMacro(it.id, it.deleteDate)
             }
         }
 
@@ -322,10 +388,17 @@ abstract class SafetySyncer : Syncer {
         return ohMyJson.encodeToString(macros)
     }
 
-    protected fun decodeKeymaps(text: String, config: SyncConfig) {
+    protected fun decodeKeymaps(text: String, deletedData: List<DeletedData>, config: SyncConfig) {
 
         for (keymap in ohMyJson.decodeFromString<List<JsonObject>>(text).mapNotNull { Keymap.fromJSON(it) }) {
             keymapManager.addKeymap(keymap)
+        }
+
+        SwingUtilities.invokeLater {
+            deletedData.forEach {
+                keymapManager.removeKeymap(it.id)
+                deleteDataManager.removeKeymap(it.id, it.deleteDate)
+            }
         }
 
         if (log.isDebugEnabled) {

@@ -2,6 +2,7 @@ package app.termora.snippet
 
 import app.termora.ApplicationScope
 import app.termora.Database
+import app.termora.DeleteDataManager
 import app.termora.assertEventDispatchThread
 
 
@@ -20,12 +21,18 @@ class SnippetManager private constructor() {
      */
     fun addSnippet(snippet: Snippet) {
         assertEventDispatchThread()
-        database.addSnippet(snippet)
         if (snippet.deleted) {
-            snippets.entries.removeIf { it.value.id == snippet.id || it.value.parentId == snippet.id }
+            removeSnippet(snippet.id)
         } else {
+            database.addSnippet(snippet)
             snippets[snippet.id] = snippet
         }
+    }
+
+    fun removeSnippet(id: String) {
+        snippets.entries.removeIf { it.value.id == id || it.value.parentId == id }
+        database.removeSnippet(id)
+        DeleteDataManager.getInstance().removeSnippet(id)
     }
 
     /**

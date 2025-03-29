@@ -2,6 +2,7 @@ package app.termora.highlight
 
 import app.termora.ApplicationScope
 import app.termora.Database
+import app.termora.DeleteDataManager
 import app.termora.TerminalPanelFactory
 import org.slf4j.LoggerFactory
 
@@ -38,6 +39,7 @@ class KeywordHighlightManager private constructor() {
         database.removeKeywordHighlight(id)
         keywordHighlights.remove(id)
         TerminalPanelFactory.getInstance().repaintAll()
+        DeleteDataManager.getInstance().removeKeywordHighlight(id)
 
         if (log.isDebugEnabled) {
             log.debug("Keyword highlighter removed. {}", id)

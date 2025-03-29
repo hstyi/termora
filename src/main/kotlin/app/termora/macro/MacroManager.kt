@@ -2,6 +2,7 @@ package app.termora.macro
 
 import app.termora.ApplicationScope
 import app.termora.Database
+import app.termora.DeleteDataManager
 import org.slf4j.LoggerFactory
 
 /**
@@ -38,6 +39,7 @@ class MacroManager private constructor() {
     fun removeMacro(id: String) {
         database.removeMacro(id)
         macros.remove(id)
+        DeleteDataManager.getInstance().removeMacro(id)
 
         if (log.isDebugEnabled) {
             log.debug("Removed macro $id")

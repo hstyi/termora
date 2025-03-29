@@ -30,6 +30,7 @@ class Database private constructor(private val env: Environment) : Disposable {
         private const val KEYWORD_HIGHLIGHT_STORE = "KeywordHighlight"
         private const val MACRO_STORE = "Macro"
         private const val KEY_PAIR_STORE = "KeyPair"
+        private const val DELETED_DATA_STORE = "DeletedData"
         private val log = LoggerFactory.getLogger(Database::class.java)
 
 
@@ -142,6 +143,37 @@ class Database private constructor(private val env: Environment) : Disposable {
         }
     }
 
+    fun removeHost(id: String) {
+        env.executeInTransaction {
+            delete(it, HOST_STORE, id)
+            if (log.isDebugEnabled) {
+                log.debug("Removed host: $id")
+            }
+        }
+    }
+
+    fun addDeletedData(deletedData: DeletedData) {
+        val text = ohMyJson.encodeToString(deletedData)
+        env.executeInTransaction {
+            put(it, DELETED_DATA_STORE, deletedData.id, text)
+            if (log.isDebugEnabled) {
+                log.debug("Added DeletedData: ${deletedData.id} , $text")
+            }
+        }
+    }
+
+    fun getDeletedData(): Collection<DeletedData> {
+        return env.computeInTransaction { tx ->
+            openCursor<DeletedData?>(tx, DELETED_DATA_STORE) { _, value ->
+                try {
+                    ohMyJson.decodeFromString(value)
+                } catch (e: Exception) {
+                    null
+                }
+            }.values.filterNotNull()
+        }
+    }
+
     fun addSnippet(snippet: Snippet) {
         var text = ohMyJson.encodeToString(snippet)
         if (doorman.isWorking()) {
@@ -155,6 +187,14 @@ class Database private constructor(private val env: Environment) : Disposable {
         }
     }
 
+    fun removeSnippet(id: String) {
+        env.executeInTransaction {
+            delete(it, SNIPPET_STORE, id)
+            if (log.isDebugEnabled) {
+                log.debug("Removed snippet: $id")
+            }
+        }
+    }
 
     fun getSnippets(): Collection<Snippet> {
         val isWorking = doorman.isWorking()

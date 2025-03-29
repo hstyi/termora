@@ -1,6 +1,7 @@
 package app.termora.sync
 
 import app.termora.Application.ohMyJson
+import app.termora.DeletedData
 import app.termora.ResponseException
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -26,46 +27,51 @@ abstract class GitSyncer : SafetySyncer() {
         }
 
         val gistResponse = parsePullResponse(response, config)
+        val deletedData = mutableListOf<DeletedData>()
+
+        // DeletedData
+        gistResponse.gists.findLast { it.filename == "DeletedData" }
+            ?.let { deletedData.addAll(decodeDeletedData(it.content, config)) }
 
         // decode hosts
         if (config.ranges.contains(SyncRange.Hosts)) {
             gistResponse.gists.findLast { it.filename == "Hosts" }?.let {
-                decodeHosts(it.content, config)
+                decodeHosts(it.content, deletedData.filter { e -> e.type == "Host" }, config)
             }
         }
 
         // decode keys
         if (config.ranges.contains(SyncRange.KeyPairs)) {
             gistResponse.gists.findLast { it.filename == "KeyPairs" }?.let {
-                decodeKeys(it.content, config)
+                decodeKeys(it.content, deletedData.filter { e -> e.type == "KeyPair" }, config)
             }
         }
 
         // decode keyword highlights
         if (config.ranges.contains(SyncRange.KeywordHighlights)) {
             gistResponse.gists.findLast { it.filename == "KeywordHighlights" }?.let {
-                decodeKeywordHighlights(it.content, config)
+                decodeKeywordHighlights(it.content, deletedData.filter { e -> e.type == "KeywordHighlight" }, config)
             }
         }
 
         // decode macros
         if (config.ranges.contains(SyncRange.Macros)) {
             gistResponse.gists.findLast { it.filename == "Macros" }?.let {
-                decodeMacros(it.content, config)
+                decodeMacros(it.content, deletedData.filter { e -> e.type == "Macro" }, config)
             }
         }
 
         // decode keymaps
         if (config.ranges.contains(SyncRange.Macros)) {
             gistResponse.gists.findLast { it.filename == "Keymaps" }?.let {
-                decodeKeymaps(it.content, config)
+                decodeKeymaps(it.content, deletedData.filter { e -> e.type == "Keymap" }, config)
             }
         }
 
         // decode Snippets
         if (config.ranges.contains(SyncRange.Snippets)) {
             gistResponse.gists.findLast { it.filename == "Snippets" }?.let {
-                decodeSnippets(it.content, config)
+                decodeSnippets(it.content, deletedData.filter { e -> e.type == "Snippet" }, config)
             }
         }
 
@@ -79,6 +85,11 @@ abstract class GitSyncer : SafetySyncer() {
 
 
     override fun push(config: SyncConfig): GistResponse {
+
+        if (log.isInfoEnabled) {
+            log.info("Type: ${config.type} , Gist: ${config.gistId} Push...")
+        }
+
         val gistFiles = mutableListOf<GistFile>()
         // aes key
         val key = ArrayUtils.subarray(config.token.padEnd(16, '0').toByteArray(), 0, 16)
@@ -142,9 +153,21 @@ abstract class GitSyncer : SafetySyncer() {
             throw IllegalArgumentException("No gist files found")
         }
 
+        val deletedData = encodeDeletedData(config)
+        if (log.isDebugEnabled) {
+            log.debug("Push DeletedData: {}", deletedData)
+        }
+        gistFiles.add(GistFile("DeletedData", deletedData))
+
         val request = newPushRequestBuilder(gistFiles, config).build()
 
-        return parsePushResponse(httpClient.newCall(request).execute(), config)
+        try {
+            return parsePushResponse(httpClient.newCall(request).execute(), config)
+        } finally {
+            if (log.isInfoEnabled) {
+                log.info("Type: ${config.type} , Gist: ${config.gistId} Pushed")
+            }
+        }
     }
 
     open fun parsePullResponse(response: Response, config: SyncConfig): GistResponse {

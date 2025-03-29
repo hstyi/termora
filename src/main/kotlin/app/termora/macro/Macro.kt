@@ -19,6 +19,11 @@ data class Macro(
      * 越大越靠前
      */
     val sort: Long = System.currentTimeMillis(),
+
+    /**
+     * 更新时间
+     */
+    val updateDate: Long = System.currentTimeMillis(),
 ) {
     val macroByteArray by lazy { macro.decodeBase64() }
 }
