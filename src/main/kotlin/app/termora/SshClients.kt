@@ -18,12 +18,14 @@ import org.apache.sshd.client.channel.ClientChannelEvent
 import org.apache.sshd.client.config.hosts.HostConfigEntry
 import org.apache.sshd.client.config.hosts.HostConfigEntryResolver
 import org.apache.sshd.client.config.hosts.KnownHostEntry
-import org.apache.sshd.client.future.ConnectFuture
 import org.apache.sshd.client.kex.DHGClient
 import org.apache.sshd.client.keyverifier.KnownHostsServerKeyVerifier
 import org.apache.sshd.client.keyverifier.ModifiedServerKeyAcceptor
 import org.apache.sshd.client.keyverifier.ServerKeyVerifier
+import org.apache.sshd.client.session.ClientProxyConnector
 import org.apache.sshd.client.session.ClientSession
+import org.apache.sshd.client.session.ClientSessionImpl
+import org.apache.sshd.client.session.SessionFactory
 import org.apache.sshd.common.AttributeRepository
 import org.apache.sshd.common.SshConstants
 import org.apache.sshd.common.SshException
@@ -48,23 +50,25 @@ import org.eclipse.jgit.internal.transport.sshd.JGitSshClient
 import org.eclipse.jgit.internal.transport.sshd.agent.JGitSshAgentFactory
 import org.eclipse.jgit.internal.transport.sshd.agent.connector.PageantConnector
 import org.eclipse.jgit.internal.transport.sshd.agent.connector.UnixDomainSocketConnector
+import org.eclipse.jgit.internal.transport.sshd.proxy.AbstractClientProxyConnector
+import org.eclipse.jgit.internal.transport.sshd.proxy.HttpClientConnector
+import org.eclipse.jgit.internal.transport.sshd.proxy.Socks5ClientConnector
 import org.eclipse.jgit.transport.CredentialsProvider
 import org.eclipse.jgit.transport.SshConstants.IDENTITY_AGENT
 import org.eclipse.jgit.transport.sshd.IdentityPasswordProvider
-import org.eclipse.jgit.transport.sshd.ProxyData
 import org.eclipse.jgit.transport.sshd.agent.ConnectorFactory
 import org.slf4j.LoggerFactory
 import java.awt.Font
 import java.awt.Window
 import java.io.ByteArrayOutputStream
 import java.net.InetSocketAddress
-import java.net.Proxy
 import java.net.SocketAddress
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.security.PublicKey
 import java.time.Duration
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import javax.swing.*
@@ -497,26 +501,36 @@ object SshClients {
                 JGitSshClient::class.java.getDeclaredField("HOST_CONFIG_ENTRY").apply { isAccessible = true }
                     .get(null) as AttributeRepository.AttributeKey<HostConfigEntry>
             }
+            private const val CLIENT_PROXY_CONNECTOR = "ClientProxyConnectorId"
         }
+
+        private val sshClient = this
+        private val clientProxyConnectors = ConcurrentHashMap<String, ClientProxyConnector>()
+
 
         override fun createConnector(): IoConnector {
             return MyIoConnector(this, super.createConnector())
         }
 
-        /**
-         * 加上 synchronized ，因为默认代理是全局的（需要在连接时动态修改），所以这里需要一个个连接
-         */
-        override fun connect(
-            hostConfig: HostConfigEntry?,
-            context: AttributeRepository?,
-            localAddress: SocketAddress?
-        ): ConnectFuture {
-            synchronized(this) {
-                return super.connect(hostConfig, context, localAddress)
+        override fun createSessionFactory(): SessionFactory {
+            return object : SessionFactory(sshClient) {
+                override fun doCreateSession(ioSession: IoSession): ClientSessionImpl {
+                    return object : JGitClientSession(sshClient, ioSession) {
+                        override fun getClientProxyConnector(): ClientProxyConnector? {
+                            val entry = getAttribute(HOST_CONFIG_ENTRY) ?: return null
+                            val clientProxyConnectorId = entry.getProperty(CLIENT_PROXY_CONNECTOR) ?: return null
+                            return sshClient.clientProxyConnectors.remove(clientProxyConnectorId)
+                        }
+                    }
+                }
             }
         }
 
-        private class MyIoConnector(private val sshClient: SshClient, private val ioConnector: IoConnector) :
+        override fun setClientProxyConnector(proxyConnector: ClientProxyConnector?) {
+            throw UnsupportedOperationException()
+        }
+
+        private class MyIoConnector(private val sshClient: MyJGitSshClient, private val ioConnector: IoConnector) :
             IoConnector {
             override fun close(immediately: Boolean): CloseFuture {
                 return ioConnector.close(immediately)
@@ -560,58 +574,57 @@ object SshClients {
                 if (entry != null) {
                     val host = hostManager.getHost(entry.getProperty("Host") ?: StringUtils.EMPTY)
                     if (host != null) {
-                        tAddress = configureProxy(host, tAddress)
+                        tAddress = configureProxy(entry, host, tAddress)
                     }
                 }
-
-                val proxyConnector = sshClient.clientProxyConnector
-                val future = ioConnector.connect(tAddress, context, localAddress)
-
-                // 代理是一次性的
-                // 如果 tAddress != targetAddress 为 true 那么表示进行代理了
-                if (proxyConnector != null && tAddress != targetAddress) {
-                    future.addListener {
-                        if (it.isDone) {
-                            if (sshClient.clientProxyConnector == proxyConnector) {
-                                sshClient.clientProxyConnector = null
-                            }
-                        }
-                    }
-                }
-
-                return future
+                return ioConnector.connect(tAddress, context, localAddress)
             }
 
-            private fun configureProxy(host: Host, targetAddress: SocketAddress): SocketAddress {
+            private fun configureProxy(
+                entry: HostConfigEntry,
+                host: Host,
+                targetAddress: SocketAddress
+            ): SocketAddress {
                 if (host.proxy.type == ProxyType.No) return targetAddress
-                if (targetAddress.toString().contains(SshdSocketAddress.LOCALHOST_IPV4)) return targetAddress
+                val address = targetAddress as? InetSocketAddress ?: return targetAddress
+                if (address.hostString == (SshdSocketAddress.LOCALHOST_IPV4)) return targetAddress
 
-                val proxyData = ProxyData(
-                    if (host.proxy.type == ProxyType.HTTP) {
-                        Proxy(Proxy.Type.HTTP, InetSocketAddress(host.proxy.host, host.proxy.port))
-                    } else {
-                        Proxy(Proxy.Type.SOCKS, InetSocketAddress(host.proxy.host, host.proxy.port))
-                    },
-                    host.proxy.username.ifBlank { null },
-                    if (host.proxy.password.isBlank()) null else host.proxy.password.toCharArray(),
-                )
+                // 获取代理连接器
+                val clientProxyConnector = getClientProxyConnector(host, address) ?: return targetAddress
 
-                // 反射调用
-                val configureProxy = JGitSshClient::class.java.getDeclaredMethod(
-                    "configureProxy",
-                    ProxyData::class.java,
-                    InetSocketAddress::class.java
-                )
-                configureProxy.isAccessible = true
-                val address = configureProxy.invoke(sshClient, proxyData, InetSocketAddress(host.host, host.port))
-                if (address is InetSocketAddress) {
-                    return address
+                val id = UUID.randomUUID().toSimpleString()
+                entry.setProperty(CLIENT_PROXY_CONNECTOR, id)
+                sshClient.clientProxyConnectors[id] = clientProxyConnector
+
+                return InetSocketAddress(host.proxy.host, host.proxy.port)
+            }
+
+            private fun getClientProxyConnector(
+                host: Host,
+                remoteAddress: InetSocketAddress
+            ): AbstractClientProxyConnector? {
+                if (host.proxy.type == ProxyType.HTTP) {
+                    return HttpClientConnector(
+                        InetSocketAddress(host.proxy.host, host.proxy.port),
+                        remoteAddress,
+                        host.proxy.username.ifBlank { null },
+                        if (host.proxy.password.isBlank()) null else host.proxy.password.toCharArray()
+                    )
+                } else if (host.proxy.type == ProxyType.SOCKS5) {
+                    return Socks5ClientConnector(
+                        InetSocketAddress(host.proxy.host, host.proxy.port),
+                        remoteAddress,
+                        host.proxy.username.ifBlank { null },
+                        if (host.proxy.password.isBlank()) null else host.proxy.password.toCharArray()
+                    )
                 }
-
-                return targetAddress
+                return null
             }
 
         }
+
+
     }
+
 }
 
