@@ -51,7 +51,7 @@ class OutlineTextArea : FlatTextArea() {
     }
 }
 
-class OutlineComboBox<T> : JComboBox<T>() {
+class OutlineComboBox<T> : FlatComboBox<T>() {
     init {
         addItemListener {
             if (it.stateChange == ItemEvent.SELECTED) {

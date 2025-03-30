@@ -3,6 +3,7 @@ package app.termora
 import app.termora.keyboardinteractive.TerminalUserInteraction
 import app.termora.keymgr.OhKeyPairKeyPairProvider
 import app.termora.terminal.TerminalSize
+import com.formdev.flatlaf.util.SystemInfo
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.sshd.client.ClientBuilder
@@ -33,7 +34,10 @@ import org.apache.sshd.server.forward.RejectAllForwardingFilter
 import org.eclipse.jgit.internal.transport.sshd.JGitClientSession
 import org.eclipse.jgit.internal.transport.sshd.JGitSshClient
 import org.eclipse.jgit.internal.transport.sshd.agent.JGitSshAgentFactory
+import org.eclipse.jgit.internal.transport.sshd.agent.connector.PageantConnector
+import org.eclipse.jgit.internal.transport.sshd.agent.connector.UnixDomainSocketConnector
 import org.eclipse.jgit.transport.CredentialsProvider
+import org.eclipse.jgit.transport.SshConstants.IDENTITY_AGENT
 import org.eclipse.jgit.transport.sshd.IdentityPasswordProvider
 import org.eclipse.jgit.transport.sshd.ProxyData
 import org.eclipse.jgit.transport.sshd.agent.ConnectorFactory
@@ -190,6 +194,16 @@ object SshClients {
         entry.username = host.username
         entry.hostName = host.host
         entry.setProperty("Middleware", middleware.toString())
+
+        // ssh-agent
+        if (host.authentication.type == AuthenticationType.SSHAgent) {
+            if (host.authentication.password.isNotBlank())
+                entry.setProperty(IDENTITY_AGENT, host.authentication.password)
+            else if (SystemInfo.isWindows)
+                entry.setProperty(IDENTITY_AGENT, PageantConnector.DESCRIPTOR.identityAgent)
+            else
+                entry.setProperty(IDENTITY_AGENT, UnixDomainSocketConnector.DESCRIPTOR.identityAgent)
+        }
 
         val session = client.connect(entry).verify(timeout).session
         if (host.authentication.type == AuthenticationType.Password) {

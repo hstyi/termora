@@ -1,5 +1,6 @@
 package app.termora
 
+@Suppress("CascadeIf")
 class EditHostOptionsPane(private val host: Host) : HostOptionsPane() {
     init {
         generalOption.portTextField.value = host.port
@@ -13,6 +14,8 @@ class EditHostOptionsPane(private val host: Host) : HostOptionsPane() {
             generalOption.passwordTextField.text = host.authentication.password
         } else if (host.authentication.type == AuthenticationType.PublicKey) {
             generalOption.publicKeyComboBox.selectedItem = host.authentication.password
+        } else if (host.authentication.type == AuthenticationType.SSHAgent) {
+            generalOption.sshAgentComboBox.selectedItem = host.authentication.password
         }
 
         proxyOption.proxyTypeComboBox.selectedItem = host.proxy.type
