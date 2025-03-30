@@ -18,6 +18,7 @@ import org.apache.sshd.client.channel.ClientChannelEvent
 import org.apache.sshd.client.config.hosts.HostConfigEntry
 import org.apache.sshd.client.config.hosts.HostConfigEntryResolver
 import org.apache.sshd.client.config.hosts.KnownHostEntry
+import org.apache.sshd.client.future.ConnectFuture
 import org.apache.sshd.client.kex.DHGClient
 import org.apache.sshd.client.keyverifier.KnownHostsServerKeyVerifier
 import org.apache.sshd.client.keyverifier.ModifiedServerKeyAcceptor
@@ -29,7 +30,13 @@ import org.apache.sshd.common.SshException
 import org.apache.sshd.common.channel.PtyChannelConfiguration
 import org.apache.sshd.common.config.keys.KeyRandomArt
 import org.apache.sshd.common.config.keys.KeyUtils
+import org.apache.sshd.common.future.CloseFuture
+import org.apache.sshd.common.future.SshFutureListener
 import org.apache.sshd.common.global.KeepAliveHandler
+import org.apache.sshd.common.io.IoConnectFuture
+import org.apache.sshd.common.io.IoConnector
+import org.apache.sshd.common.io.IoServiceEventListener
+import org.apache.sshd.common.io.IoSession
 import org.apache.sshd.common.kex.BuiltinDHFactories
 import org.apache.sshd.common.keyprovider.KeyIdentityProvider
 import org.apache.sshd.common.util.net.SshdSocketAddress
@@ -199,6 +206,10 @@ object SshClients {
         entry.username = host.username
         entry.hostName = host.host
         entry.setProperty("Middleware", middleware.toString())
+        entry.setProperty("Host", host.id)
+
+        // 设置代理
+//        configureProxy(entry, host, client)
 
         // ssh-agent
         if (host.authentication.type == AuthenticationType.SSHAgent) {
@@ -285,7 +296,7 @@ object SshClients {
     fun openClient(host: Host): SshClient {
         val builder = ClientBuilder.builder()
         builder.globalRequestHandlers(listOf(KeepAliveHandler.INSTANCE))
-            .factory { JGitSshClient() }
+            .factory { MyJGitSshClient() }
 
         val keyExchangeFactories = ClientBuilder.setUpDefaultKeyExchanges(true).toMutableList()
 
@@ -344,26 +355,6 @@ object SshClients {
         CoreModuleProperties.ALLOW_DHG1_KEX_FALLBACK.set(sshClient, true)
 
         sshClient.setKeyPasswordProviderFactory { IdentityPasswordProvider(CredentialsProvider.getDefault()) }
-
-        if (host.proxy.type != ProxyType.No) {
-            sshClient.setProxyDatabase {
-                if (host.proxy.authenticationType == AuthenticationType.No) ProxyData(
-                    Proxy(
-                        if (host.proxy.type == ProxyType.SOCKS5) Proxy.Type.SOCKS else Proxy.Type.HTTP,
-                        InetSocketAddress(host.proxy.host, host.proxy.port)
-                    )
-                )
-                else
-                    ProxyData(
-                        Proxy(
-                            if (host.proxy.type == ProxyType.SOCKS5) Proxy.Type.SOCKS else Proxy.Type.HTTP,
-                            InetSocketAddress(host.proxy.host, host.proxy.port)
-                        ),
-                        host.proxy.username,
-                        host.proxy.password.toCharArray(),
-                    )
-            }
-        }
 
         sshClient.start()
         return sshClient
@@ -497,5 +488,128 @@ object SshClients {
         }
     }
 
+
+    @Suppress("UNCHECKED_CAST")
+    private class MyJGitSshClient : JGitSshClient() {
+        companion object {
+            private val HOST_CONFIG_ENTRY: AttributeRepository.AttributeKey<HostConfigEntry> by lazy {
+                JGitSshClient::class.java.getDeclaredField("HOST_CONFIG_ENTRY").apply { isAccessible = true }
+                    .get(null) as AttributeRepository.AttributeKey<HostConfigEntry>
+            }
+        }
+
+        override fun createConnector(): IoConnector {
+            return MyIoConnector(this, super.createConnector())
+        }
+
+        /**
+         * 加上 synchronized ，因为默认代理是全局的（需要在连接时动态修改），所以这里需要一个个连接
+         */
+        override fun connect(
+            hostConfig: HostConfigEntry?,
+            context: AttributeRepository?,
+            localAddress: SocketAddress?
+        ): ConnectFuture {
+            synchronized(this) {
+                return super.connect(hostConfig, context, localAddress)
+            }
+        }
+
+        private class MyIoConnector(private val sshClient: SshClient, private val ioConnector: IoConnector) :
+            IoConnector {
+            override fun close(immediately: Boolean): CloseFuture {
+                return ioConnector.close(immediately)
+            }
+
+            override fun addCloseFutureListener(listener: SshFutureListener<CloseFuture>?) {
+                return ioConnector.addCloseFutureListener(listener)
+            }
+
+            override fun removeCloseFutureListener(listener: SshFutureListener<CloseFuture>?) {
+                return ioConnector.removeCloseFutureListener(listener)
+            }
+
+            override fun isClosed(): Boolean {
+                return ioConnector.isClosed
+            }
+
+            override fun isClosing(): Boolean {
+                return ioConnector.isClosing
+            }
+
+            override fun getIoServiceEventListener(): IoServiceEventListener {
+                return ioConnector.ioServiceEventListener
+            }
+
+            override fun setIoServiceEventListener(listener: IoServiceEventListener?) {
+                return ioConnector.setIoServiceEventListener(listener)
+            }
+
+            override fun getManagedSessions(): MutableMap<Long, IoSession> {
+                return ioConnector.managedSessions
+            }
+
+            override fun connect(
+                targetAddress: SocketAddress,
+                context: AttributeRepository?,
+                localAddress: SocketAddress?
+            ): IoConnectFuture {
+                var tAddress = targetAddress
+                val entry = context?.getAttribute(HOST_CONFIG_ENTRY)
+                if (entry != null) {
+                    val host = hostManager.getHost(entry.getProperty("Host") ?: StringUtils.EMPTY)
+                    if (host != null) {
+                        tAddress = configureProxy(host, tAddress)
+                    }
+                }
+
+                val proxyConnector = sshClient.clientProxyConnector
+                val future = ioConnector.connect(tAddress, context, localAddress)
+
+                // 代理是一次性的
+                if (proxyConnector != null) {
+                    future.addListener {
+                        if (it.isDone) {
+                            if (sshClient.clientProxyConnector == proxyConnector) {
+                                sshClient.clientProxyConnector = null
+                            }
+                        }
+                    }
+                }
+
+                return future
+            }
+
+            private fun configureProxy(host: Host, targetAddress: SocketAddress): SocketAddress {
+                if (host.proxy.type == ProxyType.No) return targetAddress
+                if (targetAddress.toString().contains(SshdSocketAddress.LOCALHOST_IPV4)) return targetAddress
+
+                val proxyData = ProxyData(
+                    if (host.proxy.type == ProxyType.HTTP) {
+                        Proxy(Proxy.Type.HTTP, InetSocketAddress(host.proxy.host, host.proxy.port))
+                    } else {
+                        Proxy(Proxy.Type.SOCKS, InetSocketAddress(host.proxy.host, host.proxy.port))
+                    },
+                    host.proxy.username.ifBlank { null },
+                    if (host.proxy.password.isBlank()) null else host.proxy.password.toCharArray(),
+                )
+
+                // 反射调用
+                val configureProxy = JGitSshClient::class.java.getDeclaredMethod(
+                    "configureProxy",
+                    ProxyData::class.java,
+                    InetSocketAddress::class.java
+                )
+                configureProxy.isAccessible = true
+                val address = configureProxy.invoke(sshClient, proxyData, InetSocketAddress(host.host, host.port))
+                if (address is InetSocketAddress) {
+                    return address
+                }
+
+                return targetAddress
+            }
+
+        }
+    }
 }
 
