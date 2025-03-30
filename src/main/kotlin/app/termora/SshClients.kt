@@ -301,6 +301,7 @@ object SshClients {
         val keyExchangeFactories = ClientBuilder.setUpDefaultKeyExchanges(true).toMutableList()
 
         // https://github.com/TermoraDev/termora/issues/123
+        @Suppress("DEPRECATION")
         keyExchangeFactories.addAll(
             listOf(
                 DHGClient.newFactory(BuiltinDHFactories.dhg1),
@@ -567,7 +568,8 @@ object SshClients {
                 val future = ioConnector.connect(tAddress, context, localAddress)
 
                 // 代理是一次性的
-                if (proxyConnector != null) {
+                // 如果 tAddress != targetAddress 为 true 那么表示进行代理了
+                if (proxyConnector != null && tAddress != targetAddress) {
                     future.addListener {
                         if (it.isDone) {
                             if (sshClient.clientProxyConnector == proxyConnector) {
