@@ -1,7 +1,6 @@
 package app.termora.keymgr
 
 import app.termora.*
-import app.termora.AES.decodeBase64
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.native.FileChooser
@@ -13,7 +12,6 @@ import com.formdev.flatlaf.ui.FlatTextBorder
 import com.formdev.flatlaf.util.SystemInfo
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
-import net.i2p.crypto.eddsa.EdDSAPublicKey
 import org.apache.commons.codec.binary.Base64
 import org.apache.commons.io.IOUtils
 import org.apache.commons.io.file.PathUtils
@@ -33,7 +31,6 @@ import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.security.KeyPair
-import java.security.spec.X509EncodedKeySpec
 import java.util.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -313,15 +310,9 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
                 nameTextField.text = ohKeyPair.name
                 remarkTextField.text = ohKeyPair.remark
                 val baos = ByteArrayOutputStream()
-                if (ohKeyPair.type == "RSA") {
-                    OpenSSHKeyPairResourceWriter.INSTANCE
-                        .writePublicKey(RSA.generatePublic(ohKeyPair.publicKey.decodeBase64()), null, baos)
-                } else if (ohKeyPair.type == "ED25519") {
-                    OpenSSHKeyPairResourceWriter.INSTANCE.writePublicKey(
-                        EdDSAPublicKey(X509EncodedKeySpec(ohKeyPair.publicKey.decodeBase64())),
-                        null, baos
-                    )
-                }
+                val keyPair = OhKeyPairKeyPairProvider.generateKeyPair(ohKeyPair)
+                OpenSSHKeyPairResourceWriter.INSTANCE
+                    .writePublicKey(keyPair.public, null, baos)
                 publicKeyTextArea.text = baos.toString()
                 savePublicKeyBtn.isEnabled = true
             } else {

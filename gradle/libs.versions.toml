@@ -26,7 +26,7 @@ jsch = "0.2.21"
 okhttp = "4.12.0"
 sshj = "0.39.0"
 sshd-core = "2.14.0"
-jgit = "7.1.0.202411261347-r"
+jgit = "7.2.0.202503040940-r"
 commonmark = "0.24.0"
 jnafilechooser = "1.1.2"
 xodus = "2.0.1"
@@ -39,6 +39,7 @@ mixpanel = "1.5.3"
 jSerialComm = "2.11.0"
 ini4j = "0.5.5-2"
 restart4j = "0.0.1"
+eddsa = "0.3.0"
 
 [libraries]
 kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
@@ -91,6 +92,7 @@ delight-rhino-sandbox = { module = "org.javadelight:delight-rhino-sandbox", vers
 colorpicker = { module = "org.drjekyll:colorpicker", version.ref = "colorpicker" }
 mixpanel = { module = "com.mixpanel:mixpanel-java", version.ref = "mixpanel" }
 jSerialComm = { module = "com.fazecast:jSerialComm", version.ref = "jSerialComm" }
+eddsa = { module = "net.i2p.crypto:eddsa", version.ref = "eddsa" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

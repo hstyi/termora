@@ -105,6 +105,7 @@ dependencies {
     implementation(libs.jgit)
     implementation(libs.jgit.sshd) { exclude(group = "*", module = "sshd-osgi") }
     implementation(libs.jgit.agent) { exclude(group = "*", module = "sshd-osgi") }
+    implementation(libs.eddsa)
     implementation(libs.jnafilechooser)
     implementation(libs.xodus.vfs)
     implementation(libs.xodus.openAPI)
