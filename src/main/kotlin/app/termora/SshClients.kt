@@ -3,7 +3,11 @@ package app.termora
 import app.termora.keyboardinteractive.TerminalUserInteraction
 import app.termora.keymgr.OhKeyPairKeyPairProvider
 import app.termora.terminal.TerminalSize
+import com.formdev.flatlaf.FlatLaf
+import com.formdev.flatlaf.util.FontUtils
 import com.formdev.flatlaf.util.SystemInfo
+import com.jgoodies.forms.builder.FormBuilder
+import com.jgoodies.forms.layout.FormLayout
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.sshd.client.ClientBuilder
@@ -23,6 +27,7 @@ import org.apache.sshd.common.AttributeRepository
 import org.apache.sshd.common.SshConstants
 import org.apache.sshd.common.SshException
 import org.apache.sshd.common.channel.PtyChannelConfiguration
+import org.apache.sshd.common.config.keys.KeyRandomArt
 import org.apache.sshd.common.config.keys.KeyUtils
 import org.apache.sshd.common.global.KeepAliveHandler
 import org.apache.sshd.common.kex.BuiltinDHFactories
@@ -42,6 +47,7 @@ import org.eclipse.jgit.transport.sshd.IdentityPasswordProvider
 import org.eclipse.jgit.transport.sshd.ProxyData
 import org.eclipse.jgit.transport.sshd.agent.ConnectorFactory
 import org.slf4j.LoggerFactory
+import java.awt.Font
 import java.awt.Window
 import java.io.ByteArrayOutputStream
 import java.net.InetSocketAddress
@@ -54,8 +60,7 @@ import java.time.Duration
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
-import javax.swing.JOptionPane
-import javax.swing.SwingUtilities
+import javax.swing.*
 import kotlin.math.max
 
 @Suppress("CascadeIf")
@@ -309,7 +314,11 @@ object SshClients {
         sshClient.keyIdentityProvider = KeyIdentityProvider { mutableListOf() }
 
         // 设置优先级
-        if (host.authentication.type == AuthenticationType.PublicKey) {
+        if (host.authentication.type == AuthenticationType.PublicKey || host.authentication.type == AuthenticationType.SSHAgent) {
+            if (host.authentication.type == AuthenticationType.SSHAgent) {
+                // ssh-agent
+                sshClient.agentFactory = JGitSshAgentFactory(ConnectorFactory.getDefault(), null)
+            }
             CoreModuleProperties.PREFERRED_AUTHS.set(
                 sshClient,
                 listOf(
@@ -318,10 +327,6 @@ object SshClients {
                     UserAuthPasswordFactory.KB_INTERACTIVE
                 ).joinToString(",")
             )
-        } else if (host.authentication.type == AuthenticationType.SSHAgent) {
-            // ssh-agent
-            sshClient.agentFactory = JGitSshAgentFactory(ConnectorFactory.getDefault(), null)
-            CoreModuleProperties.PREFERRED_AUTHS.set(sshClient, UserAuthPasswordFactory.PUBLIC_KEY)
         } else {
             CoreModuleProperties.PREFERRED_AUTHS.set(
                 sshClient,
@@ -400,26 +405,69 @@ object SshClients {
             actual: PublicKey?
         ): Boolean {
             val result = AtomicBoolean(false)
-
-            SwingUtilities.invokeAndWait {
-                result.set(
-                    OptionPane.showConfirmDialog(
-                        parentComponent = owner,
-                        message = I18n.getString(
-                            "termora.host.modified-server-key",
-                            remoteAddress.toString().replace("/", StringUtils.EMPTY),
-                            KeyUtils.getKeyType(expected),
-                            KeyUtils.getFingerPrint(expected),
-                            KeyUtils.getKeyType(actual),
-                            KeyUtils.getFingerPrint(actual),
-                        ),
-                        optionType = JOptionPane.OK_CANCEL_OPTION,
-                        messageType = JOptionPane.WARNING_MESSAGE,
-                    ) == JOptionPane.OK_OPTION
-                )
-            }
-
+            SwingUtilities.invokeAndWait { result.set(ask(remoteAddress, expected, actual) == JOptionPane.OK_OPTION) }
             return result.get()
+        }
+
+        private fun ask(
+            remoteAddress: SocketAddress?,
+            expected: PublicKey?,
+            actual: PublicKey?
+        ): Int {
+            val formMargin = "7dlu"
+            val layout = FormLayout(
+                "default:grow",
+                "pref, 12dlu, pref, 4dlu, pref, 2dlu, pref, $formMargin, pref, $formMargin, pref, pref, 12dlu, pref"
+            )
+
+            val errorColor = if (FlatLaf.isLafDark()) UIManager.getColor("Component.warning.focusedBorderColor") else
+                UIManager.getColor("Component.error.focusedBorderColor")
+            val font = FontUtils.getCompositeFont("JetBrains Mono", Font.PLAIN, 12)
+            val artBox = Box.createHorizontalBox()
+            artBox.add(Box.createHorizontalGlue())
+            val expectedBox = Box.createVerticalBox()
+            for (line in KeyRandomArt(expected).toString().lines()) {
+                val label = JLabel(line)
+                label.font = font
+                expectedBox.add(label)
+            }
+            artBox.add(expectedBox)
+            artBox.add(Box.createHorizontalGlue())
+            val actualBox = Box.createVerticalBox()
+            for (line in KeyRandomArt(actual).toString().lines()) {
+                val label = JLabel(line)
+                label.foreground = errorColor
+                label.font = font
+                actualBox.add(label)
+            }
+            artBox.add(actualBox)
+            artBox.add(Box.createHorizontalGlue())
+
+            var rows = 1
+            val step = 2
+
+            // @formatter:off
+            val address = remoteAddress.toString().replace("/", StringUtils.EMPTY)
+            val panel = FormBuilder.create().layout(layout)
+                .add("<html><b>${I18n.getString("termora.host.modified-server-key.title", address)}</b></html>").xy(1, rows).apply { rows += step }
+                .add("${I18n.getString("termora.host.modified-server-key.thumbprint")}:").xy(1, rows).apply { rows += step }
+                .add("  ${I18n.getString("termora.host.modified-server-key.expected")}: ${KeyUtils.getFingerPrint(expected)}").xy(1, rows).apply { rows += step }
+                .add("<html>&nbsp;&nbsp;${I18n.getString("termora.host.modified-server-key.actual")}: <font color=rgb(${errorColor.red},${errorColor.green},${errorColor.blue})>${KeyUtils.getFingerPrint(actual)}</font></html>").xy(1, rows).apply { rows += step }
+                .addSeparator(StringUtils.EMPTY).xy(1, rows).apply { rows += step }
+                .add(artBox).xy(1, rows).apply { rows += step }
+                .addSeparator(StringUtils.EMPTY).xy(1, rows).apply { rows += 1 }
+                .add(I18n.getString("termora.host.modified-server-key.are-you-sure")).xy(1, rows).apply { rows += step }
+                .build()
+            // @formatter:on
+
+            return OptionPane.showConfirmDialog(
+                owner,
+                panel,
+                "SSH Security Warning",
+                messageType = JOptionPane.WARNING_MESSAGE,
+                optionType = JOptionPane.OK_CANCEL_OPTION
+            )
+
         }
     }
 

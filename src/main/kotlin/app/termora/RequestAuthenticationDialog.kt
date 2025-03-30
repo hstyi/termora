@@ -16,7 +16,7 @@ import kotlin.math.max
 class RequestAuthenticationDialog(owner: Window, host: Host) : DialogWrapper(owner) {
 
     private val authenticationTypeComboBox = FlatComboBox<AuthenticationType>()
-    private val rememberCheckBox = JCheckBox("Remember")
+    private val rememberCheckBox = JCheckBox(I18n.getString("termora.new-host.general.remember"))
     private val passwordPanel = JPanel(BorderLayout())
     private val passwordPasswordField = OutlinePasswordField()
     private val usernameTextField = OutlineTextField()
