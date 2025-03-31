@@ -41,6 +41,8 @@ import org.apache.sshd.common.io.IoServiceEventListener
 import org.apache.sshd.common.io.IoSession
 import org.apache.sshd.common.kex.BuiltinDHFactories
 import org.apache.sshd.common.keyprovider.KeyIdentityProvider
+import org.apache.sshd.common.session.Session
+import org.apache.sshd.common.session.SessionListener
 import org.apache.sshd.common.util.net.SshdSocketAddress
 import org.apache.sshd.core.CoreModuleProperties
 import org.apache.sshd.server.forward.AcceptAllForwardingFilter
@@ -519,7 +521,17 @@ object SshClients {
                         override fun getClientProxyConnector(): ClientProxyConnector? {
                             val entry = getAttribute(HOST_CONFIG_ENTRY) ?: return null
                             val clientProxyConnectorId = entry.getProperty(CLIENT_PROXY_CONNECTOR) ?: return null
-                            return sshClient.clientProxyConnectors.remove(clientProxyConnectorId)
+                            val clientProxyConnector = sshClient.clientProxyConnectors[clientProxyConnectorId]
+
+                            if (clientProxyConnector != null) {
+                                addSessionListener(object : SessionListener {
+                                    override fun sessionClosed(session: Session) {
+                                        clientProxyConnectors.remove(clientProxyConnectorId)
+                                    }
+                                })
+                            }
+
+                            return clientProxyConnector
                         }
                     }
                 }
