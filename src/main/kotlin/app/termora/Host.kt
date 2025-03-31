@@ -138,6 +138,16 @@ data class Options(
      * SFTP 默认目录
      */
     val sftpDefaultDirectory: String = StringUtils.EMPTY,
+
+    /**
+     * X11 Forwarding
+     */
+    val enableX11Forwarding: Boolean = false,
+
+    /**
+     * X11 Server,Format: host.port. default: localhost:0
+     */
+    val x11Forwarding: String = StringUtils.EMPTY,
 ) {
     companion object {
         val Default = Options()

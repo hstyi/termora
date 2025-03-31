@@ -3,6 +3,8 @@ package app.termora
 import app.termora.keyboardinteractive.TerminalUserInteraction
 import app.termora.keymgr.OhKeyPairKeyPairProvider
 import app.termora.terminal.TerminalSize
+import app.termora.x11.ChannelX11
+import app.termora.x11.X11ChannelFactory
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.util.FontUtils
 import com.formdev.flatlaf.util.SystemInfo
@@ -29,7 +31,10 @@ import org.apache.sshd.client.session.SessionFactory
 import org.apache.sshd.common.AttributeRepository
 import org.apache.sshd.common.SshConstants
 import org.apache.sshd.common.SshException
+import org.apache.sshd.common.channel.ChannelFactory
 import org.apache.sshd.common.channel.PtyChannelConfiguration
+import org.apache.sshd.common.channel.PtyChannelConfigurationHolder
+import org.apache.sshd.common.cipher.CipherNone
 import org.apache.sshd.common.config.keys.KeyRandomArt
 import org.apache.sshd.common.config.keys.KeyUtils
 import org.apache.sshd.common.future.CloseFuture
@@ -75,6 +80,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import javax.swing.*
 import kotlin.math.max
+import kotlin.random.Random
 
 @Suppress("CascadeIf")
 object SshClients {
@@ -234,6 +240,18 @@ object SshClients {
             session.keyIdentityProvider = OhKeyPairKeyPairProvider(host.authentication.password)
         }
 
+        if (host.options.enableX11Forwarding) {
+            val segments = host.options.x11Forwarding.split(":")
+            if (segments.size == 2) {
+                val x11Host = segments[0]
+                val x11Port = segments[1].toIntOrNull()
+                if (x11Port != null) {
+                    CoreModuleProperties.X11_BIND_HOST.set(session, x11Host)
+                    CoreModuleProperties.X11_BASE_PORT.set(session, 6000 + x11Port)
+                }
+            }
+        }
+
         try {
             if (!session.auth().verify(timeout).await(timeout)) {
                 throw SshException("Authentication failed")
@@ -324,6 +342,11 @@ object SshClients {
         }
 
         builder.hostConfigEntryResolver(HostConfigEntryResolver.EMPTY)
+
+        val channelFactories = mutableListOf<ChannelFactory>()
+        channelFactories.addAll(ClientBuilder.DEFAULT_CHANNEL_FACTORIES)
+        channelFactories.add(X11ChannelFactory.INSTANCE)
+        builder.channelFactories(channelFactories)
 
         val sshClient = builder.build() as JGitSshClient
 
@@ -533,6 +556,21 @@ object SshClients {
 
                             return clientProxyConnector
                         }
+
+                        override fun createShellChannel(
+                            ptyConfig: PtyChannelConfigurationHolder?,
+                            env: MutableMap<String, *>?
+                        ): ChannelShell {
+                            if (inCipher is CipherNone || outCipher is CipherNone)
+                                throw IllegalStateException("Interactive channels are not supported with none cipher")
+                            val channel = MyChannelShell(ptyConfig, env)
+                            val id = connectionService.registerChannel(channel)
+                            if (log.isDebugEnabled) {
+                                log.debug("createShellChannel({}) created id={} - PTY={}", this, id, ptyConfig)
+                            }
+                            return channel
+                        }
+
                     }
                 }
             }
@@ -540,6 +578,63 @@ object SshClients {
 
         override fun setClientProxyConnector(proxyConnector: ClientProxyConnector?) {
             throw UnsupportedOperationException()
+        }
+
+        private class MyChannelShell(
+            configHolder: PtyChannelConfigurationHolder?,
+            env: MutableMap<String, *>?
+        ) : ChannelShell(configHolder, env) {
+
+            override fun doOpenPty() {
+                val session = super.getSession()
+                val x11Host = CoreModuleProperties.X11_BIND_HOST.getOrNull(session)
+                val x11Port = CoreModuleProperties.X11_BASE_PORT.getOrNull(session)
+
+                if (x11Port == null || x11Host == null) {
+                    super.doOpenPty()
+                    return
+                }
+
+                val buffer = session.createBuffer(SshConstants.SSH_MSG_CHANNEL_REQUEST)
+                buffer.putInt(super.getRecipient())
+                buffer.putString("x11-req")
+                buffer.putBoolean(false) // want-reply
+                buffer.putBoolean(false)
+                buffer.putString("MIT-MAGIC-COOKIE-1")
+                buffer.putBytes(getFakedCookie())
+                buffer.putInt(0)
+
+                writePacket(buffer)
+
+                super.doOpenPty()
+            }
+
+            private fun getFakedCookie(): ByteArray {
+                val session = super.getSession()
+                var cookie = ChannelX11.X11_COOKIE_HEX.getOrNull(session)
+                if (cookie != null) {
+                    return cookie as ByteArray
+                }
+
+                synchronized(session) {
+                    cookie = ChannelX11.X11_COOKIE_HEX.getOrNull(session)
+                    if (cookie != null) {
+                        return cookie as ByteArray
+                    }
+
+                    val foo = Random.nextBytes(16)
+                    ChannelX11.X11_COOKIE.set(session, foo)
+
+                    val bar = foo.copyOf(32)
+                    for (i in 0..15) {
+                        bar[2 * i] = ChannelX11.COOKIE_TABLE[(foo[i].toInt() ushr 4) and 0xf]
+                        bar[2 * i + 1] = ChannelX11.COOKIE_TABLE[foo[i].toInt() and 0xf]
+                    }
+                    ChannelX11.X11_COOKIE_HEX.set(session, bar)
+
+                    return bar
+                }
+            }
         }
 
         private class MyIoConnector(private val sshClient: MyJGitSshClient, private val ioConnector: IoConnector) :

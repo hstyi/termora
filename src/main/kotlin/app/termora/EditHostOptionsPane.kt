@@ -1,5 +1,7 @@
 package app.termora
 
+import org.apache.commons.lang3.StringUtils
+
 @Suppress("CascadeIf")
 class EditHostOptionsPane(private val host: Host) : HostOptionsPane() {
     init {
@@ -31,6 +33,8 @@ class EditHostOptionsPane(private val host: Host) : HostOptionsPane() {
         terminalOption.heartbeatIntervalTextField.value = host.options.heartbeatInterval
 
         tunnelingOption.tunnelings.addAll(host.tunnelings)
+        tunnelingOption.x11ForwardingCheckBox.isSelected = host.options.enableX11Forwarding
+        tunnelingOption.x11ServerTextField.text = StringUtils.defaultIfBlank(host.options.x11Forwarding, "localhost:0")
 
         if (host.options.jumpHosts.isNotEmpty()) {
             val hosts = HostManager.getInstance().hosts().associateBy { it.id }

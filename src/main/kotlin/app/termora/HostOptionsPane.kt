@@ -103,7 +103,9 @@ open class HostOptionsPane : OptionsPane() {
             heartbeatInterval = (terminalOption.heartbeatIntervalTextField.value ?: 30) as Int,
             jumpHosts = jumpHostsOption.jumpHosts.map { it.id },
             serialComm = serialComm,
-            sftpDefaultDirectory = sftpOption.defaultDirectoryField.text
+            sftpDefaultDirectory = sftpOption.defaultDirectoryField.text,
+            enableX11Forwarding = tunnelingOption.x11ForwardingCheckBox.isSelected,
+            x11Forwarding = tunnelingOption.x11ServerTextField.text,
         )
 
         return Host(
@@ -169,6 +171,17 @@ open class HostOptionsPane : OptionsPane() {
             }
         }
 
+        // tunnel
+        if (tunnelingOption.x11ForwardingCheckBox.isSelected) {
+            if (validateField(tunnelingOption.x11ServerTextField)) {
+                return false
+            }
+            val segments = tunnelingOption.x11ServerTextField.text.split(":")
+            if (segments.size != 2 || segments[1].toIntOrNull() == null) {
+                setOutlineError(tunnelingOption.x11ServerTextField)
+                return false
+            }
+        }
 
         return true
     }
@@ -178,12 +191,16 @@ open class HostOptionsPane : OptionsPane() {
      */
     private fun validateField(textField: JTextField): Boolean {
         if (textField.isEnabled && textField.text.isBlank()) {
-            selectOptionJComponent(textField)
-            textField.putClientProperty(FlatClientProperties.OUTLINE, FlatClientProperties.OUTLINE_ERROR)
-            textField.requestFocusInWindow()
+            setOutlineError(textField)
             return true
         }
         return false
+    }
+
+    private fun setOutlineError(textField: JTextField) {
+        selectOptionJComponent(textField)
+        textField.putClientProperty(FlatClientProperties.OUTLINE, FlatClientProperties.OUTLINE_ERROR)
+        textField.requestFocusInWindow()
     }
 
     /**
@@ -749,6 +766,8 @@ open class HostOptionsPane : OptionsPane() {
 
     protected inner class TunnelingOption : JPanel(BorderLayout()), Option {
         val tunnelings = mutableListOf<Tunneling>()
+        val x11ForwardingCheckBox = JCheckBox("X DISPLAY:")
+        val x11ServerTextField = OutlineTextField(255)
 
         private val model = object : DefaultTableModel() {
             override fun getRowCount(): Int {
@@ -823,13 +842,36 @@ open class HostOptionsPane : OptionsPane() {
             box.add(Box.createHorizontalStrut(4))
             box.add(deleteBtn)
 
-            add(JLabel("TCP/IP Forwarding:"), BorderLayout.NORTH)
-            add(scrollPane, BorderLayout.CENTER)
-            add(box, BorderLayout.SOUTH)
+            x11ForwardingCheckBox.isFocusable = false
+
+            if (x11ServerTextField.text.isBlank()) {
+                x11ServerTextField.text = "localhost:0"
+            }
+
+            val x11Forwarding = Box.createHorizontalBox()
+            x11Forwarding.border = BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder("X11 Forwarding"),
+                BorderFactory.createEmptyBorder(4, 4, 4, 4)
+            )
+            x11Forwarding.add(x11ForwardingCheckBox)
+            x11Forwarding.add(x11ServerTextField)
+
+            x11ServerTextField.isEnabled = x11ForwardingCheckBox.isSelected
+
+            val panel = JPanel(BorderLayout())
+            panel.add(JLabel("TCP/IP Forwarding:"), BorderLayout.NORTH)
+            panel.add(scrollPane, BorderLayout.CENTER)
+            panel.add(box, BorderLayout.SOUTH)
+            panel.border = BorderFactory.createEmptyBorder(0, 0, 8, 0)
+
+            add(panel, BorderLayout.CENTER)
+            add(x11Forwarding, BorderLayout.SOUTH)
 
         }
 
         private fun initEvents() {
+            x11ForwardingCheckBox.addChangeListener { x11ServerTextField.isEnabled = x11ForwardingCheckBox.isSelected }
+
             addBtn.addActionListener(object : AbstractAction() {
                 override fun actionPerformed(e: ActionEvent?) {
                     val dialog = PortForwardingDialog(SwingUtilities.getWindowAncestor(this@HostOptionsPane))
