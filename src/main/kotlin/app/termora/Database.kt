@@ -421,6 +421,13 @@ class Database private constructor(private val env: Environment) : Disposable {
             }
         }
 
+        protected inner class DoublePropertyDelegate(defaultValue: Double) :
+            PropertyDelegate<Double>(defaultValue) {
+            override fun convertValue(value: String): Double {
+                return value.toDoubleOrNull() ?: initializer.invoke()
+            }
+        }
+
 
         protected inner class LongPropertyDelegate(defaultValue: Long) :
             PropertyDelegate<Long>(defaultValue) {
@@ -632,6 +639,11 @@ class Database private constructor(private val env: Environment) : Disposable {
             I18n.containsLanguage(Locale.getDefault()) ?: Locale.US.toString()
         }
 
+
+        /**
+         * 透明度
+         */
+        var opacity by DoublePropertyDelegate(1.0)
     }
 
     /**

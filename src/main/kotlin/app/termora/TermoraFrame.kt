@@ -9,6 +9,7 @@ import app.termora.terminal.DataKey
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.util.SystemInfo
 import com.jetbrains.JBR
+import org.apache.commons.lang3.ArrayUtils
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Insets
@@ -23,6 +24,7 @@ import javax.swing.JFrame
 import javax.swing.SwingUtilities
 import javax.swing.SwingUtilities.isEventDispatchThread
 import javax.swing.UIManager
+
 
 fun assertEventDispatchThread() {
     if (!isEventDispatchThread()) throw WrongThreadException("AWT EventQueue")
@@ -41,6 +43,7 @@ class TermoraFrame : JFrame(), DataProvider {
     private val welcomePanel = WelcomePanel(windowScope)
     private val sftp get() = Database.getDatabase().sftp
     private val myUI = MyFlatRootPaneUI()
+    private var notifyListeners = emptyArray<NotifyListener>()
 
 
     init {
@@ -239,4 +242,16 @@ class TermoraFrame : JFrame(), DataProvider {
         return id.hashCode()
     }
 
+    fun addNotifyListener(listener: NotifyListener) {
+        notifyListeners += listener
+    }
+
+    fun removeNotifyListener(listener: NotifyListener) {
+        notifyListeners = ArrayUtils.removeElements(notifyListeners, listener)
+    }
+
+    override fun addNotify() {
+        super.addNotify()
+        notifyListeners.forEach { it.addNotify() }
+    }
 }

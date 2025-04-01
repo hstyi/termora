@@ -61,6 +61,7 @@ import java.nio.charset.StandardCharsets
 import java.util.*
 import java.util.function.Consumer
 import javax.swing.*
+import javax.swing.JSpinner.NumberEditor
 import javax.swing.event.DocumentEvent
 import javax.swing.event.PopupMenuEvent
 import javax.swing.event.PopupMenuListener
@@ -131,6 +132,8 @@ class SettingsOptionsPane : OptionsPane() {
         val backgroundComBoBox = YesOrNoComboBox()
         val followSystemCheckBox = JCheckBox(I18n.getString("termora.settings.appearance.follow-system"))
         val preferredThemeBtn = JButton(Icons.settings)
+        val opacitySpinner = NumberSpinner(100, 0, 100)
+
         private val appearance get() = database.appearance
 
         init {
@@ -139,6 +142,21 @@ class SettingsOptionsPane : OptionsPane() {
         }
 
         private fun initView() {
+
+            backgroundComBoBox.isEnabled = SystemInfo.isWindows
+
+            opacitySpinner.isEnabled = SystemInfo.isMacOS || SystemInfo.isWindows
+            opacitySpinner.model = object : SpinnerNumberModel(appearance.opacity, 0.1, 1.0, 0.1) {
+                override fun getNextValue(): Any {
+                    return super.getNextValue() ?: maximum
+                }
+
+                override fun getPreviousValue(): Any {
+                    return super.getPreviousValue() ?: minimum
+                }
+            }
+            opacitySpinner.editor = NumberEditor(opacitySpinner, "#.##")
+            opacitySpinner.model.stepSize = 0.05
 
             followSystemCheckBox.isSelected = appearance.followSystem
             preferredThemeBtn.isEnabled = followSystemCheckBox.isSelected
@@ -176,6 +194,14 @@ class SettingsOptionsPane : OptionsPane() {
                 if (it.stateChange == ItemEvent.SELECTED) {
                     appearance.theme = themeComboBox.selectedItem as String
                     SwingUtilities.invokeLater { themeManager.change(themeComboBox.selectedItem as String) }
+                }
+            }
+
+            opacitySpinner.addChangeListener {
+                val opacity = opacitySpinner.value
+                if (opacity is Double) {
+                    TermoraFrameManager.getInstance().setOpacity(opacity)
+                    appearance.opacity = opacity
                 }
             }
 
@@ -283,7 +309,7 @@ class SettingsOptionsPane : OptionsPane() {
         private fun getFormPanel(): JPanel {
             val layout = FormLayout(
                 "left:pref, $formMargin, default:grow, $formMargin, default, default:grow",
-                "pref, $formMargin, pref, $formMargin, pref"
+                "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
             )
             val box = FlatToolBar()
             box.add(followSystemCheckBox)
@@ -304,10 +330,12 @@ class SettingsOptionsPane : OptionsPane() {
                     }
                 })).xy(5, rows).apply { rows += step }
 
-            if (SystemInfo.isWindows) {
-                builder.add("${I18n.getString("termora.settings.appearance.background-running")}:").xy(1, rows)
-                    .add(backgroundComBoBox).xy(3, rows)
-            }
+
+            builder.add("${I18n.getString("termora.settings.appearance.opacity")}:").xy(1, rows)
+                .add(opacitySpinner).xy(3, rows).apply { rows += step }
+
+            builder.add("${I18n.getString("termora.settings.appearance.background-running")}:").xy(1, rows)
+                .add(backgroundComBoBox).xy(3, rows)
 
             return builder.build()
         }

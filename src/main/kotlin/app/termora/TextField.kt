@@ -146,7 +146,7 @@ open class EmailFormattedTextField(var maxLength: Int = Int.MAX_VALUE) : Outline
 }
 
 
-abstract class NumberSpinner(
+open class NumberSpinner(
     value: Int,
     minimum: Int,
     maximum: Int,

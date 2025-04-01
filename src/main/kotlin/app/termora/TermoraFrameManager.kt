@@ -1,8 +1,18 @@
 package app.termora
 
+import app.termora.native.osx.NativeMacLibrary
+import com.formdev.flatlaf.ui.FlatNativeWindowsLibrary
 import com.formdev.flatlaf.util.SystemInfo
+import com.sun.jna.Pointer
+import com.sun.jna.platform.win32.User32
+import com.sun.jna.platform.win32.WinDef
+import com.sun.jna.platform.win32.WinUser.*
+import de.jangassen.jfa.ThreadUtils
+import de.jangassen.jfa.foundation.Foundation
+import de.jangassen.jfa.foundation.ID
 import org.slf4j.LoggerFactory
 import java.awt.Frame
+import java.awt.Window
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import javax.swing.JFrame
@@ -12,6 +22,7 @@ import javax.swing.UIManager
 import javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE
 import kotlin.math.max
 import kotlin.system.exitProcess
+
 
 class TermoraFrameManager {
 
@@ -50,6 +61,15 @@ class TermoraFrameManager {
                 frame.setLocation(max(rectangle.x, 0), max(rectangle.y, 0))
             }
         }
+
+        frame.addNotifyListener(object : NotifyListener {
+            private val opacity get() = Database.getDatabase().appearance.opacity
+            override fun addNotify() {
+                val opacity = this.opacity
+                if (opacity >= 1.0) return
+                setOpacity(frame, opacity)
+            }
+        })
 
         return frame.apply { frames.add(this) }
     }
@@ -151,6 +171,31 @@ class TermoraFrameManager {
         val h = properties.getString("TermoraFrame.height")?.toIntOrNull() ?: return null
         val s = properties.getString("TermoraFrame.extendedState")?.toIntOrNull() ?: return null
         return FrameRectangle(x, y, w, h, s)
+    }
+
+    fun setOpacity(opacity: Double) {
+        if (opacity < 0 || opacity > 1 || SystemInfo.isLinux) return
+        for (window in getWindows()) {
+            setOpacity(window, opacity)
+        }
+    }
+
+    private fun setOpacity(window: Window, opacity: Double) {
+        if (SystemInfo.isMacOS) {
+            val nsWindow = ID(NativeMacLibrary.getNSWindow(window) ?: return)
+            ThreadUtils.dispatch_async {
+                Foundation.invoke(nsWindow, "setOpaque:", false)
+                Foundation.invoke(nsWindow, "setAlphaValue:", opacity)
+            }
+        } else if (SystemInfo.isWindows) {
+            val alpha = ((opacity * 255).toInt() and 0xFF).toByte()
+            val hwnd = WinDef.HWND(Pointer.createConstant(FlatNativeWindowsLibrary.getHWND(window)))
+            val exStyle = User32.INSTANCE.GetWindowLong(hwnd, User32.GWL_EXSTYLE)
+            if (exStyle and WS_EX_LAYERED == 0) {
+                User32.INSTANCE.SetWindowLong(hwnd, GWL_EXSTYLE, exStyle or WS_EX_LAYERED)
+            }
+            User32.INSTANCE.SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA)
+        }
     }
 
     private data class FrameRectangle(
