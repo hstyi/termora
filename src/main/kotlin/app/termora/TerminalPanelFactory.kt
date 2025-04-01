@@ -89,7 +89,7 @@ class TerminalPanelFactory : Disposable {
             }
         }
 
-        private val coroutineScope = CoroutineScope(Dispatchers.IO)
+        private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
         init {
             coroutineScope.launch {

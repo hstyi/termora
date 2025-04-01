@@ -11,7 +11,7 @@ abstract class AutoRefreshPanel : JPanel(), Disposable {
         private val log = LoggerFactory.getLogger(AutoRefreshPanel::class.java)
     }
 
-    protected val coroutineScope = CoroutineScope(Dispatchers.IO)
+    protected val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     protected abstract suspend fun refresh(isFirst: Boolean)
 

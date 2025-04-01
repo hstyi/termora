@@ -93,7 +93,7 @@ class TerminalBlink(terminal: Terminal) : Disposable {
             }
         }
 
-        val coroutineScope by lazy { CoroutineScope(Dispatchers.IO) }
+        val coroutineScope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
 
         /**
          * 返回 true 表示可以显示某些内容 [TextStyle.blink]

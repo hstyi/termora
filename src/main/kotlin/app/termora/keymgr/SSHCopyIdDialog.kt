@@ -43,7 +43,7 @@ class SSHCopyIdDialog(
         terminalPanelFactory.createTerminalPanel(terminal, PtyConnectorDelegate())
             .apply { enableFloatingToolbar = false }
     }
-    private val coroutineScope = CoroutineScope(Job() + Dispatchers.IO)
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     init {
         size = Dimension(UIManager.getInt("Dialog.width") - 100, UIManager.getInt("Dialog.height") - 100)

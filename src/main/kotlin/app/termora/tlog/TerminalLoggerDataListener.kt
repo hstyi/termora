@@ -110,7 +110,8 @@ class TerminalLoggerDataListener(private val terminal: Terminal) : DataListener 
             action.removePropertyChangeListener(terminalLoggerActionPropertyChangeListener)
             action.addPropertyChangeListener(terminalLoggerActionPropertyChangeListener)
 
-            val coroutineScope = this.coroutineScope ?: CoroutineScope(Dispatchers.IO).apply { coroutineScope = this }
+            val coroutineScope =
+                this.coroutineScope ?: CoroutineScope(SupervisorJob() + Dispatchers.IO).apply { coroutineScope = this }
             val channel = this.channel ?: Channel<String>(Channel.UNLIMITED).apply { channel = this }
 
             coroutineScope.launch {

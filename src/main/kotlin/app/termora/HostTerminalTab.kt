@@ -5,6 +5,7 @@ import app.termora.actions.DataProviders
 import app.termora.terminal.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.swing.Swing
 import java.beans.PropertyChangeEvent
@@ -19,7 +20,7 @@ abstract class HostTerminalTab(
         val Host = DataKey(app.termora.Host::class)
     }
 
-    protected val coroutineScope by lazy { CoroutineScope(Dispatchers.Swing) }
+    protected val coroutineScope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Swing) }
     protected val terminalModel get() = terminal.getTerminalModel()
     protected var unread = false
         set(value) {
