@@ -4,7 +4,7 @@ import org.apache.sshd.client.channel.AbstractClientChannel
 import org.apache.sshd.client.future.DefaultOpenFuture
 import org.apache.sshd.client.future.OpenFuture
 import org.apache.sshd.client.session.ClientConnectionService
-import org.apache.sshd.common.Property
+import org.apache.sshd.common.AttributeRepository
 import org.apache.sshd.common.SshConstants
 import org.apache.sshd.common.channel.ChannelOutputStream
 import org.apache.sshd.common.io.IoConnectFuture
@@ -21,12 +21,8 @@ class ChannelX11(
 ) : AbstractClientChannel("x11") {
 
     companion object {
-        val X11_COOKIE: Property<Any> = Property.`object`("x11-cookie")
-        val X11_COOKIE_HEX: Property<Any> = Property.`object`("x11-cookie-hex")
-        val COOKIE_TABLE = byteArrayOf(
-            0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x61,
-            0x62, 0x63, 0x64, 0x65, 0x66
-        )
+        val X11_COOKIE = AttributeRepository.AttributeKey<ByteArray>()
+        val X11_COOKIE_HEX = AttributeRepository.AttributeKey<String>()
     }
 
     private lateinit var x11: IoSession
@@ -69,7 +65,7 @@ class ChannelX11(
 
     override fun doWriteData(data: ByteArray, off: Int, len: Long) {
         if (isInitialized.compareAndSet(false, true)) {
-            val cookie = X11_COOKIE.getOrNull(session) ?: return
+            val cookie = session.getAttribute(X11_COOKIE) ?: return
             val foo = data.copyOfRange(off, off + len.toInt())
             val s = 0
             val l = foo.size
