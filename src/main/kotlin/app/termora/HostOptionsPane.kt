@@ -10,7 +10,6 @@ import com.formdev.flatlaf.util.SystemInfo
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
@@ -1123,8 +1122,7 @@ open class HostOptionsPane : OptionsPane() {
             addComponentListener(object : ComponentAdapter() {
                 override fun componentShown(e: ComponentEvent) {
                     removeComponentListener(this)
-                    @Suppress("OPT_IN_USAGE")
-                    GlobalScope.launch(Dispatchers.IO) {
+                    swingCoroutineScope.launch(Dispatchers.IO) {
                         for (commPort in SerialPort.getCommPorts()) {
                             withContext(Dispatchers.Swing) {
                                 serialPortComboBox.addItem(commPort.systemPortName)

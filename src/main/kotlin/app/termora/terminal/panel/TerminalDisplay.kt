@@ -3,8 +3,11 @@ package app.termora.terminal.panel
 import app.termora.Database
 import app.termora.DynamicColor
 import app.termora.assertEventDispatchThread
+import app.termora.swingCoroutineScope
 import app.termora.terminal.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import java.awt.*
 import javax.swing.JComponent
@@ -484,14 +487,13 @@ class TerminalDisplay(
             g.font = font
         }
 
-        @OptIn(DelicateCoroutinesApi::class)
         fun toast(text: String, duration: Duration) {
             if (!terminalPanel.showToast) {
                 return
             }
 
             val toast = Toast(text)
-            GlobalScope.launch(Dispatchers.Swing) {
+            swingCoroutineScope.launch(Dispatchers.Swing) {
                 delay(duration)
                 toasts.remove(toast)
                 terminalPanel.repaintImmediate()

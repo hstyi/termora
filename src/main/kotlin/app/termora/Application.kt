@@ -3,7 +3,6 @@ package app.termora
 import com.formdev.flatlaf.util.SystemInfo
 import com.jthemedetecor.util.OsInfo
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
@@ -123,19 +122,18 @@ object Application {
         return "Termora"
     }
 
-    @Suppress("OPT_IN_USAGE")
     fun browse(uri: URI, async: Boolean = true) {
         // https://github.com/TermoraDev/termora/issues/178
         if (SystemInfo.isWindows && uri.scheme == "file") {
             if (async) {
-                GlobalScope.launch(Dispatchers.IO) { tryBrowse(uri) }
+                swingCoroutineScope.launch(Dispatchers.IO) { tryBrowse(uri) }
             } else {
                 tryBrowse(uri)
             }
         } else if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
             Desktop.getDesktop().browse(uri)
         } else if (async) {
-            GlobalScope.launch(Dispatchers.IO) { tryBrowse(uri) }
+            swingCoroutineScope.launch(Dispatchers.IO) { tryBrowse(uri) }
         } else {
             tryBrowse(uri)
         }

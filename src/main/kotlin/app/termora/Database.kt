@@ -11,7 +11,6 @@ import app.termora.terminal.CursorStyle
 import jetbrains.exodus.bindings.StringBinding
 import jetbrains.exodus.env.*
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
@@ -348,8 +347,7 @@ class Database private constructor(private val env: Environment) : Disposable {
         private val properties = Collections.synchronizedMap(mutableMapOf<String, String>())
 
         init {
-            @Suppress("OPT_IN_USAGE")
-            GlobalScope.launch(Dispatchers.IO) { properties.putAll(getProperties()) }
+            swingCoroutineScope.launch(Dispatchers.IO) { properties.putAll(getProperties()) }
         }
 
         protected open fun getString(key: String): String? {

@@ -36,6 +36,7 @@ class AppUpdateAction private constructor() : AnAction(
     StringUtils.EMPTY,
     Icons.ideUpdate
 ) {
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Swing)
 
     companion object {
         private val log = LoggerFactory.getLogger(AppUpdateAction::class.java)
@@ -59,7 +60,6 @@ class AppUpdateAction private constructor() : AnAction(
     }
 
 
-    @OptIn(DelicateCoroutinesApi::class)
     private fun scheduleUpdate() {
         fixedRateTimer(
             name = "check-update-timer",
@@ -67,7 +67,7 @@ class AppUpdateAction private constructor() : AnAction(
             period = 5.hours.inWholeMilliseconds, daemon = true
         ) {
             if (!isRemindMeNextTime) {
-                GlobalScope.launch(Dispatchers.IO) { supervisorScope { launch { checkUpdate() } } }
+                coroutineScope.launch(Dispatchers.IO) { checkUpdate() }
             }
         }
     }

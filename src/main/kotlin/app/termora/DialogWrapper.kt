@@ -222,7 +222,7 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
                     return
                 }
 
-                doCancelAction()
+                SwingUtilities.invokeLater { doCancelAction() }
             }
         })
 

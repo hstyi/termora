@@ -5,7 +5,9 @@ import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatTextPane
 import com.formdev.flatlaf.util.SystemInfo
 import com.jetbrains.JBR
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import org.apache.commons.lang3.StringUtils
 import java.awt.BorderLayout
@@ -20,6 +22,8 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 object OptionPane {
+    private val coroutineScope = swingCoroutineScope
+
     fun showConfirmDialog(
         parentComponent: Component?,
         message: Any,
@@ -104,9 +108,8 @@ object OptionPane {
         val dialog = initDialog(pane.createDialog(parentComponent, title))
         if (duration.inWholeMilliseconds > 0) {
             dialog.addWindowListener(object : WindowAdapter() {
-                @OptIn(DelicateCoroutinesApi::class)
                 override fun windowOpened(e: WindowEvent) {
-                    GlobalScope.launch(Dispatchers.Swing) {
+                    coroutineScope.launch(Dispatchers.Swing) {
                         delay(duration.inWholeMilliseconds)
                         if (dialog.isVisible) {
                             dialog.isVisible = false

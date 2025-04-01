@@ -1,5 +1,10 @@
 package app.termora
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.swing.Swing
 import org.slf4j.LoggerFactory
 import java.awt.Component
 import java.awt.Window
@@ -7,6 +12,8 @@ import java.util.concurrent.ConcurrentHashMap
 import javax.swing.JPopupMenu
 import javax.swing.SwingUtilities
 import kotlin.reflect.KClass
+
+val swingCoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Swing)
 
 @Suppress("UNCHECKED_CAST")
 open class Scope(
@@ -151,6 +158,7 @@ class ApplicationScope private constructor() : Scope() {
         if (log.isInfoEnabled) {
             log.info("ApplicationScope disposed")
         }
+        swingCoroutineScope.cancel()
         super.dispose()
     }
 

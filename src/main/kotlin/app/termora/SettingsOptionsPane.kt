@@ -36,8 +36,10 @@ import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import com.jthemedetecor.OsThemeDetector
 import com.sun.jna.LastErrorException
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 import org.apache.commons.codec.binary.Base64
 import org.apache.commons.io.IOUtils
@@ -615,10 +617,9 @@ class SettingsOptionsPane : OptionsPane() {
             add(getCenterComponent(), BorderLayout.CENTER)
         }
 
-        @OptIn(DelicateCoroutinesApi::class)
         private fun initEvents() {
             syncConfigButton.addActionListener {
-                GlobalScope.launch(Dispatchers.IO) { sync() }
+                swingCoroutineScope.launch(Dispatchers.IO) { sync() }
             }
 
             typeComboBox.addItemListener {

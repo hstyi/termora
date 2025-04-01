@@ -4,7 +4,6 @@ import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.FlatAnimatedLafChange
 import com.jthemedetecor.OsThemeDetector
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import java.util.*
@@ -76,8 +75,7 @@ class ThemeManager private constructor() {
 
 
     init {
-        @Suppress("OPT_IN_USAGE")
-        GlobalScope.launch(Dispatchers.IO) {
+        swingCoroutineScope.launch(Dispatchers.IO) {
             OsThemeDetector.getDetector().registerListener(object : Consumer<Boolean> {
                 override fun accept(isDark: Boolean) {
                     if (!appearance.followSystem) {
