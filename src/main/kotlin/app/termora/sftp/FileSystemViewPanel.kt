@@ -421,6 +421,7 @@ class FileSystemViewPanel(
                     child.changeStatus(TransportStatus.Failed)
                 }
             }
+            fileSystem.fileSystemManager.filesCache.clear(fileSystem)
         }
     }
 
