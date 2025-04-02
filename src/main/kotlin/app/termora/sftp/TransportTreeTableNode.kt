@@ -3,12 +3,11 @@ package app.termora.sftp
 import app.termora.I18n
 import app.termora.formatBytes
 import app.termora.formatSeconds
-import org.apache.commons.io.file.PathUtils
-import org.apache.sshd.sftp.client.fs.SftpFileSystem
+import app.termora.vfs2.sftp.MySftpFileSystem
+import app.termora.vfs2.sftp.MySftpFileSystemConfigBuilder
+import org.apache.commons.vfs2.FileObject
 import org.eclipse.jgit.internal.transport.sshd.JGitClientSession
 import org.jdesktop.swingx.treetable.DefaultMutableTreeTableNode
-import java.nio.file.Path
-import kotlin.io.path.absolutePathString
 
 class TransportTreeTableNode(transport: Transport) : DefaultMutableTreeTableNode(transport) {
     val transport get() = userObject as Transport
@@ -20,7 +19,7 @@ class TransportTreeTableNode(transport: Transport) : DefaultMutableTreeTableNode
             (transport.filesize.get() - transport.transferredFilesize.get()) / speed else 0
 
         return when (column) {
-            TransportTableModel.COLUMN_NAME -> PathUtils.getFileNameString(transport.source)
+            TransportTableModel.COLUMN_NAME -> transport.source.name.baseName
             TransportTableModel.COLUMN_STATUS -> formatStatus(transport)
             TransportTableModel.COLUMN_SIZE -> size()
             TransportTableModel.COLUMN_SPEED -> if (isProcessing) formatBytes(speed) + "/s" else "-"
@@ -31,12 +30,14 @@ class TransportTreeTableNode(transport: Transport) : DefaultMutableTreeTableNode
         }
     }
 
-    private fun formatPath(path: Path): String {
-        if (path.fileSystem.isSFTP()) {
-            val hostname = ((path.fileSystem as SftpFileSystem).session as JGitClientSession).hostConfigEntry.hostName
-            return hostname + ":" + path.absolutePathString()
+    private fun formatPath(file: FileObject): String {
+        if (file.fileSystem is MySftpFileSystem) {
+            val session = MySftpFileSystemConfigBuilder.getInstance()
+                .getClientSession(file.fileSystem.fileSystemOptions) as JGitClientSession
+            val hostname = session.hostConfigEntry.hostName
+            return hostname + ":" + file.name.path
         }
-        return path.toUri().scheme + ":" + path.absolutePathString()
+        return file.name.toString()
     }
 
     private fun formatStatus(transport: Transport): String {

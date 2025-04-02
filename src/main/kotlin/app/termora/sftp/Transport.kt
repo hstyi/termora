@@ -6,18 +6,13 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import org.apache.commons.io.IOUtils
 import org.apache.commons.net.io.Util
+import org.apache.commons.vfs2.FileObject
 import org.slf4j.LoggerFactory
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.attribute.BasicFileAttributeView
+import java.nio.file.StandardOpenOption
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
-import kotlin.io.path.createDirectories
-import kotlin.io.path.exists
-import kotlin.io.path.getLastModifiedTime
-import kotlin.io.path.name
 
 enum class TransportStatus {
     Ready,
@@ -48,12 +43,19 @@ class Transport(
     /**
      * 源
      */
-    val source: Path,
+    val source: FileObject,
 
     /**
      * 目标
      */
-    var target: Path,
+    var target: FileObject,
+    /**
+     * 仅对文件生效，切只有两个选项
+     *
+     * 1. [StandardOpenOption.APPEND]
+     * 2. [StandardOpenOption.TRUNCATE_EXISTING]
+     */
+    var mode: StandardOpenOption = StandardOpenOption.TRUNCATE_EXISTING
 ) {
 
     companion object {
@@ -154,7 +156,7 @@ class Transport(
             withContext(Dispatchers.IO) {
                 try {
                     if (!target.exists()) {
-                        target.createDirectories()
+                        target.createFolder()
                     }
                 } catch (e: FileAlreadyExistsException) {
                     if (log.isWarnEnabled) {
@@ -169,8 +171,8 @@ class Transport(
         }
 
         withContext(Dispatchers.IO) {
-            val input = Files.newInputStream(source)
-            val output = Files.newOutputStream(target)
+            val input = source.content.inputStream
+            val output = target.content.getOutputStream(mode == StandardOpenOption.APPEND)
 
             try {
 
@@ -209,8 +211,7 @@ class Transport(
     private fun preserveModificationTime() {
         // 设置修改时间
         if (isPreserveModificationTime) {
-            Files.getFileAttributeView(target, BasicFileAttributeView::class.java)
-                .setTimes(source.getLastModifiedTime(), source.getLastModifiedTime(), null)
+            target.content.lastModifiedTime = source.content.lastModifiedTime
         }
     }
 

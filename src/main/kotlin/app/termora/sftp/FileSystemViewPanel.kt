@@ -3,30 +3,28 @@ package app.termora.sftp
 import app.termora.*
 import app.termora.actions.DataProvider
 import app.termora.terminal.DataKey
+import app.termora.vfs2.sftp.MySftpFileSystem
 import com.formdev.flatlaf.extras.components.FlatToolBar
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
+import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.SystemUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
-import org.apache.sshd.sftp.client.fs.SftpFileSystem
+import org.apache.commons.vfs2.FileObject
 import org.jdesktop.swingx.JXBusyLabel
 import java.awt.BorderLayout
 import java.awt.event.*
-import java.nio.file.FileSystem
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Consumer
 import javax.swing.*
-import kotlin.io.path.absolutePathString
-import kotlin.io.path.name
 
 class FileSystemViewPanel(
     val host: Host,
-    val fileSystem: FileSystem,
+    val fileSystem: org.apache.commons.vfs2.FileSystem,
     private val transportManager: TransportManager,
-    private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+    private val coroutineScope: CoroutineScope,
 ) : JPanel(BorderLayout()), Disposable, DataProvider {
 
     private val properties get() = Database.getDatabase().properties
@@ -100,7 +98,7 @@ class FileSystemViewPanel(
             override fun onTransportChanged(transport: Transport) {
                 val path = transport.target.parent ?: return
                 if (path.fileSystem != fileSystem) return
-                if (path.absolutePathString() != workdir.absolutePathString()) return
+                if (path.name.path != workdir.name.path) return
                 // 立即刷新
                 reload(true)
             }
@@ -123,19 +121,19 @@ class FileSystemViewPanel(
 
     private fun enterTableSelectionFolder(row: Int = table.selectedRow) {
         if (row < 0 || isLoading.get()) return
-        val attr = model.getAttr(row)
-        if (attr.isFile) return
+        val file = model.getFileObject(row)
+        if (file.isFile) return
 
         // 当前工作目录
         val workdir = getWorkdir()
 
         // 返回上级之后，选中上级目录
-        if (attr.name == "..") {
+        if (row == 0 && model.hasParent) {
             val workdirName = workdir.name
-            nextReloadTickSelection(workdirName)
+            nextReloadTickSelection(workdirName.baseName)
         }
 
-        changeWorkdir(attr.path)
+        changeWorkdir(file)
 
     }
 
@@ -169,13 +167,13 @@ class FileSystemViewPanel(
         bookmarkBtn.addActionListener { e ->
             if (e.actionCommand.isNullOrBlank()) {
                 if (bookmarkBtn.isBookmark) {
-                    bookmarkBtn.deleteBookmark(workdir.toString())
+                    bookmarkBtn.deleteBookmark(workdir.absolutePathString())
                 } else {
-                    bookmarkBtn.addBookmark(workdir.toString())
+                    bookmarkBtn.addBookmark(workdir.absolutePathString())
                 }
                 bookmarkBtn.isBookmark = !bookmarkBtn.isBookmark
             } else {
-                changeWorkdir(fileSystem.getPath(e.actionCommand))
+                changeWorkdir(fileSystem.resolveFile(e.actionCommand))
             }
         }
 
@@ -194,14 +192,13 @@ class FileSystemViewPanel(
         button.addActionListener(object : AbstractAction() {
             override fun actionPerformed(e: ActionEvent) {
                 if (model.rowCount < 1) return
-                val attr = model.getAttr(0)
-                if (attr !is FileSystemViewTableModel.ParentAttr) return
+                if (model.hasParent) return
                 enterTableSelectionFolder(0)
             }
         })
 
         addPropertyChangeListener("workdir") {
-            button.isEnabled = model.rowCount > 0 && model.getAttr(0) is FileSystemViewTableModel.ParentAttr
+            button.isEnabled = model.rowCount > 0 && model.hasParent
         }
 
         return button
@@ -211,7 +208,7 @@ class FileSystemViewPanel(
         // 创建成功之后需要修改和选中
         registerNextReloadTick {
             for (i in 0 until table.rowCount) {
-                if (model.getAttr(i).name == name) {
+                if (model.getFileObject(i).name.baseName == name) {
                     table.addRowSelectionInterval(i, i)
                     table.scrollRectToVisible(table.getCellRect(i, 0, true))
                     consumer.accept(i)
@@ -221,18 +218,19 @@ class FileSystemViewPanel(
         }
     }
 
-    private fun changeWorkdir(workdir: Path) {
+    private fun changeWorkdir(workdir: FileObject) {
         assertEventDispatchThread()
         nav.changeSelectedPath(workdir)
     }
 
-    fun renameTo(oldPath: Path, newPath: Path) {
+    fun renameTo(oldPath: FileObject, newPath: FileObject) {
 
         // 新建文件夹
         coroutineScope.launch {
+
             if (requestLoading()) {
                 try {
-                    Files.move(oldPath, newPath, StandardCopyOption.ATOMIC_MOVE)
+                    oldPath.moveTo(newPath)
                 } catch (e: Exception) {
                     withContext(Dispatchers.Swing) {
                         OptionPane.showMessageDialog(
@@ -247,7 +245,7 @@ class FileSystemViewPanel(
             }
 
             // 创建成功之后需要选中
-            nextReloadTickSelection(newPath.name)
+            nextReloadTickSelection(newPath.name.baseName)
 
             // 立即刷新
             reload()
@@ -258,7 +256,7 @@ class FileSystemViewPanel(
         coroutineScope.launch {
             if (requestLoading()) {
                 try {
-                    doNewFolderOrFile(getWorkdir().resolve(name), isFile)
+                    doNewFolderOrFile(getWorkdir().resolveFile(name), isFile)
                 } finally {
                     stopLoading()
                 }
@@ -273,9 +271,9 @@ class FileSystemViewPanel(
     }
 
 
-    private suspend fun doNewFolderOrFile(path: Path, isFile: Boolean) {
+    private suspend fun doNewFolderOrFile(path: FileObject, isFile: Boolean) {
 
-        if (Files.exists(path)) {
+        if (path.exists()) {
             withContext(Dispatchers.Swing) {
                 OptionPane.showMessageDialog(
                     owner,
@@ -288,7 +286,7 @@ class FileSystemViewPanel(
 
         // 创建文件夹
         withContext(Dispatchers.IO) {
-            runCatching { if (isFile) Files.createFile(path) else Files.createDirectories(path) }.onFailure {
+            runCatching { if (isFile) path.createFile() else path.createFolder() }.onFailure {
                 withContext(Dispatchers.Swing) {
                     if (it is Exception) {
                         OptionPane.showMessageDialog(
@@ -329,7 +327,7 @@ class FileSystemViewPanel(
 
     fun reload(rememberSelection: Boolean = false) {
         if (!requestLoading()) return
-        if (fileSystem.isSFTP()) loadingPanel.start()
+        if (fileSystem is MySftpFileSystem) loadingPanel.start()
         val oldWorkdir = workdir
         val path = nav.getSelectedPath()
 
@@ -338,7 +336,7 @@ class FileSystemViewPanel(
 
                 if (rememberSelection) {
                     withContext(Dispatchers.Swing) {
-                        table.selectedRows.sortedDescending().map { model.getAttr(it).name }
+                        table.selectedRows.sortedDescending().map { model.getFileObject(it).name.baseName }
                             .forEach { nextReloadTickSelection(it) }
                     }
                 }
@@ -347,7 +345,7 @@ class FileSystemViewPanel(
                     if (it is Exception) {
                         withContext(Dispatchers.Swing) {
                             OptionPane.showMessageDialog(
-                                owner, ExceptionUtils.getMessage(it),
+                                owner, ExceptionUtils.getRootCauseMessage(it),
                                 messageType = JOptionPane.ERROR_MESSAGE
                             )
                         }
@@ -367,34 +365,35 @@ class FileSystemViewPanel(
 
             } finally {
                 stopLoading()
-                if (fileSystem.isSFTP()) {
+                if (fileSystem is MySftpFileSystem) {
                     withContext(Dispatchers.Swing) { loadingPanel.stop() }
                 }
             }
         }
     }
 
-    private fun getHomeDirectory(): Path {
-        if (fileSystem.isSFTP()) {
-            val fs = fileSystem as SftpFileSystem
-            val host = fs.session.getAttribute(SshClients.HOST_KEY) ?: return fs.defaultDir
+    private fun getHomeDirectory(): FileObject {
+        if (fileSystem is MySftpFileSystem) {
+            val host = fileSystem.getClientSession().getAttribute(SshClients.HOST_KEY)
+                ?: return fileSystem.resolveFile(fileSystem.getDefaultDir())
             val defaultDirectory = host.options.sftpDefaultDirectory
             if (defaultDirectory.isNotBlank()) {
-                return runCatching { fs.getPath(defaultDirectory) }
-                    .getOrElse { fs.defaultDir }
+                return fileSystem.resolveFile(defaultDirectory)
             }
-            return fs.defaultDir
+            return fileSystem.resolveFile(fileSystem.getDefaultDir())
         }
 
         if (sftp.defaultDirectory.isNotBlank()) {
-            return runCatching { fileSystem.getPath(sftp.defaultDirectory) }
-                .getOrElse { fileSystem.getPath(SystemUtils.USER_HOME) }
+            val resolveFile = fileSystem.resolveFile("file://${sftp.defaultDirectory}")
+            if (resolveFile.exists()) {
+                return resolveFile
+            }
         }
 
-        return fileSystem.getPath(SystemUtils.USER_HOME)
+        return fileSystem.resolveFile("file://${SystemUtils.USER_HOME}")
     }
 
-    fun getWorkdir(): Path {
+    fun getWorkdir(): FileObject {
         return workdir
     }
 

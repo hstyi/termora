@@ -22,6 +22,10 @@ commons-compress
 Apache License 2.0
 https://github.com/apache/commons-compress/blob/master/LICENSE.txt
 
+commons-vfs2
+Apache License 2.0
+https://github.com/apache/commons-vfs/blob/master/LICENSE.txt
+
 commons-io
 Apache License 2.0
 https://github.com/apache/commons-io/blob/master/LICENSE.txt

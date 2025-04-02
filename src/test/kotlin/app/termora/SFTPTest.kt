@@ -11,10 +11,8 @@ class SFTPTest : SSHDTest() {
     @Test
     fun test() {
 
-        val client = SshClients.openClient(host)
-        val session = SshClients.openSession(host, client)
+        val session = newClientSession()
         assertTrue(session.isOpen)
-
 
         val fileSystem = DefaultSftpClientFactory.INSTANCE.createSftpFileSystem(session)
         for (path in Files.list(fileSystem.rootDirectories.first())) {

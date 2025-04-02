@@ -1,8 +1,10 @@
 package app.termora
 
+import org.apache.sshd.client.session.ClientSession
 import org.testcontainers.containers.GenericContainer
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
+import kotlin.test.assertTrue
 
 
 abstract class SSHDTest {
@@ -17,8 +19,8 @@ abstract class SSHDTest {
         .withEnv("SUDO_ACCESS", "true")
         .withExposedPorts(2222)
 
-    protected val host by lazy {
-        Host(
+    protected val host
+        get() = Host(
             name = sshd.containerName,
             protocol = Protocol.SSH,
             host = "127.0.0.1",
@@ -26,7 +28,6 @@ abstract class SSHDTest {
             username = "foo",
             authentication = Authentication.No.copy(type = AuthenticationType.Password, password = "pass"),
         )
-    }
 
 
     @BeforeTest
@@ -37,5 +38,12 @@ abstract class SSHDTest {
     @AfterTest
     fun teardown() {
         sshd.stop()
+    }
+
+    fun newClientSession(): ClientSession {
+        val client = SshClients.openClient(host)
+        val session = SshClients.openSession(host, client)
+        assertTrue(session.isOpen)
+        return session
     }
 }

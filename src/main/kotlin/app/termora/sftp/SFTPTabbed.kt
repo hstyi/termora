@@ -13,7 +13,6 @@ import javax.swing.JButton
 import javax.swing.JToolBar
 import javax.swing.SwingUtilities
 import javax.swing.UIManager
-import kotlin.io.path.absolutePathString
 import kotlin.math.max
 
 @Suppress("DuplicatedCode")

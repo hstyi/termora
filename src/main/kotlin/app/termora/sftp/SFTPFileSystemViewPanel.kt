@@ -3,6 +3,7 @@ package app.termora.sftp
 import app.termora.*
 import app.termora.actions.DataProvider
 import app.termora.terminal.DataKey
+import app.termora.vfs2.sftp.MySftpFileSystemConfigBuilder
 import com.formdev.flatlaf.icons.FlatOptionPaneErrorIcon
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
@@ -11,10 +12,11 @@ import kotlinx.coroutines.swing.Swing
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
+import org.apache.commons.vfs2.FileSystem
+import org.apache.commons.vfs2.FileSystemOptions
+import org.apache.commons.vfs2.VFS
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.session.ClientSession
-import org.apache.sshd.sftp.client.SftpClientFactory
-import org.apache.sshd.sftp.client.fs.SftpFileSystem
 import org.jdesktop.swingx.JXBusyLabel
 import org.jdesktop.swingx.JXHyperlink
 import org.slf4j.LoggerFactory
@@ -46,18 +48,16 @@ class SFTPFileSystemViewPanel(
     private var state = State.Initialized
     private val cardLayout = CardLayout()
     private val cardPanel = JPanel(cardLayout)
-
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val connectingPanel = ConnectingPanel()
     private val selectHostPanel = SelectHostPanel()
     private val connectFailedPanel = ConnectFailedPanel()
     private val isDisposed = AtomicBoolean(false)
     private val that = this
-    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val properties get() = Database.getDatabase().properties
 
     private var client: SshClient? = null
     private var session: ClientSession? = null
-    private var fileSystem: SftpFileSystem? = null
     private var fileSystemPanel: FileSystemViewPanel? = null
 
 
@@ -111,11 +111,17 @@ class SFTPFileSystemViewPanel(
 
         closeIO()
 
+        val mySftpFileSystem: FileSystem
+
         try {
             val owner = SwingUtilities.getWindowAncestor(that)
             val client = SshClients.openClient(thisHost, owner).apply { client = this }
             val session = SshClients.openSession(thisHost, client).apply { session = this }
-            fileSystem = SftpClientFactory.instance().createSftpFileSystem(session)
+
+            val options = FileSystemOptions()
+            MySftpFileSystemConfigBuilder.getInstance()
+                .setClientSession(options, session)
+            mySftpFileSystem = VFS.getManager().resolveFile("sftp:///", options).fileSystem
             session.addCloseFutureListener { onClose() }
         } catch (e: Exception) {
             closeIO()
@@ -126,11 +132,10 @@ class SFTPFileSystemViewPanel(
             throw IllegalStateException("Closed")
         }
 
-        val fileSystem = this.fileSystem ?: return
 
         withContext(Dispatchers.Swing) {
             state = State.Connected
-            val fileSystemPanel = FileSystemViewPanel(thisHost, fileSystem, transportManager, coroutineScope)
+            val fileSystemPanel = FileSystemViewPanel(thisHost, mySftpFileSystem, transportManager, coroutineScope)
             cardPanel.add(fileSystemPanel, State.Connected.name)
             cardLayout.show(cardPanel, State.Connected.name)
             that.fileSystemPanel = fileSystemPanel
@@ -157,7 +162,6 @@ class SFTPFileSystemViewPanel(
         fileSystemPanel?.let { Disposer.dispose(it) }
         fileSystemPanel = null
 
-        runCatching { IOUtils.closeQuietly(fileSystem) }
         runCatching { IOUtils.closeQuietly(session) }
         runCatching { IOUtils.closeQuietly(client) }
 

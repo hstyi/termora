@@ -3,21 +3,24 @@ package app.termora.sftp
 import app.termora.I18n
 import app.termora.NativeStringComparator
 import app.termora.formatBytes
+import app.termora.vfs2.sftp.MySftpFileObject
+import com.formdev.flatlaf.util.SystemInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.commons.lang3.time.DateFormatUtils
-import org.apache.sshd.sftp.client.fs.SftpPath
+import org.apache.commons.vfs2.FileObject
+import org.apache.commons.vfs2.FileType
+import org.apache.commons.vfs2.provider.local.LocalFileSystem
 import org.slf4j.LoggerFactory
-import java.io.File
-import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermission
 import java.nio.file.attribute.PosixFilePermissions
 import java.util.*
+import javax.swing.Icon
+import javax.swing.SwingUtilities
 import javax.swing.table.DefaultTableModel
-import kotlin.io.path.*
 
 class FileSystemViewTableModel : DefaultTableModel() {
 
@@ -29,9 +32,10 @@ class FileSystemViewTableModel : DefaultTableModel() {
         const val COLUMN_LAST_MODIFIED_TIME = 3
         const val COLUMN_ATTRS = 4
         const val COLUMN_OWNER = 5
+
         private val log = LoggerFactory.getLogger(FileSystemViewTableModel::class.java)
 
-        private fun fromSftpPermissions(sftpPermissions: Int): Set<PosixFilePermission> {
+        fun fromSftpPermissions(sftpPermissions: Int): Set<PosixFilePermission> {
             val result = mutableSetOf<PosixFilePermission>()
 
             // 将十进制权限转换为八进制字符串
@@ -68,21 +72,67 @@ class FileSystemViewTableModel : DefaultTableModel() {
         }
     }
 
-    override fun getValueAt(row: Int, column: Int): Any {
-        val attr = getAttr(row)
-        return when (column) {
-            COLUMN_NAME -> attr.name
-            COLUMN_FILE_SIZE -> if (attr.isDirectory) StringUtils.EMPTY else formatBytes(attr.size)
-            COLUMN_TYPE -> attr.type
-            COLUMN_LAST_MODIFIED_TIME -> if (attr.modified > 0) DateFormatUtils.format(
-                Date(attr.modified),
-                "yyyy/MM/dd HH:mm"
-            ) else StringUtils.EMPTY
+    var hasParent: Boolean = false
+        private set
 
-            COLUMN_ATTRS -> attr.permissions
-            COLUMN_OWNER -> attr.owner
-            else -> StringUtils.EMPTY
+    override fun getValueAt(row: Int, column: Int): Any {
+        val file = getFileObject(row)
+        val isParentRow = hasParent && row == 0
+
+        try {
+            if (file.type == FileType.IMAGINARY) return StringUtils.EMPTY
+            return when (column) {
+                COLUMN_NAME -> if (isParentRow) ".." else file.name.baseName
+                COLUMN_FILE_SIZE -> if (isParentRow || file.isFolder) StringUtils.EMPTY else formatBytes(file.content.size)
+                COLUMN_TYPE -> if (isParentRow) StringUtils.EMPTY else getFileType(file)
+                COLUMN_LAST_MODIFIED_TIME -> if (isParentRow) StringUtils.EMPTY else getLastModifiedTime(file)
+                COLUMN_ATTRS -> if (isParentRow) StringUtils.EMPTY else getAttrs(file)
+                COLUMN_OWNER -> StringUtils.EMPTY
+                else -> StringUtils.EMPTY
+            }
+        } catch (e: Exception) {
+            if (file.fileSystem is LocalFileSystem) {
+                if (ExceptionUtils.getRootCause(e) is java.nio.file.NoSuchFileException) {
+                    SwingUtilities.invokeLater { removeRow(row) }
+                    return StringUtils.EMPTY
+                }
+            }
+            if (log.isWarnEnabled) {
+                log.warn(e.message, e)
+            }
+            return StringUtils.EMPTY
         }
+    }
+
+    private fun getFileType(file: FileObject): String {
+        return if (SystemInfo.isWindows) NativeFileIcons.getIcon(file.name.baseName, file.isFile).second
+        else if (file.isSymbolicLink) I18n.getString("termora.transport.table.type.symbolic-link")
+        else NativeFileIcons.getIcon(file.name.baseName, file.isFile).second
+    }
+
+    fun getFileIcon(file: FileObject, width: Int = 16, height: Int = 16): Icon {
+        return if (SystemInfo.isWindows) NativeFileIcons.getIcon(file.name.baseName, file.isFile, width, height).first
+        else NativeFileIcons.getIcon(file.name.baseName, file.isFile).first
+    }
+
+    fun getFileIcon(row: Int): Icon {
+        return getFileIcon(getFileObject(row))
+    }
+
+    fun getLastModifiedTime(file: FileObject): String {
+        if (file.content.lastModifiedTime < 1) return "-"
+        return DateFormatUtils.format(Date(file.content.lastModifiedTime), "yyyy/MM/dd HH:mm")
+    }
+
+    private fun getAttrs(file: FileObject): String {
+        if (file.fileSystem is LocalFileSystem) return StringUtils.EMPTY
+        return PosixFilePermissions.toString(getFilePermissions(file))
+    }
+
+    fun getFilePermissions(file: FileObject): Set<PosixFilePermission> {
+        val permissions = file.content.getAttribute(MySftpFileObject.POSIX_FILE_PERMISSIONS)
+                as Int? ?: return emptySet()
+        return fromSftpPermissions(permissions)
     }
 
     override fun getDataVector(): Vector<Vector<Any>> {
@@ -100,14 +150,14 @@ class FileSystemViewTableModel : DefaultTableModel() {
         }
     }
 
-    fun getAttr(row: Int): Attr {
-        return super.getValueAt(row, 0) as Attr
+    fun getFileObject(row: Int): FileObject {
+        return super.getValueAt(row, 0) as FileObject
     }
 
     fun getPathNames(): Set<String> {
         val names = linkedSetOf<String>()
         for (i in 0 until rowCount) {
-            names.add(getAttr(i).name)
+            names.add(getFileObject(i).name.baseName)
         }
         return names
     }
@@ -129,144 +179,40 @@ class FileSystemViewTableModel : DefaultTableModel() {
         return false
     }
 
-    suspend fun reload(dir: Path, useFileHiding: Boolean) {
+    suspend fun reload(dir: FileObject, useFileHiding: Boolean) {
 
         if (log.isDebugEnabled) {
             log.debug("Reloading {} , useFileHiding {}", dir, useFileHiding)
         }
 
-        val attrs = mutableListOf<Attr>()
-        if (dir.parent != null) {
-            attrs.add(ParentAttr(dir.parent))
-        }
+        val files = mutableListOf<FileObject>()
 
         withContext(Dispatchers.IO) {
-            Files.list(dir).use { paths ->
-                for (path in paths) {
-                    val attr = if (path is SftpPath) SftpAttr(path) else Attr(path)
-                    if (useFileHiding && attr.isHidden) continue
-                    attrs.add(attr)
-                }
+            dir.refresh()
+            for (file in dir.children) {
+                if (useFileHiding && file.isHidden) continue
+                files.add(file)
             }
         }
 
-        attrs.sortWith(compareBy<Attr> { !it.isDirectory }.thenComparing { a, b ->
+        files.sortWith(compareBy<FileObject> { !it.isFolder }.thenComparing { a, b ->
             NativeStringComparator.getInstance().compare(
-                a.name,
-                b.name
+                a.name.baseName,
+                b.name.baseName
             )
         })
 
+        hasParent = dir.parent != null
+        if (hasParent) {
+            files.addFirst(dir.parent)
+        }
+
         withContext(Dispatchers.Swing) {
             while (rowCount > 0) removeRow(0)
-            attrs.forEach { addRow(arrayOf(it)) }
+            files.forEach { addRow(arrayOf(it)) }
         }
 
-    }
 
-
-    open class Attr(val path: Path) {
-
-        /**
-         * 名称
-         */
-        open val name by lazy { path.name }
-
-        /**
-         * 文件类型
-         */
-        open val type by lazy {
-            if (path.fileSystem.isWindows()) NativeFileIcons.getIcon(name, isFile).second
-            else if (isSymbolicLink) I18n.getString("termora.transport.table.type.symbolic-link")
-            else NativeFileIcons.getIcon(name, isFile).second
-        }
-
-        /**
-         * 大小
-         */
-        open val size by lazy { path.fileSize() }
-
-        /**
-         * 修改时间
-         */
-        open val modified by lazy { path.getLastModifiedTime().toMillis() }
-
-        /**
-         * 获取所有者
-         */
-        open val owner by lazy { StringUtils.EMPTY }
-
-        /**
-         * 获取操作系统图标
-         */
-        open val icon by lazy { NativeFileIcons.getIcon(name, isFile).first }
-
-        /**
-         * 是否是文件夹
-         */
-        open val isDirectory by lazy { path.isDirectory() }
-
-        /**
-         * 是否是文件
-         */
-        open val isFile by lazy { !isDirectory }
-
-        /**
-         * 是否是文件夹
-         */
-        open val isHidden by lazy { path.isHidden() }
-
-        open val isSymbolicLink by lazy { path.isSymbolicLink() }
-
-        /**
-         * 获取权限
-         */
-        open val permissions: String by lazy {
-            posixFilePermissions.let {
-                if (it.isNotEmpty()) PosixFilePermissions.toString(
-                    it
-                ) else StringUtils.EMPTY
-            }
-        }
-        open val posixFilePermissions by lazy { if (path.fileSystem.isUnix()) path.getPosixFilePermissions() else emptySet() }
-
-        open fun toFile(): File {
-            if (path.fileSystem.isSFTP()) {
-                return File(path.absolutePathString())
-            }
-            return path.toFile()
-        }
-    }
-
-    class ParentAttr(path: Path) : Attr(path) {
-        override val name by lazy { ".." }
-        override val isDirectory = true
-        override val isFile = false
-        override val isHidden = false
-        override val permissions = StringUtils.EMPTY
-        override val modified = 0L
-        override val type = StringUtils.EMPTY
-        override val icon by lazy { NativeFileIcons.getFolderIcon() }
-        override val isSymbolicLink = false
-
-    }
-
-
-    class SftpAttr(sftpPath: SftpPath) : Attr(sftpPath) {
-        private val attributes = sftpPath.attributes
-
-        override val isSymbolicLink = attributes.isSymbolicLink
-        override val isDirectory = if (isSymbolicLink) sftpPath.isDirectory() else attributes.isDirectory
-        override val isHidden = name.startsWith(".")
-        override val size = attributes.size
-        override val owner: String = StringUtils.defaultString(attributes.owner)
-        override val modified = attributes.modifyTime.toMillis()
-        override val permissions: String = PosixFilePermissions.toString(fromSftpPermissions(attributes.permissions))
-        override val posixFilePermissions = fromSftpPermissions(attributes.permissions)
-
-        override fun toFile(): File {
-            return File(path.absolutePathString())
-        }
     }
 
 

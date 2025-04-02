@@ -4,7 +4,12 @@ import app.termora.Icons
 import app.termora.assertEventDispatchThread
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatTextField
+import com.formdev.flatlaf.util.SystemInfo
 import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.SystemUtils
+import org.apache.commons.vfs2.FileObject
+import org.apache.commons.vfs2.VFS
+import org.apache.commons.vfs2.provider.local.LocalFileSystem
 import org.slf4j.LoggerFactory
 import java.awt.BorderLayout
 import java.awt.Component
@@ -14,8 +19,7 @@ import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 import java.awt.event.ItemEvent
 import java.awt.event.ItemListener
-import java.nio.file.FileSystem
-import java.nio.file.Path
+import java.nio.file.FileSystems
 import javax.swing.*
 import javax.swing.event.PopupMenuEvent
 import javax.swing.event.PopupMenuListener
@@ -23,8 +27,8 @@ import javax.swing.filechooser.FileSystemView
 import kotlin.io.path.absolutePathString
 
 class FileSystemViewNav(
-    private val fileSystem: FileSystem,
-    private val homeDirectory: Path
+    private val fileSystem: org.apache.commons.vfs2.FileSystem,
+    private val homeDirectory: FileObject
 ) : JPanel(BorderLayout()) {
 
     companion object {
@@ -38,7 +42,7 @@ class FileSystemViewNav(
     private val history = linkedSetOf<String>()
     private val layeredPane = LayeredPane()
     private val downBtn = JButton(Icons.chevronDown)
-    private val comboBox = object : JComboBox<Path>() {
+    private val comboBox = object : JComboBox<FileObject>() {
         override fun getLocationOnScreen(): Point {
             val point = super.getLocationOnScreen()
             point.y -= 1
@@ -80,7 +84,7 @@ class FileSystemViewNav(
             ): Component {
                 val c = super.getListCellRendererComponent(
                     list,
-                    value,
+                    if (value is FileObject) formatDisplayPath(value) else value.toString(),
                     index,
                     isSelected,
                     cellHasFocus
@@ -99,12 +103,12 @@ class FileSystemViewNav(
         add(layeredPane, BorderLayout.CENTER)
 
 
-        if (fileSystem.isWindows()) {
+        if (SystemInfo.isWindows && fileSystem is LocalFileSystem) {
             try {
                 for (root in fileSystemView.roots) {
                     history.add(root.absolutePath)
                 }
-                for (rootDirectory in fileSystem.rootDirectories) {
+                for (rootDirectory in FileSystems.getDefault().rootDirectories) {
                     history.add(rootDirectory.absolutePathString())
                 }
             } catch (e: Exception) {
@@ -115,12 +119,16 @@ class FileSystemViewNav(
         }
     }
 
+    private fun formatDisplayPath(file: FileObject): String {
+        return file.absolutePathString()
+    }
+
     private fun initEvents() {
 
         val itemListener = ItemListener { e ->
             if (e.stateChange == ItemEvent.SELECTED) {
                 val item = comboBox.selectedItem
-                if (item is Path) {
+                if (item is FileObject) {
                     changeSelectedPath(item)
                 }
             }
@@ -167,7 +175,11 @@ class FileSystemViewNav(
                 val name = textField.text.trim()
                 if (name.isBlank()) return
                 try {
-                    changeSelectedPath(fileSystem.getPath(name))
+                    if (fileSystem is LocalFileSystem && SystemUtils.IS_OS_WINDOWS) {
+                        changeSelectedPath(fileSystem.resolveFile("file://${name}"))
+                    } else {
+                        changeSelectedPath(fileSystem.resolveFile(name))
+                    }
                 } catch (e: Exception) {
                     if (log.isErrorEnabled) {
                         log.error(e.message, e)
@@ -182,7 +194,11 @@ class FileSystemViewNav(
         comboBox.removeAllItems()
 
         for (text in history) {
-            val path = fileSystem.getPath(text)
+            val path = if (SystemInfo.isWindows && fileSystem is LocalFileSystem) {
+                VFS.getManager().resolveFile("file://${text}")
+            } else {
+                fileSystem.resolveFile(text)
+            }
             comboBox.addItem(path)
             if (text == textField.text) {
                 comboBox.selectedItem = path
@@ -218,15 +234,15 @@ class FileSystemViewNav(
         }
     }
 
-    fun getSelectedPath(): Path {
-        return textField.getClientProperty(PATH) as Path
+    fun getSelectedPath(): FileObject {
+        return textField.getClientProperty(PATH) as FileObject
     }
 
-    fun changeSelectedPath(path: Path) {
+    fun changeSelectedPath(file: FileObject) {
         assertEventDispatchThread()
 
-        textField.text = path.absolutePathString()
-        textField.putClientProperty(PATH, path)
+        textField.text = formatDisplayPath(file)
+        textField.putClientProperty(PATH, file)
 
         for (listener in listenerList.getListeners(ActionListener::class.java)) {
             listener.actionPerformed(ActionEvent(this, ActionEvent.ACTION_PERFORMED, StringUtils.EMPTY))

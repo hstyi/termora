@@ -5,31 +5,34 @@ import app.termora.actions.DataProvider
 import app.termora.actions.DataProviderSupport
 import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.terminal.DataKey
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import okio.withLock
-import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
-import org.apache.sshd.sftp.client.fs.SftpFileSystem
+import org.apache.commons.vfs2.FileObject
+import org.apache.commons.vfs2.VFS
 import java.awt.BorderLayout
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
-import java.nio.file.FileSystem
 import java.nio.file.FileSystems
-import java.nio.file.Path
 import javax.swing.*
-import kotlin.io.path.absolutePathString
 
-fun FileSystem.isSFTP() = this is SftpFileSystem
-fun FileSystem.isUnix() = isLocal() && SystemUtils.IS_OS_UNIX
-fun FileSystem.isWindows() = isLocal() && SystemUtils.IS_OS_WINDOWS
-fun FileSystem.isLocal() = StringUtils.startsWithAny(javaClass.name, "java", "sun")
 
 class SFTPPanel : JPanel(BorderLayout()), DataProvider, Disposable {
 
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val transportTable = TransportTable()
     private val transportManager get() = transportTable.model
     private val dataProviderSupport = DataProviderSupport()
     private val leftComponent = SFTPTabbed(transportManager)
     private val rightComponent = SFTPTabbed(transportManager)
+    private val localHost = Host(
+        id = "local",
+        name = I18n.getString("termora.transport.local"),
+        protocol = Protocol.Local,
+    )
 
     init {
         initViews()
@@ -87,11 +90,10 @@ class SFTPPanel : JPanel(BorderLayout()), DataProvider, Disposable {
         leftComponent.addTab(
             I18n.getString("termora.transport.local"),
             FileSystemViewPanel(
-                Host(
-                    id = "local",
-                    name = I18n.getString("termora.transport.local"),
-                    protocol = Protocol.Local,
-                ), FileSystems.getDefault(), transportManager
+                localHost,
+                VFS.getManager().resolveFile("file:///${SystemUtils.USER_HOME}").fileSystem,
+                transportManager,
+                coroutineScope
             )
         )
         leftComponent.setTabClosable(0, false)
@@ -165,9 +167,9 @@ class SFTPPanel : JPanel(BorderLayout()), DataProvider, Disposable {
      */
     fun addTransport(
         source: JComponent,
-        sourceWorkdir: Path?,
+        sourceWorkdir: FileObject?,
         target: FileSystemViewPanel,
-        targetWorkdir: Path?,
+        targetWorkdir: FileObject?,
         transport: Transport
     ): Boolean {
 
@@ -175,15 +177,12 @@ class SFTPPanel : JPanel(BorderLayout()), DataProvider, Disposable {
                 as? FileSystemViewPanel ?: return false
         val targetPanel = target as? FileSystemViewPanel ?: return false
         if (sourcePanel.isDisposed || targetPanel.isDisposed) return false
-        val myTargetWorkdir = (targetWorkdir ?: targetPanel.getWorkdir()).absolutePathString()
-        val mySourceWorkdir = (sourceWorkdir ?: sourcePanel.getWorkdir()).absolutePathString()
-        val targetFileSystem = targetPanel.fileSystem
-        val sourcePath = transport.source.absolutePathString()
+        val myTargetWorkdir = (targetWorkdir ?: targetPanel.getWorkdir())
+        val mySourceWorkdir = (sourceWorkdir ?: sourcePanel.getWorkdir())
+        val sourcePath = transport.source
 
-        transport.target = targetFileSystem.getPath(
-            myTargetWorkdir,
-            StringUtils.removeStart(sourcePath, mySourceWorkdir)
-        )
+        val relativeName = mySourceWorkdir.name.getRelativeName(sourcePath.name)
+        transport.target = myTargetWorkdir.resolveFile(relativeName)
 
         return transportManager.addTransport(transport)
 
@@ -210,6 +209,10 @@ class SFTPPanel : JPanel(BorderLayout()), DataProvider, Disposable {
 
     override fun <T : Any> getData(dataKey: DataKey<T>): T? {
         return dataProviderSupport.getData(dataKey)
+    }
+
+    override fun dispose() {
+        coroutineScope.cancel()
     }
 
 }
