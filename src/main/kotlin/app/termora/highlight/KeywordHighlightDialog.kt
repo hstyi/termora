@@ -201,7 +201,7 @@ class KeywordHighlightDialog(owner: Window) : DialogWrapper(owner) {
                     for (row in rows) {
                         val id = model.getKeywordHighlight(row).id
                         keywordHighlightManager.removeKeywordHighlight(id)
-                        model.removeRow(row)
+                        model.fireTableRowsDeleted(row, row)
                     }
                 }
             }

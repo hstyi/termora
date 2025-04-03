@@ -7,6 +7,11 @@ enum class SyncType {
     WebDAV,
 }
 
+enum class SyncPolicy {
+    Manual,
+    OnChange,
+}
+
 enum class SyncRange {
     Hosts,
     KeyPairs,

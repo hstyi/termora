@@ -44,7 +44,7 @@ open class SimpleTree : JXTree() {
             ): Component {
                 val node = value as SimpleTreeNode<*>
                 val c = super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus)
-                icon = node.getIcon(sel, expanded, hasFocus)
+                icon = node.getIcon(sel, expanded, tree.hasFocus())
                 return c
             }
         })

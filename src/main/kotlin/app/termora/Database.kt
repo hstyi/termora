@@ -6,6 +6,7 @@ import app.termora.keymap.Keymap
 import app.termora.keymgr.OhKeyPair
 import app.termora.macro.Macro
 import app.termora.snippet.Snippet
+import app.termora.sync.SyncManager
 import app.termora.sync.SyncType
 import app.termora.terminal.CursorStyle
 import jetbrains.exodus.bindings.StringBinding
@@ -288,6 +289,18 @@ class Database private constructor(private val env: Environment) : Disposable {
         val k = StringBinding.stringToEntry(key)
         val v = StringBinding.stringToEntry(value)
         store.put(tx, k, v)
+
+        // 数据变动时触发一次同步
+        if (name == HOST_STORE ||
+            name == KEYMAP_STORE ||
+            name == SNIPPET_STORE ||
+            name == KEYWORD_HIGHLIGHT_STORE ||
+            name == MACRO_STORE ||
+            name == KEY_PAIR_STORE ||
+            name == DELETED_DATA_STORE
+        ) {
+            SyncManager.getInstance().triggerOnChanged()
+        }
     }
 
     private fun delete(tx: Transaction, name: String, key: String) {
@@ -717,6 +730,11 @@ class Database private constructor(private val env: Environment) : Disposable {
          * 最后同步时间
          */
         var lastSyncTime by LongPropertyDelegate(0L)
+
+        /**
+         * 同步策略，为空就是默认手动
+         */
+        var policy by StringPropertyDelegate(StringUtils.EMPTY)
     }
 
     override fun dispose() {

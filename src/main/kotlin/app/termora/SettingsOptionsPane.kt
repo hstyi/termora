@@ -18,10 +18,7 @@ import app.termora.native.FileChooser
 import app.termora.sftp.SFTPTab
 import app.termora.snippet.Snippet
 import app.termora.snippet.SnippetManager
-import app.termora.sync.SyncConfig
-import app.termora.sync.SyncRange
-import app.termora.sync.SyncType
-import app.termora.sync.SyncerProvider
+import app.termora.sync.*
 import app.termora.terminal.CursorStyle
 import app.termora.terminal.DataKey
 import app.termora.terminal.panel.FloatingToolbarPanel
@@ -596,6 +593,7 @@ class SettingsOptionsPane : OptionsPane() {
         val typeComboBox = FlatComboBox<SyncType>()
         val tokenTextField = OutlinePasswordField(255)
         val gistTextField = OutlineTextField(255)
+        val policyComboBox = JComboBox<SyncPolicy>()
         val domainTextField = OutlineTextField(255)
         val syncConfigButton = JButton(I18n.getString("termora.settings.sync"), Icons.download)
         val exportConfigButton = JButton(I18n.getString("termora.settings.sync.export"), Icons.export)
@@ -618,9 +616,22 @@ class SettingsOptionsPane : OptionsPane() {
         }
 
         private fun initEvents() {
-            syncConfigButton.addActionListener {
-                swingCoroutineScope.launch(Dispatchers.IO) { sync() }
-            }
+            syncConfigButton.addActionListener(object : AbstractAction() {
+                override fun actionPerformed(e: ActionEvent) {
+                    if (typeComboBox.selectedItem == SyncType.WebDAV) {
+                        if (tokenTextField.password.isEmpty()) {
+                            tokenTextField.outline = FlatClientProperties.OUTLINE_ERROR
+                            tokenTextField.requestFocusInWindow()
+                            return
+                        } else if (gistTextField.text.isEmpty()) {
+                            gistTextField.outline = FlatClientProperties.OUTLINE_ERROR
+                            gistTextField.requestFocusInWindow()
+                            return
+                        }
+                    }
+                    swingCoroutineScope.launch(Dispatchers.IO) { sync() }
+                }
+            })
 
             typeComboBox.addItemListener {
                 if (it.stateChange == ItemEvent.SELECTED) {
@@ -636,6 +647,12 @@ class SettingsOptionsPane : OptionsPane() {
                     add(getCenterComponent(), BorderLayout.CENTER)
                     revalidate()
                     repaint()
+                }
+            }
+
+            policyComboBox.addItemListener {
+                if (it.stateChange == ItemEvent.SELECTED) {
+                    sync.policy = (policyComboBox.selectedItem as SyncPolicy).name
                 }
             }
 
@@ -658,6 +675,7 @@ class SettingsOptionsPane : OptionsPane() {
                     gistTextField.trailingComponent = if (gistTextField.text.isNotBlank()) visitGistBtn else null
                 }
             })
+
 
             visitGistBtn.addActionListener {
                 if (typeComboBox.selectedItem == SyncType.GitLab) {
@@ -706,8 +724,14 @@ class SettingsOptionsPane : OptionsPane() {
         }
 
         private suspend fun sync() {
-            if (!pushOrPull(false)) return
-            if (!pushOrPull(true)) return
+
+            // 如果 gist 为空说明要创建一个 gist
+            if (gistTextField.text.isBlank()) {
+                if (!pushOrPull(true)) return
+            } else {
+                if (!pushOrPull(false)) return
+                if (!pushOrPull(true)) return
+            }
 
             withContext(Dispatchers.Swing) {
                 if (hostsCheckBox.isSelected) {
@@ -1118,7 +1142,7 @@ class SettingsOptionsPane : OptionsPane() {
 
             // sync
             val syncResult = kotlin.runCatching {
-                val syncer = SyncerProvider.getInstance().getSyncer(syncConfig.type)
+                val syncer = SyncManager.getInstance()
                 if (push) {
                     syncer.push(syncConfig)
                 } else {
@@ -1184,6 +1208,9 @@ class SettingsOptionsPane : OptionsPane() {
             typeComboBox.addItem(SyncType.Gitee)
             typeComboBox.addItem(SyncType.WebDAV)
 
+            policyComboBox.addItem(SyncPolicy.Manual)
+            policyComboBox.addItem(SyncPolicy.OnChange)
+
             hostsCheckBox.isFocusable = false
             snippetsCheckBox.isFocusable = false
             keysCheckBox.isFocusable = false
@@ -1197,6 +1224,12 @@ class SettingsOptionsPane : OptionsPane() {
             keywordHighlightsCheckBox.isSelected = sync.rangeKeywordHighlights
             macrosCheckBox.isSelected = sync.rangeMacros
             keymapCheckBox.isSelected = sync.rangeKeymap
+
+            if (sync.policy == SyncPolicy.Manual.name) {
+                policyComboBox.selectedItem = SyncPolicy.Manual
+            } else if (sync.policy == SyncPolicy.OnChange.name) {
+                policyComboBox.selectedItem = SyncPolicy.OnChange
+            }
 
             typeComboBox.selectedItem = sync.type
             gistTextField.text = sync.gist
@@ -1245,6 +1278,23 @@ class SettingsOptionsPane : OptionsPane() {
                 }
             }
 
+            policyComboBox.renderer = object : DefaultListCellRenderer() {
+                override fun getListCellRendererComponent(
+                    list: JList<*>?,
+                    value: Any?,
+                    index: Int,
+                    isSelected: Boolean,
+                    cellHasFocus: Boolean
+                ): Component {
+                    var text = value?.toString() ?: StringUtils.EMPTY
+                    if (value == SyncPolicy.Manual) {
+                        text = I18n.getString("termora.settings.sync.policy.manual")
+                    } else if (value == SyncPolicy.OnChange) {
+                        text = I18n.getString("termora.settings.sync.policy.on-change")
+                    }
+                    return super.getListCellRendererComponent(list, text, index, isSelected, cellHasFocus)
+                }
+            }
 
             val lastSyncTime = sync.lastSyncTime
             lastSyncTimeLabel.text = "${I18n.getString("termora.settings.sync.last-sync-time")}: ${
@@ -1254,6 +1304,7 @@ class SettingsOptionsPane : OptionsPane() {
             }"
 
             refreshButtons()
+
 
         }
 
@@ -1272,7 +1323,7 @@ class SettingsOptionsPane : OptionsPane() {
         private fun getCenterComponent(): JComponent {
             val layout = FormLayout(
                 "left:pref, $formMargin, default:grow, 30dlu",
-                "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
+                "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
             )
 
             val rangeBox = FormBuilder.create()
@@ -1322,10 +1373,17 @@ class SettingsOptionsPane : OptionsPane() {
                 gistTextField.trailingComponent = visitGistBtn
             }
 
+            val syncPolicyBox = Box.createHorizontalBox()
+            syncPolicyBox.add(policyComboBox)
+            syncPolicyBox.add(Box.createHorizontalGlue())
+            syncPolicyBox.add(Box.createHorizontalGlue())
+
             builder.add("${tokenText}:").xy(1, rows)
                 .add(if (isWebDAV) gistTextField else tokenTextField).xy(3, rows).apply { rows += step }
                 .add("${gistText}:").xy(1, rows)
                 .add(if (isWebDAV) tokenTextField else gistTextField).xy(3, rows).apply { rows += step }
+                .add("${I18n.getString("termora.settings.sync.policy")}:").xy(1, rows)
+                .add(syncPolicyBox).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.sync.range")}:").xy(1, rows)
                 .add(rangeBox).xy(3, rows).apply { rows += step }
                 // Sync buttons
