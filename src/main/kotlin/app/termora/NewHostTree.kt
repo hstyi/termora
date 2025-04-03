@@ -28,6 +28,8 @@ import java.io.*
 import java.util.*
 import java.util.function.Function
 import javax.swing.*
+import javax.swing.event.PopupMenuEvent
+import javax.swing.event.PopupMenuListener
 import javax.swing.filechooser.FileNameExtensionFilter
 import javax.swing.tree.TreePath
 import javax.swing.tree.TreeSelectionModel
@@ -50,7 +52,7 @@ class NewHostTree : SimpleTree() {
     private var isShowMoreInfo
         get() = properties.getString("HostTree.showMoreInfo", "false").toBoolean()
         set(value) = properties.putString("HostTree.showMoreInfo", value.toString())
-
+    private var isPopupMenu = false
     override val model = NewHostTreeModel()
 
     /**
@@ -121,7 +123,7 @@ class NewHostTree : SimpleTree() {
 
                 val c = super.getTreeCellRendererComponent(tree, text, sel, expanded, leaf, row, hasFocus)
 
-                icon = node.getIcon(sel, expanded, tree.hasFocus())
+                icon = node.getIcon(sel, expanded, tree.hasFocus() || isPopupMenu)
                 return c
             }
         })
@@ -327,6 +329,21 @@ class NewHostTree : SimpleTree() {
         openWithSFTP.isEnabled = fullNodes.map { it.host }.any { it.protocol == Protocol.SSH }
         openWithSFTPCommand.isEnabled = openWithSFTP.isEnabled
         openWith.isEnabled = openWith.menuComponents.any { it is JMenuItem && it.isEnabled }
+
+        popupMenu.addPopupMenuListener(object : PopupMenuListener {
+            override fun popupMenuWillBecomeVisible(e: PopupMenuEvent) {
+                isPopupMenu = true
+            }
+
+            override fun popupMenuWillBecomeInvisible(e: PopupMenuEvent) {
+                isPopupMenu = false
+            }
+
+            override fun popupMenuCanceled(e: PopupMenuEvent?) {
+            }
+
+        })
+
         popupMenu.show(this, evt.x, evt.y)
     }
 
