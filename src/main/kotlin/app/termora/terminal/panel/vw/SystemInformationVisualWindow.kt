@@ -25,6 +25,7 @@ class SystemInformationVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
     private val systemInformationPanel by lazy { SystemInformationPanel() }
 
     init {
+        Disposer.register(tab, this)
         initViews()
         initEvents()
         initVisualWindowPanel()
@@ -137,7 +138,7 @@ class SystemInformationVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
         private suspend fun refreshCPUAndMem(session: ClientSession) {
 
             // top
-            var pair = SshClients.execChannel(session, "top -bn1")
+            val pair = SshClients.execChannel(session, "top -bn1")
             if (pair.first != 0) {
                 return
             }
@@ -236,7 +237,7 @@ class SystemInformationVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
         private suspend fun refreshDisk(session: ClientSession) {
 
             // df -h
-            var pair = SshClients.execChannel(session, "df -B1")
+            val pair = SshClients.execChannel(session, "df -B1")
             if (pair.first != 0) {
                 return
             }

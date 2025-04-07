@@ -1,5 +1,6 @@
 package app.termora.terminal.panel.vw
 
+import app.termora.actions.DataProvider
 import java.awt.Dimension
 
 interface VisualWindowManager {
@@ -33,4 +34,14 @@ interface VisualWindowManager {
      * 获取管理器的宽高
      */
     fun getDimension(): Dimension
+
+    /**
+     * 恢复所有窗口
+     */
+    fun resumeVisualWindows(id: String, dataProvider: DataProvider)
+
+    /**
+     * 存储所有窗口
+     */
+    fun storeVisualWindows(id: String)
 }

@@ -28,4 +28,9 @@ interface VisualWindow : Disposable {
      * 切换独立模式
      */
     fun toggleWindow()
+
+    /**
+     * 同一个类，返回的相同
+     */
+    fun getWindowName(): String
 }

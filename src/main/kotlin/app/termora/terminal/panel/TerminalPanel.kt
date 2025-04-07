@@ -1,13 +1,14 @@
 package app.termora.terminal.panel
 
+import app.termora.Database
 import app.termora.Disposable
 import app.termora.Disposer
+import app.termora.SSHTerminalTab
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviderSupport
 import app.termora.actions.DataProviders
 import app.termora.terminal.*
-import app.termora.terminal.panel.vw.VisualWindow
-import app.termora.terminal.panel.vw.VisualWindowManager
+import app.termora.terminal.panel.vw.*
 import com.formdev.flatlaf.util.SystemInfo
 import org.apache.commons.lang3.ArrayUtils
 import org.apache.commons.lang3.StringUtils
@@ -44,15 +45,15 @@ class TerminalPanel(val terminal: Terminal, private val writer: TerminalWriter) 
         val SelectCopy = DataKey(Boolean::class)
     }
 
+    private val properties get() = Database.getDatabase().properties
     private val terminalBlink = TerminalBlink(terminal)
     private val terminalFindPanel = TerminalFindPanel(this, terminal)
     private val floatingToolbar = FloatingToolbarPanel()
     private val terminalDisplay = TerminalDisplay(this, terminal, terminalBlink)
-    private val dataProviderSupport = DataProviderSupport()
     private val layeredPane = TerminalLayeredPane()
     private var visualWindows = emptyArray<VisualWindow>()
 
-    val scrollBar = TerminalScrollBar(this@TerminalPanel, terminalFindPanel, terminal)
+    val scrollBar = TerminalScrollBar(this, terminalFindPanel, terminal)
     var enableFloatingToolbar = true
         set(value) {
             field = value
@@ -62,6 +63,8 @@ class TerminalPanel(val terminal: Terminal, private val writer: TerminalWriter) 
                 layeredPane.remove(floatingToolbar)
             }
         }
+
+    val dataProviderSupport = DataProviderSupport()
 
 
     /**
@@ -583,6 +586,37 @@ class TerminalPanel(val terminal: Terminal, private val writer: TerminalWriter) 
         layeredPane.revalidate()
         layeredPane.repaint()
         requestFocusInWindow()
+    }
+
+    override fun resumeVisualWindows(id: String, dataProvider: DataProvider) {
+        val windows = properties.getString("VisualWindow.${id}.store") ?: return
+        for (name in windows.split(",")) {
+            if (name == "NVIDIA-SMI") {
+                addVisualWindow(
+                    NvidiaSMIVisualWindow(
+                        dataProvider.getData(DataProviders.TerminalTab) as SSHTerminalTab,
+                        this
+                    )
+                )
+            } else if (name == "SystemInformation") {
+                addVisualWindow(
+                    SystemInformationVisualWindow(
+                        dataProvider.getData(DataProviders.TerminalTab) as SSHTerminalTab,
+                        this
+                    )
+                )
+            }
+        }
+    }
+
+    override fun storeVisualWindows(id: String) {
+        val windows = mutableListOf<String>()
+        for (window in getVisualWindows()) {
+            if (window is Resumeable) {
+                windows.add(window.getWindowName())
+            }
+        }
+        properties.putString("VisualWindow.${id}.store", windows.joinToString(","))
     }
 
     override fun getDimension(): Dimension {

@@ -47,6 +47,7 @@ class NvidiaSMIVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWind
     private val percentageBtn by lazy { JButton(if (isPercentage) Icons.text else Icons.percentage) }
 
     init {
+        Disposer.register(tab, this)
         initViews()
         initEvents()
         initVisualWindowPanel()

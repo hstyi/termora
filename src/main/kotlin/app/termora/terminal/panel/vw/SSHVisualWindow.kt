@@ -1,6 +1,5 @@
 package app.termora.terminal.panel.vw
 
-import app.termora.Disposer
 import app.termora.SSHTerminalTab
 import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProviders
@@ -11,11 +10,7 @@ abstract class SSHVisualWindow(
     protected val tab: SSHTerminalTab,
     id: String,
     visualWindowManager: VisualWindowManager
-) : VisualWindowPanel(id, visualWindowManager) {
-
-    init {
-        Disposer.register(tab, this)
-    }
+) : VisualWindowPanel(id, visualWindowManager), Resumeable {
 
     override fun toggleWindow() {
         val evt = AnActionEvent(tab.getJComponent(), StringUtils.EMPTY, EventObject(this))

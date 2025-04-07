@@ -14,11 +14,16 @@ import com.formdev.flatlaf.extras.components.FlatToolBar
 import com.formdev.flatlaf.ui.FlatRoundBorder
 import org.apache.commons.lang3.StringUtils
 import java.awt.event.ActionListener
+import java.beans.PropertyChangeEvent
+import java.beans.PropertyChangeListener
+import java.util.*
 import javax.swing.JButton
+import javax.swing.SwingUtilities
 
 class FloatingToolbarPanel : FlatToolBar(), Disposable {
     private val floatingToolbarEnable get() = Database.getDatabase().terminal.floatingToolbar
     private var closed = false
+    private val anEvent get() = AnActionEvent(this, StringUtils.EMPTY, EventObject(this))
 
     companion object {
 
@@ -72,6 +77,7 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
         }
 
         initActions()
+        initEvents()
     }
 
     override fun updateUI() {
@@ -123,12 +129,38 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
         add(initCloseActionButton())
     }
 
+    private fun initEvents() {
+        // 被添加到组件后
+        addPropertyChangeListener("ancestor", object : PropertyChangeListener {
+            override fun propertyChange(evt: PropertyChangeEvent) {
+                removePropertyChangeListener("ancestor", this)
+                SwingUtilities.invokeLater { resumeVisualWindows() }
+            }
+        })
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun resumeVisualWindows() {
+        val tab = anEvent.getData(DataProviders.TerminalTab) ?: return
+        if (tab !is SSHTerminalTab) return
+        val terminalPanel = tab.getData(DataProviders.TerminalPanel) ?: return
+        terminalPanel.resumeVisualWindows(tab.host.id, object : DataProvider {
+            override fun <T : Any> getData(dataKey: DataKey<T>): T? {
+                if (dataKey == DataProviders.TerminalTab) {
+                    return tab as T
+                }
+                return super.getData(dataKey)
+            }
+        })
+    }
+
+
     private fun initServerInfoActionButton(): JButton {
         val btn = JButton(Icons.infoOutline)
         btn.toolTipText = I18n.getString("termora.visual-window.system-information")
         btn.addActionListener(object : AnAction() {
             override fun actionPerformed(evt: AnActionEvent) {
-                val tab = evt.getData(DataProviders.TerminalTab) ?: return
+                val tab = anEvent.getData(DataProviders.TerminalTab) ?: return
                 val terminalPanel = (tab as DataProvider?)?.getData(DataProviders.TerminalPanel) ?: return
 
                 if (tab !is SSHTerminalTab) {
@@ -156,7 +188,7 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
         btn.toolTipText = I18n.getString("termora.snippet.title")
         btn.addActionListener(object : AnAction() {
             override fun actionPerformed(evt: AnActionEvent) {
-                val tab = evt.getData(DataProviders.TerminalTab) ?: return
+                val tab = anEvent.getData(DataProviders.TerminalTab) ?: return
                 val writer = tab.getData(DataProviders.TerminalWriter) ?: return
                 val dialog = SnippetTreeDialog(evt.window)
                 dialog.setLocationRelativeTo(btn)
@@ -174,7 +206,7 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
         btn.toolTipText = I18n.getString("termora.visual-window.nvidia-smi")
         btn.addActionListener(object : AnAction() {
             override fun actionPerformed(evt: AnActionEvent) {
-                val tab = evt.getData(DataProviders.TerminalTab) ?: return
+                val tab = anEvent.getData(DataProviders.TerminalTab) ?: return
                 val terminalPanel = (tab as DataProvider?)?.getData(DataProviders.TerminalPanel) ?: return
 
                 if (tab !is SSHTerminalTab) {
@@ -233,17 +265,13 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
 
         btn.addActionListener(object : AnAction() {
             override fun actionPerformed(evt: AnActionEvent) {
-                val tab = evt.getData(DataProviders.TerminalTab) ?: return
+                val tab = anEvent.getData(DataProviders.TerminalTab) ?: return
                 if (tab.canReconnect()) {
                     tab.reconnect()
                 }
             }
         })
         return btn
-    }
-
-    override fun dispose() {
-
     }
 
 }

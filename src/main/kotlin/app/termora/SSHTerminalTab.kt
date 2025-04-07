@@ -52,6 +52,7 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
 
     init {
         terminalPanel.dropFiles = false
+        terminalPanel.dataProviderSupport.addData(DataProviders.TerminalTab, this)
     }
 
     override fun getJComponent(): JComponent {
@@ -222,6 +223,11 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
         }
     }
 
+    override fun willBeClose(): Boolean {
+        // 保存窗口状态
+        terminalPanel.storeVisualWindows(host.id)
+        return super.willBeClose()
+    }
 
     private inner class MySessionListener : SessionListener, Disposable {
         override fun sessionEvent(session: Session, event: Event) {

@@ -374,4 +374,8 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
             return null
         }
     }
+
+    override fun getWindowName(): String {
+        return id
+    }
 }
