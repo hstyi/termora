@@ -16,6 +16,7 @@
 - 支持 Windows、macOS、Linux 平台
 - 支持 Zmodem 协议
 - 支持 SSH 端口转发和跳板机
+- 支持 X11 和 SSH-Agent
 - 终端日志记录
 - 支持配置同步到 [Gist](https://gist.github.com) & [WebDAV](https://developer.mozilla.org/docs/Glossary/WebDAV)
 - 支持宏（录制脚本并回放）

@@ -20,7 +20,7 @@ plugins {
 
 
 group = "app.termora"
-version = "1.0.11"
+version = "1.0.12"
 
 val os: OperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
 val arch: ArchitectureInternal = DefaultNativePlatform.getCurrentArchitecture()
@@ -126,7 +126,6 @@ application {
         "-XX:+ZUncommit",
         "-XX:+ZGenerational",
         "-XX:ZUncommitDelay=60",
-        "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
     )
 
     if (os.isMacOsX) {

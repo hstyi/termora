@@ -20,6 +20,7 @@
 - Compatible with Windows, macOS, and Linux
 - Zmodem protocol support
 - SSH port forwarding & Jump hosts
+- Support for X11 and SSH-Agent
 - Terminal log
 - Configuration synchronization via [Gist](https://gist.github.com) & [WebDAV](https://developer.mozilla.org/docs/Glossary/WebDAV)
 - Macro support (record and replay scripts)
