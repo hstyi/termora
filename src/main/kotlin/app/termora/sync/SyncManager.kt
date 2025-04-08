@@ -67,6 +67,8 @@ class SyncManager private constructor() : Disposable {
 
                     sync(config)
 
+                    sync.lastSyncTime = System.currentTimeMillis()
+
                     if (log.isInfoEnabled) {
                         log.info("Automatic synchronisation end")
                     }
