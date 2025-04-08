@@ -192,8 +192,7 @@ class FileSystemViewPanel(
         button.addActionListener(object : AbstractAction() {
             override fun actionPerformed(e: ActionEvent) {
                 if (model.rowCount < 1) return
-                if (model.hasParent) return
-                enterTableSelectionFolder(0)
+                if (model.hasParent) enterTableSelectionFolder(0)
             }
         })
 
