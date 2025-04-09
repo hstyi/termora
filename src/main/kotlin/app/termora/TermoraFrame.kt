@@ -7,12 +7,11 @@ import app.termora.actions.DataProviders
 import app.termora.sftp.SFTPTab
 import app.termora.terminal.DataKey
 import com.formdev.flatlaf.FlatClientProperties
+import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.util.SystemInfo
 import com.jetbrains.JBR
 import org.apache.commons.lang3.ArrayUtils
-import java.awt.BorderLayout
-import java.awt.Dimension
-import java.awt.Insets
+import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
@@ -213,6 +212,11 @@ class TermoraFrame : JFrame(), DataProvider {
             }
         }
 
+        val glassPane = GlassPane()
+        rootPane.glassPane = glassPane
+        glassPane.isOpaque = false
+        glassPane.isVisible = true
+
 
         Disposer.register(windowScope, terminalTabbed)
         add(terminalTabbed, BorderLayout.CENTER)
@@ -253,5 +257,20 @@ class TermoraFrame : JFrame(), DataProvider {
     override fun addNotify() {
         super.addNotify()
         notifyListeners.forEach { it.addNotify() }
+    }
+
+
+    private class GlassPane : JComponent() {
+        override fun paintComponent(g: Graphics) {
+            val img = BackgroundManager.getInstance().getBackgroundImage() ?: return
+            val g2d = g as Graphics2D
+            g2d.composite = AlphaComposite.getInstance(
+                AlphaComposite.SRC_OVER,
+                if (FlatLaf.isLafDark()) 0.2f else 0.1f
+            )
+            g2d.drawImage(img, 0, 0, width, height, null)
+            g2d.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
+        }
+
     }
 }

@@ -39,6 +39,8 @@ import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 import org.apache.commons.codec.binary.Base64
+import org.apache.commons.io.FileUtils
+import org.apache.commons.io.FilenameUtils
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
@@ -132,8 +134,11 @@ class SettingsOptionsPane : OptionsPane() {
         val followSystemCheckBox = JCheckBox(I18n.getString("termora.settings.appearance.follow-system"))
         val preferredThemeBtn = JButton(Icons.settings)
         val opacitySpinner = NumberSpinner(100, 0, 100)
+        val backgroundImageTextField = OutlineTextField()
 
         private val appearance get() = database.appearance
+        private val backgroundButton = JButton(Icons.folder)
+        private val backgroundClearButton = FlatButton()
 
         init {
             initView()
@@ -143,6 +148,14 @@ class SettingsOptionsPane : OptionsPane() {
         private fun initView() {
 
             backgroundComBoBox.isEnabled = SystemInfo.isWindows
+            backgroundImageTextField.isEditable = false
+            backgroundImageTextField.trailingComponent = backgroundButton
+            backgroundImageTextField.text = FilenameUtils.getName(appearance.backgroundImage)
+
+            backgroundClearButton.isFocusable = false
+            backgroundClearButton.icon = Icons.delete
+            backgroundClearButton.buttonType = FlatButton.ButtonType.toolBarButton
+
 
             opacitySpinner.isEnabled = SystemInfo.isMacOS || SystemInfo.isWindows
             opacitySpinner.model = object : SpinnerNumberModel(appearance.opacity, 0.1, 1.0, 0.1) {
@@ -239,6 +252,45 @@ class SettingsOptionsPane : OptionsPane() {
             }
 
             preferredThemeBtn.addActionListener { showPreferredThemeContextmenu() }
+
+            backgroundButton.addActionListener {
+                val chooser = FileChooser()
+                chooser.osxAllowedFileTypes = listOf("png", "jpg", "jpeg")
+                chooser.allowsMultiSelection = false
+                chooser.win32Filters.add(Pair("Image files", listOf("png", "jpg", "jpeg")))
+                chooser.fileSelectionMode = JFileChooser.FILES_ONLY
+                chooser.showOpenDialog(owner).thenAccept {
+                    if (it.isNotEmpty()) {
+                        onSelectedBackgroundImage(it.first())
+                    }
+                }
+            }
+
+            backgroundClearButton.addActionListener {
+                BackgroundManager.getInstance().clearBackgroundImage()
+                backgroundImageTextField.text = StringUtils.EMPTY
+            }
+        }
+
+        private fun onSelectedBackgroundImage(file: File) {
+            try {
+                val destFile = FileUtils.getFile(Application.getBaseDataDir(), "background", file.name)
+                FileUtils.forceMkdirParent(destFile)
+                FileUtils.copyFile(file, destFile)
+                backgroundImageTextField.text = destFile.name
+                BackgroundManager.getInstance().setBackgroundImage(destFile)
+            } catch (e: Exception) {
+                if (log.isErrorEnabled) {
+                    log.error(e.message, e)
+                }
+                SwingUtilities.invokeLater {
+                    OptionPane.showMessageDialog(
+                        owner,
+                        ExceptionUtils.getRootCauseMessage(e),
+                        messageType = JOptionPane.ERROR_MESSAGE
+                    )
+                }
+            }
         }
 
         override fun getIcon(isSelected: Boolean): Icon {
@@ -308,7 +360,7 @@ class SettingsOptionsPane : OptionsPane() {
         private fun getFormPanel(): JPanel {
             val layout = FormLayout(
                 "left:pref, $formMargin, default:grow, $formMargin, default, default:grow",
-                "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
+                "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
             )
             val box = FlatToolBar()
             box.add(followSystemCheckBox)
@@ -329,6 +381,13 @@ class SettingsOptionsPane : OptionsPane() {
                     }
                 })).xy(5, rows).apply { rows += step }
 
+
+            val bgClearBox = Box.createHorizontalBox()
+            bgClearBox.add(backgroundClearButton)
+            builder.add("${I18n.getString("termora.settings.appearance.background-image")}:").xy(1, rows)
+                .add(backgroundImageTextField).xy(3, rows)
+                .add(bgClearBox).xy(5, rows)
+                .apply { rows += step }
 
             builder.add("${I18n.getString("termora.settings.appearance.opacity")}:").xy(1, rows)
                 .add(opacitySpinner).xy(3, rows).apply { rows += step }

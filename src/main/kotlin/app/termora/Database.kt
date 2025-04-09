@@ -644,6 +644,11 @@ class Database private constructor(private val env: Environment) : Disposable {
         var backgroundRunning by BooleanPropertyDelegate(false)
 
         /**
+         * 背景图片的地址
+         */
+        var backgroundImage by StringPropertyDelegate(StringUtils.EMPTY)
+
+        /**
          * 语言
          */
         var language by StringPropertyLazyDelegate {

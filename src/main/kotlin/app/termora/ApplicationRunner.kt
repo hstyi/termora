@@ -64,6 +64,9 @@ class ApplicationRunner {
                 fileSystemManager.filesCache = WeakRefFilesCache()
                 fileSystemManager.init()
                 VFS.setManager(fileSystemManager)
+
+                // async init
+                BackgroundManager.getInstance().getBackgroundImage()
             }
 
             // 设置 LAF
