@@ -22,8 +22,7 @@ class BackgroundManager private constructor() {
     fun setBackgroundImage(file: File) {
         synchronized(this) {
             try {
-
-                bufferedImage = ImageIO.read(file)
+                bufferedImage = file.inputStream().use { ImageIO.read(it) }
                 imageFilepath = file.absolutePath
                 appearance.backgroundImage = file.absolutePath
 

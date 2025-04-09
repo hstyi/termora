@@ -59,6 +59,7 @@ import java.awt.event.ItemListener
 import java.io.File
 import java.net.URI
 import java.nio.charset.StandardCharsets
+import java.nio.file.StandardCopyOption
 import java.util.*
 import java.util.function.Consumer
 import javax.swing.*
@@ -276,7 +277,8 @@ class SettingsOptionsPane : OptionsPane() {
             try {
                 val destFile = FileUtils.getFile(Application.getBaseDataDir(), "background", file.name)
                 FileUtils.forceMkdirParent(destFile)
-                FileUtils.copyFile(file, destFile)
+                FileUtils.deleteQuietly(destFile)
+                FileUtils.copyFile(file, destFile, StandardCopyOption.REPLACE_EXISTING)
                 backgroundImageTextField.text = destFile.name
                 BackgroundManager.getInstance().setBackgroundImage(destFile)
             } catch (e: Exception) {
