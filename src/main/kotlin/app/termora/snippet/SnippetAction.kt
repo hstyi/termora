@@ -7,6 +7,7 @@ import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.terminal.ControlCharacters
 import app.termora.terminal.panel.TerminalWriter
+import org.apache.commons.text.StringEscapeUtils
 
 class SnippetAction private constructor() : AnAction(I18n.getString("termora.snippet.title"), Icons.codeSpan) {
     companion object {
@@ -25,15 +26,15 @@ class SnippetAction private constructor() : AnAction(I18n.getString("termora.sni
     fun runSnippet(snippet: Snippet, writer: TerminalWriter) {
         if (snippet.type != SnippetType.Snippet) return
         val map = mapOf(
-            "\\r" to ControlCharacters.CR,
-            "\\n" to ControlCharacters.LF,
-            "\\t" to ControlCharacters.TAB,
+            "\n" to ControlCharacters.LF,
+            "\r" to ControlCharacters.CR,
+            "\t" to ControlCharacters.TAB,
+            "\b" to ControlCharacters.BS,
             "\\a" to ControlCharacters.BEL,
             "\\e" to ControlCharacters.ESC,
-            "\\b" to ControlCharacters.BS,
         )
 
-        var text = snippet.snippet
+        var text = StringEscapeUtils.unescapeJava(snippet.snippet)
         for (e in map.entries) {
             text = text.replace(e.key, e.value.toString())
         }

@@ -51,6 +51,7 @@ class SnippetPanel : JPanel(BorderLayout()), Disposable {
             properties.getString("SnippetPanel.LeftPanel.width", "180").toIntOrNull() ?: 180,
             -1
         )
+        leftPanel.minimumSize = Dimension(leftPanel.preferredSize.width, leftPanel.preferredSize.height)
 
         rightPanel.border = BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 1, 0, 0, DynamicColor.BorderColor),
