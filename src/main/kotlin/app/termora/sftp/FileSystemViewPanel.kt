@@ -10,9 +10,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
+import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.commons.vfs2.FileObject
+import org.apache.commons.vfs2.FileSystem
+import org.apache.commons.vfs2.VFS
+import org.apache.commons.vfs2.provider.local.LocalFileSystem
 import org.jdesktop.swingx.JXBusyLabel
 import java.awt.BorderLayout
 import java.awt.event.*
@@ -22,14 +26,14 @@ import javax.swing.*
 
 class FileSystemViewPanel(
     val host: Host,
-    val fileSystem: org.apache.commons.vfs2.FileSystem,
+    private var fileSystem: FileSystem,
     private val transportManager: TransportManager,
     private val coroutineScope: CoroutineScope,
-) : JPanel(BorderLayout()), Disposable, DataProvider {
+) : JPanel(BorderLayout()), Disposable, DataProvider, FileSystemProvider {
 
     private val properties get() = Database.getDatabase().properties
     private val sftp get() = Database.getDatabase().sftp
-    private val table = FileSystemViewTable(fileSystem, transportManager, coroutineScope)
+    private val table = FileSystemViewTable(this, transportManager, coroutineScope)
     private val disposed = AtomicBoolean(false)
     private var nextReloadTicks = emptyArray<Consumer<Unit>>()
     private val isLoading = AtomicBoolean(false)
@@ -37,7 +41,7 @@ class FileSystemViewPanel(
     private val loadingPanel = LoadingPanel()
     private val layeredPane = LayeredPane()
     private val homeDirectory = getHomeDirectory()
-    private val nav = FileSystemViewNav(fileSystem, homeDirectory)
+    private val nav = FileSystemViewNav(this, homeDirectory)
     private var workdir = homeDirectory
     private val model get() = table.model as FileSystemViewTableModel
     private val showHiddenFilesKey = "termora.transport.host.${host.id}.show-hidden-files"
@@ -173,7 +177,15 @@ class FileSystemViewPanel(
                 }
                 bookmarkBtn.isBookmark = !bookmarkBtn.isBookmark
             } else {
-                changeWorkdir(fileSystem.resolveFile(e.actionCommand))
+                if (fileSystem is LocalFileSystem && SystemUtils.IS_OS_WINDOWS) {
+                    val file = VFS.getManager().resolveFile("file://${e.actionCommand}")
+                    if (!StringUtils.equals(file.fileSystem.rootURI, fileSystem.rootURI)) {
+                        fileSystem = file.fileSystem
+                    }
+                    changeWorkdir(file)
+                } else {
+                    changeWorkdir(fileSystem.resolveFile(e.actionCommand))
+                }
             }
         }
 
@@ -372,6 +384,7 @@ class FileSystemViewPanel(
     }
 
     private fun getHomeDirectory(): FileObject {
+        val fileSystem = this.fileSystem
         if (fileSystem is MySftpFileSystem) {
             val host = fileSystem.getClientSession().getAttribute(SshClients.HOST_KEY)
                 ?: return fileSystem.resolveFile(fileSystem.getDefaultDir())
@@ -427,6 +440,14 @@ class FileSystemViewPanel(
     @Suppress("UNCHECKED_CAST")
     override fun <T : Any> getData(dataKey: DataKey<T>): T? {
         return if (dataKey == SFTPDataProviders.FileSystemViewTable) table as T else null
+    }
+
+    override fun getFileSystem(): FileSystem {
+        return fileSystem
+    }
+
+    override fun setFileSystem(fileSystem: FileSystem) {
+        this.fileSystem = fileSystem
     }
 
     private class LoadingPanel : JPanel() {

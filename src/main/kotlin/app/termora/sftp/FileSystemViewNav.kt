@@ -27,7 +27,7 @@ import javax.swing.filechooser.FileSystemView
 import kotlin.io.path.absolutePathString
 
 class FileSystemViewNav(
-    private val fileSystem: org.apache.commons.vfs2.FileSystem,
+    private val fileSystemProvider: FileSystemProvider,
     private val homeDirectory: FileObject
 ) : JPanel(BorderLayout()) {
 
@@ -103,7 +103,7 @@ class FileSystemViewNav(
         add(layeredPane, BorderLayout.CENTER)
 
 
-        if (SystemInfo.isWindows && fileSystem is LocalFileSystem) {
+        if (SystemInfo.isWindows && fileSystemProvider.getFileSystem() is LocalFileSystem) {
             try {
                 for (root in fileSystemView.roots) {
                     history.add(root.absolutePath)
@@ -174,9 +174,14 @@ class FileSystemViewNav(
             override fun actionPerformed(e: ActionEvent) {
                 val name = textField.text.trim()
                 if (name.isBlank()) return
+                val fileSystem = fileSystemProvider.getFileSystem()
                 try {
                     if (fileSystem is LocalFileSystem && SystemUtils.IS_OS_WINDOWS) {
-                        changeSelectedPath(fileSystem.resolveFile("file://${name}"))
+                        val file = VFS.getManager().resolveFile("file://${name}")
+                        if (!StringUtils.equals(file.fileSystem.rootURI, fileSystemProvider.getFileSystem().rootURI)) {
+                            fileSystemProvider.setFileSystem(file.fileSystem)
+                        }
+                        changeSelectedPath(file)
                     } else {
                         changeSelectedPath(fileSystem.resolveFile(name))
                     }
@@ -192,6 +197,7 @@ class FileSystemViewNav(
     private fun showComboBoxPopup() {
 
         comboBox.removeAllItems()
+        val fileSystem = fileSystemProvider.getFileSystem()
 
         for (text in history) {
             val path = if (SystemInfo.isWindows && fileSystem is LocalFileSystem) {

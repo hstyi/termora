@@ -52,7 +52,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Suppress("DuplicatedCode", "CascadeIf")
 class FileSystemViewTable(
-    private val fileSystem: org.apache.commons.vfs2.FileSystem,
+    private val fileSystemProvider: FileSystemProvider,
     private val transportManager: TransportManager,
     private val coroutineScope: CoroutineScope
 ) : JTable(), Disposable {
@@ -184,7 +184,7 @@ class FileSystemViewTable(
                     val data = support.transferable.getTransferData(FileSystemTableRowTransferable.dataFlavor)
                     return data is FileSystemTableRowTransferable && data.source != table
                 } else if (support.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
-                    return fileSystem !is LocalFileSystem
+                    return fileSystemProvider.getFileSystem() !is LocalFileSystem
                 }
 
                 return false
@@ -261,6 +261,7 @@ class FileSystemViewTable(
     private fun showContextMenu(rows: IntArray, e: MouseEvent) {
         val files = rows.map { model.getFileObject(it) }
         val hasParent = rows.contains(0)
+        val fileSystem = fileSystemProvider.getFileSystem()
 
         val popupMenu = FlatPopupMenu()
         val newMenu = JMenu(I18n.getString("termora.transport.table.contextmenu.new"))
@@ -571,7 +572,7 @@ class FileSystemViewTable(
         coroutineScope.launch(Dispatchers.IO) {
 
             runCatching {
-                if (fileSystem is MySftpFileSystem) {
+                if (fileSystemProvider.getFileSystem() is MySftpFileSystem) {
                     deleteSftpPaths(paths, rm)
                 } else {
                     deleteRecursively(paths)
@@ -594,7 +595,7 @@ class FileSystemViewTable(
 
     private fun deleteSftpPaths(files: List<FileObject>, rm: Boolean = false) {
         if (rm) {
-            val session = (this.fileSystem as MySftpFileSystem).getClientSession()
+            val session = (this.fileSystemProvider.getFileSystem() as MySftpFileSystem).getClientSession()
             for (path in files) {
                 session.executeRemoteCommand(
                     "rm -rf '${path.absolutePathString()}'",

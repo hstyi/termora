@@ -127,7 +127,7 @@ class SFTPPanel : JPanel(BorderLayout()), DataProvider, Disposable {
             return
         }
 
-        val fs = c.fileSystem
+        val fs = c.getFileSystem()
         val root = transportManager.root
 
         transportManager.lock.withLock {
