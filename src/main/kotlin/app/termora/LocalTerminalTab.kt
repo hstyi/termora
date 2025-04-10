@@ -3,9 +3,6 @@ package app.termora
 import app.termora.terminal.PtyConnector
 import app.termora.terminal.PtyConnectorDelegate
 import app.termora.terminal.PtyProcessConnector
-import com.pty4j.unix.UnixPtyProcess
-import com.pty4j.windows.conpty.WinConPtyProcess
-import com.pty4j.windows.winpty.WinPtyProcess
 import org.apache.commons.io.Charsets
 import org.slf4j.LoggerFactory
 import java.nio.charset.StandardCharsets
@@ -38,15 +35,9 @@ class LocalTerminalTab(windowScope: WindowScope, host: Host) :
         var consoleProcessCount = 0
 
         try {
-            if (process is WinPtyProcess) {
-                consoleProcessCount = process.consoleProcessCount
-            } else if (process is WinConPtyProcess) {
-                consoleProcessCount = process.consoleProcessCount
-            } else if (process is UnixPtyProcess) {
-                val processHandle = ProcessHandle.of(process.pid()).getOrNull()
-                if (processHandle != null) {
-                    consoleProcessCount = processHandle.children().count().toInt()
-                }
+            val processHandle = ProcessHandle.of(process.pid()).getOrNull()
+            if (processHandle != null) {
+                consoleProcessCount = processHandle.children().count().toInt()
             }
         } catch (e: Exception) {
             if (log.isErrorEnabled) {
