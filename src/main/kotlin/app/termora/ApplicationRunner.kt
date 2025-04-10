@@ -28,8 +28,12 @@ import java.awt.MenuItem
 import java.awt.PopupMenu
 import java.awt.SystemTray
 import java.awt.TrayIcon
+import java.awt.desktop.AppReopenedEvent
+import java.awt.desktop.AppReopenedListener
+import java.awt.desktop.SystemEventListener
 import java.awt.event.ActionEvent
 import java.util.*
+import java.util.concurrent.CountDownLatch
 import javax.imageio.ImageIO
 import javax.swing.*
 import kotlin.system.exitProcess
@@ -123,7 +127,20 @@ class ApplicationRunner {
         TermoraFrameManager.getInstance().createWindow().isVisible = true
 
         if (SystemUtils.IS_OS_MAC_OSX) {
-            SwingUtilities.invokeLater { FlatDesktop.setQuitHandler { quitHandler() } }
+            SwingUtilities.invokeLater {
+
+                try {
+                    // 设置 Dock
+                    setupMacOSDock()
+                } catch (e: Exception) {
+                    if (log.isErrorEnabled) {
+                        log.error(e.message, e)
+                    }
+                }
+
+                // Command + Q
+                FlatDesktop.setQuitHandler { quitHandler() }
+            }
         }
     }
 
@@ -159,9 +176,13 @@ class ApplicationRunner {
     }
 
     private fun quitHandler() {
-        for (frame in TermoraFrameManager.getInstance().getWindows()) {
+        val windows = TermoraFrameManager.getInstance().getWindows()
+
+        for (frame in windows) {
             frame.dispose()
         }
+
+        Disposer.dispose(TermoraFrameManager.getInstance())
     }
 
     private fun loadSettings() {
@@ -243,7 +264,35 @@ class ApplicationRunner {
 
         UIManager.put("List.selectionArc", UIManager.getInt("Component.arc"))
 
+    }
 
+    private fun setupMacOSDock() {
+        val countDownLatch = CountDownLatch(1)
+        val cls = Class.forName("com.apple.eawt.Application")
+        val app = cls.getMethod("getApplication").invoke(null)
+        val addAppEventListener = cls.getMethod("addAppEventListener", SystemEventListener::class.java)
+
+        addAppEventListener.invoke(app, object : AppReopenedListener {
+            override fun appReopened(e: AppReopenedEvent) {
+                val manager = TermoraFrameManager.getInstance()
+                if (manager.getWindows().isEmpty()) {
+                    manager.createWindow().isVisible = true
+                }
+            }
+        })
+
+        // 当应用程序销毁时，驻守线程也可以退出了
+        Disposer.register(ApplicationScope.forApplicationScope(), object : Disposable {
+            override fun dispose() {
+                countDownLatch.countDown()
+            }
+        })
+
+        // 驻守线程，不然当所有窗口都关闭时，程序会自动退出
+        // wait application exit
+        Thread.ofPlatform().daemon(false)
+            .priority(Thread.MIN_PRIORITY)
+            .start { countDownLatch.await() }
     }
 
     private fun printSystemInfo() {

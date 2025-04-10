@@ -148,7 +148,7 @@ class SettingsOptionsPane : OptionsPane() {
 
         private fun initView() {
 
-            backgroundComBoBox.isEnabled = SystemInfo.isWindows
+            backgroundComBoBox.isEnabled = SystemInfo.isWindows || SystemInfo.isMacOS
             backgroundImageTextField.isEditable = false
             backgroundImageTextField.trailingComponent = backgroundButton
             backgroundImageTextField.text = FilenameUtils.getName(appearance.backgroundImage)

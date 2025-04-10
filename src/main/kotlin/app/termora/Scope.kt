@@ -151,6 +151,7 @@ class ApplicationScope private constructor() : Scope() {
     }
 
     fun windowScopes(): List<WindowScope> {
+        if (scopes.isEmpty()) return emptyList()
         return scopes.values.toList()
     }
 
