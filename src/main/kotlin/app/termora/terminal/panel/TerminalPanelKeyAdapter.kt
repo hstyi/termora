@@ -2,6 +2,7 @@ package app.termora.terminal.panel
 
 import app.termora.keymap.KeyShortcut
 import app.termora.keymap.KeymapManager
+import app.termora.terminal.ControlCharacters
 import app.termora.terminal.Terminal
 import com.formdev.flatlaf.util.SystemInfo
 import org.slf4j.LoggerFactory
@@ -99,16 +100,32 @@ class TerminalPanelKeyAdapter(
             return
         }
 
-        if (Character.isISOControl(e.keyChar)) {
+        val keyChar = mapKeyChar(e)
+        if (Character.isISOControl(keyChar)) {
             terminal.getSelectionModel().clearSelection()
             // 如果不为空表示已经发送过了，所以这里为空的时候再发送
             if (encode.isEmpty()) {
-                writer.write(TerminalWriter.WriteRequest.fromBytes("${e.keyChar}".toByteArray(writer.getCharset())))
+                writer.write(TerminalWriter.WriteRequest.fromBytes("$keyChar".toByteArray(writer.getCharset())))
                 e.consume()
             }
             terminal.getScrollingModel().scrollTo(Int.MAX_VALUE)
         }
 
+    }
+
+    private fun mapKeyChar(e: KeyEvent): Char {
+        if (Character.isISOControl(e.keyChar)) {
+            return e.keyChar
+        }
+
+        val isCtrlPressedOnly = isCtrlPressedOnly(e)
+
+        // https://github.com/TermoraDev/termora/issues/478
+        if (isCtrlPressedOnly && e.keyCode == KeyEvent.VK_OPEN_BRACKET) {
+            return ControlCharacters.ESC
+        }
+
+        return e.keyChar
     }
 
     private fun isCtrlPressedOnly(e: KeyEvent): Boolean {

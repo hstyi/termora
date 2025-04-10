@@ -42,7 +42,6 @@ class BackgroundManager private constructor() {
     }
 
     fun getBackgroundImage(): BufferedImage? {
-        assertEventDispatchThread()
         val bg = doGetBackgroundImage()
         if (bg == null) {
             if (JPopupMenu.getDefaultLightWeightPopupEnabled()) {
