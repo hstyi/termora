@@ -250,6 +250,11 @@ class FileSystemViewNav(
         textField.text = formatDisplayPath(file)
         textField.putClientProperty(PATH, file)
 
+        val fileSystem = fileSystemProvider.getFileSystem()
+        if (!StringUtils.equals(fileSystem.rootURI, file.fileSystem.rootURI)) {
+            fileSystemProvider.setFileSystem(file.fileSystem)
+        }
+
         for (listener in listenerList.getListeners(ActionListener::class.java)) {
             listener.actionPerformed(ActionEvent(this, ActionEvent.ACTION_PERFORMED, StringUtils.EMPTY))
         }
