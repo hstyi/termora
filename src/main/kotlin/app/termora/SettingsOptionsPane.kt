@@ -152,8 +152,14 @@ class SettingsOptionsPane : OptionsPane() {
             backgroundImageTextField.isEditable = false
             backgroundImageTextField.trailingComponent = backgroundButton
             backgroundImageTextField.text = FilenameUtils.getName(appearance.backgroundImage)
+            backgroundImageTextField.document.addDocumentListener(object : DocumentAdaptor() {
+                override fun changedUpdate(e: DocumentEvent) {
+                    backgroundClearButton.isEnabled = backgroundImageTextField.text.isNotBlank()
+                }
+            })
 
             backgroundClearButton.isFocusable = false
+            backgroundClearButton.isEnabled = backgroundImageTextField.text.isNotBlank()
             backgroundClearButton.icon = Icons.delete
             backgroundClearButton.buttonType = FlatButton.ButtonType.toolBarButton
 

@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory
 import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
+import javax.swing.JPopupMenu
 import javax.swing.SwingUtilities
 
 class BackgroundManager private constructor() {
@@ -41,6 +42,23 @@ class BackgroundManager private constructor() {
     }
 
     fun getBackgroundImage(): BufferedImage? {
+        assertEventDispatchThread()
+        val bg = doGetBackgroundImage()
+        if (bg == null) {
+            if (JPopupMenu.getDefaultLightWeightPopupEnabled()) {
+                return null
+            } else {
+                JPopupMenu.setDefaultLightWeightPopupEnabled(true)
+            }
+        } else {
+            if (JPopupMenu.getDefaultLightWeightPopupEnabled()) {
+                JPopupMenu.setDefaultLightWeightPopupEnabled(false)
+            }
+        }
+        return bg
+    }
+
+    private fun doGetBackgroundImage(): BufferedImage? {
         synchronized(this) {
             if (bufferedImage == null || imageFilepath.isEmpty()) {
                 if (appearance.backgroundImage.isBlank()) {
