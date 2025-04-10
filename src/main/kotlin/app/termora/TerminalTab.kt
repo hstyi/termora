@@ -43,6 +43,9 @@ interface TerminalTab : Disposable, DataProvider {
      */
     fun canClose(): Boolean = true
 
+    /**
+     * 返回 true 表示可以关闭
+     */
     fun willBeClose(): Boolean = true
 
     /**
