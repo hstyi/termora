@@ -662,7 +662,7 @@ class SettingsOptionsPane : OptionsPane() {
         val gistTextField = OutlineTextField(255)
         val policyComboBox = JComboBox<SyncPolicy>()
         val domainTextField = OutlineTextField(255)
-        val syncConfigButton = JButton(I18n.getString("termora.settings.sync"), Icons.download)
+        val syncConfigButton = JButton(I18n.getString("termora.settings.sync"), Icons.settingSync)
         val exportConfigButton = JButton(I18n.getString("termora.settings.sync.export"), Icons.export)
         val importConfigButton = JButton(I18n.getString("termora.settings.sync.import"), Icons.import)
         val lastSyncTimeLabel = JLabel()

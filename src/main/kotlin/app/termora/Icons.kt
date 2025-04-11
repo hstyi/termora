@@ -10,6 +10,7 @@ object Icons {
     val down by lazy { DynamicIcon("icons/down.svg", "icons/down_dark.svg") }
     val moveDown by lazy { DynamicIcon("icons/moveDown.svg", "icons/moveDown_dark.svg") }
     val close by lazy { DynamicIcon("icons/close.svg", "icons/close_dark.svg") }
+    val settingSync by lazy { DynamicIcon("icons/settingSync.svg", "icons/settingSync_dark.svg") }
     val openInNewWindow by lazy { DynamicIcon("icons/openInNewWindow.svg", "icons/openInNewWindow_dark.svg") }
     val openInToolWindow by lazy { DynamicIcon("icons/openInToolWindow.svg", "icons/openInToolWindow_dark.svg") }
     val searchHistory by lazy { DynamicIcon("icons/searchHistory.svg", "icons/searchHistory_dark.svg") }
