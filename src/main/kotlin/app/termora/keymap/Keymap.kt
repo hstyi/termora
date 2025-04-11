@@ -1,7 +1,6 @@
 package app.termora.keymap
 
 import app.termora.Application.ohMyJson
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import javax.swing.KeyStroke
 
@@ -12,6 +11,10 @@ open class Keymap(
      */
     private val parent: Keymap?,
     val isReadonly: Boolean = false,
+    /**
+     * 修改时间
+     */
+    var updateDate: Long = 0L,
 ) {
 
     companion object {
@@ -23,7 +26,8 @@ open class Keymap(
             val shortcuts = mutableListOf<Keymap>()
             val name = json["name"]?.jsonPrimitive?.content ?: return null
             val readonly = json["readonly"]?.jsonPrimitive?.booleanOrNull ?: return null
-            val keymap = Keymap(name, null, readonly)
+            val updateDate = json["updateDate"]?.jsonPrimitive?.longOrNull ?: 0
+            val keymap = Keymap(name, null, readonly, updateDate)
 
             for (shortcut in (json["shortcuts"]?.jsonArray ?: emptyList()).map { it.jsonObject }) {
                 val keyStroke = shortcut["keyStroke"]?.jsonPrimitive?.contentOrNull ?: continue
@@ -40,6 +44,9 @@ open class Keymap(
                 }
             }
 
+            // 最后设置修改时间
+            keymap.updateDate = updateDate
+
             shortcuts.add(keymap)
             return keymap
         }
@@ -51,6 +58,7 @@ open class Keymap(
         val actionIds = shortcuts.getOrPut(shortcut) { mutableListOf() }
         actionIds.removeIf { it == actionId }
         actionIds.add(actionId)
+        updateDate = System.currentTimeMillis()
     }
 
     open fun removeAllActionShortcuts(actionId: Any) {
@@ -62,6 +70,7 @@ open class Keymap(
                 iterator.remove()
             }
         }
+        updateDate = System.currentTimeMillis()
     }
 
     open fun getShortcut(actionId: Any): List<Shortcut> {
@@ -102,6 +111,7 @@ open class Keymap(
         return buildJsonObject {
             put("name", name)
             put("readonly", isReadonly)
+            put("updateDate", updateDate)
             parent?.let { put("parent", it.name) }
             put("shortcuts", buildJsonArray {
                 for (entry in shortcuts.entries) {

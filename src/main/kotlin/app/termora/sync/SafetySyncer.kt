@@ -390,7 +390,15 @@ abstract class SafetySyncer : Syncer {
 
     protected fun decodeKeymaps(text: String, deletedData: List<DeletedData>, config: SyncConfig) {
 
-        for (keymap in ohMyJson.decodeFromString<List<JsonObject>>(text).mapNotNull { Keymap.fromJSON(it) }) {
+        val localKeymaps = keymapManager.getKeymaps().associateBy { it.name }
+        val remoteKeymaps = ohMyJson.decodeFromString<List<JsonObject>>(text).mapNotNull { Keymap.fromJSON(it) }
+        for (keymap in remoteKeymaps) {
+            val localKeymap = localKeymaps[keymap.name]
+            if (localKeymap != null) {
+                if (localKeymap.updateDate > keymap.updateDate) {
+                    continue
+                }
+            }
             keymapManager.addKeymap(keymap)
         }
 
