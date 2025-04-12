@@ -32,6 +32,7 @@ import java.awt.desktop.AppReopenedEvent
 import java.awt.desktop.AppReopenedListener
 import java.awt.desktop.SystemEventListener
 import java.awt.event.ActionEvent
+import java.awt.event.WindowEvent
 import java.util.*
 import java.util.concurrent.CountDownLatch
 import javax.imageio.ImageIO
@@ -85,9 +86,6 @@ class ApplicationRunner {
             // 启动主窗口
             val startMainFrame = measureTimeMillis { startMainFrame() }
 
-            // 设置托盘
-            val setupSystemTray = measureTimeMillis { SwingUtilities.invokeLater { setupSystemTray() } }
-
             if (log.isDebugEnabled) {
                 log.debug("printSystemInfo: {}ms", printSystemInfo)
                 log.debug("openDatabase: {}ms", openDatabase)
@@ -96,7 +94,6 @@ class ApplicationRunner {
                 log.debug("setupLaf: {}ms", setupLaf)
                 log.debug("openDoor: {}ms", openDoor)
                 log.debug("startMainFrame: {}ms", startMainFrame)
-                log.debug("setupSystemTray: {}ms", setupSystemTray)
             }
         }.let {
             if (log.isDebugEnabled) {
@@ -126,7 +123,7 @@ class ApplicationRunner {
 
         TermoraFrameManager.getInstance().createWindow().isVisible = true
 
-        if (SystemUtils.IS_OS_MAC_OSX) {
+        if (SystemInfo.isMacOS) {
             SwingUtilities.invokeLater {
 
                 try {
@@ -141,6 +138,9 @@ class ApplicationRunner {
                 // Command + Q
                 FlatDesktop.setQuitHandler { quitHandler() }
             }
+        } else if (SystemInfo.isWindows) {
+            // 设置托盘
+            SwingUtilities.invokeLater { setupSystemTray() }
         }
     }
 
@@ -179,7 +179,7 @@ class ApplicationRunner {
         val windows = TermoraFrameManager.getInstance().getWindows()
 
         for (frame in windows) {
-            frame.dispose()
+            frame.dispatchEvent(WindowEvent(frame, WindowEvent.WINDOW_CLOSED))
         }
 
         Disposer.dispose(TermoraFrameManager.getInstance())
