@@ -5,6 +5,7 @@ import app.termora.actions.DataProvider
 import app.termora.terminal.DataKey
 import app.termora.vfs2.sftp.MySftpFileSystem
 import com.formdev.flatlaf.extras.components.FlatToolBar
+import com.formdev.flatlaf.util.SystemInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -396,8 +397,13 @@ class FileSystemViewPanel(
         }
 
         if (sftp.defaultDirectory.isNotBlank()) {
-            val resolveFile = fileSystem.resolveFile("file://${sftp.defaultDirectory}")
+            val resolveFile = if (fileSystem is LocalFileSystem && SystemInfo.isWindows) {
+                VFS.getManager().resolveFile("file://${sftp.defaultDirectory}")
+            } else {
+                fileSystem.resolveFile("file://${sftp.defaultDirectory}")
+            }
             if (resolveFile.exists()) {
+                setFileSystem(resolveFile.fileSystem)
                 return resolveFile
             }
         }
