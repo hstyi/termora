@@ -25,6 +25,11 @@ data class KeywordHighlight(
     val matchCase: Boolean = false,
 
     /**
+     * 是否是正则表达式
+     */
+    val regex: Boolean = false,
+
+    /**
      * 0 是取前景色
      */
     val textColor: Int = 0,

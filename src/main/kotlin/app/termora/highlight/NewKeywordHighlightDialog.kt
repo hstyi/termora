@@ -1,10 +1,6 @@
 package app.termora.highlight
 
-import app.termora.DialogWrapper
-import app.termora.DynamicColor
-import app.termora.I18n
-import app.termora.Icons
-import app.termora.Database
+import app.termora.*
 import app.termora.terminal.ColorPalette
 import app.termora.terminal.TerminalColor
 import com.formdev.flatlaf.FlatClientProperties
@@ -46,6 +42,7 @@ class NewKeywordHighlightDialog(
         I18n.getString("termora.highlight.background-color")
     )
     val matchCaseBtn = JToggleButton(Icons.matchCase)
+    val regexBtn = JToggleButton(Icons.regex)
 
 
     private val textColorRevert = JButton(Icons.revert)
@@ -85,6 +82,7 @@ class NewKeywordHighlightDialog(
 
         val box = FlatToolBar()
         box.add(matchCaseBtn)
+        box.add(regexBtn)
         keywordTextField.trailingComponent = box
 
         repaintKeywordHighlightView()
@@ -218,6 +216,7 @@ class NewKeywordHighlightDialog(
             keyword = keywordTextField.text,
             description = descriptionTextField.text,
             matchCase = matchCaseBtn.isSelected,
+            regex = regexBtn.isSelected,
             textColor = if (textColor.colorIndex != -1) textColor.colorIndex else textColor.color.toRGB(),
             backgroundColor = if (backgroundColor.colorIndex != -1) backgroundColor.colorIndex else backgroundColor.color.toRGB(),
             bold = boldCheckBox.isSelected,

@@ -20,10 +20,8 @@ class KeywordHighlightDialog(owner: Window) : DialogWrapper(owner) {
     private val model = KeywordHighlightTableModel()
     private val table = FlatTable()
     private val keywordHighlightManager by lazy { KeywordHighlightManager.getInstance() }
-    private val colorPalette by lazy {
-        TerminalFactory.getInstance().createTerminal().getTerminalModel()
-            .getColorPalette()
-    }
+    private val terminal by lazy { TerminalFactory.getInstance().createTerminal() }
+    private val colorPalette by lazy { terminal.getTerminalModel().getColorPalette() }
 
     private val addBtn = JButton(I18n.getString("termora.new-host.tunneling.add"))
     private val editBtn = JButton(I18n.getString("termora.keymgr.edit"))
@@ -130,6 +128,7 @@ class KeywordHighlightDialog(owner: Window) : DialogWrapper(owner) {
 
         addBtn.addActionListener {
             val dialog = NewKeywordHighlightDialog(this, colorPalette)
+            dialog.setLocationRelativeTo(this)
             dialog.isVisible = true
             val keywordHighlight = dialog.keywordHighlight
             if (keywordHighlight != null) {
@@ -143,6 +142,7 @@ class KeywordHighlightDialog(owner: Window) : DialogWrapper(owner) {
             if (row > -1) {
                 var keywordHighlight = model.getKeywordHighlight(row)
                 val dialog = NewKeywordHighlightDialog(this, colorPalette)
+                dialog.setLocationRelativeTo(this)
                 dialog.keywordTextField.text = keywordHighlight.keyword
                 dialog.descriptionTextField.text = keywordHighlight.description
 
@@ -176,6 +176,7 @@ class KeywordHighlightDialog(owner: Window) : DialogWrapper(owner) {
                 dialog.underlineCheckBox.isSelected = keywordHighlight.underline
                 dialog.lineThroughCheckBox.isSelected = keywordHighlight.lineThrough
                 dialog.matchCaseBtn.isSelected = keywordHighlight.matchCase
+                dialog.regexBtn.isSelected = keywordHighlight.regex
 
                 dialog.isVisible = true
 
@@ -211,6 +212,12 @@ class KeywordHighlightDialog(owner: Window) : DialogWrapper(owner) {
             editBtn.isEnabled = table.selectedRowCount > 0
             deleteBtn.isEnabled = editBtn.isEnabled
         }
+
+        Disposer.register(disposable, object : Disposable {
+            override fun dispose() {
+                terminal.close()
+            }
+        })
     }
 
     override fun createCenterPanel(): JComponent {
