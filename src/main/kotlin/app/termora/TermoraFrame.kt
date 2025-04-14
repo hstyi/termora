@@ -63,10 +63,9 @@ class TermoraFrame : JFrame(), DataProvider {
                 }
 
                 override fun mouseDragged(e: MouseEvent) {
-                    val mouseLayer = getMouseLayer() ?: return
                     getMouseMotionListener()?.mouseDragged(
                         MouseEvent(
-                            mouseLayer,
+                            e.component,
                             e.id,
                             e.`when`,
                             e.modifiersEx,
@@ -85,13 +84,6 @@ class TermoraFrame : JFrame(), DataProvider {
 
                 private fun getMouseMotionListener(): MouseMotionListener? {
                     return getHandler() as? MouseMotionListener
-                }
-
-                private fun getMouseLayer(): JComponent? {
-                    val titlePane = getTitlePane() ?: return null
-                    val handlerField = titlePane.javaClass.getDeclaredField("mouseLayer") ?: return null
-                    handlerField.isAccessible = true
-                    return handlerField.get(titlePane) as? JComponent
                 }
 
                 private fun getHandler(): Any? {
