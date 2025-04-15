@@ -121,7 +121,6 @@ class KeywordHighlightPaintListener private constructor() : TerminalPaintListene
                     data.add(mutableListOf())
                     for (c in e.chars()) {
                         if (c.first.isNull) break
-                        if (c.first.isSoftHyphen) continue
                         data.last().add(c.first)
                     }
                 }
