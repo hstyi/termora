@@ -51,6 +51,7 @@ class ChooseColorTemplateDialog(owner: Window, title: String) : DialogWrapper(ow
         val customBtn = JButton("Custom")
         customBtn.addActionListener {
             val dialog = MyColorPickerDialog(this)
+            dialog.setLocationRelativeTo(this)
             dialog.colorPicker.color = defaultColor
             dialog.isVisible = true
             val color = dialog.color

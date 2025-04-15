@@ -185,6 +185,7 @@ class NewKeywordHighlightDialog(
     }
 
     private fun createColorPanel(color: Color, title: String): ColorPanel {
+        val owner = this
         val arc = UIManager.getInt("Component.arc")
         val lineBorder = FlatLineBorder(Insets(1, 1, 1, 1), DynamicColor.BorderColor, 1f, arc)
         val colorPanel = ColorPanel(color)
@@ -193,7 +194,8 @@ class NewKeywordHighlightDialog(
         colorPanel.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent) {
                 if (SwingUtilities.isLeftMouseButton(e)) {
-                    val dialog = ChooseColorTemplateDialog(this@NewKeywordHighlightDialog, title)
+                    val dialog = ChooseColorTemplateDialog(owner, title)
+                    dialog.setLocationRelativeTo(owner)
                     dialog.defaultColor = colorPanel.color
                     dialog.isVisible = true
                     colorPanel.color = dialog.color ?: return
