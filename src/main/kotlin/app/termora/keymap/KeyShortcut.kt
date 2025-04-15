@@ -1,5 +1,6 @@
 package app.termora.keymap
 
+import com.formdev.flatlaf.util.SystemInfo
 import org.apache.commons.lang3.StringUtils
 import java.awt.event.KeyEvent
 import javax.swing.KeyStroke
@@ -23,7 +24,14 @@ class KeyShortcut(val keyStroke: KeyStroke) : Shortcut() {
                 text = text.replace("MINUS", "-")
             }
 
-            return text.toCharArray().joinToString(" + ")
+            text = text.toCharArray().joinToString(" + ")
+            if (SystemInfo.isWindows || SystemInfo.isLinux) {
+                text = text.replace("⇧", "Shift")
+                text = text.replace("⌃", "Ctrl")
+                text = text.replace("⌥", "Alt")
+            }
+
+            return text
         }
     }
 
