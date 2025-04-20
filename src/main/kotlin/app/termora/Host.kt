@@ -25,6 +25,7 @@ enum class Protocol {
     SSH,
     Local,
     Serial,
+    RDP,
 
     /**
      * 交互式的 SFTP，此协议只在系统内部交互不应该暴露给用户也不应该持久化

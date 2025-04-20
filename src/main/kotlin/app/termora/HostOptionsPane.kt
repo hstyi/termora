@@ -320,6 +320,7 @@ open class HostOptionsPane : OptionsPane() {
             protocolTypeComboBox.addItem(Protocol.SSH)
             protocolTypeComboBox.addItem(Protocol.Local)
             protocolTypeComboBox.addItem(Protocol.Serial)
+            protocolTypeComboBox.addItem(Protocol.RDP)
 
             authenticationTypeComboBox.addItem(AuthenticationType.No)
             authenticationTypeComboBox.addItem(AuthenticationType.Password)

@@ -64,6 +64,7 @@ object Icons {
     val revert by lazy { DynamicIcon("icons/revert.svg", "icons/revert_dark.svg") }
     val edit by lazy { DynamicIcon("icons/edit.svg", "icons/edit_dark.svg") }
     val microsoft by lazy { DynamicIcon("icons/microsoft.svg", "icons/microsoft_dark.svg") }
+    val microsoftWindows by lazy { DynamicIcon("icons/microsoftWindows.svg", "icons/microsoftWindows_dark.svg") }
     val tencent by lazy { DynamicIcon("icons/tencent.svg") }
     val google by lazy { DynamicIcon("icons/google-small.svg") }
     val aliyun by lazy { DynamicIcon("icons/aliyun.svg") }

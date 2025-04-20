@@ -37,6 +37,7 @@ import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.xpath.XPathConstants
 import javax.xml.xpath.XPathFactory
 
+@Suppress("CascadeIf")
 class NewHostTree : SimpleTree() {
 
     companion object {
@@ -48,7 +49,7 @@ class NewHostTree : SimpleTree() {
     private val properties get() = Database.getDatabase().properties
     private val owner get() = SwingUtilities.getWindowAncestor(this)
     private val openHostAction get() = ActionManager.getInstance().getAction(OpenHostAction.OPEN_HOST)
-    private val sftpAction get() = ActionManager.getInstance().getAction(app.termora.Actions.SFTP)
+    private val sftpAction get() = ActionManager.getInstance().getAction(Actions.SFTP)
     private var isShowMoreInfo
         get() = properties.getString("HostTree.showMoreInfo", "false").toBoolean()
         set(value) = properties.putString("HostTree.showMoreInfo", value.toString())
@@ -97,7 +98,7 @@ class NewHostTree : SimpleTree() {
                 // 是否显示更多信息
                 if (isShowMoreInfo) {
                     val color = if (sel) {
-                        if (tree.hasFocus()) {
+                        if (tree.hasFocus() || isPopupMenu) {
                             UIManager.getColor("textHighlightText")
                         } else {
                             this.foreground
@@ -110,15 +111,15 @@ class NewHostTree : SimpleTree() {
                         """<font color=rgb(${color.red},${color.green},${color.blue})>${it}</font>"""
                     }
 
-                    if (host.protocol == Protocol.SSH) {
-                        text =
-                            "<html>${host.name}&nbsp;&nbsp;&nbsp;&nbsp;${fontTag.apply("${host.username}@${host.host}")}</html>"
+                    // @formatter:off
+                    if (host.protocol == Protocol.SSH || host.protocol == Protocol.RDP) {
+                        text = "<html>${host.name}&nbsp;&nbsp;&nbsp;&nbsp;${fontTag.apply("${host.username}@${host.host}")}</html>"
                     } else if (host.protocol == Protocol.Serial) {
-                        text =
-                            "<html>${host.name}&nbsp;&nbsp;&nbsp;&nbsp;${fontTag.apply(host.options.serialComm.port)}</html>"
+                        text = "<html>${host.name}&nbsp;&nbsp;&nbsp;&nbsp;${fontTag.apply(host.options.serialComm.port)}</html>"
                     } else if (host.protocol == Protocol.Folder) {
                         text = "<html>${host.name}${fontTag.apply(" (${node.childCount})")}</html>"
                     }
+                    // @formatter:on
                 }
 
                 val c = super.getTreeCellRendererComponent(tree, text, sel, expanded, leaf, row, hasFocus)
@@ -810,7 +811,7 @@ class NewHostTree : SimpleTree() {
                 var group = bookmarkGroups.find { it.bookmarkIds.contains(id) }
                 while (group != null && group.id != "default") {
                     folderNames.addFirst(group.title)
-                    group = bookmarkGroups.find { it.bookmarkGroupIds.contains(group?.id ?: StringUtils.EMPTY) }
+                    group = bookmarkGroups.find { it.bookmarkGroupIds.contains(group.id) }
                 }
 
                 printer.printRecord(

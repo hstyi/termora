@@ -49,6 +49,7 @@ class HostTreeNode(host: Host) : SimpleTreeNode<Host>(host) {
         return when (host.protocol) {
             Protocol.Folder -> if (expanded) FlatTreeOpenIcon() else FlatTreeClosedIcon()
             Protocol.Serial -> if (selected && hasFocus) Icons.plugin.dark else Icons.plugin
+            Protocol.RDP -> if (selected && hasFocus) Icons.microsoftWindows.dark else Icons.microsoftWindows
             else -> if (selected && hasFocus) Icons.terminal.dark else Icons.terminal
         }
     }
