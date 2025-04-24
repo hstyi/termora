@@ -135,6 +135,7 @@ class NewHostTree : SimpleTree() {
         // double click
         addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent) {
+                if (getPathForLocation(e.x, e.y) == null) return
                 if (doubleClickConnection && SwingUtilities.isLeftMouseButton(e) && e.clickCount % 2 == 0) {
                     val lastNode = lastSelectedPathComponent as? HostTreeNode ?: return
                     if (lastNode.host.protocol != Protocol.Folder) {
