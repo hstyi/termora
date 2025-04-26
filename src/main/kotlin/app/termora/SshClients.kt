@@ -48,6 +48,7 @@ import org.apache.sshd.common.kex.BuiltinDHFactories
 import org.apache.sshd.common.keyprovider.KeyIdentityProvider
 import org.apache.sshd.common.session.Session
 import org.apache.sshd.common.session.SessionListener
+import org.apache.sshd.common.signature.BuiltinSignatures
 import org.apache.sshd.common.util.net.SshdSocketAddress
 import org.apache.sshd.core.CoreModuleProperties
 import org.apache.sshd.server.forward.AcceptAllForwardingFilter
@@ -350,6 +351,13 @@ object SshClients {
             compressionFactories.add(compression)
         }
         builder.compressionFactories(compressionFactories)
+
+        val signatureFactories = ClientBuilder.setUpDefaultSignatureFactories(true).toMutableList()
+        for (signature in BuiltinSignatures.entries) {
+            if (signatureFactories.contains(signature)) continue
+            signatureFactories.add(signature)
+        }
+        builder.signatureFactories(signatureFactories)
 
         if (host.tunnelings.isEmpty() && host.options.jumpHosts.isEmpty()) {
             builder.forwardingFilter(RejectAllForwardingFilter.INSTANCE)
