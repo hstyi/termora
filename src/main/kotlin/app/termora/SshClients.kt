@@ -34,6 +34,7 @@ import org.apache.sshd.common.channel.ChannelFactory
 import org.apache.sshd.common.channel.PtyChannelConfiguration
 import org.apache.sshd.common.channel.PtyChannelConfigurationHolder
 import org.apache.sshd.common.cipher.CipherNone
+import org.apache.sshd.common.compression.BuiltinCompressions
 import org.apache.sshd.common.config.keys.KeyRandomArt
 import org.apache.sshd.common.config.keys.KeyUtils
 import org.apache.sshd.common.future.CloseFuture
@@ -338,6 +339,17 @@ object SshClients {
             )
         )
         builder.keyExchangeFactories(keyExchangeFactories)
+
+        val compressionFactories = ClientBuilder.setUpDefaultCompressionFactories(true).toMutableList()
+        for (compression in listOf(
+            BuiltinCompressions.none,
+            BuiltinCompressions.zlib,
+            BuiltinCompressions.delayedZlib
+        )) {
+            if (compressionFactories.contains(compression)) continue
+            compressionFactories.add(compression)
+        }
+        builder.compressionFactories(compressionFactories)
 
         if (host.tunnelings.isEmpty() && host.options.jumpHosts.isEmpty()) {
             builder.forwardingFilter(RejectAllForwardingFilter.INSTANCE)
