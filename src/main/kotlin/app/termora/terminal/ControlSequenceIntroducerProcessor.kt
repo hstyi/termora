@@ -399,6 +399,16 @@ class ControlSequenceIntroducerProcessor(terminal: Terminal, reader: TerminalRea
                 }
             }
 
+            // CSI Ps Z  Cursor Backward Tabulation Ps tab stops (default = 1) (CBT).
+            'Z' -> {
+                val count = args.toInt(1)
+                val cursorModel = terminal.getCursorModel()
+                for (i in 0 until count) {
+                    val x = terminal.getTabulator().previousTab(cursorModel.getPosition().x - 1) + 1
+                    terminal.getCursorModel().move(cursorModel.getPosition().y, x)
+                }
+            }
+
             // split
             ';' -> {
                 args.append(ch)
