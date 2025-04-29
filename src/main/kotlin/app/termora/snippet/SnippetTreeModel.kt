@@ -1,5 +1,6 @@
 package app.termora.snippet
 
+import app.termora.I18n
 import app.termora.SimpleTreeModel
 import javax.swing.tree.MutableTreeNode
 import javax.swing.tree.TreeNode
@@ -8,7 +9,7 @@ class SnippetTreeModel : SimpleTreeModel<Snippet>(
     SnippetTreeNode(
         Snippet(
             id = "0",
-            name = "全部片段",
+            name = I18n.getString("termora.snippet.title"),
             type = SnippetType.Folder
         )
     )
