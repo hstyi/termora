@@ -12,6 +12,7 @@ import org.apache.sshd.client.session.ClientSession
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Window
+import java.util.*
 import javax.swing.*
 
 class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
@@ -54,7 +55,8 @@ class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
                 isEnabled = false
 
                 swingCoroutineScope.launch(Dispatchers.IO) {
-                    testConnection(pane.getHost())
+                    // 因为测试连接的时候从数据库读取会导致失效，所以这里生成随机ID
+                    testConnection(pane.getHost().copy(id = UUID.randomUUID().toSimpleString()))
                     withContext(Dispatchers.Swing) {
                         putValue(NAME, I18n.getString("termora.new-host.test-connection"))
                         isEnabled = true
