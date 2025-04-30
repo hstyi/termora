@@ -79,6 +79,8 @@ class TerminalPanelKeyAdapter(
         val encode = terminal.getKeyEncoder().encode(AWTTerminalKeyEvent(e))
         if (encode.isNotEmpty()) {
             writer.write(TerminalWriter.WriteRequest.fromBytes(encode.toByteArray(writer.getCharset())))
+            // scroll to bottom
+            terminal.getScrollingModel().scrollTo(Int.MAX_VALUE)
             e.consume()
         }
 
@@ -91,6 +93,8 @@ class TerminalPanelKeyAdapter(
         if (isAltPressedOnly(e) && Character.isDefined(e.keyChar)) {
             val c = String(charArrayOf(ASCII_ESC, simpleMapKeyCodeToChar(e)))
             writer.write(TerminalWriter.WriteRequest.fromBytes(c.toByteArray(writer.getCharset())))
+            // scroll to bottom
+            terminal.getScrollingModel().scrollTo(Int.MAX_VALUE)
             e.consume()
             return
         }
