@@ -27,6 +27,8 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.*
+import javax.swing.event.TreeExpansionEvent
+import javax.swing.event.TreeExpansionListener
 
 class SFTPFileSystemViewPanel(
     var host: Host? = null,
@@ -35,17 +37,18 @@ class SFTPFileSystemViewPanel(
 
     companion object {
         private val log = LoggerFactory.getLogger(SFTPFileSystemViewPanel::class.java)
+    }
 
-        private enum class State {
-            Initialized,
-            Connecting,
-            Connected,
-            ConnectFailed,
-        }
+    enum class State {
+        Initialized,
+        Connecting,
+        Connected,
+        ConnectFailed,
     }
 
     @Volatile
-    private var state = State.Initialized
+    var state = State.Initialized
+        private set
     private val cardLayout = CardLayout()
     private val cardPanel = JPanel(cardLayout)
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -287,6 +290,16 @@ class SFTPFileSystemViewPanel(
                         that.host = host
                         that.connect()
                     }
+                }
+            })
+
+            tree.addTreeExpansionListener(object : TreeExpansionListener {
+                override fun treeExpanded(event: TreeExpansionEvent) {
+                    properties.putString("SFTPTabbed.Tree.state", TreeUtils.saveExpansionState(tree))
+                }
+
+                override fun treeCollapsed(event: TreeExpansionEvent) {
+                    properties.putString("SFTPTabbed.Tree.state", TreeUtils.saveExpansionState(tree))
                 }
             })
         }

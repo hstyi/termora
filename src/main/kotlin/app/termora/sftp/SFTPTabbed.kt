@@ -5,7 +5,6 @@ import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
-import java.awt.Point
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.util.concurrent.atomic.AtomicBoolean
@@ -13,7 +12,6 @@ import javax.swing.JButton
 import javax.swing.JToolBar
 import javax.swing.SwingUtilities
 import javax.swing.UIManager
-import kotlin.math.max
 
 @Suppress("DuplicatedCode")
 class SFTPTabbed(private val transportManager: TransportManager) : FlatTabbedPane(), Disposable {
@@ -43,23 +41,20 @@ class SFTPTabbed(private val transportManager: TransportManager) : FlatTabbedPan
     private fun initEvents() {
         addBtn.addActionListener(object : AnAction() {
             override fun actionPerformed(evt: AnActionEvent) {
-                val dialog = NewHostTreeDialog(SwingUtilities.getWindowAncestor(tabbed))
-                dialog.location = Point(
-                    max(0, addBtn.locationOnScreen.x - dialog.width / 2 + addBtn.width / 2),
-                    addBtn.locationOnScreen.y + max(tabHeight, addBtn.height)
-                )
-                dialog.setFilter { it.host.protocol == Protocol.SSH }
-                dialog.setTreeName("SFTPTabbed.Tree")
-                dialog.allowMulti = true
-                dialog.isVisible = true
-
-                val hosts = dialog.hosts
-                if (hosts.isEmpty()) return
-
-                for (host in hosts) {
-                    addSFTPFileSystemViewPanelTab(host)
+                for (i in 0 until tabCount) {
+                    val c = getComponentAt(i)
+                    if (c !is SFTPFileSystemViewPanel) continue
+                    if (c.state != SFTPFileSystemViewPanel.State.Initialized) continue
+                    selectedIndex = i
+                    return
                 }
 
+                // 添加一个新的
+                addTab(
+                    I18n.getString("termora.transport.sftp.select-host"),
+                    SFTPFileSystemViewPanel(transportManager = transportManager)
+                )
+                selectedIndex = tabCount - 1
             }
         })
 
