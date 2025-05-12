@@ -4,6 +4,7 @@ import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProviders
 import app.termora.actions.MultipleAction
 import app.termora.highlight.KeywordHighlightPaintListener
+import app.termora.terminal.DataKey
 import app.termora.terminal.PtyConnector
 import app.termora.terminal.Terminal
 import app.termora.terminal.panel.TerminalHyperlinkPaintListener
@@ -40,6 +41,10 @@ class TerminalPanelFactory : Disposable {
     fun createTerminalPanel(terminal: Terminal, ptyConnector: PtyConnector): TerminalPanel {
         val writer = MyTerminalWriter(ptyConnector)
         val terminalPanel = TerminalPanel(terminal, writer)
+
+        // processDeviceStatusReport
+        terminal.getTerminalModel().setData(DataKey.TerminalWriter, writer)
+
         terminalPanel.addTerminalPaintListener(MultipleTerminalListener())
         terminalPanel.addTerminalPaintListener(KeywordHighlightPaintListener.getInstance())
         terminalPanel.addTerminalPaintListener(TerminalHyperlinkPaintListener.getInstance())
