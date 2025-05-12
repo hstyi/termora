@@ -14,6 +14,7 @@ plugins {
     java
     idea
     application
+    `maven-publish`
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlinx.serialization)
 }
@@ -56,67 +57,67 @@ dependencies {
 
 //    implementation(platform(libs.koin.bom))
 //    implementation(libs.koin.core)
-    implementation(libs.slf4j.api)
-    implementation(libs.pty4j)
-    implementation(libs.slf4j.tinylog)
-    implementation(libs.tinylog.impl)
-    implementation(libs.commons.codec)
-    implementation(libs.commons.io)
-    implementation(libs.commons.lang3)
-    implementation(libs.commons.csv)
-    implementation(libs.commons.net)
-    implementation(libs.commons.text)
-    implementation(libs.commons.compress)
-    implementation(libs.commons.vfs2) { exclude(group = "*", module = "*") }
-    implementation(libs.kotlinx.coroutines.swing)
-    implementation(libs.kotlinx.coroutines.core)
+    api(libs.slf4j.api)
+    api(libs.pty4j)
+    api(libs.slf4j.tinylog)
+    api(libs.tinylog.impl)
+    api(libs.commons.codec)
+    api(libs.commons.io)
+    api(libs.commons.lang3)
+    api(libs.commons.csv)
+    api(libs.commons.net)
+    api(libs.commons.text)
+    api(libs.commons.compress)
+    api(libs.commons.vfs2) { exclude(group = "*", module = "*") }
+    api(libs.kotlinx.coroutines.swing)
+    api(libs.kotlinx.coroutines.core)
 
-    implementation(libs.flatlaf) {
+    api(libs.flatlaf) {
         artifact {
             if (useNoNativesFlatLaf) {
                 classifier = "no-natives"
             }
         }
     }
-    implementation(libs.flatlaf.extras) {
+    api(libs.flatlaf.extras) {
         if (useNoNativesFlatLaf) {
             exclude(group = "com.formdev", module = "flatlaf")
         }
     }
-    implementation(libs.flatlaf.swingx) {
+    api(libs.flatlaf.swingx) {
         if (useNoNativesFlatLaf) {
             exclude(group = "com.formdev", module = "flatlaf")
         }
     }
 
-    implementation(libs.kotlinx.serialization.json)
-    implementation(libs.swingx)
-    implementation(libs.jgoodies.forms)
-    implementation(libs.jna)
-    implementation(libs.jna.platform)
-    implementation(libs.versioncompare)
-    implementation(libs.oshi.core)
-    implementation(libs.jSystemThemeDetector) { exclude(group = "*", module = "*") }
-    implementation(libs.jfa) { exclude(group = "*", module = "*") }
-    implementation(libs.jbr.api)
-    implementation(libs.okhttp)
-    implementation(libs.okhttp.logging)
-    implementation(libs.sshd.core)
-    implementation(libs.commonmark)
-    implementation(libs.jgit)
-    implementation(libs.jgit.sshd) { exclude(group = "*", module = "sshd-osgi") }
-    implementation(libs.jgit.agent) { exclude(group = "*", module = "sshd-osgi") }
-    implementation(libs.eddsa)
-    implementation(libs.jnafilechooser)
-    implementation(libs.xodus.vfs)
-    implementation(libs.xodus.openAPI)
-    implementation(libs.xodus.environment)
-    implementation(libs.bip39)
-    implementation(libs.colorpicker)
-    implementation(libs.mixpanel)
-    implementation(libs.jSerialComm)
-    implementation(libs.ini4j)
-    implementation(libs.restart4j)
+    api(libs.kotlinx.serialization.json)
+    api(libs.swingx)
+    api(libs.jgoodies.forms)
+    api(libs.jna)
+    api(libs.jna.platform)
+    api(libs.versioncompare)
+    api(libs.oshi.core)
+    api(libs.jSystemThemeDetector) { exclude(group = "*", module = "*") }
+    api(libs.jfa) { exclude(group = "*", module = "*") }
+    api(libs.jbr.api)
+    api(libs.okhttp)
+    api(libs.okhttp.logging)
+    api(libs.sshd.core)
+    api(libs.commonmark)
+    api(libs.jgit)
+    api(libs.jgit.sshd) { exclude(group = "*", module = "sshd-osgi") }
+    api(libs.jgit.agent) { exclude(group = "*", module = "sshd-osgi") }
+    api(libs.eddsa)
+    api(libs.jnafilechooser)
+    api(libs.xodus.vfs)
+    api(libs.xodus.openAPI)
+    api(libs.xodus.environment)
+    api(libs.bip39)
+    api(libs.colorpicker)
+    api(libs.mixpanel)
+    api(libs.jSerialComm)
+    api(libs.ini4j)
+    api(libs.restart4j)
 }
 
 application {
@@ -145,6 +146,37 @@ application {
 
     applicationDefaultJvmArgs = args
     mainClass = "app.termora.MainKt"
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+            pom {
+                name = project.name
+                description = "Termora is a terminal emulator and SSH client for Windows, macOS and Linux"
+                url = "https://github.com/TermoraDev/termora"
+
+                licenses {
+                    license {
+                        name = "AGPL-3.0"
+                        url = "https://opensource.org/license/agpl-v3"
+                    }
+                }
+
+                developers {
+                    developer {
+                        name = "hstyi"
+                        url = "https://github.com/hstyi"
+                    }
+                }
+
+                scm {
+                    url = "https://github.com/TermoraDev/termora"
+                }
+            }
+        }
+    }
 }
 
 tasks.test {
