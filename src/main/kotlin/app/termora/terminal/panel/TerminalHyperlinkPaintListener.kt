@@ -2,6 +2,7 @@ package app.termora.terminal.panel
 
 import app.termora.Application
 import app.termora.ApplicationScope
+import app.termora.Database
 import app.termora.terminal.*
 import java.awt.Graphics
 import java.net.URI
@@ -16,6 +17,7 @@ class TerminalHyperlinkPaintListener private constructor() : TerminalPaintListen
     }
 
     private val regex = Regex("https?://\\S*[^.\\s'\",()<>\\[\\]]")
+    private val isEnableHyperlink get() = Database.getDatabase().terminal.hyperlink
 
     override fun before(
         offset: Int,
@@ -25,6 +27,9 @@ class TerminalHyperlinkPaintListener private constructor() : TerminalPaintListen
         terminalDisplay: TerminalDisplay,
         terminal: Terminal
     ) {
+
+        if (isEnableHyperlink.not()) return
+
         val document = terminal.getDocument()
         var startOffset = offset
         var endOffset = startOffset + count
@@ -88,6 +93,20 @@ class TerminalHyperlinkPaintListener private constructor() : TerminalPaintListen
             }
 
             list.clear()
+        }
+    }
+
+    override fun after(
+        offset: Int,
+        count: Int,
+        g: Graphics,
+        terminalPanel: TerminalPanel,
+        terminalDisplay: TerminalDisplay,
+        terminal: Terminal
+    ) {
+        if (isEnableHyperlink.not()) {
+            // 删除之前的
+            terminal.getMarkupModel().removeAllHighlighters(Highlighter.HYPERLINK)
         }
     }
 

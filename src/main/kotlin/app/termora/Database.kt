@@ -524,6 +524,11 @@ class Database private constructor(private val env: Environment) : Disposable {
         var beep by BooleanPropertyDelegate(true)
 
         /**
+         * 超链接
+         */
+        var hyperlink by BooleanPropertyDelegate(true)
+
+        /**
          * 光标闪烁
          */
         var cursorBlink by BooleanPropertyDelegate(false)
