@@ -50,7 +50,7 @@ class SnippetAction private constructor() : AnAction(I18n.getString("termora.sni
         for (e in map.entries) {
             text = text.replace(e.key, e.value.toString())
         }
-        text = snippet.snippet.replace(Char.Null, '\\')
+        text = text.replace(Char.Null, '\\')
 
         writer.write(TerminalWriter.WriteRequest.fromBytes(text.toByteArray(writer.getCharset())))
     }
