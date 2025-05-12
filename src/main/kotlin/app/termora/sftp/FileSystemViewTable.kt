@@ -4,6 +4,7 @@ import app.termora.*
 import app.termora.actions.AnActionEvent
 import app.termora.actions.SettingsAction
 import app.termora.sftp.FileSystemViewTable.AskTransfer.Action
+import app.termora.vfs2.VFSWalker
 import app.termora.vfs2.sftp.MySftpFileObject
 import app.termora.vfs2.sftp.MySftpFileSystem
 import com.formdev.flatlaf.FlatClientProperties
@@ -37,7 +38,6 @@ import java.nio.file.FileVisitor
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.attribute.FileTime
 import java.text.MessageFormat
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
@@ -45,6 +45,21 @@ import java.util.regex.Pattern
 import javax.swing.*
 import javax.swing.table.DefaultTableCellRenderer
 import kotlin.collections.ArrayDeque
+import kotlin.collections.List
+import kotlin.collections.all
+import kotlin.collections.contains
+import kotlin.collections.filter
+import kotlin.collections.filterIsInstance
+import kotlin.collections.find
+import kotlin.collections.forEach
+import kotlin.collections.isEmpty
+import kotlin.collections.isNotEmpty
+import kotlin.collections.last
+import kotlin.collections.listOf
+import kotlin.collections.map
+import kotlin.collections.mapOf
+import kotlin.collections.mutableListOf
+import kotlin.collections.sortedArray
 import kotlin.io.path.absolutePathString
 import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
@@ -360,34 +375,7 @@ class FileSystemViewTable(
             override fun actionPerformed(e: ActionEvent) {
                 val last = files.last()
                 if (last !is MySftpFileObject) return
-
-                val dialog = PosixFilePermissionDialog(
-                    SwingUtilities.getWindowAncestor(table),
-                    model.getFilePermissions(last)
-                )
-                val permissions = dialog.open() ?: return
-
-                if (fileSystemViewPanel.requestLoading()) {
-                    coroutineScope.launch(Dispatchers.IO) {
-                        val c = runCatching { last.setPosixFilePermissions(permissions) }.onFailure {
-                            withContext(Dispatchers.Swing) {
-                                OptionPane.showMessageDialog(
-                                    owner,
-                                    ExceptionUtils.getMessage(it),
-                                    messageType = JOptionPane.ERROR_MESSAGE
-                                )
-                            }
-                        }
-
-                        // stop loading
-                        fileSystemViewPanel.stopLoading()
-
-                        // reload
-                        if (c.isSuccess) {
-                            fileSystemViewPanel.reload(true)
-                        }
-                    }
-                }
+                changePermission(last)
             }
         })
         refresh.addActionListener { fileSystemViewPanel.reload() }
@@ -407,6 +395,80 @@ class FileSystemViewTable(
 
 
         popupMenu.show(table, e.x, e.y)
+    }
+
+    private fun changePermission(file: MySftpFileObject) {
+
+        val dialog = PosixFilePermissionDialog(
+            SwingUtilities.getWindowAncestor(table),
+            model.getFilePermissions(file)
+        )
+        val permissions = dialog.open() ?: return
+        val isIncludeSubdirectories = dialog.isIncludeSubdirectories()
+
+        if (fileSystemViewPanel.requestLoading()) {
+            coroutineScope.launch(Dispatchers.IO) {
+                val c = runCatching {
+                    file.setPosixFilePermissions(permissions)
+                    if (isIncludeSubdirectories && file.isFolder) {
+                        file.refresh()
+                        VFSWalker.walk(file, object : FileVisitor<FileObject> {
+                            override fun preVisitDirectory(
+                                dir: FileObject,
+                                attrs: BasicFileAttributes
+                            ): FileVisitResult {
+                                dir.refresh()
+                                if (dir is MySftpFileObject) {
+                                    dir.setPosixFilePermissions(permissions)
+                                }
+                                return FileVisitResult.CONTINUE
+                            }
+
+                            override fun visitFile(
+                                file: FileObject,
+                                attrs: BasicFileAttributes
+                            ): FileVisitResult {
+                                if (file is MySftpFileObject) {
+                                    file.setPosixFilePermissions(permissions)
+                                }
+                                return FileVisitResult.CONTINUE
+                            }
+
+                            override fun visitFileFailed(
+                                file: FileObject,
+                                exc: IOException
+                            ): FileVisitResult {
+                                return FileVisitResult.TERMINATE
+                            }
+
+                            override fun postVisitDirectory(
+                                dir: FileObject,
+                                exc: IOException?
+                            ): FileVisitResult {
+                                return FileVisitResult.CONTINUE
+                            }
+
+                        })
+                    }
+                }.onFailure {
+                    withContext(Dispatchers.Swing) {
+                        OptionPane.showMessageDialog(
+                            owner,
+                            ExceptionUtils.getMessage(it),
+                            messageType = JOptionPane.ERROR_MESSAGE
+                        )
+                    }
+                }
+
+                // stop loading
+                fileSystemViewPanel.stopLoading()
+
+                // reload
+                if (c.isSuccess) {
+                    fileSystemViewPanel.reload(true)
+                }
+            }
+        }
     }
 
     private fun renameSelection() {
@@ -886,36 +948,7 @@ class FileSystemViewTable(
         dir: FileObject,
         visitor: FileVisitor<FileObject>,
     ): FileVisitResult {
-
-        // clear cache
-        if (visitor.preVisitDirectory(dir, EmptyBasicFileAttributes.INSTANCE) == FileVisitResult.TERMINATE) {
-            return FileVisitResult.TERMINATE
-        }
-
-        for (e in dir.children) {
-            if (e.name.baseName == ".." || e.name.baseName == ".") continue
-            if (e.isFolder) {
-                if (walk(dir.resolveFile(e.name.baseName), visitor) == FileVisitResult.TERMINATE) {
-                    return FileVisitResult.TERMINATE
-                }
-            } else {
-                val result = visitor.visitFile(
-                    dir.resolveFile(e.name.baseName),
-                    EmptyBasicFileAttributes.INSTANCE
-                )
-                if (result == FileVisitResult.TERMINATE) {
-                    return FileVisitResult.TERMINATE
-                } else if (result == FileVisitResult.SKIP_SUBTREE) {
-                    break
-                }
-            }
-        }
-
-        if (visitor.postVisitDirectory(dir, null) == FileVisitResult.TERMINATE) {
-            return FileVisitResult.TERMINATE
-        }
-
-        return FileVisitResult.CONTINUE
+        return VFSWalker.walk(dir, visitor)
     }
 
     private fun addTransport(
@@ -974,47 +1007,5 @@ class FileSystemViewTable(
 
     }
 
-    private class EmptyBasicFileAttributes : BasicFileAttributes {
-        companion object {
-            val INSTANCE = EmptyBasicFileAttributes()
-        }
-
-        override fun lastModifiedTime(): FileTime {
-            TODO("Not yet implemented")
-        }
-
-        override fun lastAccessTime(): FileTime {
-            TODO("Not yet implemented")
-        }
-
-        override fun creationTime(): FileTime {
-            TODO("Not yet implemented")
-        }
-
-        override fun isRegularFile(): Boolean {
-            TODO("Not yet implemented")
-        }
-
-        override fun isDirectory(): Boolean {
-            TODO("Not yet implemented")
-        }
-
-        override fun isSymbolicLink(): Boolean {
-            TODO("Not yet implemented")
-        }
-
-        override fun isOther(): Boolean {
-            TODO("Not yet implemented")
-        }
-
-        override fun size(): Long {
-            TODO("Not yet implemented")
-        }
-
-        override fun fileKey(): Any {
-            TODO("Not yet implemented")
-        }
-
-    }
 
 }

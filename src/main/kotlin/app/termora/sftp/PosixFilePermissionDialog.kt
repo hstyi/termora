@@ -25,6 +25,7 @@ class PosixFilePermissionDialog(
     private val otherRead = JCheckBox(I18n.getString("termora.transport.permissions.read"))
     private val otherWrite = JCheckBox(I18n.getString("termora.transport.permissions.write"))
     private val otherExecute = JCheckBox(I18n.getString("termora.transport.permissions.execute"))
+    private val includeSubFolder = JCheckBox(I18n.getString("termora.transport.permissions.include-subfolder"))
 
     private var isCancelled = false
 
@@ -60,13 +61,14 @@ class PosixFilePermissionDialog(
         otherRead.isFocusable = false
         otherWrite.isFocusable = false
         otherExecute.isFocusable = false
+        includeSubFolder.isFocusable = false
     }
 
     override fun createCenterPanel(): JComponent {
         val formMargin = "7dlu"
         val layout = FormLayout(
             "default:grow, $formMargin, default:grow, $formMargin, default:grow",
-            "pref, $formMargin, pref, $formMargin, pref"
+            "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
         )
 
         val builder = FormBuilder.create().padding("0, $formMargin, $formMargin, $formMargin")
@@ -95,12 +97,18 @@ class PosixFilePermissionDialog(
         otherBox.border = BorderFactory.createTitledBorder(I18n.getString("termora.transport.permissions.others"))
         builder.add(otherBox).xy(5, 3)
 
+        builder.add(includeSubFolder).xyw(1, 5, 5)
+
         return builder.build()
     }
 
     override fun doCancelAction() {
         this.isCancelled = true
         super.doCancelAction()
+    }
+
+    fun isIncludeSubdirectories(): Boolean {
+        return includeSubFolder.isSelected
     }
 
     /**

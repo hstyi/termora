@@ -157,7 +157,11 @@ class FileSystemViewTableModel : DefaultTableModel() {
     fun getPathNames(): Set<String> {
         val names = linkedSetOf<String>()
         for (i in 0 until rowCount) {
-            names.add(getFileObject(i).name.baseName)
+            if (hasParent && i == 0) {
+                names.add("..")
+            } else {
+                names.add(getFileObject(i).name.baseName)
+            }
         }
         return names
     }
