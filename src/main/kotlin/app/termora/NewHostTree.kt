@@ -135,10 +135,12 @@ class NewHostTree : SimpleTree() {
         // double click
         addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent) {
-                if (getPathForLocation(e.x, e.y) == null) return
                 if (doubleClickConnection && SwingUtilities.isLeftMouseButton(e) && e.clickCount % 2 == 0) {
                     val lastNode = lastSelectedPathComponent as? HostTreeNode ?: return
                     if (lastNode.host.protocol != Protocol.Folder) {
+                        val path = tree.getClosestPathForLocation(e.x, e.y) ?: return
+                        val bounds = tree.getRowBounds(tree.getRowForPath(path)) ?: return
+                        if ((e.y >= bounds.y && e.y < (bounds.y + bounds.height)).not()) return
                         openHostAction?.actionPerformed(OpenHostActionEvent(e.source, lastNode.host, e))
                     }
                 }
