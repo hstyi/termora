@@ -2,17 +2,18 @@ package app.termora.sftp.internal.local
 
 import app.termora.Host
 import app.termora.protocol.TransferProtocolProvider
-import app.termora.vfs2.sftp.MySftpFileProvider
 import org.apache.commons.vfs2.FileObject
 import org.apache.commons.vfs2.provider.FileProvider
+import org.apache.commons.vfs2.provider.local.DefaultLocalFileProvider
 
-class LocalTransferProtocolProvider : TransferProtocolProvider {
+internal class LocalTransferProtocolProvider : TransferProtocolProvider {
     companion object {
         val instance by lazy { LocalTransferProtocolProvider() }
+        private val localFileProvider by lazy { DefaultLocalFileProvider() }
     }
 
     override fun getFileProvider(): FileProvider {
-        return MySftpFileProvider.instance
+        return localFileProvider
     }
 
     override fun getRootFileObject(host: Host): FileObject {

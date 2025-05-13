@@ -3,7 +3,7 @@ package app.termora.sftp.internal.local
 import app.termora.protocol.ProtocolProvider
 import app.termora.protocol.ProtocolProviderExtension
 
-class LocalProtocolProviderExtension private constructor() : ProtocolProviderExtension {
+internal class LocalProtocolProviderExtension private constructor() : ProtocolProviderExtension {
     companion object {
         val instance by lazy { LocalProtocolProviderExtension() }
     }

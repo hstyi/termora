@@ -43,7 +43,7 @@ interface ProtocolProvider {
     fun getProtocol(): String
 
     /**
-     * 测试联通性
+     * 测试连通性
      */
     fun testConnection(owner: Window?, host: Host) {}
 

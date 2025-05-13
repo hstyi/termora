@@ -6,7 +6,7 @@ import app.termora.vfs2.sftp.MySftpFileProvider
 import org.apache.commons.vfs2.FileObject
 import org.apache.commons.vfs2.provider.FileProvider
 
-class SFTPTransferProtocolProvider : TransferProtocolProvider {
+internal class SFTPTransferProtocolProvider : TransferProtocolProvider {
     companion object {
         val instance by lazy { SFTPTransferProtocolProvider() }
     }
