@@ -2,7 +2,7 @@ package app.termora.plugin.internal.rdp
 
 import app.termora.*
 import app.termora.actions.DataProvider
-import app.termora.protocol.ProtocolProvider
+import app.termora.protocol.GenericProtocolProvider
 import com.formdev.flatlaf.util.SystemInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -17,7 +17,7 @@ import java.util.*
 import javax.swing.JOptionPane
 import kotlin.time.Duration.Companion.seconds
 
-internal class RDPProtocolProvider private constructor() : ProtocolProvider {
+internal class RDPProtocolProvider private constructor() : GenericProtocolProvider {
     companion object {
         val instance by lazy { RDPProtocolProvider() }
     }

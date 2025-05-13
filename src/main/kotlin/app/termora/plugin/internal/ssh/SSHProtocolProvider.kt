@@ -5,12 +5,12 @@ import app.termora.SshClients
 import app.termora.TerminalTab
 import app.termora.WindowScope
 import app.termora.actions.DataProvider
-import app.termora.protocol.ProtocolProvider
+import app.termora.protocol.GenericProtocolProvider
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.session.ClientSession
 import java.awt.Window
 
-internal class SSHProtocolProvider private constructor() : ProtocolProvider {
+internal class SSHProtocolProvider private constructor() : GenericProtocolProvider {
     companion object {
         val instance by lazy { SSHProtocolProvider() }
     }

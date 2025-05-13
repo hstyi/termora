@@ -7,7 +7,7 @@ import org.apache.commons.vfs2.FileSystemOptions
 import org.apache.commons.vfs2.provider.AbstractOriginatingFileProvider
 import org.apache.sshd.sftp.client.SftpClientFactory
 
-class MySftpFileProvider : AbstractOriginatingFileProvider() {
+internal class MySftpFileProvider : AbstractOriginatingFileProvider() {
 
     companion object {
         val capabilities = listOf(

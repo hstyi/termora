@@ -4,15 +4,19 @@ import app.termora.Host
 import app.termora.TerminalTab
 import app.termora.WindowScope
 import app.termora.actions.DataProvider
-import app.termora.protocol.ProtocolProvider
+import app.termora.protocol.GenericProtocolProvider
 
-internal class SFTPPtyProtocolProvider private constructor() : ProtocolProvider {
+internal class SFTPPtyProtocolProvider private constructor() : GenericProtocolProvider {
     companion object {
         val instance by lazy { SFTPPtyProtocolProvider() }
     }
 
     override fun getProtocol(): String {
         return "SFTPPty"
+    }
+
+    override fun isTransient(): Boolean {
+        return true
     }
 
     override fun createTerminalTab(dataProvider: DataProvider, windowScope: WindowScope, host: Host): TerminalTab {

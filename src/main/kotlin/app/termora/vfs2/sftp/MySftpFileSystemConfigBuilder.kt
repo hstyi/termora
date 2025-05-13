@@ -5,7 +5,7 @@ import org.apache.commons.vfs2.FileSystemConfigBuilder
 import org.apache.commons.vfs2.FileSystemOptions
 import org.apache.sshd.client.session.ClientSession
 
-class MySftpFileSystemConfigBuilder : FileSystemConfigBuilder() {
+internal class MySftpFileSystemConfigBuilder : FileSystemConfigBuilder() {
 
     companion object {
         private val INSTANCE by lazy { MySftpFileSystemConfigBuilder() }

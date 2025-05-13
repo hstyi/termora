@@ -1,7 +1,8 @@
 package app.termora.protocol
 
-import app.termora.*
-import app.termora.actions.DataProvider
+import app.termora.DynamicIcon
+import app.termora.Host
+import app.termora.Icons
 import app.termora.plugin.ExtensionManager
 import org.apache.commons.lang3.StringUtils
 import java.awt.Window
@@ -27,6 +28,11 @@ interface ProtocolProvider {
     fun isTransient(): Boolean = false
 
     /**
+     * 是否是传输协议，如果返回 true 那么就是对 SFTP 的扩展
+     */
+    fun isTransfer(): Boolean = false
+
+    /**
      * 协议图标
      */
     fun getIcon(): DynamicIcon = Icons.terminal
@@ -46,21 +52,4 @@ interface ProtocolProvider {
      */
     fun canTestConnection(owner: Window?, host: Host): Boolean = false
 
-    /**
-     * 创建终端标签
-     */
-    fun createTerminalTab(
-        dataProvider: DataProvider,
-        windowScope: WindowScope,
-        host: Host
-    ): TerminalTab
-
-    /**
-     * 是否可以创建 Terminal tab
-     */
-    fun canCreateTerminalTab(
-        dataProvider: DataProvider,
-        windowScope: WindowScope,
-        host: Host
-    ): Boolean = true
 }
