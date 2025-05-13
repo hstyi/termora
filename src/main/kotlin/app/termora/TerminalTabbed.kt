@@ -5,7 +5,9 @@ import app.termora.actions.*
 import app.termora.findeverywhere.BasicFilterFindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereResult
+import app.termora.plugin.internal.sftppty.SFTPPtyProtocolProvider
 import app.termora.plugin.internal.sftppty.SFTPPtyTerminalTab
+import app.termora.plugin.internal.ssh.SSHProtocolProvider
 import app.termora.terminal.DataKey
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
@@ -253,7 +255,7 @@ class TerminalTabbed(
         if (tab is HostTerminalTab) {
             val openHostAction = actionManager.getAction(OpenHostAction.OPEN_HOST)
             if (openHostAction != null) {
-                if (tab.host.protocol == "SSH" || tab.host.protocol == "SFTPPty") {
+                if (tab.host.protocol == SSHProtocolProvider.PROTOCOL || tab.host.protocol == SFTPPtyProtocolProvider.PROTOCOL) {
                     popupMenu.addSeparator()
                     val sftpCommand = popupMenu.add(I18n.getString("termora.tabbed.contextmenu.sftp-command"))
                     sftpCommand.addActionListener { openSFTPPtyTab(tab, openHostAction, it) }
@@ -361,7 +363,7 @@ class TerminalTabbed(
 
         var host = tab.host
 
-        if (host.protocol == "SSH") {
+        if (host.protocol == SSHProtocolProvider.PROTOCOL) {
             val envs = tab.host.options.envs().toMutableMap()
             val currentDir = tab.getData(DataProviders.Terminal)?.getTerminalModel()
                 ?.getData(DataKey.CurrentDir, StringUtils.EMPTY) ?: StringUtils.EMPTY
@@ -371,7 +373,7 @@ class TerminalTabbed(
             }
 
             host = host.copy(
-                protocol = "SFTPPty", updateDate = System.currentTimeMillis(),
+                protocol = SFTPPtyProtocolProvider.PROTOCOL, updateDate = System.currentTimeMillis(),
                 options = host.options.copy(env = envs.toPropertiesString())
             )
         }

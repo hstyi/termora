@@ -4,6 +4,8 @@ import app.termora.actions.ActionManager
 import app.termora.keymap.KeymapManager
 import app.termora.plugin.ExtensionManager
 import app.termora.plugin.PluginManager
+import app.termora.protocol.ProtocolProvider
+import app.termora.protocol.TransferProtocolProvider
 import app.termora.vfs2.sftp.MySftpFileProvider
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatSystemProperties
@@ -68,13 +70,6 @@ class ApplicationRunner {
                 ActionManager.getInstance()
                 KeymapManager.getInstance()
 
-                val fileSystemManager = DefaultFileSystemManager()
-                fileSystemManager.addProvider("sftp", MySftpFileProvider())
-                fileSystemManager.addProvider("file", DefaultLocalFileProvider())
-                fileSystemManager.filesCache = WeakRefFilesCache()
-                fileSystemManager.init()
-                VFS.setManager(fileSystemManager)
-
                 // async init
                 BackgroundManager.getInstance().getBackgroundImage()
             }
@@ -90,6 +85,16 @@ class ApplicationRunner {
 
             // 等待插件加载完成
             loadPluginThread.join()
+
+            val fileSystemManager = DefaultFileSystemManager()
+            fileSystemManager.addProvider("sftp", MySftpFileProvider())
+            fileSystemManager.addProvider("file", DefaultLocalFileProvider())
+            for (provider in ProtocolProvider.providers.filterIsInstance<TransferProtocolProvider>()) {
+                fileSystemManager.addProvider(provider.getProtocol().lowercase(), provider.getFileProvider())
+            }
+            fileSystemManager.filesCache = WeakRefFilesCache()
+            fileSystemManager.init()
+            VFS.setManager(fileSystemManager)
 
             // 准备就绪
             for (extension in ExtensionManager.getInstance().getExtensions(ApplicationRunnerExtension::class.java)) {

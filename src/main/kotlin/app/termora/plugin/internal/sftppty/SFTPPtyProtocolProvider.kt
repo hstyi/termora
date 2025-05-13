@@ -9,10 +9,11 @@ import app.termora.protocol.GenericProtocolProvider
 internal class SFTPPtyProtocolProvider private constructor() : GenericProtocolProvider {
     companion object {
         val instance by lazy { SFTPPtyProtocolProvider() }
+        const val PROTOCOL = "SFTPPty"
     }
 
     override fun getProtocol(): String {
-        return "SFTPPty"
+        return PROTOCOL
     }
 
     override fun isTransient(): Boolean {

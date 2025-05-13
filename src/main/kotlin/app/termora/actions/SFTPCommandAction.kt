@@ -3,6 +3,8 @@ package app.termora.actions
 import app.termora.HostTerminalTab
 import app.termora.I18n
 import app.termora.OpenHostActionEvent
+import app.termora.plugin.internal.sftppty.SFTPPtyProtocolProvider
+import app.termora.plugin.internal.ssh.SSHProtocolProvider
 
 class SFTPCommandAction : AnAction() {
     companion object {
@@ -22,8 +24,8 @@ class SFTPCommandAction : AnAction() {
         val terminalTabbedManager = evt.getData(DataProviders.TerminalTabbedManager) ?: return
         val tab = terminalTabbedManager.getSelectedTerminalTab() as? HostTerminalTab ?: return
         val host = tab.host
-        if (!(host.protocol == "SSH" || host.protocol == "SFTPPty")) return
-        actionManager.actionPerformed(OpenHostActionEvent(evt.source, host.copy(protocol = "SFTPPty"), evt))
+        if (!(host.protocol == SSHProtocolProvider.PROTOCOL || host.protocol == SFTPPtyProtocolProvider.PROTOCOL)) return
+        actionManager.actionPerformed(OpenHostActionEvent(evt.source, host.copy(protocol = SFTPPtyProtocolProvider.PROTOCOL), evt))
         evt.consume()
     }
 }

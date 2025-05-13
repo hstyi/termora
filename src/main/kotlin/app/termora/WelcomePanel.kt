@@ -4,6 +4,7 @@ package app.termora
 import app.termora.actions.*
 import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereResult
+import app.termora.plugin.internal.ssh.SSHProtocolProvider
 import app.termora.terminal.DataKey
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatLaf
@@ -179,7 +180,7 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
 
                 if (pattern.isNotBlank()) {
                     filter = filter.filter {
-                        if (it.protocol == "SSH") {
+                        if (it.protocol == SSHProtocolProvider.PROTOCOL) {
                             it.name.contains(pattern, true) || it.host.contains(pattern, true)
                         } else {
                             it.name.contains(pattern, true)
@@ -315,7 +316,7 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
             if (showMoreInfo) {
                 val color = UIManager.getColor(if (isSelected) "textHighlightText" else "textInactiveText")
                 val moreInfo = when (host.protocol) {
-                    "SSH" -> "${host.username}@${host.host}"
+                    SSHProtocolProvider.PROTOCOL -> "${host.username}@${host.host}"
                     "Serial" -> host.options.serialComm.port
                     else -> StringUtils.EMPTY
                 }

@@ -6,6 +6,8 @@ import app.termora.Icons
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProviders
+import app.termora.plugin.internal.sftppty.SFTPPtyProtocolProvider
+import app.termora.plugin.internal.ssh.SSHProtocolProvider
 import org.apache.commons.lang3.StringUtils
 
 class SFTPAction : AnAction("SFTP", Icons.folder) {
@@ -34,7 +36,7 @@ class SFTPAction : AnAction("SFTP", Icons.folder) {
         if (hostId.isBlank()) {
             val tab = terminalTabbedManager.getSelectedTerminalTab()
             if (tab is HostTerminalTab) {
-                if (tab.host.protocol == "SSH" || tab.host.protocol == "SFTPPty") {
+                if (tab.host.protocol == SSHProtocolProvider.PROTOCOL || tab.host.protocol == SFTPPtyProtocolProvider.PROTOCOL) {
                     hostId = tab.host.id
                 }
             }

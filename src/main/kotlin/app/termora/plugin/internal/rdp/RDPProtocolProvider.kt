@@ -20,10 +20,11 @@ import kotlin.time.Duration.Companion.seconds
 internal class RDPProtocolProvider private constructor() : GenericProtocolProvider {
     companion object {
         val instance by lazy { RDPProtocolProvider() }
+        const val PROTOCOL = "RDP"
     }
 
     override fun getProtocol(): String {
-        return "RDP"
+        return PROTOCOL
     }
 
     override fun createTerminalTab(dataProvider: DataProvider, windowScope: WindowScope, host: Host): TerminalTab {

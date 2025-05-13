@@ -2,6 +2,8 @@ package app.termora
 
 import app.termora.keymgr.KeyManager
 import app.termora.keymgr.KeyManagerDialog
+import app.termora.plugin.internal.serial.SerialProtocolProvider
+import app.termora.plugin.internal.ssh.SSHProtocolProvider
 import app.termora.protocol.ProtocolProvider
 import com.fazecast.jSerialComm.SerialPort
 import com.formdev.flatlaf.FlatClientProperties
@@ -134,11 +136,11 @@ open class HostOptionsPane : OptionsPane() {
             return false
         }
 
-        if (StringUtils.equalsIgnoreCase(host.protocol, "SSH")) {
+        if (StringUtils.equalsIgnoreCase(host.protocol, SSHProtocolProvider.PROTOCOL)) {
             if (validateField(generalOption.usernameTextField)) {
                 return false
             }
-        } else if (StringUtils.equalsIgnoreCase(host.protocol, "Serial")) {
+        } else if (StringUtils.equalsIgnoreCase(host.protocol, SerialProtocolProvider.PROTOCOL)) {
             if (validateField(serialCommOption.serialPortComboBox)
                 || validateField(serialCommOption.baudRateComboBox)
             ) {

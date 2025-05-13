@@ -11,10 +11,11 @@ import java.awt.Window
 internal class SerialProtocolProvider private constructor() : GenericProtocolProvider {
     companion object {
         val instance by lazy { SerialProtocolProvider() }
+        const val PROTOCOL = "Serial"
     }
 
     override fun getProtocol(): String {
-        return "Serial"
+        return PROTOCOL
     }
 
     override fun testConnection(owner: Window?, host: Host) {

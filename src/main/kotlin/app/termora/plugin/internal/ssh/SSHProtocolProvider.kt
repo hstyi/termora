@@ -13,10 +13,11 @@ import java.awt.Window
 internal class SSHProtocolProvider private constructor() : GenericProtocolProvider {
     companion object {
         val instance by lazy { SSHProtocolProvider() }
+        const val PROTOCOL = "SSH"
     }
 
     override fun getProtocol(): String {
-        return "SSH"
+        return PROTOCOL
     }
 
     override fun createTerminalTab(dataProvider: DataProvider, windowScope: WindowScope, host: Host): TerminalTab {
