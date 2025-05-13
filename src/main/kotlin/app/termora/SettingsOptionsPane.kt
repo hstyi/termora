@@ -1711,55 +1711,29 @@ class SettingsOptionsPane : OptionsPane() {
 
 
         private fun initView() {
-            add(BannerPanel(9, true), BorderLayout.NORTH)
-            add(p(), BorderLayout.CENTER)
-        }
+            val box = Box.createVerticalBox()
+            val scrollPane = JScrollPane(box)
+            for (i in 0 until 5) {
+                val pluginBox = Box.createHorizontalBox()
+                pluginBox.add(JLabel(FlatSVGIcon(Icons.plugin.name, 36, 36)))
+                pluginBox.add(Box.createHorizontalStrut(20))
+                pluginBox.preferredSize = Dimension(-1, 36)
+                val infoBox = Box.createVerticalBox()
+                infoBox.add(JLabel("S3").apply { putClientProperty("FlatLaf.style", "font: bold") })
+                infoBox.add(Box.createVerticalGlue())
+                infoBox.add(JLabel("1.0.1 TermoraDev").apply { foreground = DynamicColor("textInactiveText") })
+                pluginBox.add(infoBox)
+                pluginBox.add(Box.createHorizontalGlue())
+                pluginBox.add(JButton("Install"))
+                box.add(pluginBox)
+                box.add(Box.createVerticalStrut(20))
+            }
 
-        private fun p(): JPanel {
-            val layout = FormLayout(
-                "left:pref, $formMargin, default:grow",
-                "pref, 20dlu, pref, 4dlu, pref, 4dlu, pref, 4dlu, pref"
-            )
-
-
-            var rows = 1
-            val step = 2
-
-            val branch = if (Application.isUnknownVersion()) "main" else Application.getVersion()
-
-            return FormBuilder.create().padding("$formMargin, $formMargin, $formMargin, $formMargin")
-                .layout(layout).debug(true)
-                .add(I18n.getString("termora.settings.about.termora", Application.getVersion()))
-                .xyw(1, rows, 3, "center, fill").apply { rows += step }
-                .add("${I18n.getString("termora.settings.about.author")}:").xy(1, rows)
-                .add(createHyperlink("https://github.com/hstyi")).xy(3, rows).apply { rows += step }
-                .add("${I18n.getString("termora.settings.about.source")}:").xy(1, rows)
-                .add(
-                    createHyperlink(
-                        "https://github.com/TermoraDev/termora/tree/${branch}",
-                        "https://github.com/TermoraDev/termora",
-                    )
-                ).xy(3, rows).apply { rows += step }
-                .add("${I18n.getString("termora.settings.about.issue")}:").xy(1, rows)
-                .add(createHyperlink("https://github.com/TermoraDev/termora/issues")).xy(3, rows).apply { rows += step }
-                .add("${I18n.getString("termora.settings.about.third-party")}:").xy(1, rows)
-                .add(
-                    createHyperlink(
-                        "https://github.com/TermoraDev/termora/blob/${branch}/THIRDPARTY",
-                        "Open-source software"
-                    )
-                ).xy(3, rows).apply { rows += step }
-                .build()
-
-
-        }
-
-        private fun createHyperlink(url: String, text: String = url): Hyperlink {
-            return Hyperlink(object : AnAction(text) {
-                override fun actionPerformed(evt: AnActionEvent) {
-                    Application.browse(URI.create(url))
-                }
-            })
+            scrollPane.border = BorderFactory.createEmptyBorder()
+            scrollPane.verticalScrollBar.unitIncrement = 16
+            scrollPane.horizontalScrollBar.unitIncrement = 16
+            scrollPane.verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
+            add(box, BorderLayout.CENTER)
         }
 
         private fun initEvents() {}
