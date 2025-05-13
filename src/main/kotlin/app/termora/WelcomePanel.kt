@@ -175,11 +175,11 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
             override fun find(pattern: String): List<FindEverywhereResult> {
                 var filter = hostTreeModel.root.getAllChildren()
                     .map { it.host }
-                    .filter { it.protocol != Protocol.Folder }
+                    .filter { it.isFolder.not() }
 
                 if (pattern.isNotBlank()) {
                     filter = filter.filter {
-                        if (it.protocol == Protocol.SSH) {
+                        if (it.protocol == "SSH") {
                             it.name.contains(pattern, true) || it.host.contains(pattern, true)
                         } else {
                             it.name.contains(pattern, true)
@@ -315,8 +315,8 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
             if (showMoreInfo) {
                 val color = UIManager.getColor(if (isSelected) "textHighlightText" else "textInactiveText")
                 val moreInfo = when (host.protocol) {
-                    Protocol.SSH -> "${host.username}@${host.host}"
-                    Protocol.Serial -> host.options.serialComm.port
+                    "SSH" -> "${host.username}@${host.host}"
+                    "Serial" -> host.options.serialComm.port
                     else -> StringUtils.EMPTY
                 }
                 if (moreInfo.isNotBlank()) {

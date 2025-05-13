@@ -28,6 +28,7 @@ import org.apache.sshd.common.session.SessionListener
 import org.slf4j.LoggerFactory
 import java.nio.charset.StandardCharsets
 import java.util.*
+import javax.swing.Icon
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
 
@@ -220,6 +221,10 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
                 mutex.unlock()
             }
         }
+    }
+
+    override fun getIcon(): Icon {
+        return if (unread) Icons.terminalUnread else Icons.terminal
     }
 
     override fun willBeClose(): Boolean {

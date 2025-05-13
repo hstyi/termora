@@ -112,11 +112,11 @@ class NewHostTree : SimpleTree() {
                     }
 
                     // @formatter:off
-                    if (host.protocol == Protocol.SSH || host.protocol == Protocol.RDP) {
+                    if (host.protocol == "SSH" || host.protocol == "RDP") {
                         text = "<html>${host.name}&nbsp;&nbsp;&nbsp;&nbsp;${fontTag.apply("${host.username}@${host.host}")}</html>"
-                    } else if (host.protocol == Protocol.Serial) {
+                    } else if (host.protocol == "Serial") {
                         text = "<html>${host.name}&nbsp;&nbsp;&nbsp;&nbsp;${fontTag.apply(host.options.serialComm.port)}</html>"
-                    } else if (host.protocol == Protocol.Folder) {
+                    } else if (host.isFolder) {
                         text = "<html>${host.name}${fontTag.apply(" (${node.getAllChildren().size})")}</html>"
                     }
                     // @formatter:on
@@ -137,7 +137,7 @@ class NewHostTree : SimpleTree() {
             override fun mouseClicked(e: MouseEvent) {
                 if (doubleClickConnection && SwingUtilities.isLeftMouseButton(e) && e.clickCount % 2 == 0) {
                     val lastNode = lastSelectedPathComponent as? HostTreeNode ?: return
-                    if (lastNode.host.protocol != Protocol.Folder) {
+                    if (lastNode.host.isFolder.not()) {
                         val path = tree.getClosestPathForLocation(e.x, e.y) ?: return
                         val bounds = tree.getRowBounds(tree.getRowForPath(path)) ?: return
                         if ((e.y >= bounds.y && e.y < (bounds.y + bounds.height)).not()) return
@@ -151,7 +151,7 @@ class NewHostTree : SimpleTree() {
             override fun keyPressed(e: KeyEvent) {
                 if (e.keyCode == KeyEvent.VK_ENTER && doubleClickConnection) {
                     val nodes = getSelectionSimpleTreeNodes()
-                    if (nodes.size == 1 && nodes.first().host.protocol == Protocol.Folder) {
+                    if (nodes.size == 1 && nodes.first().host.isFolder) {
                         val path = TreePath(model.getPathToRoot(nodes.first()))
                         if (isExpanded(path)) {
                             collapsePath(path)
@@ -238,7 +238,7 @@ class NewHostTree : SimpleTree() {
         newFolder.addActionListener {
             val host = Host(
                 id = UUID.randomUUID().toSimpleString(),
-                protocol = Protocol.Folder,
+                protocol = "Folder",
                 name = I18n.getString("termora.welcome.contextmenu.new.folder.name"),
                 sort = System.currentTimeMillis(),
                 parentId = lastHost.id
@@ -321,16 +321,16 @@ class NewHostTree : SimpleTree() {
         })
         refresh.addActionListener { refreshNode(lastNode) }
 
-        newMenu.isEnabled = lastHost.protocol == Protocol.Folder
+        newMenu.isEnabled = lastHost.isFolder
         remove.isEnabled = getSelectionSimpleTreeNodes().none { it == model.root }
         copy.isEnabled = remove.isEnabled
         rename.isEnabled = remove.isEnabled
-        property.isEnabled = lastHost.protocol != Protocol.Folder
-        refresh.isEnabled = lastHost.protocol == Protocol.Folder
-        importMenu.isEnabled = lastHost.protocol == Protocol.Folder
+        property.isEnabled = lastHost.isFolder.not()
+        refresh.isEnabled = lastHost.isFolder
+        importMenu.isEnabled = lastHost.isFolder
 
         // 如果选中了 SSH 服务器，那么才启用
-        openWithSFTP.isEnabled = fullNodes.map { it.host }.any { it.protocol == Protocol.SSH }
+        openWithSFTP.isEnabled = fullNodes.map { it.host }.any { it.protocol == "SSH" }
         openWithSFTPCommand.isEnabled = openWithSFTP.isEnabled
         openWith.isEnabled = openWith.menuComponents.any { it is JMenuItem && it.isEnabled }
 
@@ -390,7 +390,7 @@ class NewHostTree : SimpleTree() {
 
         hostManager.addHost(newHost)
 
-        if (host.protocol == Protocol.Folder) {
+        if (host.isFolder) {
             for (child in node.children()) {
                 if (child is HostTreeNode) {
                     newNode.add(copyNode(child, newHost.id, idGenerator, level + 1))
@@ -409,7 +409,7 @@ class NewHostTree : SimpleTree() {
 
     private fun openHosts(evt: EventObject, openInNewWindow: Boolean) {
         assertEventDispatchThread()
-        val nodes = getSelectionSimpleTreeNodes(true).map { it.host }.filter { it.protocol != Protocol.Folder }
+        val nodes = getSelectionSimpleTreeNodes(true).map { it.host }.filter { it.isFolder.not() }
         if (nodes.isEmpty()) return
         val source = if (openInNewWindow)
             TermoraFrameManager.getInstance().createWindow().apply { isVisible = true }
@@ -418,7 +418,7 @@ class NewHostTree : SimpleTree() {
     }
 
     private fun openWithSFTP(evt: EventObject) {
-        val nodes = getSelectionSimpleTreeNodes(true).map { it.host }.filter { it.protocol == Protocol.SSH }
+        val nodes = getSelectionSimpleTreeNodes(true).map { it.host }.filter { it.protocol == "SSH" }
         if (nodes.isEmpty()) return
 
         for (node in nodes) {
@@ -427,10 +427,10 @@ class NewHostTree : SimpleTree() {
     }
 
     private fun openWithSFTPCommand(evt: EventObject) {
-        val nodes = getSelectionSimpleTreeNodes(true).map { it.host }.filter { it.protocol == Protocol.SSH }
+        val nodes = getSelectionSimpleTreeNodes(true).map { it.host }.filter { it.protocol == "SSH" }
         if (nodes.isEmpty()) return
         for (host in nodes) {
-            openHostAction.actionPerformed(OpenHostActionEvent(this, host.copy(protocol = Protocol.SFTPPty), evt))
+            openHostAction.actionPerformed(OpenHostActionEvent(this, host.copy(protocol = "SFTPPty"), evt))
         }
     }
 
@@ -556,7 +556,7 @@ class NewHostTree : SimpleTree() {
             model.insertNodeInto(
                 node,
                 folder,
-                if (node.host.protocol == Protocol.Folder) folder.folderCount else folder.childCount
+                if (node.host.isFolder) folder.folderCount else folder.childCount
             )
         }
 
@@ -840,8 +840,8 @@ class NewHostTree : SimpleTree() {
             .get()
             .use { it.records }
         // 把现有目录提取出来，避免重复创建
-        val nodes = folderNode.clone(setOf(Protocol.Folder))
-            .childrenNode().filter { it.host.protocol == Protocol.Folder }
+        val nodes = folderNode.clone(setOf("Folder"))
+            .childrenNode().filter { it.host.isFolder }
             .toMutableList()
 
         for (record in records) {
@@ -866,11 +866,11 @@ class NewHostTree : SimpleTree() {
                     else p.children().toList().filterIsInstance<HostTreeNode>()
                     val n = HostTreeNode(
                         Host(
-                            name = name, protocol = Protocol.Folder,
+                            name = name, protocol = "Folder",
                             parentId = p?.host?.id ?: StringUtils.EMPTY
                         )
                     )
-                    val cp = folders.find { it.host.protocol == Protocol.Folder && it.host.name == name }
+                    val cp = folders.find { it.host.isFolder && it.host.name == name }
                     if (cp != null) {
                         p = cp
                         continue
@@ -891,7 +891,7 @@ class NewHostTree : SimpleTree() {
                     host = hostname,
                     port = port,
                     username = username,
-                    protocol = Protocol.SSH,
+                    protocol = "SSH",
                     parentId = p?.host?.id ?: StringUtils.EMPTY,
                 )
             )

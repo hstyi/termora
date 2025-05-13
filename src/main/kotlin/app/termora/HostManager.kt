@@ -39,7 +39,7 @@ class HostManager private constructor() {
                 .forEach { hosts[it.id] = it }
         }
         return hosts.values.filter { !it.deleted }
-            .sortedWith(compareBy<Host> { if (it.protocol == Protocol.Folder) 0 else 1 }.thenBy { it.sort })
+            .sortedWith(compareBy<Host> { if (it.isFolder) 0 else 1 }.thenBy { it.sort })
     }
 
     /**

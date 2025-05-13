@@ -185,6 +185,10 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
         return Icons.fileFormat
     }
 
+    override fun sendStartupCommand(ptyConnector: PtyConnector, bytes: ByteArray) {
+        // Nothing
+    }
+
     private inner class PasswordReporterDataListener(private val host: Host) : DataListener {
         override fun onChanged(key: DataKey<*>, data: Any) {
             if (key == VisualTerminal.Companion.Written && data is String) {

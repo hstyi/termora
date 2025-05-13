@@ -9,7 +9,7 @@ class NewHostTreeModel : SimpleTreeModel<Host>(
     HostTreeNode(
         Host(
             id = "0",
-            protocol = Protocol.Folder,
+            protocol = "Folder",
             name = I18n.getString("termora.welcome.my-hosts"),
             host = StringUtils.EMPTY,
             port = 0,

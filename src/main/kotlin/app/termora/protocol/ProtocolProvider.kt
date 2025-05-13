@@ -1,19 +1,50 @@
 package app.termora.protocol
 
-import app.termora.Host
-import app.termora.TerminalTab
-import app.termora.WindowScope
+import app.termora.*
 import app.termora.actions.DataProvider
+import app.termora.plugin.ExtensionManager
+import org.apache.commons.lang3.StringUtils
+import java.awt.Window
 
 /**
  * 协议
  */
 interface ProtocolProvider {
 
+    companion object {
+        val ProtocolProviders
+            get() = ExtensionManager.getInstance().getExtensions(ProtocolProviderExtension::class.java)
+                .map { it.getProtocolProvider() }
+
+        fun valueOf(protocol: String): ProtocolProvider? {
+            return ProtocolProviders.firstOrNull { StringUtils.equalsIgnoreCase(it.getProtocol(), protocol) }
+        }
+    }
+
+    /**
+     * 如果返回 true 则表示这个协议仅在运行时生效
+     */
+    fun isTransient(): Boolean = false
+
+    /**
+     * 协议图标
+     */
+    fun getIcon(): DynamicIcon = Icons.terminal
+
     /**
      * 协议
      */
     fun getProtocol(): String
+
+    /**
+     * 测试联通性
+     */
+    fun testConnection(owner: Window?, host: Host) {}
+
+    /**
+     * 是否可以测试连接
+     */
+    fun canTestConnection(owner: Window?, host: Host): Boolean = false
 
     /**
      * 创建终端标签

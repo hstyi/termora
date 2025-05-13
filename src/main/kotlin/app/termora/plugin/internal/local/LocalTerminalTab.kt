@@ -7,6 +7,7 @@ import app.termora.terminal.PtyProcessConnector
 import org.apache.commons.io.Charsets
 import org.slf4j.LoggerFactory
 import java.nio.charset.StandardCharsets
+import javax.swing.Icon
 import javax.swing.JOptionPane
 import javax.swing.SwingUtilities
 import kotlin.jvm.optionals.getOrNull
@@ -29,6 +30,9 @@ class LocalTerminalTab(windowScope: WindowScope, host: Host) :
         return ptyConnector
     }
 
+    override fun getIcon(): Icon {
+        return if (unread) Icons.terminalUnread else Icons.terminal
+    }
 
     override fun willBeClose(): Boolean {
         val ptyProcessConnector = getPtyProcessConnector() ?: return true

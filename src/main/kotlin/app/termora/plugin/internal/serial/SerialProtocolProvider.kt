@@ -1,11 +1,12 @@
 package app.termora.plugin.internal.serial
 
 import app.termora.Host
-import app.termora.Protocol
+import app.termora.Serials
 import app.termora.TerminalTab
 import app.termora.WindowScope
 import app.termora.actions.DataProvider
 import app.termora.protocol.ProtocolProvider
+import java.awt.Window
 
 internal class SerialProtocolProvider private constructor() : ProtocolProvider {
     companion object {
@@ -13,7 +14,11 @@ internal class SerialProtocolProvider private constructor() : ProtocolProvider {
     }
 
     override fun getProtocol(): String {
-        return Protocol.Serial.name
+        return "Serial"
+    }
+
+    override fun testConnection(owner: Window?, host: Host) {
+        Serials.openPort(host).closePort()
     }
 
     override fun createTerminalTab(dataProvider: DataProvider, windowScope: WindowScope, host: Host): TerminalTab {

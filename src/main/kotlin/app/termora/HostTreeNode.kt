@@ -1,5 +1,6 @@
 package app.termora
 
+import app.termora.protocol.ProtocolProvider
 import com.formdev.flatlaf.icons.FlatTreeClosedIcon
 import com.formdev.flatlaf.icons.FlatTreeOpenIcon
 import javax.swing.Icon
@@ -15,7 +16,7 @@ class HostTreeNode(host: Host) : SimpleTreeNode<Host>(host) {
         set(value) = setUserObject(value)
 
     override val isFolder: Boolean
-        get() = data.protocol == Protocol.Folder
+        get() = data.isFolder
 
     override val id: String
         get() = data.id
@@ -35,7 +36,7 @@ class HostTreeNode(host: Host) : SimpleTreeNode<Host>(host) {
         set(value) = setUserObject(value)
 
     override val folderCount
-        get() = children().toList().count { if (it is HostTreeNode) it.data.protocol == Protocol.Folder else false }
+        get() = children().toList().count { if (it is HostTreeNode) it.data.isFolder else false }
 
     override fun getParent(): HostTreeNode? {
         return super.getParent() as HostTreeNode?
@@ -46,12 +47,9 @@ class HostTreeNode(host: Host) : SimpleTreeNode<Host>(host) {
     }
 
     override fun getIcon(selected: Boolean, expanded: Boolean, hasFocus: Boolean): Icon {
-        return when (host.protocol) {
-            Protocol.Folder -> if (expanded) FlatTreeOpenIcon() else FlatTreeClosedIcon()
-            Protocol.Serial -> if (selected && hasFocus) Icons.plugin.dark else Icons.plugin
-            Protocol.RDP -> if (selected && hasFocus) Icons.microsoftWindows.dark else Icons.microsoftWindows
-            else -> if (selected && hasFocus) Icons.terminal.dark else Icons.terminal
-        }
+        if (host.isFolder) return if (expanded) FlatTreeOpenIcon() else FlatTreeClosedIcon()
+        val icon = ProtocolProvider.valueOf(host.protocol)?.getIcon() ?: Icons.terminal
+        return if (selected && hasFocus) icon.dark else icon
     }
 
     fun childrenNode(): List<HostTreeNode> {
@@ -63,13 +61,13 @@ class HostTreeNode(host: Host) : SimpleTreeNode<Host>(host) {
      * 深度克隆
      * @param scopes 克隆的范围
      */
-    fun clone(scopes: Set<Protocol> = emptySet()): HostTreeNode {
+    fun clone(scopes: Set<String> = emptySet()): HostTreeNode {
         val newNode = clone() as HostTreeNode
         deepClone(newNode, this, scopes)
         return newNode
     }
 
-    private fun deepClone(newNode: HostTreeNode, oldNode: HostTreeNode, scopes: Set<Protocol> = emptySet()) {
+    private fun deepClone(newNode: HostTreeNode, oldNode: HostTreeNode, scopes: Set<String> = emptySet()) {
         for (child in oldNode.childrenNode()) {
             if (scopes.isNotEmpty() && !scopes.contains(child.data.protocol)) continue
             val newChildNode = child.clone() as HostTreeNode

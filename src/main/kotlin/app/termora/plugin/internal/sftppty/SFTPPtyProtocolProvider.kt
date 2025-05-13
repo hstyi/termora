@@ -1,7 +1,6 @@
 package app.termora.plugin.internal.sftppty
 
 import app.termora.Host
-import app.termora.Protocol
 import app.termora.TerminalTab
 import app.termora.WindowScope
 import app.termora.actions.DataProvider
@@ -13,7 +12,7 @@ internal class SFTPPtyProtocolProvider private constructor() : ProtocolProvider 
     }
 
     override fun getProtocol(): String {
-        return Protocol.SFTPPty.name
+        return "SFTPPty"
     }
 
     override fun createTerminalTab(dataProvider: DataProvider, windowScope: WindowScope, host: Host): TerminalTab {

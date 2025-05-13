@@ -23,11 +23,15 @@ internal class RDPProtocolProvider private constructor() : ProtocolProvider {
     }
 
     override fun getProtocol(): String {
-        return Protocol.RDP.name
+        return "RDP"
     }
 
     override fun createTerminalTab(dataProvider: DataProvider, windowScope: WindowScope, host: Host): TerminalTab {
         TODO()
+    }
+
+    override fun getIcon(): DynamicIcon {
+        return Icons.microsoftWindows
     }
 
     override fun canCreateTerminalTab(dataProvider: DataProvider, windowScope: WindowScope, host: Host): Boolean {

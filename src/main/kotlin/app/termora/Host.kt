@@ -20,20 +20,6 @@ fun UUID.toSimpleString(): String {
     return toString().replace("-", StringUtils.EMPTY)
 }
 
-enum class Protocol {
-    Folder,
-    SSH,
-    Local,
-    Serial,
-    RDP,
-
-    /**
-     * 交互式的 SFTP，此协议只在系统内部交互不应该暴露给用户也不应该持久化
-     */
-    @Transient
-    SFTPPty
-}
-
 
 enum class AuthenticationType {
     No,
@@ -261,7 +247,7 @@ data class Host(
     /**
      * 协议
      */
-    val protocol: Protocol,
+    val protocol: String,
     /**
      * 主机
      */
@@ -327,6 +313,8 @@ data class Host(
      */
     val deleted: Boolean = false
 ) {
+
+    val isFolder get() = StringUtils.equalsIgnoreCase(protocol, "Folder")
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

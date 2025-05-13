@@ -28,7 +28,7 @@ class OpenHostAction : AnAction() {
         var tab: TerminalTab? = null
 
         for (provider in protocolProviders) {
-            if (StringUtils.equalsIgnoreCase(provider.getProtocol(), host.protocol.name)) {
+            if (StringUtils.equalsIgnoreCase(provider.getProtocol(), host.protocol)) {
                 if (provider.canCreateTerminalTab(evt, windowScope, host)) {
                     tab = provider.createTerminalTab(evt, windowScope, host)
                     break

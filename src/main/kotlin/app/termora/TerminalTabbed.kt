@@ -253,7 +253,7 @@ class TerminalTabbed(
         if (tab is HostTerminalTab) {
             val openHostAction = actionManager.getAction(OpenHostAction.OPEN_HOST)
             if (openHostAction != null) {
-                if (tab.host.protocol == Protocol.SSH || tab.host.protocol == Protocol.SFTPPty) {
+                if (tab.host.protocol == "SSH" || tab.host.protocol == "SFTPPty") {
                     popupMenu.addSeparator()
                     val sftpCommand = popupMenu.add(I18n.getString("termora.tabbed.contextmenu.sftp-command"))
                     sftpCommand.addActionListener { openSFTPPtyTab(tab, openHostAction, it) }
@@ -361,7 +361,7 @@ class TerminalTabbed(
 
         var host = tab.host
 
-        if (host.protocol == Protocol.SSH) {
+        if (host.protocol == "SSH") {
             val envs = tab.host.options.envs().toMutableMap()
             val currentDir = tab.getData(DataProviders.Terminal)?.getTerminalModel()
                 ?.getData(DataKey.CurrentDir, StringUtils.EMPTY) ?: StringUtils.EMPTY
@@ -371,7 +371,7 @@ class TerminalTabbed(
             }
 
             host = host.copy(
-                protocol = Protocol.SFTPPty, updateDate = System.currentTimeMillis(),
+                protocol = "SFTPPty", updateDate = System.currentTimeMillis(),
                 options = host.options.copy(env = envs.toPropertiesString())
             )
         }

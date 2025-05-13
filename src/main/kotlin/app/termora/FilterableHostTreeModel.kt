@@ -41,7 +41,7 @@ class FilterableHostTreeModel(
                 continue
             }
 
-            if (c.data.protocol != Protocol.Folder) {
+            if (c.data.isFolder.not()) {
                 if (filters.isNotEmpty() && filters.none { it.apply(c) }) {
                     continue
                 }
@@ -50,12 +50,12 @@ class FilterableHostTreeModel(
             val n = ReferenceTreeNode(c).apply { mapping[c] = this }.apply { b.add(this) }
 
             // 文件夹递归复制
-            if (c.host.protocol == Protocol.Folder) {
+            if (c.host.isFolder) {
                 cloneTree(c, n)
             }
 
             // 如果是文件夹
-            if (c.host.protocol == Protocol.Folder) {
+            if (c.host.isFolder) {
                 if (n.childCount == 0) {
                     if (showEmptyFolder.invoke()) {
                         continue

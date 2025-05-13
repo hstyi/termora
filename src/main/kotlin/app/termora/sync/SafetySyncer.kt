@@ -58,9 +58,7 @@ abstract class SafetySyncer : Syncer {
                 val host = Host(
                     id = encryptedHost.id,
                     name = encryptedHost.name.decodeBase64().aesCBCDecrypt(key, iv).decodeToString(),
-                    protocol = Protocol.valueOf(
-                        encryptedHost.protocol.decodeBase64().aesCBCDecrypt(key, iv).decodeToString()
-                    ),
+                    protocol = encryptedHost.protocol.decodeBase64().aesCBCDecrypt(key, iv).decodeToString(),
                     host = encryptedHost.host.decodeBase64().aesCBCDecrypt(key, iv).decodeToString(),
                     port = encryptedHost.port.decodeBase64().aesCBCDecrypt(key, iv)
                         .decodeToString().toIntOrNull() ?: 0,
@@ -113,7 +111,7 @@ abstract class SafetySyncer : Syncer {
             val encryptedHost = EncryptedHost()
             encryptedHost.id = host.id
             encryptedHost.name = host.name.aesCBCEncrypt(key, iv).encodeBase64String()
-            encryptedHost.protocol = host.protocol.name.aesCBCEncrypt(key, iv).encodeBase64String()
+            encryptedHost.protocol = host.protocol.aesCBCEncrypt(key, iv).encodeBase64String()
             encryptedHost.host = host.host.aesCBCEncrypt(key, iv).encodeBase64String()
             encryptedHost.port = "${host.port}".aesCBCEncrypt(key, iv).encodeBase64String()
             encryptedHost.username = host.username.aesCBCEncrypt(key, iv).encodeBase64String()

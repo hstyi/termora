@@ -1,11 +1,11 @@
 package app.termora.plugin.internal.local
 
 import app.termora.Host
-import app.termora.Protocol
 import app.termora.TerminalTab
 import app.termora.WindowScope
 import app.termora.actions.DataProvider
 import app.termora.protocol.ProtocolProvider
+import java.awt.Window
 
 internal class LocalProtocolProvider private constructor() : ProtocolProvider {
     companion object {
@@ -13,7 +13,11 @@ internal class LocalProtocolProvider private constructor() : ProtocolProvider {
     }
 
     override fun getProtocol(): String {
-        return Protocol.Local.name
+        return "Local"
+    }
+
+    override fun canTestConnection(owner: Window?, host: Host): Boolean {
+        return true
     }
 
     override fun createTerminalTab(dataProvider: DataProvider, windowScope: WindowScope, host: Host): TerminalTab {

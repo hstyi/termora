@@ -2,6 +2,7 @@ package app.termora
 
 import app.termora.keymgr.KeyManager
 import app.termora.keymgr.KeyManagerDialog
+import app.termora.protocol.ProtocolProvider
 import com.fazecast.jSerialComm.SerialPort
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatComboBox
@@ -20,6 +21,7 @@ import org.eclipse.jgit.internal.transport.sshd.agent.connector.WinPipeConnector
 import java.awt.*
 import java.awt.event.*
 import java.nio.charset.Charset
+import java.util.*
 import javax.swing.*
 import javax.swing.table.DefaultTableCellRenderer
 import javax.swing.table.DefaultTableModel
@@ -50,7 +52,7 @@ open class HostOptionsPane : OptionsPane() {
 
     open fun getHost(): Host {
         val name = generalOption.nameTextField.text
-        val protocol = generalOption.protocolTypeComboBox.selectedItem as Protocol
+        val protocol = generalOption.protocolTypeComboBox.selectedItem as String
         val host = generalOption.hostTextField.text
         val port = (generalOption.portTextField.value ?: 22) as Int
         var authentication = Authentication.No
@@ -132,11 +134,11 @@ open class HostOptionsPane : OptionsPane() {
             return false
         }
 
-        if (host.protocol == Protocol.SSH) {
+        if (StringUtils.equalsIgnoreCase(host.protocol, "SSH")) {
             if (validateField(generalOption.usernameTextField)) {
                 return false
             }
-        } else if (host.protocol == Protocol.Serial) {
+        } else if (StringUtils.equalsIgnoreCase(host.protocol, "Serial")) {
             if (validateField(serialCommOption.serialPortComboBox)
                 || validateField(serialCommOption.baudRateComboBox)
             ) {
@@ -219,7 +221,7 @@ open class HostOptionsPane : OptionsPane() {
     protected inner class GeneralOption : JPanel(BorderLayout()), Option {
         val portTextField = PortSpinner()
         val nameTextField = OutlineTextField(128)
-        val protocolTypeComboBox = FlatComboBox<Protocol>()
+        val protocolTypeComboBox = FlatComboBox<String>()
         val usernameTextField = OutlineTextField(128)
         val hostTextField = OutlineTextField(255)
         private val passwordPanel = JPanel(BorderLayout())
@@ -317,10 +319,9 @@ open class HostOptionsPane : OptionsPane() {
                 }
             }
 
-            protocolTypeComboBox.addItem(Protocol.SSH)
-            protocolTypeComboBox.addItem(Protocol.Local)
-            protocolTypeComboBox.addItem(Protocol.Serial)
-            protocolTypeComboBox.addItem(Protocol.RDP)
+            for (provider in ProtocolProvider.ProtocolProviders.filterNot { it.isTransient() }) {
+                protocolTypeComboBox.addItem(provider.getProtocol())
+            }
 
             authenticationTypeComboBox.addItem(AuthenticationType.No)
             authenticationTypeComboBox.addItem(AuthenticationType.Password)
@@ -401,8 +402,9 @@ open class HostOptionsPane : OptionsPane() {
             passwordTextField.isEnabled = true
             chooseKeyBtn.isEnabled = true
 
-            if (protocolTypeComboBox.selectedItem == Protocol.Local
-                || protocolTypeComboBox.selectedItem == Protocol.Serial
+
+            if (Objects.equals(protocolTypeComboBox.selectedItem, "Local")
+                || Objects.equals(protocolTypeComboBox.selectedItem, "Serial")
             ) {
                 hostTextField.isEnabled = false
                 portTextField.isEnabled = false

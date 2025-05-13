@@ -3,7 +3,6 @@ package app.termora.sftp
 import app.termora.HostManager
 import app.termora.HostTerminalTab
 import app.termora.Icons
-import app.termora.Protocol
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProviders
@@ -35,7 +34,7 @@ class SFTPAction : AnAction("SFTP", Icons.folder) {
         if (hostId.isBlank()) {
             val tab = terminalTabbedManager.getSelectedTerminalTab()
             if (tab is HostTerminalTab) {
-                if (tab.host.protocol == Protocol.SSH || tab.host.protocol == Protocol.SFTPPty) {
+                if (tab.host.protocol == "SSH" || tab.host.protocol == "SFTPPty") {
                     hostId = tab.host.id
                 }
             }

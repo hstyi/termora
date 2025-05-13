@@ -18,7 +18,7 @@ class NewHostAction : AnAction() {
     override fun actionPerformed(evt: AnActionEvent) {
         val tree = evt.getData(DataProviders.Welcome.HostTree) ?: return
         var lastNode = (tree.lastSelectedPathComponent ?: tree.model.root) as? HostTreeNode ?: return
-        if (lastNode.host.protocol != Protocol.Folder) {
+        if (lastNode.host.isFolder.not()) {
             lastNode = lastNode.parent ?: return
         }
 

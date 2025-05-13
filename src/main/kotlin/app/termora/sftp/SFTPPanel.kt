@@ -31,7 +31,7 @@ class SFTPPanel : JPanel(BorderLayout()), DataProvider, Disposable {
     private val localHost = Host(
         id = "local",
         name = I18n.getString("termora.transport.local"),
-        protocol = Protocol.Local,
+        protocol = "Local",
     )
 
     init {
