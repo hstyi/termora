@@ -3,9 +3,12 @@ package app.termora.plugin
 import javax.swing.Icon
 
 /**
- * 插件
+ * 插件类，此插件类不应该做任何业务操作，因为在插件初始化时还程序还尚未初始化完成
+ *
+ * 实现类必须有一个默认构造器
  */
 interface Plugin {
+
     /**
      * 插件版本
      */

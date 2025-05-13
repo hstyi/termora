@@ -4,6 +4,8 @@ import app.termora.Application
 import app.termora.ApplicationScope
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.FileFilterUtils
+import org.apache.commons.lang3.ArrayUtils
+import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.URLClassLoader
@@ -12,7 +14,9 @@ import java.util.jar.Manifest
 class PluginManager private constructor() {
     companion object {
         private val log = LoggerFactory.getLogger(PluginManager::class.java)
-        private const val ENTRY_NAME = "JANF-Plugin-Entry"
+        private const val PLUGIN_ENTRY = "TO-Plugin-Entry"
+        private const val PLUGIN_RANGE = "TO-Plugin-Range"
+        private const val PLUGIN_DIR = "TERMORA_PLUGIN_DIRECTORY"
 
         fun getInstance(): PluginManager {
             return ApplicationScope.forApplicationScope()
@@ -34,14 +38,25 @@ class PluginManager private constructor() {
         return plugins
     }
 
-    private fun loadPlugins() {
-        val pluginsFile = File(Application.getBaseDataDir(), "plugins")
-        if (pluginsFile.exists().not()) return
-        val dirs = FileUtils.listFilesAndDirs(
-            pluginsFile, FileFilterUtils.falseFileFilter(),
-            FileFilterUtils.trueFileFilter()
+    fun getPluginDirectory(): File {
+        val dir = StringUtils.defaultIfBlank(
+            System.getProperty(PLUGIN_DIR),
+            System.getenv(PLUGIN_DIR)
         )
-        if (dirs.isEmpty()) return
+        if (StringUtils.isNotBlank(dir)) {
+            return File(dir)
+        }
+        return File(Application.getBaseDataDir(), "plugins")
+    }
+
+    private fun loadPlugins() {
+        val pluginsFile = getPluginDirectory()
+        if (log.isInfoEnabled) {
+            log.info("Loading plugins ${pluginsFile.absolutePath}")
+        }
+        if (pluginsFile.exists().not() || pluginsFile.isDirectory.not()) return
+        val dirs = pluginsFile.listFiles { file -> file.isDirectory }
+        if (ArrayUtils.isEmpty(dirs)) return
 
         for (file in dirs) {
             try {
@@ -61,25 +76,30 @@ class PluginManager private constructor() {
         )
         if (jars.isEmpty()) return
         val loader = PluginClassLoader(jars.toTypedArray())
-        val resources = loader.findResources("META-INF/MANIFEST.MF").toList()
-        if (resources.isEmpty()) return
+        val resources = loader.findResources("META-INF/MANIFEST.MF")
 
-        val entryNames = linkedSetOf<String>()
+        var pluginEntry = StringUtils.EMPTY
+        var pluginRange = StringUtils.EMPTY
         for (e in resources) {
-            val entryName = e.openStream().use { Manifest(it).mainAttributes.getValue(ENTRY_NAME) } ?: continue
-            entryNames.add(entryName)
+            val attributes = e.openStream().use { Manifest(it).mainAttributes } ?: continue
+            pluginEntry = attributes.getValue(PLUGIN_ENTRY) ?: continue
+            pluginRange = attributes.getValue(PLUGIN_RANGE) ?: continue
+            break
         }
 
-        for (name in entryNames) {
-            try {
-                val clazz = Class.forName(name, false, loader)
-                if (clazz.interfaces.contains(Plugin::class.java).not()) continue
-                val entry = clazz.getConstructor().newInstance() as Plugin
-                plugins.add(entry)
-            } catch (e: Throwable) {
-                if (log.isErrorEnabled) {
-                    log.error("Failed to load plugin entry $name", e)
-                }
+        if (pluginEntry.isBlank() || pluginEntry.isBlank()) return
+
+        try {
+            val clazz = Class.forName(pluginEntry, false, loader)
+            if (clazz.interfaces.contains(Plugin::class.java).not()) return
+            val entry = clazz.getConstructor().newInstance() as Plugin
+            plugins.add(entry)
+            if (log.isInfoEnabled) {
+                log.info("Loaded plugin ${entry.getName()} from $entry")
+            }
+        } catch (e: Throwable) {
+            if (log.isErrorEnabled) {
+                log.error("Failed to load plugin entry $pluginEntry", e)
             }
         }
 

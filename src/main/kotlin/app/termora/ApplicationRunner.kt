@@ -2,6 +2,8 @@ package app.termora
 
 import app.termora.actions.ActionManager
 import app.termora.keymap.KeymapManager
+import app.termora.plugin.ExtensionManager
+import app.termora.plugin.PluginManager
 import app.termora.vfs2.sftp.MySftpFileProvider
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatSystemProperties
@@ -46,6 +48,9 @@ class ApplicationRunner {
     fun run() {
         measureTimeMillis {
 
+            // 异步初始化
+            val loadPluginThread = Thread.ofVirtual().start { PluginManager.getInstance() }
+
             // 打印系统信息
             val printSystemInfo = measureTimeMillis { printSystemInfo() }
 
@@ -82,6 +87,14 @@ class ApplicationRunner {
 
             // clear temporary
             clearTemporary()
+
+            // 等待插件加载完成
+            loadPluginThread.join()
+
+            // 准备就绪
+            for (extension in ExtensionManager.getInstance().getExtensions(ApplicationRunnerExtension::class.java)) {
+                extension.ready()
+            }
 
             // 启动主窗口
             val startMainFrame = measureTimeMillis { startMainFrame() }

@@ -152,6 +152,7 @@ publishing {
     publications {
         create<MavenPublication>("mavenJava") {
             from(components["java"])
+
             pom {
                 name = project.name
                 description = "Termora is a terminal emulator and SSH client for Windows, macOS and Linux"
@@ -765,6 +766,10 @@ kotlin {
     jvmToolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
+}
+
+java {
+    withSourcesJar()
 }
 
 idea {

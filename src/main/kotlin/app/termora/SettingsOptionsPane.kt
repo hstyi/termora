@@ -120,6 +120,7 @@ class SettingsOptionsPane : OptionsPane() {
         addOption(AppearanceOption())
         addOption(TerminalOption())
         addOption(KeyShortcutsOption())
+        addOption(PluginOption())
         addOption(SFTPOption())
         addOption(CloudSyncOption())
         addOption(DoormanOption())
@@ -1701,6 +1702,82 @@ class SettingsOptionsPane : OptionsPane() {
 
     }
 
+    private inner class PluginOption : JPanel(BorderLayout()), Option {
+
+        init {
+            initView()
+            initEvents()
+        }
+
+
+        private fun initView() {
+            add(BannerPanel(9, true), BorderLayout.NORTH)
+            add(p(), BorderLayout.CENTER)
+        }
+
+        private fun p(): JPanel {
+            val layout = FormLayout(
+                "left:pref, $formMargin, default:grow",
+                "pref, 20dlu, pref, 4dlu, pref, 4dlu, pref, 4dlu, pref"
+            )
+
+
+            var rows = 1
+            val step = 2
+
+            val branch = if (Application.isUnknownVersion()) "main" else Application.getVersion()
+
+            return FormBuilder.create().padding("$formMargin, $formMargin, $formMargin, $formMargin")
+                .layout(layout).debug(true)
+                .add(I18n.getString("termora.settings.about.termora", Application.getVersion()))
+                .xyw(1, rows, 3, "center, fill").apply { rows += step }
+                .add("${I18n.getString("termora.settings.about.author")}:").xy(1, rows)
+                .add(createHyperlink("https://github.com/hstyi")).xy(3, rows).apply { rows += step }
+                .add("${I18n.getString("termora.settings.about.source")}:").xy(1, rows)
+                .add(
+                    createHyperlink(
+                        "https://github.com/TermoraDev/termora/tree/${branch}",
+                        "https://github.com/TermoraDev/termora",
+                    )
+                ).xy(3, rows).apply { rows += step }
+                .add("${I18n.getString("termora.settings.about.issue")}:").xy(1, rows)
+                .add(createHyperlink("https://github.com/TermoraDev/termora/issues")).xy(3, rows).apply { rows += step }
+                .add("${I18n.getString("termora.settings.about.third-party")}:").xy(1, rows)
+                .add(
+                    createHyperlink(
+                        "https://github.com/TermoraDev/termora/blob/${branch}/THIRDPARTY",
+                        "Open-source software"
+                    )
+                ).xy(3, rows).apply { rows += step }
+                .build()
+
+
+        }
+
+        private fun createHyperlink(url: String, text: String = url): Hyperlink {
+            return Hyperlink(object : AnAction(text) {
+                override fun actionPerformed(evt: AnActionEvent) {
+                    Application.browse(URI.create(url))
+                }
+            })
+        }
+
+        private fun initEvents() {}
+
+        override fun getIcon(isSelected: Boolean): Icon {
+            return Icons.plugin
+        }
+
+        override fun getTitle(): String {
+            return I18n.getString("termora.settings.plugin")
+        }
+
+        override fun getJComponent(): JComponent {
+            return this
+        }
+
+    }
+
     private inner class DoormanOption : JPanel(BorderLayout()), Option {
         private val label = FlatLabel()
         private val icon = JLabel()
@@ -1963,5 +2040,6 @@ class SettingsOptionsPane : OptionsPane() {
         }
 
     }
+
 
 }
