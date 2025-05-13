@@ -7,6 +7,8 @@ import app.termora.plugin.internal.rdp.RDPInternalPlugin
 import app.termora.plugin.internal.serial.SerialInternalPlugin
 import app.termora.plugin.internal.sftppty.SFTPPtyInternalPlugin
 import app.termora.plugin.internal.ssh.SSHInternalPlugin
+import app.termora.sftp.internal.local.LocalPlugin
+import app.termora.sftp.internal.sftp.SFTPPlugin
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.FileFilterUtils
 import org.apache.commons.lang3.ArrayUtils
@@ -87,6 +89,11 @@ class PluginManager private constructor() {
         plugins.add(RDPInternalPlugin())
         // sftp pty plugin
         plugins.add(SFTPPtyInternalPlugin())
+
+        // local transfer plugin
+        plugins.add(LocalPlugin())
+        // sftp transfer plugin
+        plugins.add(SFTPPlugin())
     }
 
     private fun loadPlugin(file: File) {

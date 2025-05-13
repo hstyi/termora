@@ -6,7 +6,6 @@ import app.termora.plugin.ExtensionManager
 import app.termora.plugin.PluginManager
 import app.termora.protocol.ProtocolProvider
 import app.termora.protocol.TransferProtocolProvider
-import app.termora.vfs2.sftp.MySftpFileProvider
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatSystemProperties
 import com.formdev.flatlaf.extras.FlatDesktop
@@ -25,7 +24,6 @@ import org.apache.commons.lang3.SystemUtils
 import org.apache.commons.vfs2.VFS
 import org.apache.commons.vfs2.cache.WeakRefFilesCache
 import org.apache.commons.vfs2.impl.DefaultFileSystemManager
-import org.apache.commons.vfs2.provider.local.DefaultLocalFileProvider
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
 import java.awt.MenuItem
@@ -87,8 +85,6 @@ class ApplicationRunner {
             loadPluginThread.join()
 
             val fileSystemManager = DefaultFileSystemManager()
-            fileSystemManager.addProvider("sftp", MySftpFileProvider())
-            fileSystemManager.addProvider("file", DefaultLocalFileProvider())
             for (provider in ProtocolProvider.providers.filterIsInstance<TransferProtocolProvider>()) {
                 fileSystemManager.addProvider(provider.getProtocol().lowercase(), provider.getFileProvider())
             }
