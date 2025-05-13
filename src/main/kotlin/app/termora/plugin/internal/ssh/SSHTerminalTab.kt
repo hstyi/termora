@@ -1,5 +1,6 @@
-package app.termora
+package app.termora.plugin.internal.ssh
 
+import app.termora.*
 import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProviders
 import app.termora.actions.TabReconnectAction
@@ -24,13 +25,11 @@ import org.apache.sshd.common.channel.Channel
 import org.apache.sshd.common.channel.ChannelListener
 import org.apache.sshd.common.session.Session
 import org.apache.sshd.common.session.SessionListener
-import org.apache.sshd.common.session.SessionListener.Event
 import org.slf4j.LoggerFactory
 import java.nio.charset.StandardCharsets
 import java.util.*
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
-
 
 class SSHTerminalTab(windowScope: WindowScope, host: Host) :
     PtyHostTerminalTab(windowScope, host) {
@@ -84,7 +83,7 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
             // clear screen
             terminal.clearScreen()
             // hide cursor
-            terminalModel.setData(DataKey.ShowCursor, false)
+            terminalModel.setData(DataKey.Companion.ShowCursor, false)
             // print
             terminal.write("SSH client is opening...\r\n")
         }
@@ -120,12 +119,12 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
 
         channel.addChannelListener(object : ChannelListener {
             private val reconnectShortcut
-                get() = KeymapManager.getInstance().getActiveKeymap()
-                    .getShortcut(TabReconnectAction.RECONNECT_TAB).firstOrNull()
+                get() = KeymapManager.Companion.getInstance().getActiveKeymap()
+                    .getShortcut(TabReconnectAction.Companion.RECONNECT_TAB).firstOrNull()
 
             override fun channelClosed(channel: Channel, reason: Throwable?) {
                 coroutineScope.launch(Dispatchers.Swing) {
-                    terminal.write("\r\n\r\n${ControlCharacters.ESC}[31m")
+                    terminal.write("\r\n\r\n${ControlCharacters.Companion.ESC}[31m")
                     terminal.write(I18n.getString("termora.terminal.channel-disconnected"))
                     if (reconnectShortcut is KeyShortcut) {
                         terminal.write(
@@ -136,9 +135,9 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
                         )
                     }
                     terminal.write("\r\n")
-                    terminal.write("${ControlCharacters.ESC}[0m")
-                    terminalModel.setData(DataKey.ShowCursor, false)
-                    if (Database.getDatabase().terminal.autoCloseTabWhenDisconnected) {
+                    terminal.write("${ControlCharacters.Companion.ESC}[0m")
+                    terminalModel.setData(DataKey.Companion.ShowCursor, false)
+                    if (Database.Companion.getDatabase().terminal.autoCloseTabWhenDisconnected) {
                         terminalTabbedManager?.let { manager ->
                             SwingUtilities.invokeLater {
                                 manager.closeTerminalTab(tab, true)
@@ -157,7 +156,7 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
             // clear screen
             terminal.clearScreen()
             // show cursor
-            terminalModel.setData(DataKey.ShowCursor, true)
+            terminalModel.setData(DataKey.Companion.ShowCursor, true)
         }
 
         return ptyConnectorFactory.decorate(
@@ -230,12 +229,12 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
     }
 
     private inner class MySessionListener : SessionListener, Disposable {
-        override fun sessionEvent(session: Session, event: Event) {
+        override fun sessionEvent(session: Session, event: SessionListener.Event) {
             coroutineScope.launch {
                 when (event) {
-                    Event.KeyEstablished -> terminal.write("Session Key exchange successful.\r\n")
-                    Event.Authenticated -> terminal.write("Session authentication successful.\r\n\r\n")
-                    Event.KexCompleted -> terminal.write("Session KEX negotiation successful.\r\n")
+                    SessionListener.Event.KeyEstablished -> terminal.write("Session Key exchange successful.\r\n")
+                    SessionListener.Event.Authenticated -> terminal.write("Session authentication successful.\r\n\r\n")
+                    SessionListener.Event.KexCompleted -> terminal.write("Session KEX negotiation successful.\r\n")
                 }
             }
         }

@@ -1,5 +1,6 @@
-package app.termora
+package app.termora.plugin.internal.serial
 
+import app.termora.*
 import app.termora.terminal.PtyConnector
 import org.apache.commons.io.Charsets
 import java.nio.charset.StandardCharsets

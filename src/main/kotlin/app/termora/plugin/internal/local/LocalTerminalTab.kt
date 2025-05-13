@@ -1,5 +1,6 @@
-package app.termora
+package app.termora.plugin.internal.local
 
+import app.termora.*
 import app.termora.terminal.PtyConnector
 import app.termora.terminal.PtyConnectorDelegate
 import app.termora.terminal.PtyProcessConnector
@@ -19,7 +20,7 @@ class LocalTerminalTab(windowScope: WindowScope, host: Host) :
 
     override suspend fun openPtyConnector(): PtyConnector {
         val winSize = terminalPanel.winSize()
-        val ptyConnector = PtyConnectorFactory.getInstance().createPtyConnector(
+        val ptyConnector = PtyConnectorFactory.Companion.getInstance().createPtyConnector(
             winSize.rows, winSize.cols,
             host.options.envs(),
             Charsets.toCharset(host.options.encoding, StandardCharsets.UTF_8),

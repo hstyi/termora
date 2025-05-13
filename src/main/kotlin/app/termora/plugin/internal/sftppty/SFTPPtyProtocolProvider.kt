@@ -1,0 +1,27 @@
+package app.termora.plugin.internal.sftppty
+
+import app.termora.Host
+import app.termora.Protocol
+import app.termora.TerminalTab
+import app.termora.WindowScope
+import app.termora.actions.DataProvider
+import app.termora.protocol.ProtocolProvider
+
+internal class SFTPPtyProtocolProvider private constructor() : ProtocolProvider {
+    companion object {
+        val instance by lazy { SFTPPtyProtocolProvider() }
+    }
+
+    override fun getProtocol(): String {
+        return Protocol.SFTPPty.name
+    }
+
+    override fun createTerminalTab(dataProvider: DataProvider, windowScope: WindowScope, host: Host): TerminalTab {
+        return SFTPPtyTerminalTab(windowScope, host)
+    }
+
+    override fun canCreateTerminalTab(dataProvider: DataProvider, windowScope: WindowScope, host: Host): Boolean {
+        return SFTPPtyTerminalTab.canSupports
+    }
+
+}

@@ -2,6 +2,11 @@ package app.termora.plugin
 
 import app.termora.Application
 import app.termora.ApplicationScope
+import app.termora.plugin.internal.local.LocalInternalPlugin
+import app.termora.plugin.internal.rdp.RDPInternalPlugin
+import app.termora.plugin.internal.serial.SerialInternalPlugin
+import app.termora.plugin.internal.sftppty.SFTPPtyInternalPlugin
+import app.termora.plugin.internal.ssh.SSHInternalPlugin
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.FileFilterUtils
 import org.apache.commons.lang3.ArrayUtils
@@ -27,6 +32,8 @@ class PluginManager private constructor() {
     private val plugins = mutableListOf<Plugin>()
 
     init {
+        // load internal plugins
+        loadInternalPlugins()
         // load plugins
         loadPlugins()
     }
@@ -67,6 +74,19 @@ class PluginManager private constructor() {
                 }
             }
         }
+    }
+
+    private fun loadInternalPlugins() {
+        // ssh plugin
+        plugins.add(SSHInternalPlugin())
+        // serial plugin
+        plugins.add(SerialInternalPlugin())
+        // local plugin
+        plugins.add(LocalInternalPlugin())
+        // rdp plugin
+        plugins.add(RDPInternalPlugin())
+        // sftp pty plugin
+        plugins.add(SFTPPtyInternalPlugin())
     }
 
     private fun loadPlugin(file: File) {

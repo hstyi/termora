@@ -5,6 +5,7 @@ import app.termora.actions.*
 import app.termora.findeverywhere.BasicFilterFindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereResult
+import app.termora.plugin.internal.sftppty.SFTPPtyTerminalTab
 import app.termora.terminal.DataKey
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.components.FlatPopupMenu

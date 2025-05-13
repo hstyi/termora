@@ -3,10 +3,10 @@ package app.termora.terminal.panel
 import app.termora.Database
 import app.termora.Disposable
 import app.termora.Disposer
-import app.termora.SSHTerminalTab
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviderSupport
 import app.termora.actions.DataProviders
+import app.termora.plugin.internal.ssh.SSHTerminalTab
 import app.termora.terminal.*
 import app.termora.terminal.panel.vw.*
 import com.formdev.flatlaf.util.SystemInfo

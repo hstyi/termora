@@ -1,5 +1,6 @@
-package app.termora
+package app.termora.plugin.internal.sftppty
 
+import app.termora.*
 import app.termora.keymgr.KeyManager
 import app.termora.keymgr.OhKeyPairKeyPairProvider
 import app.termora.terminal.*
@@ -23,13 +24,13 @@ import javax.swing.Icon
 import javax.swing.SwingUtilities
 
 class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminalTab(windowScope, host) {
-    private val keyManager by lazy { KeyManager.getInstance() }
+    private val keyManager by lazy { KeyManager.Companion.getInstance() }
     private val tempFiles = mutableListOf<Path>()
     private var sshClient: SshClient? = null
     private var sshSession: ClientSession? = null
     private var lastPasswordReporterDataListener: PasswordReporterDataListener? = null
-    private val sftpCommand get() = Database.getDatabase().sftp.sftpCommand
-    private val defaultDirectory get() = Database.getDatabase().sftp.defaultDirectory
+    private val sftpCommand get() = Database.Companion.getDatabase().sftp.sftpCommand
+    private val defaultDirectory get() = Database.Companion.getDatabase().sftp.defaultDirectory
     private val owner get() = SwingUtilities.getWindowAncestor(terminalPanel)
 
     init {
@@ -147,7 +148,7 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
         if (host.authentication.type == AuthenticationType.PublicKey) {
             val ohKeyPair = keyManager.getOhKeyPair(host.authentication.password)
             if (ohKeyPair != null) {
-                val keyPair = OhKeyPairKeyPairProvider.generateKeyPair(ohKeyPair)
+                val keyPair = OhKeyPairKeyPairProvider.Companion.generateKeyPair(ohKeyPair)
                 val privateKeyPath = Application.createSubTemporaryDir()
                 val privateKeyFile = Files.createTempFile(privateKeyPath, Application.getName(), StringUtils.EMPTY)
                 Files.newOutputStream(privateKeyFile)
@@ -186,7 +187,7 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
 
     private inner class PasswordReporterDataListener(private val host: Host) : DataListener {
         override fun onChanged(key: DataKey<*>, data: Any) {
-            if (key == VisualTerminal.Written && data is String) {
+            if (key == VisualTerminal.Companion.Written && data is String) {
 
                 // 要求输入密码
                 val line = terminal.getDocument().getScreenLine(terminal.getCursorModel().getPosition().y)
