@@ -233,7 +233,7 @@ class FileSystemViewTable(
                     val localTarget = sftpPanel.getLocalTarget()
                     val table = localTarget.getData(SFTPDataProviders.FileSystemViewTable) ?: return false
                     // 委托最左侧的本地文件系统传输
-                    table.transfer(paths, true, targetWorkdir)
+                    table.transfer(paths, true, targetWorkdir, fileSystemViewPanel)
                     return true
                 }
                 return false
@@ -681,12 +681,13 @@ class FileSystemViewTable(
     private fun transfer(
         files: List<FileObject>,
         fromLocalSystem: Boolean = false,
-        targetWorkdir: FileObject? = null
+        targetWorkdir: FileObject? = null,
+        target: FileSystemViewPanel? = null,
     ) {
 
         assertEventDispatchThread()
 
-        val target = sftpPanel.getTarget(table) ?: return
+        val target = (target ?: sftpPanel.getTarget(table)) ?: return
         val table = target.getData(SFTPDataProviders.FileSystemViewTable) ?: return
         var isApplyAll = false
         var lastAction = Action.Overwrite
@@ -712,7 +713,7 @@ class FileSystemViewTable(
 
             coroutineScope.launch {
                 try {
-                    doTransfer(file, lastAction, fromLocalSystem, targetWorkdir)
+                    doTransfer(file, lastAction, fromLocalSystem, targetWorkdir, target)
                 } catch (e: Exception) {
                     if (log.isErrorEnabled) {
                         log.error(e.message, e)
@@ -863,10 +864,11 @@ class FileSystemViewTable(
         file: FileObject,
         action: Action,
         fromLocalSystem: Boolean,
-        targetWorkdir: FileObject?
+        targetWorkdir: FileObject?,
+        target: FileSystemViewPanel? = null
     ) {
         val sftpPanel = this.sftpPanel
-        val target = sftpPanel.getTarget(table) ?: return
+        val target = (target ?: sftpPanel.getTarget(table)) ?: return
 
         /**
          * 定义一个添加器，它可以自动的判断导入/拖拽行为
