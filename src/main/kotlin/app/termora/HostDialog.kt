@@ -69,7 +69,7 @@ class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
 
     private suspend fun testConnection(evt: AnActionEvent, host: Host) {
         val owner = this
-        val provider = ProtocolProvider.ProtocolProviders.firstOrNull {
+        val provider = ProtocolProvider.providers.firstOrNull {
             StringUtils.equalsIgnoreCase(
                 it.getProtocol(),
                 host.protocol

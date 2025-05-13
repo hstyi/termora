@@ -319,7 +319,7 @@ open class HostOptionsPane : OptionsPane() {
                 }
             }
 
-            for (provider in ProtocolProvider.ProtocolProviders.filterNot { it.isTransient() }) {
+            for (provider in ProtocolProvider.providers.filterNot { it.isTransient() }) {
                 protocolTypeComboBox.addItem(provider.getProtocol())
             }
 

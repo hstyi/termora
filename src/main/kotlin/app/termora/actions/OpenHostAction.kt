@@ -3,8 +3,7 @@ package app.termora.actions
 import app.termora.OpenHostActionEvent
 import app.termora.PtyHostTerminalTab
 import app.termora.TerminalTab
-import app.termora.plugin.ExtensionManager
-import app.termora.protocol.ProtocolProviderExtension
+import app.termora.protocol.ProtocolProvider
 import org.apache.commons.lang3.StringUtils
 
 class OpenHostAction : AnAction() {
@@ -15,9 +14,6 @@ class OpenHostAction : AnAction() {
         const val OPEN_HOST = "OpenHostAction"
     }
 
-    private val protocolProviders
-        get() = ExtensionManager.getInstance().getExtensions(ProtocolProviderExtension::class.java)
-            .map { it.getProtocolProvider() }
 
     override fun actionPerformed(evt: AnActionEvent) {
         if (evt !is OpenHostActionEvent) return
@@ -27,7 +23,7 @@ class OpenHostAction : AnAction() {
 
         var tab: TerminalTab? = null
 
-        for (provider in protocolProviders) {
+        for (provider in ProtocolProvider.providers) {
             if (StringUtils.equalsIgnoreCase(provider.getProtocol(), host.protocol)) {
                 if (provider.canCreateTerminalTab(evt, windowScope, host)) {
                     tab = provider.createTerminalTab(evt, windowScope, host)

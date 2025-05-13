@@ -12,12 +12,12 @@ import java.awt.Window
 interface ProtocolProvider {
 
     companion object {
-        val ProtocolProviders
+        val providers
             get() = ExtensionManager.getInstance().getExtensions(ProtocolProviderExtension::class.java)
                 .map { it.getProtocolProvider() }
 
         fun valueOf(protocol: String): ProtocolProvider? {
-            return ProtocolProviders.firstOrNull { StringUtils.equalsIgnoreCase(it.getProtocol(), protocol) }
+            return providers.firstOrNull { StringUtils.equalsIgnoreCase(it.getProtocol(), protocol) }
         }
     }
 
