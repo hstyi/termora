@@ -17,10 +17,6 @@ class S3Plugin : Plugin {
         support.addExtension(ProtocolHostPanelExtension::class.java) { S3ProtocolHostPanelExtension.instance }
     }
 
-    override fun getVersion(): String {
-        return "1.0.0"
-    }
-
     override fun getAuthor(): String {
         return "TermoraDev"
     }

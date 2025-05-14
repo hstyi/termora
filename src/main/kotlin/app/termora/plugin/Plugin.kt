@@ -10,11 +10,6 @@ import javax.swing.Icon
 interface Plugin {
 
     /**
-     * 插件版本
-     */
-    fun getVersion(): String
-
-    /**
      * 作者
      */
     fun getAuthor(): String

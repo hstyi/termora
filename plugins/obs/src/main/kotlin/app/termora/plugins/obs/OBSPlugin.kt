@@ -17,10 +17,6 @@ class OBSPlugin : Plugin {
         support.addExtension(ProtocolHostPanelExtension::class.java) { OBSProtocolHostPanelExtension.instance }
     }
 
-    override fun getVersion(): String {
-        return "1.0.0"
-    }
-
     override fun getAuthor(): String {
         return "TermoraDev"
     }

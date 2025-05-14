@@ -17,10 +17,6 @@ class FTPPlugin : Plugin {
         support.addExtension(ProtocolHostPanelExtension::class.java) { FTPProtocolHostPanelExtension.Companion.instance }
     }
 
-    override fun getVersion(): String {
-        return "1.0.0"
-    }
-
     override fun getAuthor(): String {
         return "TermoraDev"
     }

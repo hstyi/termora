@@ -1,15 +1,10 @@
 package app.termora.plugin
 
-import app.termora.Application
 import app.termora.Icons
 import javax.swing.Icon
 
-internal abstract class InternalPlugin : Plugin {
+internal abstract class InternalPlugin() : Plugin {
     protected val support = ExtensionSupport()
-
-    override fun getVersion(): String {
-        return Application.getVersion()
-    }
 
     override fun getAuthor(): String {
         return "TermoraDev"
