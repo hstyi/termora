@@ -1,7 +1,6 @@
 package app.termora.sftp.internal.sftp
 
 import app.termora.SshClients
-import app.termora.protocol.FileObjectHandler
 import app.termora.protocol.FileObjectRequester
 import app.termora.protocol.TransferProtocolProvider
 import app.termora.vfs2.sftp.MySftpFileProvider
@@ -46,4 +45,5 @@ internal class SFTPTransferProtocolProvider : TransferProtocolProvider {
     override fun getProtocol(): String {
         return "sftp"
     }
+
 }
