@@ -18,7 +18,7 @@ class MySftpFileProviderTest : SSHDTest() {
     companion object {
         init {
             val fileSystemManager = DefaultFileSystemManager()
-            fileSystemManager.addProvider("sftp", MySftpFileProvider())
+            fileSystemManager.addProvider("sftp", MySftpFileProvider.instance)
             fileSystemManager.addProvider("file", DefaultLocalFileProvider())
             fileSystemManager.init()
             VFS.setManager(fileSystemManager)

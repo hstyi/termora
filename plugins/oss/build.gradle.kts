@@ -6,7 +6,7 @@ plugins {
 
 dependencies {
     testImplementation(kotlin("test"))
-    implementation("io.minio:minio:8.5.17")
+    implementation("com.qcloud:cos_api:5.6.245")
     compileOnly(project(":"))
 }
 
@@ -16,7 +16,7 @@ tasks.withType<Jar> {
         attributes(
             "Implementation-Title" to project.name,
             "Implementation-Version" to rootProject.version,
-            "TO-Plugin-Entry" to "app.termora.plugins.s3.S3Plugin",
+            "TO-Plugin-Entry" to "app.termora.plugins.cos.COSPlugin",
             "TO-Plugin-Range" to rootProject.version,
         )
     }
