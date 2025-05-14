@@ -58,6 +58,16 @@ class SFTPAction : AnAction(I18n.getString("termora.transport.sftp"), Icons.fold
         }
 
         val host = hostManager.getHost(hostId) ?: return
+        for (i in 0 until tabbed.tabCount) {
+            val c = tabbed.getComponentAt(i)
+            if (c is SFTPFileSystemViewPanel) {
+                if (c.state == SFTPFileSystemViewPanel.State.Initialized) {
+                    c.selectHost(host)
+                    return
+                }
+            }
+        }
+
         tabbed.addSFTPFileSystemViewPanelTab(host)
 
     }
