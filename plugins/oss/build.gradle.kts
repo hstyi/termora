@@ -6,7 +6,10 @@ plugins {
 
 dependencies {
     testImplementation(kotlin("test"))
-    implementation("com.qcloud:cos_api:5.6.245")
+    implementation("com.aliyun.oss:aliyun-sdk-oss:3.18.2")
+    implementation("javax.xml.bind:jaxb-api:2.3.1")
+    implementation("javax.activation:activation:1.1.1")
+    implementation("org.glassfish.jaxb:jaxb-runtime:2.3.3")
     compileOnly(project(":"))
 }
 
@@ -16,7 +19,7 @@ tasks.withType<Jar> {
         attributes(
             "Implementation-Title" to project.name,
             "Implementation-Version" to rootProject.version,
-            "TO-Plugin-Entry" to "app.termora.plugins.cos.COSPlugin",
+            "TO-Plugin-Entry" to "app.termora.plugins.oss.OSSPlugin",
             "TO-Plugin-Range" to rootProject.version,
         )
     }
