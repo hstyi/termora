@@ -68,7 +68,7 @@ class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
 
 
     private suspend fun testConnection(evt: AnActionEvent, host: Host) {
-        val owner = this
+        /*val owner = this
         val provider = ProtocolProvider.providers.firstOrNull {
             StringUtils.equalsIgnoreCase(
                 it.getProtocol(),
@@ -95,7 +95,7 @@ class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
                 owner,
                 I18n.getString("termora.new-host.test-connection-successful")
             )
-        }
+        }*/
 
     }
 

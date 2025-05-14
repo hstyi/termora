@@ -1,11 +1,9 @@
 package app.termora.protocol
 
 import app.termora.DynamicIcon
-import app.termora.Host
 import app.termora.Icons
 import app.termora.plugin.ExtensionManager
 import org.apache.commons.lang3.StringUtils
-import java.awt.Window
 
 /**
  * 协议
@@ -41,16 +39,6 @@ interface ProtocolProvider {
      * 协议
      */
     fun getProtocol(): String
-
-    /**
-     * 测试连通性
-     */
-    fun testConnection(owner: Window?, host: Host) {}
-
-    /**
-     * 是否可以测试连接
-     */
-    fun canTestConnection(owner: Window?, host: Host): Boolean = false
 
     /**
      * 越小越靠前

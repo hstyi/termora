@@ -1,15 +1,13 @@
 package app.termora.plugin.internal.local
 
-import app.termora.DynamicIcon
-import app.termora.Host
-import app.termora.Icons
-import app.termora.TerminalTab
-import app.termora.WindowScope
+import app.termora.*
 import app.termora.actions.DataProvider
 import app.termora.protocol.GenericProtocolProvider
+import app.termora.protocol.ProtocolTestRequester
+import app.termora.protocol.ProtocolTester
 import java.awt.Window
 
-internal class LocalProtocolProvider private constructor() : GenericProtocolProvider {
+internal class LocalProtocolProvider private constructor() : GenericProtocolProvider, ProtocolTester {
     companion object {
         val instance by lazy { LocalProtocolProvider() }
         const val PROTOCOL = "local"
@@ -23,7 +21,7 @@ internal class LocalProtocolProvider private constructor() : GenericProtocolProv
         return Icons.powershell
     }
 
-    override fun canTestConnection(owner: Window?, host: Host): Boolean {
+    override fun canTestConnection(requester: ProtocolTestRequester): Boolean {
         return true
     }
 
