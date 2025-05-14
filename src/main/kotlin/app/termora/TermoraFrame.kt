@@ -265,14 +265,17 @@ class TermoraFrame : JFrame(), DataProvider {
 
         override fun paintComponent(g2d: Graphics) {
             if (g2d !is Graphics2D) return
-            if (appearance.backgroundImage.isBlank()) return
+            val background = appearance.backgroundImage
+            if (background.isBlank()) return
 
-            val extension = ExtensionManager.getInstance()
+            val extensions = ExtensionManager.getInstance()
                 .getExtensions(GlassPaneExtension::class.java)
-                .firstOrNull()
-            if (extension != null) {
-                extension.paint(g2d)
-                return
+            if (extensions.isNotEmpty()) {
+                for (extension in extensions) {
+                    if (extension.paint(background, g2d)) {
+                        return
+                    }
+                }
             }
 
             val img = BackgroundManager.getInstance().getBackgroundImage() ?: return
