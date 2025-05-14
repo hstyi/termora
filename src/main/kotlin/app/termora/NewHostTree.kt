@@ -202,7 +202,7 @@ class NewHostTree : SimpleTree() {
 
         val open = popupMenu.add(I18n.getString("termora.welcome.contextmenu.connect"))
         val openWith = popupMenu.add(JMenu(I18n.getString("termora.welcome.contextmenu.connect-with"))) as JMenu
-        val openWithSFTP = openWith.add("SFTP")
+        val openWithSFTP = openWith.add(I18n.getString("termora.transport.sftp"))
         val openWithSFTPCommand = openWith.add(I18n.getString("termora.tabbed.contextmenu.sftp-command"))
         val openInNewWindow = popupMenu.add(I18n.getString("termora.welcome.contextmenu.open-in-new-window"))
         popupMenu.addSeparator()

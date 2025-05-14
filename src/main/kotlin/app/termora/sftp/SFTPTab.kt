@@ -17,7 +17,7 @@ class SFTPTab : RememberFocusTerminalTab() {
     }
 
     override fun getTitle(): String {
-        return "SFTP"
+        return I18n.getString("termora.transport.sftp")
     }
 
     override fun getIcon(): Icon {

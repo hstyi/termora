@@ -1590,7 +1590,7 @@ class SettingsOptionsPane : OptionsPane() {
         }
 
         override fun getTitle(): String {
-            return "SFTP"
+            return I18n.getString("termora.transport.sftp")
         }
 
         override fun getJComponent(): JComponent {
