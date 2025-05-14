@@ -3,6 +3,8 @@ package app.termora
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.protocol.ProtocolProvider
+import app.termora.protocol.ProtocolTestRequester
+import app.termora.protocol.ProtocolTester
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
@@ -68,7 +70,7 @@ class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
 
 
     private suspend fun testConnection(evt: AnActionEvent, host: Host) {
-        /*val owner = this
+        val owner = this
         val provider = ProtocolProvider.providers.firstOrNull {
             StringUtils.equalsIgnoreCase(
                 it.getProtocol(),
@@ -76,10 +78,13 @@ class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
             )
         } ?: return
 
-        if (provider.canTestConnection(owner, host).not()) return
+        if (provider !is ProtocolTester) return
+
+        val requester = ProtocolTestRequester(host, owner)
+        if (provider.canTestConnection(requester).not()) return
 
         try {
-            provider.testConnection(owner, host)
+            provider.testConnection(requester)
         } catch (e: Exception) {
             withContext(Dispatchers.Swing) {
                 OptionPane.showMessageDialog(
@@ -95,7 +100,7 @@ class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
                 owner,
                 I18n.getString("termora.new-host.test-connection-successful")
             )
-        }*/
+        }
 
     }
 
