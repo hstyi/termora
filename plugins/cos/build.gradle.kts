@@ -17,7 +17,7 @@ tasks.withType<Jar> {
             "Implementation-Title" to project.name,
             "Implementation-Version" to rootProject.version,
             "TO-Plugin-Entry" to "app.termora.plugins.cos.COSPlugin",
-            "TO-Plugin-Range" to rootProject.version,
+            "TO-Plugin-Range" to "${rootProject.version}+",
         )
     }
     destinationDirectory.set(file("${layout.buildDirectory.get().asFile.absolutePath}/distributions/${project.name}"))

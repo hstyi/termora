@@ -15,7 +15,7 @@ tasks.withType<Jar> {
         attributes(
             "Implementation-Title" to project.name,
             "Implementation-Version" to rootProject.version,
-            "TO-Plugin-Entry" to "app.termora.plugins.ftp.FTPPlugin",
+            "TO-Plugin-Entry" to "app.termora.plugins.bg.BGPlugin",
             "TO-Plugin-Range" to "${rootProject.version}+",
         )
     }
