@@ -1,4 +1,4 @@
-package app.termora.plugins.obs
+package app.termora.plugins.cos
 
 import app.termora.Icons
 import app.termora.plugin.Extension
@@ -9,12 +9,12 @@ import app.termora.protocol.ProtocolProviderExtension
 import org.apache.commons.lang3.StringUtils
 import javax.swing.Icon
 
-class OBSPlugin : Plugin {
+class COSPlugin : Plugin {
     private val support = ExtensionSupport()
 
     init {
-        support.addExtension(ProtocolProviderExtension::class.java) { OBSProtocolProviderExtension.instance }
-        support.addExtension(ProtocolHostPanelExtension::class.java) { OBSProtocolHostPanelExtension.instance }
+        support.addExtension(ProtocolProviderExtension::class.java) { COSProtocolProviderExtension.Companion.instance }
+        support.addExtension(ProtocolHostPanelExtension::class.java) { COSProtocolHostPanelExtension.Companion.instance }
     }
 
     override fun getVersion(): String {

@@ -1,14 +1,14 @@
-package app.termora.plugins.obs
+package app.termora.plugins.cos
 
 import app.termora.protocol.ProtocolProvider
 import app.termora.protocol.ProtocolProviderExtension
 
-class OBSProtocolProviderExtension private constructor() : ProtocolProviderExtension {
+class COSProtocolProviderExtension private constructor() : ProtocolProviderExtension {
     companion object {
-        val instance by lazy { OBSProtocolProviderExtension() }
+        val instance by lazy { COSProtocolProviderExtension() }
     }
 
     override fun getProtocolProvider(): ProtocolProvider {
-        return OBSProtocolProvider.Companion.instance
+        return COSProtocolProvider.Companion.instance
     }
 }

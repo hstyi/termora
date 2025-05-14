@@ -1,4 +1,4 @@
-package app.termora.plugins.obs
+package app.termora.plugins.cos
 
 import app.termora.DynamicIcon
 import app.termora.Icons
@@ -7,10 +7,10 @@ import app.termora.protocol.FileObjectRequester
 import app.termora.protocol.TransferProtocolProvider
 import org.apache.commons.vfs2.provider.FileProvider
 
-class OBSProtocolProvider private constructor() : TransferProtocolProvider {
+class COSProtocolProvider private constructor() : TransferProtocolProvider {
 
     companion object {
-        val instance by lazy { OBSProtocolProvider() }
+        val instance by lazy { COSProtocolProvider() }
         const val PROTOCOL = "COS"
     }
 
@@ -23,7 +23,7 @@ class OBSProtocolProvider private constructor() : TransferProtocolProvider {
     }
 
     override fun getFileProvider(): FileProvider {
-        return OBSFileProvider.instance
+        return COSFileProvider.instance
     }
 
     override fun getRootFileObject(requester: FileObjectRequester): FileObjectHandler {

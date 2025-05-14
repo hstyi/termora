@@ -1,4 +1,4 @@
-package app.termora.plugins.obs
+package app.termora.plugins.cos
 
 import org.apache.commons.vfs2.Capability
 import org.apache.commons.vfs2.FileName
@@ -6,10 +6,10 @@ import org.apache.commons.vfs2.FileSystem
 import org.apache.commons.vfs2.FileSystemOptions
 import org.apache.commons.vfs2.provider.AbstractOriginatingFileProvider
 
-class OBSFileProvider private constructor() : AbstractOriginatingFileProvider() {
+class COSFileProvider private constructor() : AbstractOriginatingFileProvider() {
 
     companion object {
-        val instance by lazy { OBSFileProvider() }
+        val instance by lazy { COSFileProvider() }
         val capabilities = listOf(
             Capability.CREATE,
             Capability.DELETE,
@@ -27,7 +27,7 @@ class OBSFileProvider private constructor() : AbstractOriginatingFileProvider() 
     }
 
     override fun getCapabilities(): Collection<Capability> {
-        return OBSFileProvider.capabilities
+        return COSFileProvider.capabilities
     }
 
     override fun doCreateFileSystem(

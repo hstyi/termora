@@ -1,14 +1,14 @@
-package app.termora.plugins.obs
+package app.termora.plugins.cos
 
 import app.termora.Host
 import app.termora.protocol.ProtocolHostPanel
 import org.apache.commons.lang3.StringUtils
 
-class OBSProtocolHostPanel : ProtocolHostPanel() {
+class COSProtocolHostPanel : ProtocolHostPanel() {
     override fun getHost(): Host {
         return Host(
             name = StringUtils.EMPTY,
-            protocol = OBSProtocolProvider.PROTOCOL
+            protocol = COSProtocolProvider.Companion.PROTOCOL
         )
     }
 

@@ -73,7 +73,7 @@ class NewHostDialogV2(owner: Window) : DialogWrapper(owner) {
             toolbar.add(button)
 
             if (extension != extensions.last()) {
-                toolbar.add(Box.createHorizontalStrut(10))
+                toolbar.add(Box.createHorizontalStrut(6))
             }
 
             if (extension == extensions.first()) {

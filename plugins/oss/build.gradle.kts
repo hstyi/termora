@@ -27,7 +27,9 @@ tasks.withType<Jar> {
 }
 
 tasks.register<Copy>("copyDependencies") {
-    from(configurations.runtimeClasspath.get().filterNot { it.name.startsWith("kotlin-stdlib") })
+    from(configurations.runtimeClasspath.get().filterNot {
+        it.name.startsWith("kotlin-stdlib") || it.name.startsWith("annotations")
+    })
     into("${layout.buildDirectory.get().asFile.absolutePath}/distributions/${project.name}")
 }
 
@@ -43,7 +45,7 @@ tasks.register("run") {
         val mainClass = "app.termora.MainKt"
         val executable = System.getProperty("java.home") + "/bin/java"
         val classpath = (configurations.compileClasspath.get() + configurations.runtimeClasspath.get()
-                + runtimeCompileOnly).joinToString(":")
+                + runtimeCompileOnly).joinToString(if (os.isWindows) ";" else ":")
         val commands = mutableListOf(executable)
         commands.add("--add-exports java.base/sun.nio.ch=ALL-UNNAMED")
         if (os.isMacOsX) {

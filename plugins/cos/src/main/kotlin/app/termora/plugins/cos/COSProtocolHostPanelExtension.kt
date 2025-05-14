@@ -1,19 +1,19 @@
-package app.termora.plugins.obs
+package app.termora.plugins.cos
 
 import app.termora.protocol.ProtocolHostPanel
 import app.termora.protocol.ProtocolHostPanelExtension
 import app.termora.protocol.ProtocolProvider
 
-class OBSProtocolHostPanelExtension private constructor() : ProtocolHostPanelExtension {
+class COSProtocolHostPanelExtension private constructor() : ProtocolHostPanelExtension {
     companion object {
-        val instance by lazy { OBSProtocolHostPanelExtension() }
+        val instance by lazy { COSProtocolHostPanelExtension() }
     }
 
     override fun getProtocolProvider(): ProtocolProvider {
-        return OBSProtocolProvider.instance
+        return COSProtocolProvider.Companion.instance
     }
 
     override fun createProtocolHostPanel(): ProtocolHostPanel {
-        return OBSProtocolHostPanel()
+        return COSProtocolHostPanel()
     }
 }
