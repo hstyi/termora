@@ -286,9 +286,7 @@ class SFTPFileSystemViewPanel(
                         val node = tree.getLastSelectedPathNode() ?: return
                         if (node.isFolder) return
                         val host = node.data as Host
-                        that.setTabTitle(host.name)
-                        that.host = host
-                        that.connect()
+                        selectHost(host)
                     }
                 }
             })
@@ -316,6 +314,12 @@ class SFTPFileSystemViewPanel(
             SFTPDataProviders.CoroutineScope -> coroutineScope as T?
             else -> null
         }
+    }
+
+    fun selectHost(host: Host) {
+        that.setTabTitle(host.name)
+        that.host = host
+        that.connect()
     }
 
     private fun setTabTitle(title: String) {
