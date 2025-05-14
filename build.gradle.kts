@@ -36,10 +36,12 @@ val macOSNotaryKeychainProfile = System.getenv("TERMORA_MAC_NOTARY_KEYCHAIN_PROF
 val macOSNotary = macOSSign && macOSNotaryKeychainProfile.isNotBlank()
         && System.getenv("TERMORA_MAC_NOTARY").toBoolean()
 
-repositories {
-    mavenCentral()
-    maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
-    maven("https://www.jitpack.io")
+allprojects {
+    repositories {
+        mavenCentral()
+        maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
+        maven("https://www.jitpack.io")
+    }
 }
 
 dependencies {

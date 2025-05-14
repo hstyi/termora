@@ -4,6 +4,9 @@ import app.termora.*
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviderSupport
 import app.termora.findeverywhere.FindEverywhereProvider
+import app.termora.protocol.FileObjectRequester
+import app.termora.protocol.TransferProtocolProvider
+import app.termora.sftp.internal.local.LocalTransferProtocolProvider
 import app.termora.terminal.DataKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -91,7 +94,8 @@ class SFTPPanel : JPanel(BorderLayout()), DataProvider, Disposable {
             I18n.getString("termora.transport.local"),
             FileSystemViewPanel(
                 localHost,
-                VFS.getManager().resolveFile("file:///${SystemUtils.USER_HOME}").fileSystem,
+                TransferProtocolProvider.valueOf(LocalTransferProtocolProvider.PROTOCOL)!!
+                    .getRootFileObject(FileObjectRequester(localHost)).file.fileSystem,
                 transportManager,
                 coroutineScope
             )
@@ -175,7 +179,7 @@ class SFTPPanel : JPanel(BorderLayout()), DataProvider, Disposable {
 
         val sourcePanel = SwingUtilities.getAncestorOfClass(FileSystemViewPanel::class.java, source)
                 as? FileSystemViewPanel ?: return false
-        val targetPanel = target as? FileSystemViewPanel ?: return false
+        val targetPanel = target
         if (sourcePanel.isDisposed || targetPanel.isDisposed) return false
         val myTargetWorkdir = (targetWorkdir ?: targetPanel.getWorkdir())
         val mySourceWorkdir = (sourceWorkdir ?: sourcePanel.getWorkdir())

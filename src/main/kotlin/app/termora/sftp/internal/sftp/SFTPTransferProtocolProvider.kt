@@ -1,22 +1,46 @@
 package app.termora.sftp.internal.sftp
 
-import app.termora.Host
+import app.termora.SshClients
+import app.termora.protocol.FileObjectHandler
+import app.termora.protocol.FileObjectRequester
 import app.termora.protocol.TransferProtocolProvider
 import app.termora.vfs2.sftp.MySftpFileProvider
-import org.apache.commons.vfs2.FileObject
+import app.termora.vfs2.sftp.MySftpFileSystemConfigBuilder
+import org.apache.commons.io.IOUtils
+import org.apache.commons.vfs2.FileSystemOptions
+import org.apache.commons.vfs2.VFS
 import org.apache.commons.vfs2.provider.FileProvider
+import org.apache.sshd.client.SshClient
+import org.apache.sshd.client.session.ClientSession
 
 internal class SFTPTransferProtocolProvider : TransferProtocolProvider {
     companion object {
         val instance by lazy { SFTPTransferProtocolProvider() }
+        const val PROTOCOL = "sftp"
+
     }
 
     override fun getFileProvider(): FileProvider {
         return MySftpFileProvider.instance
     }
 
-    override fun getRootFileObject(host: Host): FileObject {
-        TODO("Not yet implemented")
+    override fun getRootFileObject(requester: FileObjectRequester): SFTPFileObjectHandler {
+        var client: SshClient? = null
+        var session: ClientSession? = null
+        try {
+            val owner = requester.owner
+            client = if (owner == null) SshClients.openClient(requester.host)
+            else SshClients.openClient(requester.host, owner)
+            session = SshClients.openSession(requester.host, client)
+            val options = FileSystemOptions()
+            MySftpFileSystemConfigBuilder.getInstance().setClientSession(options, session)
+            val file = VFS.getManager().resolveFile("sftp:///", options)
+            return SFTPFileObjectHandler(file, client, session)
+        } catch (e: Exception) {
+            IOUtils.closeQuietly(session)
+            IOUtils.closeQuietly(client)
+            throw e
+        }
     }
 
     override fun getProtocol(): String {

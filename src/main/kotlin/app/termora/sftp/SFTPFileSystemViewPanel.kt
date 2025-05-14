@@ -2,21 +2,18 @@ package app.termora.sftp
 
 import app.termora.*
 import app.termora.actions.DataProvider
+import app.termora.protocol.FileObjectHandler
+import app.termora.protocol.FileObjectRequester
+import app.termora.protocol.TransferProtocolProvider
 import app.termora.terminal.DataKey
-import app.termora.vfs2.sftp.MySftpFileSystemConfigBuilder
 import com.formdev.flatlaf.icons.FlatOptionPaneErrorIcon
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
-import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.commons.vfs2.FileSystem
-import org.apache.commons.vfs2.FileSystemOptions
-import org.apache.commons.vfs2.VFS
-import org.apache.sshd.client.SshClient
-import org.apache.sshd.client.session.ClientSession
 import org.jdesktop.swingx.JXBusyLabel
 import org.jdesktop.swingx.JXHyperlink
 import org.slf4j.LoggerFactory
@@ -59,8 +56,7 @@ class SFTPFileSystemViewPanel(
     private val that = this
     private val properties get() = Database.getDatabase().properties
 
-    private var client: SshClient? = null
-    private var session: ClientSession? = null
+    private var handler: FileObjectHandler? = null
     private var fileSystemPanel: FileSystemViewPanel? = null
 
 
@@ -115,17 +111,20 @@ class SFTPFileSystemViewPanel(
         closeIO()
 
         val mySftpFileSystem: FileSystem
+        val provider = TransferProtocolProvider.valueOf(thisHost.protocol)
+            ?: throw IllegalStateException("Protocol ${thisHost.protocol} not supported")
 
         try {
             val owner = SwingUtilities.getWindowAncestor(that)
-            val client = SshClients.openClient(thisHost, owner).apply { client = this }
-            val session = SshClients.openSession(thisHost, client).apply { session = this }
-
-            val options = FileSystemOptions()
-            MySftpFileSystemConfigBuilder.getInstance()
-                .setClientSession(options, session)
-            mySftpFileSystem = VFS.getManager().resolveFile("sftp:///", options).fileSystem
-            session.addCloseFutureListener { onClose() }
+            val requester = FileObjectRequester(host = thisHost, owner = owner)
+            provider.getRootFileObject(requester)
+            val handler = provider.getRootFileObject(requester).apply { handler = this }
+            mySftpFileSystem = handler.file.fileSystem
+            Disposer.register(handler, object : Disposable {
+                override fun dispose() {
+                    onClose()
+                }
+            })
         } catch (e: Exception) {
             closeIO()
             throw e
@@ -165,8 +164,8 @@ class SFTPFileSystemViewPanel(
         fileSystemPanel?.let { Disposer.dispose(it) }
         fileSystemPanel = null
 
-        runCatching { IOUtils.closeQuietly(session) }
-        runCatching { IOUtils.closeQuietly(client) }
+        handler?.let { Disposer.dispose(it) }
+        handler = null
 
         if (host != null && log.isInfoEnabled) {
             log.info("Sftp ${host.name} is closed")

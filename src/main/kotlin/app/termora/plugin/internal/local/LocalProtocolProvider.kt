@@ -10,6 +10,7 @@ import java.awt.Window
 internal class LocalProtocolProvider private constructor() : GenericProtocolProvider {
     companion object {
         val instance by lazy { LocalProtocolProvider() }
+        const val PROTOCOL = "local"
     }
 
     override fun getProtocol(): String {

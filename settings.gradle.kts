@@ -3,3 +3,4 @@ plugins {
 }
 rootProject.name = "termora"
 
+include("plugins:s3")
