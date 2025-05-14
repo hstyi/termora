@@ -1,6 +1,8 @@
 package app.termora.plugin.internal.serial
 
+import app.termora.DynamicIcon
 import app.termora.Host
+import app.termora.Icons
 import app.termora.Serials
 import app.termora.TerminalTab
 import app.termora.WindowScope
@@ -16,6 +18,10 @@ internal class SerialProtocolProvider private constructor() : GenericProtocolPro
 
     override fun getProtocol(): String {
         return PROTOCOL
+    }
+
+    override fun getIcon(width: Int, height: Int): DynamicIcon {
+        return Icons.serial
     }
 
     override fun testConnection(owner: Window?, host: Host) {

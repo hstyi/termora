@@ -1,6 +1,8 @@
 package app.termora.plugin.internal.ssh
 
+import app.termora.DynamicIcon
 import app.termora.Host
+import app.termora.Icons
 import app.termora.SshClients
 import app.termora.TerminalTab
 import app.termora.WindowScope
@@ -24,6 +26,9 @@ internal class SSHProtocolProvider private constructor() : GenericProtocolProvid
         return SSHTerminalTab(windowScope, host)
     }
 
+    override fun getIcon(width: Int, height: Int): DynamicIcon {
+        return Icons.ssh
+    }
 
     override fun canTestConnection(owner: Window?, host: Host) = true
 
@@ -38,4 +43,6 @@ internal class SSHProtocolProvider private constructor() : GenericProtocolProvid
             client?.close()
         }
     }
+
+    override fun ordered() = Int.MIN_VALUE
 }

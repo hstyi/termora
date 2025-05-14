@@ -34,8 +34,9 @@ interface Plugin {
      */
     fun getDescription(): String
 
+
     /**
-     * 扩展点，会多次调用
+     * 获取扩展，会多次调用
      */
-    fun getExtensions(): List<Extension>
+    fun <T : Extension> getExtensions(clazz: Class<T>): List<T>
 }

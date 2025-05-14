@@ -1,5 +1,7 @@
 package app.termora.plugins.s3
 
+import app.termora.DynamicIcon
+import app.termora.Icons
 import app.termora.protocol.FileObjectHandler
 import app.termora.protocol.FileObjectRequester
 import app.termora.protocol.TransferProtocolProvider
@@ -9,10 +11,15 @@ class S3ProtocolProvider private constructor() : TransferProtocolProvider {
 
     companion object {
         val instance by lazy { S3ProtocolProvider() }
+        const val PROTOCOL = "S3"
     }
 
     override fun getProtocol(): String {
-        return "S3"
+        return PROTOCOL
+    }
+
+    override fun getIcon(width: Int, height: Int): DynamicIcon {
+        return Icons.minio
     }
 
     override fun getFileProvider(): FileProvider {

@@ -5,6 +5,8 @@ import app.termora.Icons
 import javax.swing.Icon
 
 internal abstract class InternalPlugin : Plugin {
+    protected val support = ExtensionSupport()
+
     override fun getVersion(): String {
         return Application.getVersion()
     }

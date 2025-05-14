@@ -35,7 +35,7 @@ interface ProtocolProvider {
     /**
      * 协议图标
      */
-    fun getIcon(): DynamicIcon = Icons.terminal
+    fun getIcon(width: Int = 16, height: Int = 16): DynamicIcon = Icons.terminal
 
     /**
      * 协议
@@ -52,4 +52,8 @@ interface ProtocolProvider {
      */
     fun canTestConnection(owner: Window?, host: Host): Boolean = false
 
+    /**
+     * 越小越靠前
+     */
+    fun ordered(): Int = Int.MAX_VALUE
 }

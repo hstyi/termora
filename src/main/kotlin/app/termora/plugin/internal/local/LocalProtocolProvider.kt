@@ -1,6 +1,8 @@
 package app.termora.plugin.internal.local
 
+import app.termora.DynamicIcon
 import app.termora.Host
+import app.termora.Icons
 import app.termora.TerminalTab
 import app.termora.WindowScope
 import app.termora.actions.DataProvider
@@ -15,6 +17,10 @@ internal class LocalProtocolProvider private constructor() : GenericProtocolProv
 
     override fun getProtocol(): String {
         return "Local"
+    }
+
+    override fun getIcon(width: Int, height: Int): DynamicIcon {
+        return Icons.powershell
     }
 
     override fun canTestConnection(owner: Window?, host: Host): Boolean {

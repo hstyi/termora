@@ -5,6 +5,7 @@ import app.termora.actions.OpenHostAction
 import app.termora.plugin.internal.rdp.RDPProtocolProvider
 import app.termora.plugin.internal.sftppty.SFTPPtyProtocolProvider
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
+import app.termora.NewHostDialogV2
 import app.termora.sftp.SFTPActionEvent
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import kotlinx.serialization.Serializable
@@ -300,14 +301,14 @@ class NewHostTree : SimpleTree() {
         }
         newHost.addActionListener(object : ActionListener {
             override fun actionPerformed(e: ActionEvent) {
-                val dialog = HostDialog(owner)
+                val dialog = NewHostDialogV2(owner)
                 dialog.setLocationRelativeTo(owner)
                 dialog.isVisible = true
-                val host = (dialog.host ?: return).copy(parentId = lastHost.id)
+                /*val host = (dialog.host ?: return).copy(parentId = lastHost.id)
                 hostManager.addHost(host)
                 val newNode = HostTreeNode(host)
                 model.insertNodeInto(newNode, lastNode, lastNode.childCount)
-                selectionPath = TreePath(model.getPathToRoot(newNode))
+                selectionPath = TreePath(model.getPathToRoot(newNode))*/
             }
         })
         property.addActionListener(object : ActionListener {

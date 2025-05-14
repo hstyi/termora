@@ -13,7 +13,7 @@ class ExtensionManager private constructor() {
     fun <T : Extension> getExtensions(clazz: Class<T>): List<T> {
         val extensions = mutableListOf<T>()
         for (plugin in PluginManager.getInstance().getLoadedPlugins()) {
-            for (extension in plugin.getExtensions()) {
+            for (extension in plugin.getExtensions(clazz)) {
                 if (clazz.isInstance(extension)) {
                     extensions.add(clazz.cast(extension))
                 }

@@ -31,7 +31,7 @@ internal class RDPProtocolProvider private constructor() : GenericProtocolProvid
         TODO()
     }
 
-    override fun getIcon(): DynamicIcon {
+    override fun getIcon(width: Int, height: Int): DynamicIcon {
         return Icons.microsoftWindows
     }
 
