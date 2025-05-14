@@ -4,6 +4,7 @@ package app.termora
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviderSupport
 import app.termora.actions.DataProviders
+import app.termora.plugin.ExtensionManager
 import app.termora.sftp.SFTPTab
 import app.termora.terminal.DataKey
 import com.formdev.flatlaf.FlatClientProperties
@@ -260,9 +261,21 @@ class TermoraFrame : JFrame(), DataProvider {
 
 
     private class GlassPane : JComponent() {
-        override fun paintComponent(g: Graphics) {
+        private val appearance get() = Database.getDatabase().appearance
+
+        override fun paintComponent(g2d: Graphics) {
+            if (g2d !is Graphics2D) return
+            if (appearance.backgroundImage.isBlank()) return
+
+            val extension = ExtensionManager.getInstance()
+                .getExtensions(GlassPaneExtension::class.java)
+                .firstOrNull()
+            if (extension != null) {
+                extension.paint(g2d)
+                return
+            }
+
             val img = BackgroundManager.getInstance().getBackgroundImage() ?: return
-            val g2d = g as Graphics2D
             g2d.composite = AlphaComposite.getInstance(
                 AlphaComposite.SRC_OVER,
                 if (FlatLaf.isLafDark()) 0.2f else 0.1f
