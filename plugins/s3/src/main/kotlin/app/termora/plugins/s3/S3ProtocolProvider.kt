@@ -5,6 +5,10 @@ import app.termora.Icons
 import app.termora.protocol.FileObjectHandler
 import app.termora.protocol.FileObjectRequester
 import app.termora.protocol.TransferProtocolProvider
+import io.minio.MinioClient
+import org.apache.commons.lang3.StringUtils
+import org.apache.commons.vfs2.FileSystemOptions
+import org.apache.commons.vfs2.VFS
 import org.apache.commons.vfs2.provider.FileProvider
 
 class S3ProtocolProvider private constructor() : TransferProtocolProvider {
@@ -27,7 +31,23 @@ class S3ProtocolProvider private constructor() : TransferProtocolProvider {
     }
 
     override fun getRootFileObject(requester: FileObjectRequester): FileObjectHandler {
-        TODO("Not yet implemented")
+        val host = requester.host
+        val builder = MinioClient.builder()
+            .endpoint(host.host)
+            .credentials(host.username, host.authentication.password)
+        val region = host.options.extras["s3.region"]
+        if (StringUtils.isNotBlank(region)) {
+            builder.region(region)
+        }
+
+        val options = FileSystemOptions()
+        S3FileSystemConfigBuilder.instance.setRegion(options, StringUtils.defaultString(region))
+        S3FileSystemConfigBuilder.instance.setEndpoint(options, host.host)
+        S3FileSystemConfigBuilder.instance.setAccessKey(options, host.username)
+        S3FileSystemConfigBuilder.instance.setSecretKey(options, host.authentication.password)
+
+        val file = VFS.getManager().resolveFile("s3://${StringUtils.defaultIfBlank(requester.defaultPath, "/")}")
+        return FileObjectHandler(file)
     }
 
 }

@@ -1,5 +1,6 @@
 package app.termora.plugins.s3
 
+import io.minio.MinioClient
 import org.apache.commons.vfs2.Capability
 import org.apache.commons.vfs2.FileName
 import org.apache.commons.vfs2.FileSystem
@@ -32,9 +33,18 @@ class S3FileProvider private constructor() : AbstractOriginatingFileProvider() {
 
     override fun doCreateFileSystem(
         rootFileName: FileName,
-        fileSystemOptions: FileSystemOptions
-    ): FileSystem? {
-        TODO("Not yet implemented")
+        options: FileSystemOptions
+    ): FileSystem {
+        val options = FileSystemOptions()
+        val region = S3FileSystemConfigBuilder.instance.getRegion(options)
+        val endpoint = S3FileSystemConfigBuilder.instance.getEndpoint(options)
+        val accessKey = S3FileSystemConfigBuilder.instance.getAccessKey(options)
+        val secretKey = S3FileSystemConfigBuilder.instance.getSecretKey(options)
+        val builder = MinioClient.builder()
+        builder.endpoint(endpoint)
+        builder.credentials(accessKey, secretKey)
+        if (region.isNotBlank()) builder.region(region)
+        return S3FileSystem(builder.build(), rootFileName, options)
     }
 
 

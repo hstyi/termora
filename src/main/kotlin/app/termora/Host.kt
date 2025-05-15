@@ -135,6 +135,10 @@ data class Options(
      * X11 Server,Format: host.port. default: localhost:0
      */
     val x11Forwarding: String = StringUtils.EMPTY,
+    /**
+     * 扩展，如果要使用此
+     */
+    val extras: Map<String, String> = emptyMap(),
 ) {
     companion object {
         val Default = Options()

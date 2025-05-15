@@ -1,5 +1,6 @@
 package app.termora
 
+import app.termora.Application.ohMyJson
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.protocol.ProtocolHostPanelExtension
@@ -166,7 +167,12 @@ class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : Dialo
         val card = currentCard ?: return
         val panel = card.panel
         if (panel.validateFields().not()) return
-        host = panel.getHost()
+        var host = panel.getHost()
+        println(ohMyJson.encodeToString(host))
+
+        if (editHost != null) host = host.copy(id = editHost.id)
+        this.host = host
+        println(ohMyJson.encodeToString(host))
         super.doOKAction()
     }
 

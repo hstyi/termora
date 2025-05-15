@@ -7,6 +7,7 @@ import app.termora.TerminalTab
 import app.termora.protocol.GenericProtocolProvider
 import app.termora.protocol.ProtocolProvider
 import org.apache.commons.lang3.StringUtils
+import javax.swing.JOptionPane
 
 class OpenHostAction : AnAction() {
     companion object {
@@ -27,7 +28,11 @@ class OpenHostAction : AnAction() {
         val providers = ProtocolProvider.providers.filterIsInstance<GenericProtocolProvider>()
 
         if (providers.none { StringUtils.equalsIgnoreCase(it.getProtocol(), host.protocol) }) {
-            OptionPane.showMessageDialog(windowScope.window, "AAA")
+            OptionPane.showMessageDialog(
+                windowScope.window,
+                "Protocol ${host.protocol} not supported",
+                messageType = JOptionPane.ERROR_MESSAGE,
+            )
             return
         }
 
