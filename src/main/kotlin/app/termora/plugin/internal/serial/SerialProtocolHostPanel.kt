@@ -22,10 +22,11 @@ class SerialProtocolHostPanel : ProtocolHostPanel() {
 
 
     override fun getHost(): Host {
-        return Host(
-            name = StringUtils.EMPTY,
-            protocol = SerialProtocolProvider.PROTOCOL
-        )
+        return pane.getHost()
+    }
+
+    override fun setHost(host: Host) {
+        pane.setHost(host)
     }
 
     override fun validateFields(): Boolean {

@@ -18,6 +18,11 @@ abstract class ProtocolHostPanel : JPanel(BorderLayout()) {
     abstract fun getHost(): Host
 
     /**
+     * 设置 Host
+     */
+    abstract fun setHost(host: Host)
+
+    /**
      * 验证字段
      */
     abstract fun validateFields(): Boolean

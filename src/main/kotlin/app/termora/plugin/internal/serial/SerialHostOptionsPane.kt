@@ -4,7 +4,6 @@ import app.termora.*
 import app.termora.plugin.internal.BasicGeneralOption
 import com.fazecast.jSerialComm.SerialPort
 import com.formdev.flatlaf.FlatClientProperties
-import com.formdev.flatlaf.ui.FlatTextBorder
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import kotlinx.coroutines.Dispatchers
@@ -14,7 +13,6 @@ import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
 import java.awt.BorderLayout
 import java.awt.Component
-import java.awt.KeyboardFocusManager
 import java.awt.Window
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
@@ -63,6 +61,25 @@ class SerialHostOptionsPane : OptionsPane() {
             remark = generalOption.remarkTextArea.text,
             options = options,
         )
+    }
+
+    fun setHost(host: Host) {
+        generalOption.nameTextField.text = host.name
+        generalOption.remarkTextArea.text = host.remark
+
+        terminalOption.charsetComboBox.selectedItem = host.options.encoding
+        terminalOption.startupCommandTextField.text = host.options.startupCommand
+
+        val serialComm = host.options.serialComm
+        if (serialComm.port.isNotBlank()) {
+            serialCommOption.serialPortComboBox.selectedItem = serialComm.port
+        }
+        serialCommOption.baudRateComboBox.selectedItem = serialComm.baudRate
+        serialCommOption.dataBitsComboBox.selectedItem = serialComm.dataBits
+        serialCommOption.parityComboBox.selectedItem = serialComm.parity
+        serialCommOption.stopBitsComboBox.selectedItem = serialComm.stopBits
+        serialCommOption.flowControlComboBox.selectedItem = serialComm.flowControl
+
     }
 
     fun validateFields(): Boolean {

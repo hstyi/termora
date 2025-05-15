@@ -6,19 +6,21 @@ import app.termora.protocol.ProtocolHostPanelExtension
 import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.formdev.flatlaf.extras.components.FlatToolBar
 import com.formdev.flatlaf.ui.FlatButtonBorder
-import com.formdev.flatlaf.util.SystemInfo
+import org.apache.commons.lang3.StringUtils
 import java.awt.BorderLayout
 import java.awt.CardLayout
 import java.awt.Dimension
 import java.awt.Window
 import javax.swing.*
 
-class NewHostDialogV2(owner: Window) : DialogWrapper(owner) {
+class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : DialogWrapper(owner) {
 
     private val cardLayout = CardLayout()
     private val cardPanel = JPanel(cardLayout)
     private var currentCard: LazyPanel? = null
     private val buttonGroup = mutableListOf<JToggleButton>()
+    var host: Host? = null
+        private set
 
     init {
 
@@ -76,12 +78,28 @@ class NewHostDialogV2(owner: Window) : DialogWrapper(owner) {
                 toolbar.add(Box.createHorizontalStrut(6))
             }
 
-            if (extension == extensions.first()) {
-                show(protocol, lazyPanel, button)
+            if (editHost == null) {
+                if (extension == extensions.first()) {
+                    show(protocol, lazyPanel, button)
+                }
+            } else {
+                if (StringUtils.equalsIgnoreCase(editHost.protocol, protocol)) {
+                    show(protocol, lazyPanel, button)
+                }
             }
 
         }
 
+        if (editHost != null && currentCard == null) {
+            SwingUtilities.invokeLater {
+                OptionPane.showMessageDialog(
+                    this,
+                    "Protocol ${editHost.protocol} not supported",
+                    messageType = JOptionPane.ERROR_MESSAGE
+                )
+                doCancelAction()
+            }
+        }
 
         toolbar.add(Box.createHorizontalGlue())
 
@@ -115,13 +133,14 @@ class NewHostDialogV2(owner: Window) : DialogWrapper(owner) {
         }
     }
 
-    private class LazyPanel(private val extension: ProtocolHostPanelExtension) : JPanel(BorderLayout()) {
+    private inner class LazyPanel(private val extension: ProtocolHostPanelExtension) : JPanel(BorderLayout()) {
         private var isLoaded = false
         val panel by lazy { extension.createProtocolHostPanel() }
 
         fun load() {
             if (isLoaded) return
             isLoaded = true
+            if (editHost != null) panel.setHost(editHost)
             add(panel, BorderLayout.CENTER)
         }
 
@@ -147,7 +166,7 @@ class NewHostDialogV2(owner: Window) : DialogWrapper(owner) {
         val card = currentCard ?: return
         val panel = card.panel
         if (panel.validateFields().not()) return
-        println(panel.getHost())
+        host = panel.getHost()
         super.doOKAction()
     }
 

@@ -23,10 +23,11 @@ class RDPProtocolHostPanel : ProtocolHostPanel() {
 
 
     override fun getHost(): Host {
-        return Host(
-            name = StringUtils.EMPTY,
-            protocol = RDPProtocolProvider.PROTOCOL
-        )
+        return pane.getHost()
+    }
+
+    override fun setHost(host: Host) {
+       pane.setHost(host)
     }
 
     override fun validateFields(): Boolean {

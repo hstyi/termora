@@ -47,6 +47,16 @@ internal open class LocalHostOptionsPane : OptionsPane() {
         )
     }
 
+    fun setHost(host: Host) {
+        generalOption.nameTextField.text = host.name
+        generalOption.remarkTextArea.text = host.remark
+
+        terminalOption.charsetComboBox.selectedItem = host.options.encoding
+        terminalOption.environmentTextArea.text = host.options.env
+        terminalOption.startupCommandTextField.text = host.options.startupCommand
+
+    }
+
     fun validateFields(): Boolean {
         return validateField(generalOption.nameTextField).not()
     }

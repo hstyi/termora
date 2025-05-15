@@ -2,13 +2,11 @@ package app.termora.plugin.internal.rdp
 
 import app.termora.*
 import app.termora.plugin.internal.BasicProxyOption
-import app.termora.plugin.internal.ssh.SSHProtocolProvider
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatComboBox
 import com.formdev.flatlaf.ui.FlatTextBorder
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
-import org.apache.commons.lang3.StringUtils
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.KeyboardFocusManager
@@ -72,6 +70,26 @@ internal open class RDPHostOptionsPane : OptionsPane() {
             sort = System.currentTimeMillis(),
             remark = generalOption.remarkTextArea.text,
         )
+    }
+
+    fun setHost(host: Host) {
+        generalOption.portTextField.value = host.port
+        generalOption.nameTextField.text = host.name
+        generalOption.usernameTextField.text = host.username
+        generalOption.hostTextField.text = host.host
+        generalOption.remarkTextArea.text = host.remark
+        generalOption.authenticationTypeComboBox.selectedItem = host.authentication.type
+        if (host.authentication.type == AuthenticationType.Password) {
+            generalOption.passwordTextField.text = host.authentication.password
+        }
+
+        proxyOption.proxyTypeComboBox.selectedItem = host.proxy.type
+        proxyOption.proxyHostTextField.text = host.proxy.host
+        proxyOption.proxyPasswordTextField.text = host.proxy.password
+        proxyOption.proxyUsernameTextField.text = host.proxy.username
+        proxyOption.proxyPortTextField.value = host.proxy.port
+        proxyOption.proxyAuthenticationTypeComboBox.selectedItem = host.proxy.authenticationType
+
     }
 
     fun validateFields(): Boolean {

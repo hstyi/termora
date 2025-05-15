@@ -304,18 +304,18 @@ class NewHostTree : SimpleTree() {
                 val dialog = NewHostDialogV2(owner)
                 dialog.setLocationRelativeTo(owner)
                 dialog.isVisible = true
-                /*val host = (dialog.host ?: return).copy(parentId = lastHost.id)
+                val host = (dialog.host ?: return).copy(parentId = lastHost.id)
                 hostManager.addHost(host)
                 val newNode = HostTreeNode(host)
                 model.insertNodeInto(newNode, lastNode, lastNode.childCount)
-                selectionPath = TreePath(model.getPathToRoot(newNode))*/
+                selectionPath = TreePath(model.getPathToRoot(newNode))
             }
         })
         property.addActionListener(object : ActionListener {
             override fun actionPerformed(e: ActionEvent) {
-                val dialog = HostDialog(owner, lastHost)
-                dialog.title = lastHost.name
+                val dialog = NewHostDialogV2(owner, lastHost)
                 dialog.setLocationRelativeTo(owner)
+                dialog.title = lastHost.name
                 dialog.isVisible = true
                 val host = dialog.host ?: return
                 lastNode.host = host
@@ -422,7 +422,8 @@ class NewHostTree : SimpleTree() {
     }
 
     private fun openWithSFTP(evt: EventObject) {
-        val nodes = getSelectionSimpleTreeNodes(true).map { it.host }.filter { it.protocol == SSHProtocolProvider.PROTOCOL }
+        val nodes =
+            getSelectionSimpleTreeNodes(true).map { it.host }.filter { it.protocol == SSHProtocolProvider.PROTOCOL }
         if (nodes.isEmpty()) return
 
         for (node in nodes) {
@@ -431,10 +432,17 @@ class NewHostTree : SimpleTree() {
     }
 
     private fun openWithSFTPCommand(evt: EventObject) {
-        val nodes = getSelectionSimpleTreeNodes(true).map { it.host }.filter { it.protocol == SSHProtocolProvider.PROTOCOL }
+        val nodes =
+            getSelectionSimpleTreeNodes(true).map { it.host }.filter { it.protocol == SSHProtocolProvider.PROTOCOL }
         if (nodes.isEmpty()) return
         for (host in nodes) {
-            openHostAction.actionPerformed(OpenHostActionEvent(this, host.copy(protocol = SFTPPtyProtocolProvider.PROTOCOL), evt))
+            openHostAction.actionPerformed(
+                OpenHostActionEvent(
+                    this,
+                    host.copy(protocol = SFTPPtyProtocolProvider.PROTOCOL),
+                    evt
+                )
+            )
         }
     }
 
@@ -507,9 +515,30 @@ class NewHostTree : SimpleTree() {
                         FileWriter(chooser.selectedFile, Charsets.UTF_8),
                         CSVFormat.EXCEL.builder().setHeader(*CSV_HEADERS).get()
                     ).use { printer ->
-                        printer.printRecord("Projects/Dev", "Web Server", "192.168.1.1", "22", "root", SSHProtocolProvider.PROTOCOL)
-                        printer.printRecord("Projects/Prod", "Web Server", "serverhost.com", "2222", "root", SSHProtocolProvider.PROTOCOL)
-                        printer.printRecord(StringUtils.EMPTY, "Web Server", "serverhost.com", "2222", "user", SSHProtocolProvider.PROTOCOL)
+                        printer.printRecord(
+                            "Projects/Dev",
+                            "Web Server",
+                            "192.168.1.1",
+                            "22",
+                            "root",
+                            SSHProtocolProvider.PROTOCOL
+                        )
+                        printer.printRecord(
+                            "Projects/Prod",
+                            "Web Server",
+                            "serverhost.com",
+                            "2222",
+                            "root",
+                            SSHProtocolProvider.PROTOCOL
+                        )
+                        printer.printRecord(
+                            StringUtils.EMPTY,
+                            "Web Server",
+                            "serverhost.com",
+                            "2222",
+                            "user",
+                            SSHProtocolProvider.PROTOCOL
+                        )
                     }
                     OptionPane.openFileInFolder(
                         owner,
@@ -592,7 +621,14 @@ class NewHostTree : SimpleTree() {
                 val port = json["session.port"]?.jsonPrimitive?.intOrNull ?: 22
                 val group = json["session.group"]?.jsonPrimitive?.content ?: StringUtils.EMPTY
                 val groups = group.split(">")
-                printer.printRecord(groups.joinToString("/"), label, target, port, StringUtils.EMPTY, SSHProtocolProvider.PROTOCOL)
+                printer.printRecord(
+                    groups.joinToString("/"),
+                    label,
+                    target,
+                    port,
+                    StringUtils.EMPTY,
+                    SSHProtocolProvider.PROTOCOL
+                )
             }
         }
 
@@ -648,7 +684,14 @@ class NewHostTree : SimpleTree() {
                     folders.addFirst(p.getAttribute("name"))
                     p = p.parentNode as Element
                 }
-                printer.printRecord(folders.joinToString("/"), label, hostname, port.toString(), username, SSHProtocolProvider.PROTOCOL)
+                printer.printRecord(
+                    folders.joinToString("/"),
+                    label,
+                    hostname,
+                    port.toString(),
+                    username,
+                    SSHProtocolProvider.PROTOCOL
+                )
             }
         }
 
@@ -671,7 +714,14 @@ class NewHostTree : SimpleTree() {
                 val hostname = properties.getProperty("HostName")
                 val username = properties.getProperty("UserName")
                 val port = properties.getProperty("PortNumber")
-                printer.printRecord(StringUtils.EMPTY, label, hostname, port.toString(), username, SSHProtocolProvider.PROTOCOL)
+                printer.printRecord(
+                    StringUtils.EMPTY,
+                    label,
+                    hostname,
+                    port.toString(),
+                    username,
+                    SSHProtocolProvider.PROTOCOL
+                )
             }
         }
 
@@ -773,7 +823,14 @@ class NewHostTree : SimpleTree() {
                     val port = json["port"]?.jsonPrimitive?.intOrNull ?: 22
                     if (StringUtils.isAllBlank(host, label)) continue
                     val folders = FilenameUtils.separatorsToUnix(file.parentFile.relativeTo(dir).toString())
-                    printer.printRecord(folders, StringUtils.defaultIfBlank(label, host), host, port, username, SSHProtocolProvider.PROTOCOL)
+                    printer.printRecord(
+                        folders,
+                        StringUtils.defaultIfBlank(label, host),
+                        host,
+                        port,
+                        username,
+                        SSHProtocolProvider.PROTOCOL
+                    )
                 } catch (e: Exception) {
                     if (log.isErrorEnabled) {
                         log.error(file.absolutePath, e)
