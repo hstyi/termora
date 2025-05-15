@@ -6,6 +6,9 @@ plugins {
 
 dependencies {
     testImplementation(kotlin("test"))
+    testImplementation(platform(libs.testcontainers.bom))
+    testImplementation(libs.testcontainers)
+
     implementation("io.minio:minio:8.5.17")
     compileOnly(project(":"))
 }
