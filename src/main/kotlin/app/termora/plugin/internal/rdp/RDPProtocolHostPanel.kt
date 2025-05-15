@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils
 import java.awt.BorderLayout
 
 class RDPProtocolHostPanel : ProtocolHostPanel() {
+    private val pane by lazy { RDPHostOptionsPane() }
 
     init {
         initView()
@@ -15,7 +16,7 @@ class RDPProtocolHostPanel : ProtocolHostPanel() {
 
 
     private fun initView() {
-        add(RDPHostOptionsPane(), BorderLayout.CENTER)
+        add(pane, BorderLayout.CENTER)
     }
 
     private fun initEvents() {}
@@ -29,6 +30,6 @@ class RDPProtocolHostPanel : ProtocolHostPanel() {
     }
 
     override fun validateFields(): Boolean {
-        return true
+        return pane.validateFields()
     }
 }

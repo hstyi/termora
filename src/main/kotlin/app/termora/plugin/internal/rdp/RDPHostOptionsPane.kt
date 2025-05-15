@@ -84,10 +84,8 @@ internal open class RDPHostOptionsPane : OptionsPane() {
             return false
         }
 
-        if (StringUtils.equalsIgnoreCase(host.protocol, SSHProtocolProvider.PROTOCOL)) {
-            if (validateField(generalOption.usernameTextField)) {
-                return false
-            }
+        if (validateField(generalOption.usernameTextField)) {
+            return false
         }
 
         if (host.authentication.type == AuthenticationType.Password) {

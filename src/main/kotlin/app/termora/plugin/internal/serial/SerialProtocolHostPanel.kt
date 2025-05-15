@@ -6,6 +6,7 @@ import org.apache.commons.lang3.StringUtils
 import java.awt.BorderLayout
 
 class SerialProtocolHostPanel : ProtocolHostPanel() {
+    private val pane by lazy { SerialHostOptionsPane() }
 
     init {
         initView()
@@ -14,7 +15,7 @@ class SerialProtocolHostPanel : ProtocolHostPanel() {
 
 
     private fun initView() {
-        add(SerialHostOptionsPane(), BorderLayout.CENTER)
+        add(pane, BorderLayout.CENTER)
     }
 
     private fun initEvents() {}
@@ -28,6 +29,6 @@ class SerialProtocolHostPanel : ProtocolHostPanel() {
     }
 
     override fun validateFields(): Boolean {
-        return true
+        return pane.validateFields()
     }
 }

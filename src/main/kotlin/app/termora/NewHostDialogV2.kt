@@ -117,7 +117,7 @@ class NewHostDialogV2(owner: Window) : DialogWrapper(owner) {
 
     private class LazyPanel(private val extension: ProtocolHostPanelExtension) : JPanel(BorderLayout()) {
         private var isLoaded = false
-        private val panel by lazy { extension.createProtocolHostPanel() }
+        val panel by lazy { extension.createProtocolHostPanel() }
 
         fun load() {
             if (isLoaded) return
@@ -143,9 +143,13 @@ class NewHostDialogV2(owner: Window) : DialogWrapper(owner) {
         }
     }
 
-
-    private fun testSerial(host: Host) {
-        Serials.openPort(host).closePort()
+    override fun doOKAction() {
+        val card = currentCard ?: return
+        val panel = card.panel
+        if (panel.validateFields().not()) return
+        println(panel.getHost())
+        super.doOKAction()
     }
+
 
 }

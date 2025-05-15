@@ -8,6 +8,7 @@ import java.awt.BorderLayout
 
 internal class LocalProtocolHostPanel : ProtocolHostPanel() {
 
+    private val pane by lazy { LocalHostOptionsPane() }
     init {
         initView()
         initEvents()
@@ -15,7 +16,7 @@ internal class LocalProtocolHostPanel : ProtocolHostPanel() {
 
 
     private fun initView() {
-        add(LocalHostOptionsPane(), BorderLayout.CENTER)
+        add(pane, BorderLayout.CENTER)
     }
 
     private fun initEvents() {}
@@ -29,6 +30,6 @@ internal class LocalProtocolHostPanel : ProtocolHostPanel() {
     }
 
     override fun validateFields(): Boolean {
-        return true
+        return pane.validateFields()
     }
 }

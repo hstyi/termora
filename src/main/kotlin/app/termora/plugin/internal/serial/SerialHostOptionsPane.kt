@@ -37,7 +37,7 @@ class SerialHostOptionsPane : OptionsPane() {
     }
 
 
-     fun getHost(): Host {
+    fun getHost(): Host {
         val name = generalOption.nameTextField.text
         val protocol = SerialProtocolProvider.PROTOCOL
 
@@ -68,7 +68,9 @@ class SerialHostOptionsPane : OptionsPane() {
     fun validateFields(): Boolean {
         val host = getHost()
 
-
+        if (validateField(generalOption.nameTextField)) {
+            return false
+        }
 
         if (StringUtils.equalsIgnoreCase(host.protocol, SerialProtocolProvider.PROTOCOL)) {
             if (validateField(serialCommOption.serialPortComboBox)

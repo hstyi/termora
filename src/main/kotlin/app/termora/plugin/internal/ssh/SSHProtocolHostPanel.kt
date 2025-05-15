@@ -7,6 +7,8 @@ import java.awt.BorderLayout
 
 class SSHProtocolHostPanel : ProtocolHostPanel() {
 
+    private val pane by lazy { SSHHostOptionsPane() }
+
     init {
         initView()
         initEvents()
@@ -14,7 +16,7 @@ class SSHProtocolHostPanel : ProtocolHostPanel() {
 
 
     private fun initView() {
-        add(SSHHostOptionsPane(), BorderLayout.CENTER)
+        add(pane, BorderLayout.CENTER)
     }
 
     private fun initEvents() {}
@@ -28,6 +30,6 @@ class SSHProtocolHostPanel : ProtocolHostPanel() {
     }
 
     override fun validateFields(): Boolean {
-        return true
+        return pane.validateFields()
     }
 }
