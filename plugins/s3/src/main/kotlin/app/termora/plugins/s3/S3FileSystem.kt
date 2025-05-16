@@ -22,6 +22,10 @@ class S3FileSystem(
         return S3FileObject(minio, name, this)
     }
 
+    fun getDelimiter(): String {
+        return S3FileSystemConfigBuilder.instance.getDelimiter(fileSystemOptions)
+    }
+
     override fun close() {
         minio.close()
     }

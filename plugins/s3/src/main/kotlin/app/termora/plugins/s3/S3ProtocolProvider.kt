@@ -5,6 +5,7 @@ import app.termora.Icons
 import app.termora.protocol.FileObjectHandler
 import app.termora.protocol.FileObjectRequester
 import app.termora.protocol.TransferProtocolProvider
+import app.termora.vfs2.s3.AbstractS3FileSystemConfigBuilder
 import io.minio.MinioClient
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.vfs2.FileSystemOptions
@@ -39,14 +40,19 @@ class S3ProtocolProvider private constructor() : TransferProtocolProvider {
         if (StringUtils.isNotBlank(region)) {
             builder.region(region)
         }
-
+        val delimiter = host.options.extras["s3.delimiter"] ?: "/"
         val options = FileSystemOptions()
+        
         S3FileSystemConfigBuilder.instance.setRegion(options, StringUtils.defaultString(region))
         S3FileSystemConfigBuilder.instance.setEndpoint(options, host.host)
         S3FileSystemConfigBuilder.instance.setAccessKey(options, host.username)
         S3FileSystemConfigBuilder.instance.setSecretKey(options, host.authentication.password)
+        S3FileSystemConfigBuilder.instance.setDelimiter(options, delimiter)
 
-        val file = VFS.getManager().resolveFile("s3://${StringUtils.defaultIfBlank(requester.defaultPath, "/")}")
+        val file = VFS.getManager().resolveFile(
+            "s3://${StringUtils.defaultIfBlank(requester.defaultPath, "/")}",
+            options
+        )
         return FileObjectHandler(file)
     }
 

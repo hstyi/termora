@@ -58,7 +58,10 @@ class S3HostOptionsPane : OptionsPane() {
 
         val options = Options.Default.copy(
             sftpDefaultDirectory = sftpOption.defaultDirectoryField.text,
-            extras = mutableMapOf("s3.region" to generalOption.regionTextField.text)
+            extras = mutableMapOf(
+                "s3.region" to generalOption.regionTextField.text,
+                "s3.delimiter" to generalOption.delimiterTextField.text,
+            )
         )
 
         return Host(
@@ -82,6 +85,7 @@ class S3HostOptionsPane : OptionsPane() {
         generalOption.remarkTextArea.text = host.remark
         generalOption.passwordTextField.text = host.authentication.password
         generalOption.regionTextField.text = host.options.extras["s3.region"] ?: StringUtils.EMPTY
+        generalOption.delimiterTextField.text = host.options.extras["s3.delimiter"] ?: StringUtils.EMPTY
 
         proxyOption.proxyTypeComboBox.selectedItem = host.proxy.type
         proxyOption.proxyHostTextField.text = host.proxy.host
@@ -158,6 +162,7 @@ class S3HostOptionsPane : OptionsPane() {
         val passwordTextField = OutlinePasswordField(255)
         val remarkTextArea = FixedLengthTextArea(512)
         val regionTextField = OutlineTextField(128)
+        val delimiterTextField = OutlineTextField(128)
 
         init {
             initView()
@@ -165,6 +170,7 @@ class S3HostOptionsPane : OptionsPane() {
         }
 
         private fun initView() {
+            delimiterTextField.text = "/"
             add(getCenterComponent(), BorderLayout.CENTER)
         }
 
@@ -229,6 +235,9 @@ class S3HostOptionsPane : OptionsPane() {
 
                 .add("Region:").xy(1, rows)
                 .add(regionTextField).xyw(3, rows, 5).apply { rows += step }
+
+                .add("Delimiter:").xy(1, rows)
+                .add(delimiterTextField).xyw(3, rows, 5).apply { rows += step }
 
                 .add("${I18n.getString("termora.new-host.general.remark")}:").xy(1, rows)
                 .add(JScrollPane(remarkTextArea).apply { border = FlatTextBorder() })

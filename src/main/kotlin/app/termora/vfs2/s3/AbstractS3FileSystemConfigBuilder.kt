@@ -1,5 +1,6 @@
 package app.termora.vfs2.s3
 
+import org.apache.commons.lang3.StringUtils
 import org.apache.commons.vfs2.FileSystemConfigBuilder
 import org.apache.commons.vfs2.FileSystemOptions
 
@@ -34,6 +35,14 @@ abstract class AbstractS3FileSystemConfigBuilder : FileSystemConfigBuilder() {
 
     fun getRegion(options: FileSystemOptions): String {
         return getParam(options, "region")
+    }
+
+    fun setDelimiter(options: FileSystemOptions, delimiter: String) {
+        setParam(options, "delimiter", delimiter)
+    }
+
+    fun getDelimiter(options: FileSystemOptions): String {
+        return StringUtils.defaultIfBlank(getParam(options, "delimiter"), "/")
     }
 
 }

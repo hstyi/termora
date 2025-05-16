@@ -35,7 +35,6 @@ class S3FileProvider private constructor() : AbstractOriginatingFileProvider() {
         rootFileName: FileName,
         options: FileSystemOptions
     ): FileSystem {
-        val options = FileSystemOptions()
         val region = S3FileSystemConfigBuilder.instance.getRegion(options)
         val endpoint = S3FileSystemConfigBuilder.instance.getEndpoint(options)
         val accessKey = S3FileSystemConfigBuilder.instance.getAccessKey(options)
