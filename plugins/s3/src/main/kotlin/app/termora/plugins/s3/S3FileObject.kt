@@ -1,5 +1,7 @@
 package app.termora.plugins.s3
 
+import app.termora.Icons
+import app.termora.vfs2.FileObjectDescriptor
 import io.minio.ListObjectsArgs
 import io.minio.MinioClient
 import org.apache.commons.lang3.StringUtils
@@ -7,12 +9,13 @@ import org.apache.commons.vfs2.FileObject
 import org.apache.commons.vfs2.FileType
 import org.apache.commons.vfs2.provider.AbstractFileName
 import org.apache.commons.vfs2.provider.AbstractFileObject
+import javax.swing.Icon
 
 class S3FileObject(
     private val minio: MinioClient,
     fileName: AbstractFileName,
     fileSystem: S3FileSystem
-) : AbstractFileObject<S3FileSystem>(fileName, fileSystem) {
+) : AbstractFileObject<S3FileSystem>(fileName, fileSystem), FileObjectDescriptor {
     private var attributes = Attributes()
 
     init {
@@ -88,6 +91,12 @@ class S3FileObject(
         return super.getFileSystem() as S3FileSystem
     }
 
+    override fun getIcon(width: Int, height: Int): Icon? {
+        if (attributes.isBucket) {
+            return Icons.bulletList
+        }
+        return super.getIcon(width, height)
+    }
 
     private data class Attributes(
         val isRoot: Boolean = false,

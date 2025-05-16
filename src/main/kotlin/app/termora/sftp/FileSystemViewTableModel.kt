@@ -3,6 +3,7 @@ package app.termora.sftp
 import app.termora.I18n
 import app.termora.NativeStringComparator
 import app.termora.formatBytes
+import app.termora.vfs2.FileObjectDescriptor
 import app.termora.vfs2.sftp.MySftpFileObject
 import com.formdev.flatlaf.util.SystemInfo
 import kotlinx.coroutines.Dispatchers
@@ -111,6 +112,10 @@ class FileSystemViewTableModel : DefaultTableModel() {
     }
 
     fun getFileIcon(file: FileObject, width: Int = 16, height: Int = 16): Icon {
+        if (file is FileObjectDescriptor) {
+            val icon = file.getIcon(width, height)
+            if (icon != null) return icon
+        }
         return if (SystemInfo.isWindows) NativeFileIcons.getIcon(file.name.baseName, file.isFile, width, height).first
         else NativeFileIcons.getIcon(file.name.baseName, file.isFile).first
     }
