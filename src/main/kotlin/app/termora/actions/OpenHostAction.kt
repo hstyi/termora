@@ -3,6 +3,7 @@ package app.termora.actions
 import app.termora.*
 import app.termora.protocol.GenericProtocolProvider
 import app.termora.protocol.ProtocolProvider
+import app.termora.sftp.SFTPActionEvent
 import org.apache.commons.lang3.StringUtils
 import javax.swing.JOptionPane
 
@@ -37,7 +38,7 @@ class OpenHostAction : AnAction() {
         if (providers.first { StringUtils.equalsIgnoreCase(it.getProtocol(), host.protocol) }
                 .isTransfer()) {
             ActionManager.getInstance().getAction(Actions.SFTP)
-                .actionPerformed(evt)
+                .actionPerformed(SFTPActionEvent(evt.source, evt.host.id, evt.event))
             return
         }
 

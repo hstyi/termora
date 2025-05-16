@@ -75,7 +75,6 @@ class S3FileProviderTest {
                 username = ak,
                 authentication = Authentication.No.copy(type = AuthenticationType.Password, password = sk),
             ),
-            defaultPath = StringUtils.EMPTY,
         )
         val file = S3ProtocolProvider.instance.getRootFileObject(requester).file
         VFSWalker.walk(file, object : FileVisitor<FileObject> {

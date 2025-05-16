@@ -1,15 +1,16 @@
 package app.termora.plugins.s3
 
+import app.termora.Application
 import app.termora.DynamicIcon
 import app.termora.Icons
 import app.termora.vfs2.FileObjectDescriptor
-import io.minio.ListObjectsArgs
-import io.minio.MinioClient
+import io.minio.*
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.vfs2.FileObject
 import org.apache.commons.vfs2.FileType
 import org.apache.commons.vfs2.provider.AbstractFileName
 import org.apache.commons.vfs2.provider.AbstractFileObject
+import java.io.*
 
 class S3FileObject(
     private val minio: MinioClient,
@@ -27,14 +28,37 @@ class S3FileObject(
     }
 
     override fun doGetType(): FileType {
-        if (attributes.isRoot || attributes.isBucket || attributes.isDirectory) {
-            return FileType.FOLDER
-        }
-        return if (attributes.isFile) FileType.FILE else FileType.IMAGINARY
+        return if (attributes.isRoot || attributes.isBucket) FileType.FOLDER
+        else if (attributes.isDirectory && attributes.isFile) FileType.FILE_OR_FOLDER
+        else if (attributes.isFile) FileType.FILE
+        else if (attributes.isDirectory) FileType.FOLDER
+        else FileType.IMAGINARY
     }
 
     override fun doListChildren(): Array<out String?>? {
         return null
+    }
+
+    override fun doCreateFolder() {
+        var objectName = getObjectName()
+        objectName = StringUtils.removeEnd(objectName, fileSystem.getDelimiter())
+        objectName = objectName + fileSystem.getDelimiter() + Application.getName() + "_Keep"
+        minio.putObject(
+            PutObjectArgs.builder()
+                .bucket(getBucketName())
+                .stream(ByteArrayInputStream(byteArrayOf()), -1, 5 * 1024 * 1024)
+                .`object`(objectName).build()
+        )
+    }
+
+    private fun getBucketName(): String {
+        if (StringUtils.isNotBlank(attributes.bucket)) {
+            return attributes.bucket
+        }
+        if (parent is S3FileObject) {
+            return (parent as S3FileObject).getBucketName()
+        }
+        throw IllegalArgumentException("Bucket must be a S3 file object")
     }
 
     override fun doListChildrenResolved(): Array<FileObject>? {
@@ -50,20 +74,22 @@ class S3FileObject(
                     file.attributes = file.attributes.copy(
                         isBucket = true,
                         bucket = bucket.name(),
+                        isDirectory = false,
+                        isFile = false,
                         lastModified = bucket.creationDate().toInstant().toEpochMilli()
                     )
                     children.add(file)
                 }
             }
         } else if (attributes.isBucket || attributes.isDirectory) {
-            val builder = ListObjectsArgs.builder().bucket(attributes.bucket)
+            val builder = ListObjectsArgs.builder().bucket(getBucketName())
                 .delimiter(fileSystem.getDelimiter())
             var prefix = StringUtils.EMPTY
             if (attributes.isDirectory) {
                 // remove first delimiter
                 prefix = StringUtils.removeStart(name.path, fileSystem.getDelimiter())
                 // remove bucket
-                prefix = StringUtils.removeStart(prefix, attributes.bucket)
+                prefix = StringUtils.removeStart(prefix, getBucketName())
                 // remove first delimiter
                 prefix = StringUtils.removeStart(prefix, fileSystem.getDelimiter())
                 // remove last delimiter
@@ -127,6 +153,55 @@ class S3FileObject(
         return attributes.owner
     }
 
+    override fun doDelete() {
+        if (isFile) {
+            minio.removeObject(
+                RemoveObjectArgs.builder()
+                    .bucket(getBucketName()).`object`(getObjectName()).build()
+            )
+        }
+    }
+
+    override fun doGetOutputStream(bAppend: Boolean): OutputStream? {
+        return createStreamer()
+    }
+
+    private fun createStreamer(): OutputStream {
+        val pis = PipedInputStream()
+        val pos = PipedOutputStream(pis)
+
+        val thread = Thread.ofVirtual().start {
+            minio.putObject(
+                PutObjectArgs.builder()
+                    .bucket(getBucketName())
+                    .stream(pis, -1, 32 * 1024 * 1024)
+                    .`object`(getObjectName()).build()
+            )
+        }
+
+        return object : OutputStream() {
+            override fun write(b: Int) {
+                pos.write(b)
+            }
+
+            override fun close() {
+                pis.close()
+                pos.close()
+                thread.join()
+            }
+        }
+    }
+
+    override fun doGetInputStream(bufferSize: Int): InputStream? {
+        return minio.getObject(GetObjectArgs.builder().bucket(getBucketName()).`object`(getObjectName()).build())
+    }
+
+    private fun getObjectName(): String {
+        var objectName = StringUtils.removeStart(name.path, fileSystem.getDelimiter())
+        objectName = StringUtils.removeStart(objectName, getBucketName())
+        objectName = StringUtils.removeStart(objectName, fileSystem.getDelimiter())
+        return objectName
+    }
 
     private data class Attributes(
         val isRoot: Boolean = false,

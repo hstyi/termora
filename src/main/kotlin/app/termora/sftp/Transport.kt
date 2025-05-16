@@ -158,7 +158,7 @@ class Transport(
                     if (!target.exists()) {
                         target.createFolder()
                     }
-                } catch (e: FileAlreadyExistsException) {
+                } catch (_: FileAlreadyExistsException) {
                     if (log.isWarnEnabled) {
                         log.warn("Directory ${target.name} already exists")
                     }

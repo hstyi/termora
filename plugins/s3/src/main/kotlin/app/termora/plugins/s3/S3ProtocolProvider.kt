@@ -42,7 +42,8 @@ class S3ProtocolProvider private constructor() : TransferProtocolProvider {
         }
         val delimiter = host.options.extras["s3.delimiter"] ?: "/"
         val options = FileSystemOptions()
-        
+        val defaultPath = host.options.sftpDefaultDirectory
+
         S3FileSystemConfigBuilder.instance.setRegion(options, StringUtils.defaultString(region))
         S3FileSystemConfigBuilder.instance.setEndpoint(options, host.host)
         S3FileSystemConfigBuilder.instance.setAccessKey(options, host.username)
@@ -50,7 +51,7 @@ class S3ProtocolProvider private constructor() : TransferProtocolProvider {
         S3FileSystemConfigBuilder.instance.setDelimiter(options, delimiter)
 
         val file = VFS.getManager().resolveFile(
-            "s3://${StringUtils.defaultIfBlank(requester.defaultPath, "/")}",
+            "s3://${StringUtils.defaultIfBlank(defaultPath, "/")}",
             options
         )
         return FileObjectHandler(file)
