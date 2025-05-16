@@ -41,8 +41,10 @@ class SnippetPanel : JPanel(BorderLayout()), Disposable {
     private fun initViews() {
         val splitPane = JSplitPane()
         splitPane.border = BorderFactory.createMatteBorder(1, 0, 0, 0, DynamicColor.BorderColor)
+        val scrollPane = JScrollPane(snippetTree)
+        scrollPane.border = BorderFactory.createEmptyBorder()
 
-        leftPanel.add(snippetTree, BorderLayout.CENTER)
+        leftPanel.add(scrollPane, BorderLayout.CENTER)
         leftPanel.border = BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 0, 1, DynamicColor.BorderColor),
             BorderFactory.createEmptyBorder(4, 4, 4, 4)
