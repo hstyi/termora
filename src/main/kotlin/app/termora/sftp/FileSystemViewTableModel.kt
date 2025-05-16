@@ -106,6 +106,10 @@ class FileSystemViewTableModel : DefaultTableModel() {
     }
 
     private fun getFileType(file: FileObject): String {
+        if (file is FileObjectDescriptor) {
+            val type = file.getTypeDescription()
+            if (type != null) return type
+        }
         return if (SystemInfo.isWindows) NativeFileIcons.getIcon(file.name.baseName, file.isFile).second
         else if (file.isSymbolicLink) I18n.getString("termora.transport.table.type.symbolic-link")
         else NativeFileIcons.getIcon(file.name.baseName, file.isFile).second
@@ -125,8 +129,15 @@ class FileSystemViewTableModel : DefaultTableModel() {
     }
 
     fun getLastModifiedTime(file: FileObject): String {
-        if (file.content.lastModifiedTime < 1) return "-"
-        return DateFormatUtils.format(Date(file.content.lastModifiedTime), "yyyy/MM/dd HH:mm")
+        var lastModified: Long = 0
+        if (file is FileObjectDescriptor) {
+            val time = file.getLastModified()
+            if (time != null) lastModified = time
+        } else {
+            lastModified = file.content.lastModifiedTime
+        }
+        if (lastModified < 1) return "-"
+        return DateFormatUtils.format(Date(lastModified), "yyyy/MM/dd HH:mm")
     }
 
     private fun getAttrs(file: FileObject): String {

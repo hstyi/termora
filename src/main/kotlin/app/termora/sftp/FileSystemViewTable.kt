@@ -43,6 +43,8 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.regex.Pattern
 import javax.swing.*
+import javax.swing.event.PopupMenuEvent
+import javax.swing.event.PopupMenuListener
 import javax.swing.table.DefaultTableCellRenderer
 import kotlin.collections.ArrayDeque
 import kotlin.collections.List
@@ -88,6 +90,7 @@ class FileSystemViewTable(
                 as FileSystemViewPanel
     private val actionManager get() = ActionManager.getInstance()
     private val isDisposed = AtomicBoolean(false)
+    private var isPopupMenu = false
 
     init {
         initViews()
@@ -115,7 +118,7 @@ class FileSystemViewTable(
 
         setDefaultRenderer(Any::class.java, object : DefaultTableCellRenderer() {
             override fun getTableCellRendererComponent(
-                table: JTable?,
+                table: JTable,
                 value: Any?,
                 isSelected: Boolean,
                 hasFocus: Boolean,
@@ -124,7 +127,11 @@ class FileSystemViewTable(
             ): Component {
                 foreground = null
                 val c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column)
-                icon = if (column == FileSystemViewTableModel.COLUMN_NAME) model.getFileIcon(row) else null
+                var icon = if (column == FileSystemViewTableModel.COLUMN_NAME) model.getFileIcon(row) else null
+                if ((table.hasFocus() || isPopupMenu) && isSelected && icon is DynamicIcon) {
+                    icon = icon.dark
+                }
+                super.icon = icon
                 foreground = if (!isSelected && model.getFileObject(row).isHidden)
                     UIManager.getColor("textInactiveText") else foreground
                 return c
@@ -393,6 +400,19 @@ class FileSystemViewTable(
             transfer.isEnabled = sftpPanel.canTransfer(table)
         }
 
+        popupMenu.addPopupMenuListener(object : PopupMenuListener {
+            override fun popupMenuWillBecomeVisible(e: PopupMenuEvent) {
+                isPopupMenu = true
+            }
+
+            override fun popupMenuWillBecomeInvisible(e: PopupMenuEvent) {
+                isPopupMenu = false
+            }
+
+            override fun popupMenuCanceled(e: PopupMenuEvent?) {
+            }
+
+        })
 
         popupMenu.show(table, e.x, e.y)
     }
