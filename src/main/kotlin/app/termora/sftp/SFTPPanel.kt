@@ -95,7 +95,7 @@ class SFTPPanel : JPanel(BorderLayout()), DataProvider, Disposable {
             FileSystemViewPanel(
                 localHost,
                 TransferProtocolProvider.valueOf(LocalTransferProtocolProvider.PROTOCOL)!!
-                    .getRootFileObject(FileObjectRequester(localHost)).file.fileSystem,
+                    .getRootFileObject(FileObjectRequester(localHost)).file,
                 transportManager,
                 coroutineScope
             )

@@ -1,9 +1,6 @@
 package app.termora.actions
 
-import app.termora.OpenHostActionEvent
-import app.termora.OptionPane
-import app.termora.PtyHostTerminalTab
-import app.termora.TerminalTab
+import app.termora.*
 import app.termora.protocol.GenericProtocolProvider
 import app.termora.protocol.ProtocolProvider
 import org.apache.commons.lang3.StringUtils
@@ -25,7 +22,7 @@ class OpenHostAction : AnAction() {
         val host = evt.host
 
         var tab: TerminalTab? = null
-        val providers = ProtocolProvider.providers.filterIsInstance<GenericProtocolProvider>()
+        var providers = ProtocolProvider.providers
 
         if (providers.none { StringUtils.equalsIgnoreCase(it.getProtocol(), host.protocol) }) {
             OptionPane.showMessageDialog(
@@ -35,6 +32,17 @@ class OpenHostAction : AnAction() {
             )
             return
         }
+
+        // 如果是传输协议
+        if (providers.first { StringUtils.equalsIgnoreCase(it.getProtocol(), host.protocol) }
+                .isTransfer()) {
+            ActionManager.getInstance().getAction(Actions.SFTP)
+                .actionPerformed(evt)
+            return
+        }
+
+        // 只处理通用协议
+        providers = providers.filterIsInstance<GenericProtocolProvider>()
 
         for (provider in providers) {
             if (StringUtils.equalsIgnoreCase(provider.getProtocol(), host.protocol)) {

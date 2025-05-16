@@ -6,14 +6,20 @@ import app.termora.protocol.FileObjectHandler
 import app.termora.protocol.FileObjectRequester
 import app.termora.protocol.TransferProtocolProvider
 import app.termora.terminal.DataKey
+import app.termora.vfs2.sftp.MySftpFileSystem
 import com.formdev.flatlaf.icons.FlatOptionPaneErrorIcon
+import com.formdev.flatlaf.util.SystemInfo
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
 import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.SystemUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
+import org.apache.commons.vfs2.FileObject
 import org.apache.commons.vfs2.FileSystem
+import org.apache.commons.vfs2.VFS
+import org.apache.commons.vfs2.provider.local.LocalFileSystem
 import org.jdesktop.swingx.JXBusyLabel
 import org.jdesktop.swingx.JXHyperlink
 import org.slf4j.LoggerFactory
@@ -110,7 +116,7 @@ class SFTPFileSystemViewPanel(
 
         closeIO()
 
-        val mySftpFileSystem: FileSystem
+        val file: FileObject
         val provider = TransferProtocolProvider.valueOf(thisHost.protocol)
             ?: throw IllegalStateException("Protocol ${thisHost.protocol} not supported")
 
@@ -119,7 +125,7 @@ class SFTPFileSystemViewPanel(
             val requester = FileObjectRequester(host = thisHost, owner = owner)
             provider.getRootFileObject(requester)
             val handler = provider.getRootFileObject(requester).apply { handler = this }
-            mySftpFileSystem = handler.file.fileSystem
+            file = handler.file
             Disposer.register(handler, object : Disposable {
                 override fun dispose() {
                     onClose()
@@ -137,13 +143,44 @@ class SFTPFileSystemViewPanel(
 
         withContext(Dispatchers.Swing) {
             state = State.Connected
-            val fileSystemPanel = FileSystemViewPanel(thisHost, mySftpFileSystem, transportManager, coroutineScope)
+            val fileSystemPanel = FileSystemViewPanel(thisHost, file, transportManager, coroutineScope)
             cardPanel.add(fileSystemPanel, State.Connected.name)
             cardLayout.show(cardPanel, State.Connected.name)
             that.fileSystemPanel = fileSystemPanel
         }
 
     }
+    /*
+        private fun getHomeDirectory(): FileObject {
+            val fileSystem = getFileSystem()
+            if (fileSystem is MySftpFileSystem) {
+                val host = fileSystem.getClientSession().getAttribute(SshClients.HOST_KEY)
+                    ?: return fileSystem.resolveFile(fileSystem.getDefaultDir())
+                val defaultDirectory = host.options.sftpDefaultDirectory
+                if (defaultDirectory.isNotBlank()) {
+                    return fileSystem.resolveFile(defaultDirectory)
+                }
+                return fileSystem.resolveFile(fileSystem.getDefaultDir())
+            }
+
+            if (sftp.defaultDirectory.isNotBlank()) {
+                if (fileSystem is LocalFileSystem) {
+                    val resolveFile = if (SystemInfo.isWindows) {
+                        VFS.getManager().resolveFile("file://${sftp.defaultDirectory}")
+                    } else {
+                        fileSystem.resolveFile("file://${sftp.defaultDirectory}")
+                    }
+                    if (resolveFile.exists()) {
+                        setFileSystem(resolveFile.fileSystem)
+                        return resolveFile
+                    }
+                }
+            } else if (fileSystem is LocalFileSystem) {
+                return fileSystem.resolveFile("file://${SystemUtils.USER_HOME}")
+            }
+
+            return fileSystem.resolveFile("/")
+        }*/
 
     private fun onClose() {
         if (isDisposed.get()) {
