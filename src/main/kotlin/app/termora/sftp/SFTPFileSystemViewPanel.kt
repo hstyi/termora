@@ -150,37 +150,6 @@ class SFTPFileSystemViewPanel(
         }
 
     }
-    /*
-        private fun getHomeDirectory(): FileObject {
-            val fileSystem = getFileSystem()
-            if (fileSystem is MySftpFileSystem) {
-                val host = fileSystem.getClientSession().getAttribute(SshClients.HOST_KEY)
-                    ?: return fileSystem.resolveFile(fileSystem.getDefaultDir())
-                val defaultDirectory = host.options.sftpDefaultDirectory
-                if (defaultDirectory.isNotBlank()) {
-                    return fileSystem.resolveFile(defaultDirectory)
-                }
-                return fileSystem.resolveFile(fileSystem.getDefaultDir())
-            }
-
-            if (sftp.defaultDirectory.isNotBlank()) {
-                if (fileSystem is LocalFileSystem) {
-                    val resolveFile = if (SystemInfo.isWindows) {
-                        VFS.getManager().resolveFile("file://${sftp.defaultDirectory}")
-                    } else {
-                        fileSystem.resolveFile("file://${sftp.defaultDirectory}")
-                    }
-                    if (resolveFile.exists()) {
-                        setFileSystem(resolveFile.fileSystem)
-                        return resolveFile
-                    }
-                }
-            } else if (fileSystem is LocalFileSystem) {
-                return fileSystem.resolveFile("file://${SystemUtils.USER_HOME}")
-            }
-
-            return fileSystem.resolveFile("/")
-        }*/
 
     private fun onClose() {
         if (isDisposed.get()) {

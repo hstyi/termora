@@ -6,6 +6,5 @@ import java.awt.Window
 
 class FileObjectRequester(
     val host: Host,
-    val defaultPath: String = StringUtils.EMPTY,
     val owner: Window? = null,
 )

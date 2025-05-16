@@ -1,5 +1,6 @@
 package app.termora.sftp.internal.local
 
+import app.termora.Database
 import app.termora.protocol.FileObjectHandler
 import app.termora.protocol.FileObjectRequester
 import app.termora.protocol.TransferProtocolProvider
@@ -13,7 +14,7 @@ internal class LocalTransferProtocolProvider : TransferProtocolProvider {
     companion object {
         val instance by lazy { LocalTransferProtocolProvider() }
         private val localFileProvider by lazy { DefaultLocalFileProvider() }
-
+        private val sftp get() = Database.getDatabase().sftp
         const val PROTOCOL = "file"
     }
 
@@ -22,8 +23,11 @@ internal class LocalTransferProtocolProvider : TransferProtocolProvider {
     }
 
     override fun getRootFileObject(requester: FileObjectRequester): FileObjectHandler {
-        val path = StringUtils.defaultIfBlank(requester.defaultPath, SystemUtils.USER_HOME)
-        val file = VFS.getManager().resolveFile("file:///${path}")
+        var defaultDirectory = sftp.defaultDirectory
+        if (StringUtils.isBlank(defaultDirectory)) {
+            defaultDirectory = SystemUtils.USER_HOME
+        }
+        val file = VFS.getManager().resolveFile("file://${defaultDirectory}")
         return FileObjectHandler(file)
     }
 
