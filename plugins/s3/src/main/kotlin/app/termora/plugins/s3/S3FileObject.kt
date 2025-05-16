@@ -1,16 +1,19 @@
 package app.termora.plugins.s3
 
-import app.termora.Application
 import app.termora.DynamicIcon
 import app.termora.Icons
 import app.termora.vfs2.FileObjectDescriptor
 import io.minio.*
+import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.vfs2.FileObject
 import org.apache.commons.vfs2.FileType
 import org.apache.commons.vfs2.provider.AbstractFileName
 import org.apache.commons.vfs2.provider.AbstractFileObject
-import java.io.*
+import java.io.InputStream
+import java.io.OutputStream
+import java.io.PipedInputStream
+import java.io.PipedOutputStream
 
 class S3FileObject(
     private val minio: MinioClient,
@@ -40,15 +43,7 @@ class S3FileObject(
     }
 
     override fun doCreateFolder() {
-        var objectName = getObjectName()
-        objectName = StringUtils.removeEnd(objectName, fileSystem.getDelimiter())
-        objectName = objectName + fileSystem.getDelimiter() + Application.getName() + "_Keep"
-        minio.putObject(
-            PutObjectArgs.builder()
-                .bucket(getBucketName())
-                .stream(ByteArrayInputStream(byteArrayOf()), -1, 5 * 1024 * 1024)
-                .`object`(objectName).build()
-        )
+        // Nothing
     }
 
     private fun getBucketName(): String {
@@ -177,6 +172,7 @@ class S3FileObject(
                     .stream(pis, -1, 32 * 1024 * 1024)
                     .`object`(getObjectName()).build()
             )
+            IOUtils.closeQuietly(pis)
         }
 
         return object : OutputStream() {
@@ -185,7 +181,6 @@ class S3FileObject(
             }
 
             override fun close() {
-                pis.close()
                 pos.close()
                 thread.join()
             }

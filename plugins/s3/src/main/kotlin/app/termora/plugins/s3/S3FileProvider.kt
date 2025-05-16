@@ -18,12 +18,9 @@ class S3FileProvider private constructor() : AbstractOriginatingFileProvider() {
             Capability.GET_TYPE,
             Capability.LIST_CHILDREN,
             Capability.READ_CONTENT,
-            Capability.URI,
             Capability.WRITE_CONTENT,
             Capability.GET_LAST_MODIFIED,
-            Capability.SET_LAST_MODIFIED_FILE,
             Capability.RANDOM_ACCESS_READ,
-            Capability.APPEND_CONTENT
         )
     }
 
