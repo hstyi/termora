@@ -31,9 +31,9 @@ class TransportTreeTableNode(transport: Transport) : DefaultMutableTreeTableNode
     }
 
     private fun formatPath(file: FileObject): String {
-        if (file.fileSystem is MySftpFileSystem) {
-            val session = MySftpFileSystemConfigBuilder.getInstance()
-                .getClientSession(file.fileSystem.fileSystemOptions) as JGitClientSession
+        val fileSystem = file.fileSystem
+        if (fileSystem is MySftpFileSystem) {
+            val session = fileSystem.getClientSession() as JGitClientSession
             val hostname = session.hostConfigEntry.hostName
             return hostname + ":" + file.name.path
         }

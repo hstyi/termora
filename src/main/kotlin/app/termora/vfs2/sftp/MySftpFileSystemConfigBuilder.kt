@@ -4,6 +4,7 @@ import org.apache.commons.vfs2.FileSystem
 import org.apache.commons.vfs2.FileSystemConfigBuilder
 import org.apache.commons.vfs2.FileSystemOptions
 import org.apache.sshd.client.session.ClientSession
+import org.apache.sshd.sftp.client.fs.SftpFileSystem
 
 internal class MySftpFileSystemConfigBuilder : FileSystemConfigBuilder() {
 
@@ -19,11 +20,12 @@ internal class MySftpFileSystemConfigBuilder : FileSystemConfigBuilder() {
     }
 
 
-    fun setClientSession(options: FileSystemOptions, session: ClientSession) {
-        setParam(options, "session", session)
+
+    fun setSftpFileSystem(options: FileSystemOptions, sftpFileSystem: SftpFileSystem) {
+        setParam(options, "sftpFileSystem", sftpFileSystem)
     }
 
-    fun getClientSession(options: FileSystemOptions): ClientSession? {
-        return getParam(options, "session")
+    fun getSftpFileSystem(options: FileSystemOptions): SftpFileSystem? {
+        return getParam(options, "sftpFileSystem")
     }
 }

@@ -11,6 +11,8 @@ import org.apache.commons.vfs2.VFS
 import org.apache.commons.vfs2.provider.FileProvider
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.session.ClientSession
+import org.apache.sshd.sftp.client.SftpClientFactory
+import kotlin.io.path.absolutePathString
 
 internal class SFTPTransferProtocolProvider : TransferProtocolProvider {
     companion object {
@@ -31,10 +33,12 @@ internal class SFTPTransferProtocolProvider : TransferProtocolProvider {
             client = if (owner == null) SshClients.openClient(requester.host)
             else SshClients.openClient(requester.host, owner)
             session = SshClients.openSession(requester.host, client)
+
+            val fileSystem = SftpClientFactory.instance().createSftpFileSystem(session)
             val options = FileSystemOptions()
-            MySftpFileSystemConfigBuilder.getInstance().setClientSession(options, session)
-            val file = VFS.getManager().resolveFile("sftp:///", options)
-            return SFTPFileObjectHandler(file, client, session)
+            MySftpFileSystemConfigBuilder.getInstance().setSftpFileSystem(options, fileSystem)
+            val file = VFS.getManager().resolveFile("sftp://${fileSystem.defaultDir.absolutePathString()}", options)
+            return SFTPFileObjectHandler(file, client, session, fileSystem)
         } catch (e: Exception) {
             IOUtils.closeQuietly(session)
             IOUtils.closeQuietly(client)
