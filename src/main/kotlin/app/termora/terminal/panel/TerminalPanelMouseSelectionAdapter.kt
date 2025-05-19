@@ -134,6 +134,8 @@ class TerminalPanelMouseSelectionAdapter(private val terminalPanel: TerminalPane
             // 如果不判断的话可能会导致移动了一点点就就进入选择状态了
             val diff = terminalPanel.getAverageCharWidth() / 5.0
             if (abs(mousePressedPoint.y - e.y) >= diff || abs(mousePressedPoint.x - e.x) >= diff) {
+                // 设置选中模式
+                terminal.getSelectionModel().setBlockSelection(isOnlyAltDown(e))
                 beginSelect(
                     Position(x = mousePressedPoint.x, y = mousePressedPoint.y),
                 )
@@ -141,6 +143,13 @@ class TerminalPanelMouseSelectionAdapter(private val terminalPanel: TerminalPane
         }
     }
 
+    private fun isOnlyAltDown(e: MouseEvent): Boolean {
+        return e.isAltDown &&
+                e.isMetaDown.not() &&
+                e.isControlDown.not() &&
+                e.isShiftDown.not() &&
+                e.isAltGraphDown.not()
+    }
 
     private fun beginSelect(position: Position) {
 
