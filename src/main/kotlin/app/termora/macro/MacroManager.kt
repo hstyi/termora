@@ -1,8 +1,12 @@
 package app.termora.macro
 
+import app.termora.Application.ohMyJson
 import app.termora.ApplicationScope
-import app.termora.Database
 import app.termora.DeleteDataManager
+import app.termora.account.AccountManager
+import app.termora.db.DataType
+import app.termora.db.DatabaseManager
+import app.termora.db.OwnerType
 import org.slf4j.LoggerFactory
 
 /**
@@ -18,26 +22,33 @@ class MacroManager private constructor() {
     }
 
     private val macros = mutableMapOf<String, Macro>()
-    private val database get() = Database.getDatabase()
+    private val database get() = DatabaseManager.getInstance()
 
-    init {
-        macros.putAll(database.getMacros().associateBy { it.id })
-    }
 
     fun getMacros(): List<Macro> {
+        if (macros.isEmpty()) {
+            database.data<Macro>(DataType.Macro)
+                .forEach { macros[it.id] = it }
+        }
         return macros.values.sortedBy { it.created }
     }
 
     fun addMacro(macro: Macro) {
-        database.addMacro(macro)
         macros[macro.id] = macro
+
+        val accountId = AccountManager.getInstance().getAccountId()
+        database.save(
+            accountId, OwnerType.User, macro.id,
+            DataType.Macro, ohMyJson.encodeToString(macro)
+        )
+
         if (log.isDebugEnabled) {
             log.debug("Added macro ${macro.id}")
         }
     }
 
     fun removeMacro(id: String) {
-        database.removeMacro(id)
+        database.delete(id)
         macros.remove(id)
         DeleteDataManager.getInstance().removeMacro(id)
 

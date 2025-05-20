@@ -65,12 +65,27 @@ internal class DatabaseManager private constructor() : Disposable {
      */
     inline fun <reified T> data(type: DataType): List<T> {
         val list = mutableListOf<T>()
+        try {
+            for (text in rawData(type)) {
+                list.add(ohMyJson.decodeFromString<T>(text))
+            }
+        } catch (e: Exception) {
+            if (log.isWarnEnabled) {
+                log.warn(e.message, e)
+            }
+        }
+        return list
+    }
+
+
+    fun rawData(type: DataType): List<String> {
+        val list = mutableListOf<String>()
         lock.withLock {
             transaction(database) {
                 val rows = Data.selectAll().where { (Data.type eq type.name) }.toList()
                 for (row in rows) {
                     try {
-                        list.add(ohMyJson.decodeFromString<T>(row[Data.data]))
+                        list.add(row[Data.data])
                     } catch (e: Exception) {
                         if (log.isWarnEnabled) {
                             log.warn(e.message, e)

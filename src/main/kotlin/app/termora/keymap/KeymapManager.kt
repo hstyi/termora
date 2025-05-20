@@ -1,7 +1,11 @@
 package app.termora.keymap
 
 import app.termora.*
+import app.termora.account.AccountManager
 import app.termora.actions.AnActionEvent
+import app.termora.db.DataType
+import app.termora.db.DatabaseManager
+import app.termora.db.OwnerType
 import com.formdev.flatlaf.util.SystemInfo
 import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.action.ActionManager
@@ -27,9 +31,10 @@ class KeymapManager private constructor() : Disposable {
     }
 
     private val keymapKeyEventDispatcher = KeymapKeyEventDispatcher()
-    private val database get() = Database.getDatabase()
-    private val properties get() = database.properties
+    private val database get() = DatabaseManager.getInstance()
+    private val properties get() = Database.getDatabase().properties
     private val keymaps = linkedMapOf<String, Keymap>()
+    private val accountManager get() = AccountManager.getInstance()
     private val activeKeymap get() = properties.getString("Keymap.Active")
     private val keyboardFocusManager by lazy { KeyboardFocusManager.getCurrentKeyboardFocusManager() }
 
@@ -37,9 +42,17 @@ class KeymapManager private constructor() : Disposable {
         keyboardFocusManager.addKeyEventDispatcher(keymapKeyEventDispatcher)
 
         try {
-            for (keymap in database.getKeymaps()) {
-                keymaps[keymap.name] = keymap
+            for (text in database.rawData(DataType.Keymap)) {
+                try {
+                    val keymap = Keymap.fromJSON(text) ?: continue
+                    keymaps[keymap.name] = keymap
+                } catch (e: Exception) {
+                    if (log.isWarnEnabled) {
+                        log.warn(e.message, e)
+                    }
+                }
             }
+
         } catch (e: Exception) {
             if (log.isErrorEnabled) {
                 log.error(e.message, e)
@@ -83,13 +96,20 @@ class KeymapManager private constructor() : Disposable {
 
     fun addKeymap(keymap: Keymap) {
         keymaps.putFirst(keymap.name, keymap)
-        database.addKeymap(keymap)
+        val accountId = accountManager.getAccountId()
+        database.save(
+            accountId, OwnerType.User, keymap.id,
+            DataType.Keymap, keymap.toJSON()
+        )
     }
 
-    fun removeKeymap(name: String) {
-        keymaps.remove(name)
-        database.removeKeymap(name)
-        DeleteDataManager.getInstance().removeKeymap(name)
+    fun removeKeymap(id: String) {
+        for (name in keymaps.keys.toTypedArray()) {
+            if (keymaps.getValue(name).id == id) {
+                keymaps.remove(name)
+            }
+        }
+        database.delete(id)
     }
 
     private inner class KeymapKeyEventDispatcher : KeyEventDispatcher {

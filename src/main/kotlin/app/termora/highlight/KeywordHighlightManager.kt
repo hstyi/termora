@@ -1,9 +1,13 @@
 package app.termora.highlight
 
+import app.termora.Application.ohMyJson
 import app.termora.ApplicationScope
-import app.termora.Database
 import app.termora.DeleteDataManager
 import app.termora.TerminalPanelFactory
+import app.termora.account.AccountManager
+import app.termora.db.DataType
+import app.termora.db.DatabaseManager
+import app.termora.db.OwnerType
 import org.slf4j.LoggerFactory
 
 class KeywordHighlightManager private constructor() {
@@ -17,16 +21,18 @@ class KeywordHighlightManager private constructor() {
         private val log = LoggerFactory.getLogger(KeywordHighlightManager::class.java)
     }
 
-    private val database by lazy { Database.getDatabase() }
+    private val database get() = DatabaseManager.getInstance()
     private val keywordHighlights = mutableMapOf<String, KeywordHighlight>()
-
-    init {
-        keywordHighlights.putAll(database.getKeywordHighlights().associateBy { it.id })
-    }
 
 
     fun addKeywordHighlight(keywordHighlight: KeywordHighlight) {
-        database.addKeywordHighlight(keywordHighlight)
+
+        val accountId = AccountManager.getInstance().getAccountId()
+        database.save(
+            accountId, OwnerType.User, keywordHighlight.id,
+            DataType.KeywordHighlight, ohMyJson.encodeToString(keywordHighlight)
+        )
+
         keywordHighlights[keywordHighlight.id] = keywordHighlight
         TerminalPanelFactory.getInstance().repaintAll()
 
@@ -36,8 +42,8 @@ class KeywordHighlightManager private constructor() {
     }
 
     fun removeKeywordHighlight(id: String) {
-        database.removeKeywordHighlight(id)
         keywordHighlights.remove(id)
+        database.delete(id)
         TerminalPanelFactory.getInstance().repaintAll()
         DeleteDataManager.getInstance().removeKeywordHighlight(id)
 
@@ -47,6 +53,10 @@ class KeywordHighlightManager private constructor() {
     }
 
     fun getKeywordHighlights(): List<KeywordHighlight> {
+        if (keywordHighlights.isEmpty()) {
+            database.data<KeywordHighlight>(DataType.KeywordHighlight)
+                .forEach { keywordHighlights[it.id] = it }
+        }
         return keywordHighlights.values.sortedBy { it.sort }
     }
 
