@@ -1,4 +1,4 @@
-package app.termora.native
+package app.termora.nv
 
 import org.slf4j.LoggerFactory
 

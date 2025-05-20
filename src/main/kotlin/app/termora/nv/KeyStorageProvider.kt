@@ -1,7 +1,8 @@
-package app.termora.native
+package app.termora.nv
 
 import app.termora.ApplicationScope
-import app.termora.native.osx.MacOSKeyStorage
+import app.termora.nv.osx.MacOSKeyStorage
+import app.termora.nv.win32.WindowsKeyStorage
 import com.formdev.flatlaf.util.SystemInfo
 
 class KeyStorageProvider private constructor() {
@@ -14,6 +15,8 @@ class KeyStorageProvider private constructor() {
     }
 
     fun getKeyStorage(): KeyStorage {
-        return if (SystemInfo.isMacOS) MacOSKeyStorage.getInstance() else MacOSKeyStorage.getInstance()
+        return if (SystemInfo.isMacOS) MacOSKeyStorage.getInstance()
+        else if (SystemInfo.isWindows) WindowsKeyStorage.getInstance()
+        else MacOSKeyStorage.getInstance()
     }
 }

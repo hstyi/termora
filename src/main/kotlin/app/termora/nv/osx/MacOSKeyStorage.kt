@@ -1,7 +1,7 @@
-package app.termora.native.osx
+package app.termora.nv.osx
 
 import app.termora.ApplicationScope
-import app.termora.native.KeyStorage
+import app.termora.nv.KeyStorage
 import com.sun.jna.Library
 import com.sun.jna.Memory
 import com.sun.jna.Native

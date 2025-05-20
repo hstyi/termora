@@ -3,7 +3,7 @@ package app.termora.keymgr
 import app.termora.*
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
-import app.termora.native.FileChooser
+import app.termora.nv.FileChooser
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
 import com.formdev.flatlaf.extras.components.FlatComboBox
 import com.formdev.flatlaf.extras.components.FlatTable

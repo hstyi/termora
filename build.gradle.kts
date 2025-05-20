@@ -200,6 +200,7 @@ tasks.register<Copy>("copy-dependencies") {
     val pty4j = libs.pty4j.get()
     val jSerialComm = libs.jSerialComm.get()
     val restart4j = libs.restart4j.get()
+    val sqlite = libs.sqlite.get()
 
     // 对 JNA 和 PTY4J 的本地库提取
     // 提取出来是为了单独签名，不然无法通过公证
@@ -263,6 +264,14 @@ tasks.register<Copy>("copy-dependencies") {
                     )) {
                         e.setExecutable(true)
                     }
+                } else if ("${sqlite.name}-${sqlite.version}" == file.nameWithoutExtension) {
+                    val targetDir = FileUtils.getFile(dylib, sqlite.name)
+                    FileUtils.forceMkdir(targetDir)
+                    // @formatter:off
+                    exec { commandLine("unzip", "-j" , "-o", file.absolutePath, "org/sqlite/native/Mac/${archName}/*", "-d", targetDir.absolutePath) }
+                    // @formatter:on
+                    // 删除所有二进制类库
+                    exec { commandLine("zip", "-d", file.absolutePath, "org/sqlite/native/*") }
                 }
             }
 
@@ -337,6 +346,31 @@ tasks.register<Copy>("copy-dependencies") {
                             exec { commandLine("zip", "-d", file.absolutePath, "linux/x86_64/*") }
                         } else {
                             exec { commandLine("zip", "-d", file.absolutePath, "linux/aarch64/*") }
+                        }
+                    }
+                } else if ("${sqlite.name}-${sqlite.version}" == file.nameWithoutExtension) {
+                    exec { commandLine("zip", "-d", file.absolutePath, "org/sqlite/native/Linux-*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "org/sqlite/native/FreeBSD/*") }
+                    exec { commandLine("zip", "-d", file.absolutePath, "org/sqlite/native/Mac/*") }
+                    if (os.isWindows) {
+                        exec { commandLine("zip", "-d", file.absolutePath, "org/sqlite/native/Linux/*") }
+                        exec { commandLine("zip", "-d", file.absolutePath, "org/sqlite/native/Windows/armv7/*") }
+                        exec { commandLine("zip", "-d", file.absolutePath, "org/sqlite/native/Windows/x86/*") }
+                        if (arch.isArm) {
+                            exec { commandLine("zip", "-d", file.absolutePath, "org/sqlite/native/Windows/x86_64/*") }
+                        } else {
+                            exec { commandLine("zip", "-d", file.absolutePath, "org/sqlite/native/Windows/aarch64/*") }
+                        }
+                    } else if (os.isLinux) {
+                        exec { commandLine("zip", "-d", file.absolutePath, "org/sqlite/native/Windows/*") }
+                        exec { commandLine("zip", "-d", file.absolutePath, "org/sqlite/native/Linux/arm*") }
+                        exec { commandLine("zip", "-d", file.absolutePath, "org/sqlite/native/Linux/ppc64/*") }
+                        exec { commandLine("zip", "-d", file.absolutePath, "org/sqlite/native/Linux/riscv64/*") }
+                        exec { commandLine("zip", "-d", file.absolutePath, "org/sqlite/native/Linux/x86/*") }
+                        if (arch.isArm) {
+                            exec { commandLine("zip", "-d", file.absolutePath, "org/sqlite/native/Linux/x86_64/*") }
+                        } else {
+                            exec { commandLine("zip", "-d", file.absolutePath, "org/sqlite/native/Linux/aarch64/*") }
                         }
                     }
                 }

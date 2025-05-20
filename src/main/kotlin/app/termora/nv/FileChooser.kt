@@ -1,4 +1,4 @@
-package app.termora.native
+package app.termora.nv
 
 import com.formdev.flatlaf.util.SystemInfo
 import de.jangassen.jfa.ThreadUtils

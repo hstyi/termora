@@ -15,7 +15,7 @@ import app.termora.keymgr.KeyManager
 import app.termora.keymgr.OhKeyPair
 import app.termora.macro.Macro
 import app.termora.macro.MacroManager
-import app.termora.native.FileChooser
+import app.termora.nv.FileChooser
 import app.termora.sftp.SFTPTab
 import app.termora.snippet.Snippet
 import app.termora.snippet.SnippetManager

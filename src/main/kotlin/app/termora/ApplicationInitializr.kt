@@ -69,6 +69,11 @@ class ApplicationInitializr {
         if (restart4j.exists()) {
             System.setProperty("restarter.path", restart4j.absolutePath)
         }
+
+        val sqlite = FileUtils.getFile(dylib, "sqlite-jdbc")
+        if (sqlite.exists()) {
+            System.setProperty("org.sqlite.lib.path", sqlite.absolutePath)
+        }
     }
 
     /**

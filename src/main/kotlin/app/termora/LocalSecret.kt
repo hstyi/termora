@@ -1,6 +1,6 @@
 package app.termora
 
-import app.termora.native.KeyStorageProvider
+import app.termora.nv.KeyStorageProvider
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.lang3.RandomStringUtils
 
