@@ -22,6 +22,7 @@ import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 import kotlin.time.Duration.Companion.minutes
 
+@Deprecated("")
 class Database private constructor(private val env: Environment) : Disposable {
     companion object {
         private const val KEYMAP_STORE = "Keymap"

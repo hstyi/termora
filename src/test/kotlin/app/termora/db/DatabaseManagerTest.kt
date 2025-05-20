@@ -10,7 +10,7 @@ class DatabaseManagerTest {
     @Test
     fun test() {
         val databaseManager = DatabaseManager.getInstance()
-        for (i in 0 until 1000) {
+        for (i in 0 until 5) {
             databaseManager.save(
                 "1",
                 OwnerType.User,

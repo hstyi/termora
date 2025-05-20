@@ -1,9 +1,13 @@
 package app.termora.snippet
 
+import app.termora.Application.ohMyJson
 import app.termora.ApplicationScope
-import app.termora.Database
 import app.termora.DeleteDataManager
+import app.termora.account.AccountManager
 import app.termora.assertEventDispatchThread
+import app.termora.db.DataType
+import app.termora.db.DatabaseManager
+import app.termora.db.OwnerType
 
 
 class SnippetManager private constructor() {
@@ -13,7 +17,7 @@ class SnippetManager private constructor() {
         }
     }
 
-    private val database get() = Database.getDatabase()
+    private val database get() = DatabaseManager.getInstance()
     private var snippets = mutableMapOf<String, Snippet>()
 
     /**
@@ -24,14 +28,18 @@ class SnippetManager private constructor() {
         if (snippet.deleted) {
             removeSnippet(snippet.id)
         } else {
-            database.addSnippet(snippet)
+            val accountId = AccountManager.getInstance().getAccountId()
+            database.save(
+                accountId, OwnerType.User, snippet.id,
+                DataType.Snippet, ohMyJson.encodeToString(snippet)
+            )
             snippets[snippet.id] = snippet
         }
     }
 
     fun removeSnippet(id: String) {
         snippets.entries.removeIf { it.value.id == id || it.value.parentId == id }
-        database.removeSnippet(id)
+        database.delete(id)
         DeleteDataManager.getInstance().removeSnippet(id)
     }
 
@@ -40,7 +48,7 @@ class SnippetManager private constructor() {
      */
     fun snippets(): List<Snippet> {
         if (snippets.isEmpty()) {
-            database.getSnippets().filter { !it.deleted }
+            database.data<Snippet>(DataType.Snippet)
                 .forEach { snippets[it.id] = it }
         }
         return snippets.values.filter { !it.deleted }

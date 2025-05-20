@@ -1,6 +1,7 @@
 package app.termora
 
 import app.termora.actions.ActionManager
+import app.termora.db.DatabaseManager
 import app.termora.keymap.KeymapManager
 import app.termora.plugin.ExtensionManager
 import app.termora.plugin.PluginManager
@@ -40,80 +41,74 @@ import java.util.concurrent.CountDownLatch
 import javax.imageio.ImageIO
 import javax.swing.*
 import kotlin.system.exitProcess
-import kotlin.system.measureTimeMillis
 
 class ApplicationRunner {
     private val log by lazy { LoggerFactory.getLogger(ApplicationRunner::class.java) }
 
     fun run() {
-        measureTimeMillis {
 
-            // 异步初始化
-            val loadPluginThread = Thread.ofVirtual().start { PluginManager.getInstance() }
+        // 异步初始化
+        val loadPluginThread = Thread.ofVirtual().start { PluginManager.getInstance() }
 
-            // 打印系统信息
-            val printSystemInfo = measureTimeMillis { printSystemInfo() }
-
-            // 打开数据库
-            val openDatabase = measureTimeMillis { openDatabase() }
-
-            // 加载设置
-            val loadSettings = measureTimeMillis { loadSettings() }
-
-            // 统计
-            val enableAnalytics = measureTimeMillis { enableAnalytics() }
-
-            // init ActionManager、KeymapManager、VFS
-            swingCoroutineScope.launch(Dispatchers.IO) {
-                ActionManager.getInstance()
-                KeymapManager.getInstance()
-
-                // async init
-                BackgroundManager.getInstance().getBackgroundImage()
-            }
-
-            // 设置 LAF
-            val setupLaf = measureTimeMillis { setupLaf() }
-
-            // 解密数据
-            val openDoor = measureTimeMillis { openDoor() }
-
-            // clear temporary
-            clearTemporary()
-
-            // 等待插件加载完成
-            loadPluginThread.join()
-
-            val fileSystemManager = DefaultFileSystemManager()
-            for (provider in ProtocolProvider.providers.filterIsInstance<TransferProtocolProvider>()) {
-                fileSystemManager.addProvider(provider.getProtocol().lowercase(), provider.getFileProvider())
-            }
-            fileSystemManager.filesCache = WeakRefFilesCache()
-            fileSystemManager.init()
-            VFS.setManager(fileSystemManager)
-
-            // 准备就绪
-            for (extension in ExtensionManager.getInstance().getExtensions(ApplicationRunnerExtension::class.java)) {
-                extension.ready()
-            }
-
-            // 启动主窗口
-            val startMainFrame = measureTimeMillis { startMainFrame() }
-
-            if (log.isDebugEnabled) {
-                log.debug("printSystemInfo: {}ms", printSystemInfo)
-                log.debug("openDatabase: {}ms", openDatabase)
-                log.debug("loadSettings: {}ms", loadSettings)
-                log.debug("enableAnalytics: {}ms", enableAnalytics)
-                log.debug("setupLaf: {}ms", setupLaf)
-                log.debug("openDoor: {}ms", openDoor)
-                log.debug("startMainFrame: {}ms", startMainFrame)
-            }
-        }.let {
-            if (log.isDebugEnabled) {
-                log.debug("run: {}ms", it)
-            }
+        // 初始化机密库
+        if (runCatching { LocalSecret.getInstance() }.isFailure) {
+            JOptionPane.showMessageDialog(
+                null, "Unable to init local-secret",
+                I18n.getString("termora.title"), JOptionPane.ERROR_MESSAGE
+            )
+            exitProcess(1)
         }
+
+        // 打印系统信息
+        printSystemInfo()
+
+        // 打开数据库
+        openDatabase()
+
+        // 加载设置
+        loadSettings()
+
+        // 统计
+        enableAnalytics()
+
+        // init ActionManager、KeymapManager、VFS
+        swingCoroutineScope.launch(Dispatchers.IO) {
+            ActionManager.getInstance()
+            KeymapManager.getInstance()
+
+            // async init
+            BackgroundManager.getInstance().getBackgroundImage()
+        }
+
+        // 设置 LAF
+        val setupLaf = setupLaf()
+
+        // 解密数据
+        val openDoor = openDoor()
+
+        // clear temporary
+        clearTemporary()
+
+        // 等待插件加载完成
+        loadPluginThread.join()
+
+        // 初始化 VFS
+        val fileSystemManager = DefaultFileSystemManager()
+        for (provider in ProtocolProvider.providers.filterIsInstance<TransferProtocolProvider>()) {
+            fileSystemManager.addProvider(provider.getProtocol().lowercase(), provider.getFileProvider())
+        }
+        fileSystemManager.filesCache = WeakRefFilesCache()
+        fileSystemManager.init()
+        VFS.setManager(fileSystemManager)
+
+        // 准备就绪
+        for (extension in ExtensionManager.getInstance().getExtensions(ApplicationRunnerExtension::class.java)) {
+            extension.ready()
+        }
+
+        // 启动主窗口
+        startMainFrame()
+
     }
 
     private fun clearTemporary() {
@@ -332,6 +327,8 @@ class ApplicationRunner {
     private fun openDatabase() {
         try {
             Database.getDatabase()
+            // 初始化数据库
+            DatabaseManager.getInstance()
         } catch (e: Exception) {
             if (log.isErrorEnabled) {
                 log.error(e.message, e)

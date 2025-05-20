@@ -4,6 +4,10 @@ import app.termora.Application
 import app.termora.Application.ohMyJson
 import app.termora.ApplicationScope
 import app.termora.Disposable
+import app.termora.swingCoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.statements.StatementType
 import org.jetbrains.exposed.v1.jdbc.*
@@ -13,7 +17,7 @@ import java.io.File
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-class DatabaseManager private constructor() : Disposable {
+internal class DatabaseManager private constructor() : Disposable {
     companion object {
         val log = LoggerFactory.getLogger(DatabaseManager::class.java)!!
         fun getInstance(): DatabaseManager {
@@ -24,6 +28,9 @@ class DatabaseManager private constructor() : Disposable {
 
     val database: Database
     val lock = ReentrantLock()
+    private val map = mutableMapOf<String, String>()
+
+//    val sftp by lazy { SFTP() }
 
 
     init {
@@ -46,16 +53,21 @@ class DatabaseManager private constructor() : Disposable {
             }
         }
 
+        // 异步初始化
+        swingCoroutineScope.launch(Dispatchers.IO) {
+            map.putAll(getSettings())
+        }
+
     }
 
-
-    inline fun <reified T> data(ownerId: String, ownerType: OwnerType, type: DataType): List<T> {
+    /**
+     * 返回本地所有用户的数据，调用者需要过滤具体用户
+     */
+    inline fun <reified T> data(type: DataType): List<T> {
         val list = mutableListOf<T>()
         lock.withLock {
             transaction(database) {
-                val rows = Data.selectAll().where {
-                    (Data.type eq type.name) and (Data.ownerId eq ownerId) and (Data.ownerType eq ownerType.name)
-                }.toList()
+                val rows = Data.selectAll().where { (Data.type eq type.name) }.toList()
                 for (row in rows) {
                     try {
                         list.add(ohMyJson.decodeFromString<T>(row[Data.data]))
@@ -92,6 +104,26 @@ class DatabaseManager private constructor() : Disposable {
                 }
             }
         }
+    }
+
+    fun delete(id: String) {
+        lock.withLock {
+            transaction(database) {
+                Data.deleteWhere { Data.id eq id }
+            }
+        }
+    }
+
+    private fun getSettings(): Map<String, String> {
+        val map = mutableMapOf<String, String>()
+        lock.withLock {
+            transaction(database) {
+                for (row in Settings.selectAll().toList()) {
+                    map[row[Settings.name]] = row[Settings.value]
+                }
+            }
+        }
+        return map
     }
 
 }
