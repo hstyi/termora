@@ -5,6 +5,7 @@ import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProviders
 import app.termora.actions.TabReconnectAction
 import app.termora.addons.zmodem.ZModemPtyConnectorAdaptor
+import app.termora.db.DatabaseManager
 import app.termora.keymap.KeyShortcut
 import app.termora.keymap.KeymapManager
 import app.termora.terminal.ControlCharacters
@@ -138,7 +139,7 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
                     terminal.write("\r\n")
                     terminal.write("${ControlCharacters.Companion.ESC}[0m")
                     terminalModel.setData(DataKey.Companion.ShowCursor, false)
-                    if (Database.Companion.getDatabase().terminal.autoCloseTabWhenDisconnected) {
+                    if (DatabaseManager.getInstance().terminal.autoCloseTabWhenDisconnected) {
                         terminalTabbedManager?.let { manager ->
                             SwingUtilities.invokeLater {
                                 manager.closeTerminalTab(tab, true)

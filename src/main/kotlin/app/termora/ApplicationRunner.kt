@@ -81,10 +81,7 @@ class ApplicationRunner {
         }
 
         // 设置 LAF
-        val setupLaf = setupLaf()
-
-        // 解密数据
-        val openDoor = openDoor()
+        setupLaf()
 
         // clear temporary
         clearTemporary()
@@ -117,14 +114,6 @@ class ApplicationRunner {
             FileUtils.cleanDirectory(Application.getTemporaryDir())
         }
 
-    }
-
-    private fun openDoor() {
-        if (Doorman.getInstance().isWorking()) {
-            if (!DoormanDialog(null).open()) {
-                exitProcess(1)
-            }
-        }
     }
 
     private fun startMainFrame() {

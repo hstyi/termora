@@ -1,6 +1,7 @@
 package app.termora.plugin.internal.sftppty
 
 import app.termora.*
+import app.termora.db.DatabaseManager
 import app.termora.keymgr.KeyManager
 import app.termora.keymgr.OhKeyPairKeyPairProvider
 import app.termora.terminal.*
@@ -29,8 +30,8 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
     private var sshClient: SshClient? = null
     private var sshSession: ClientSession? = null
     private var lastPasswordReporterDataListener: PasswordReporterDataListener? = null
-    private val sftpCommand get() = Database.Companion.getDatabase().sftp.sftpCommand
-    private val defaultDirectory get() = Database.Companion.getDatabase().sftp.defaultDirectory
+    private val sftpCommand get() = DatabaseManager.getInstance().sftp.sftpCommand
+    private val defaultDirectory get() = DatabaseManager.getInstance().sftp.defaultDirectory
     private val owner get() = SwingUtilities.getWindowAncestor(terminalPanel)
 
     init {
