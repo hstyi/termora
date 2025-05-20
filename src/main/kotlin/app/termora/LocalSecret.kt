@@ -1,9 +1,12 @@
 package app.termora
 
-import app.termora.nv.KeyStorageProvider
 import org.apache.commons.codec.digest.DigestUtils
-import org.apache.commons.lang3.RandomStringUtils
+import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.SystemUtils
 
+/**
+ * 用户需要保证自己的电脑是可信环境
+ */
 internal class LocalSecret private constructor() {
 
     companion object {
@@ -16,27 +19,11 @@ internal class LocalSecret private constructor() {
     /**
      * 一个 16 长度的密码
      */
-    val password: String
+    val password: String = StringUtils.substring(DigestUtils.sha256Hex(SystemUtils.USER_NAME), 0, 16)
 
     /**
      * 一个 16 长度的盐
      */
-    val salt: ByteArray
+    val salt: ByteArray = DigestUtils.sha256(password).copyOf(16)
 
-    init {
-        val keyStorage = KeyStorageProvider.getInstance().getKeyStorage()
-        val name = if (Application.isUnknownVersion()) "local-secret-dev2" else "local-secret"
-        var password = keyStorage.getPassword(Application.getName(), name)
-        if (password == null) {
-            // 随机生成密码
-            password = RandomStringUtils.secureStrong().nextAlphanumeric(16)
-            if (keyStorage.setPassword(Application.getName(), name, password).not()) {
-                throw IllegalArgumentException("Unable to access secret repository")
-            }
-        }
-        this.password = password
-
-        // 生成随机盐
-        this.salt = DigestUtils.sha256(password).copyOf(16)
-    }
 }

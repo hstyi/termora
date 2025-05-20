@@ -112,9 +112,11 @@ dependencies {
     api(libs.jgit.agent) { exclude(group = "*", module = "sshd-osgi") }
     api(libs.eddsa)
     api(libs.jnafilechooser)
+
     api(libs.xodus.vfs)
     api(libs.xodus.openAPI)
     api(libs.xodus.environment)
+
     api(libs.bip39)
     api(libs.colorpicker)
     api(libs.mixpanel)

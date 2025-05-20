@@ -6,6 +6,7 @@ import app.termora.sync.SyncType
 import app.termora.terminal.CursorStyle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.and
@@ -14,7 +15,6 @@ import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
-import java.io.File
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -44,7 +44,11 @@ class DatabaseManager private constructor() : Disposable {
 
     init {
 
-        val databaseFile = File(Application.getDatabaseFile(), "termora.db")
+        val databaseFile = FileUtils.getFile(
+            Application.getBaseDataDir(),
+            "config", "termora.db"
+        )
+        FileUtils.forceMkdirParent(databaseFile)
         val isExists = databaseFile.exists()
 
         database = Database.connect(
