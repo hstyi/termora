@@ -135,7 +135,13 @@ class DatabaseManager private constructor() : Disposable {
         }
 
         for (extension in ExtensionManager.getInstance().getExtensions(DatabaseManagerExtension::class.java)) {
-            extension.onDataChanged(id, type, data)
+            try {
+                extension.onDataChanged(id, type, data)
+            } catch (e: Exception) {
+                if (log.isErrorEnabled) {
+                    log.error(e.message, e)
+                }
+            }
         }
     }
 
