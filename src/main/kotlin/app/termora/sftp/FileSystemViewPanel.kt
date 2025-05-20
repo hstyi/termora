@@ -2,10 +2,10 @@ package app.termora.sftp
 
 import app.termora.*
 import app.termora.actions.DataProvider
+import app.termora.db.DatabaseManager
 import app.termora.terminal.DataKey
 import app.termora.vfs2.sftp.MySftpFileSystem
 import com.formdev.flatlaf.extras.components.FlatToolBar
-import com.formdev.flatlaf.util.SystemInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -33,7 +33,7 @@ class FileSystemViewPanel(
 ) : JPanel(BorderLayout()), Disposable, DataProvider, FileSystemProvider {
 
     private var fileSystem: FileSystem = homeDirectory.fileSystem
-    private val properties get() = Database.getDatabase().properties
+    private val properties get() = DatabaseManager.getInstance().properties
     private val table = FileSystemViewTable(this, transportManager, coroutineScope)
     private val disposed = AtomicBoolean(false)
     private var nextReloadTicks = emptyArray<Consumer<Unit>>()

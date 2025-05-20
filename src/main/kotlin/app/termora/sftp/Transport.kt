@@ -1,6 +1,6 @@
 package app.termora.sftp
 
-import app.termora.Database
+import app.termora.db.DatabaseManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
@@ -62,7 +62,7 @@ class Transport(
         val idGenerator = AtomicLong(0)
         private val exception = RuntimeException("Nothing")
         private val log = LoggerFactory.getLogger(Transport::class.java)
-        private val isPreserveModificationTime get() = Database.getDatabase().sftp.preserveModificationTime
+        private val isPreserveModificationTime get() = DatabaseManager.getInstance().sftp.preserveModificationTime
     }
 
     private val scanned by lazy { AtomicBoolean(false) }

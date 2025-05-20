@@ -1,6 +1,9 @@
 package app.termora.keymap
 
-import app.termora.*
+import app.termora.ApplicationScope
+import app.termora.DialogWrapper
+import app.termora.Disposable
+import app.termora.SwingUtils
 import app.termora.account.AccountManager
 import app.termora.actions.AnActionEvent
 import app.termora.db.DataType
@@ -32,7 +35,7 @@ class KeymapManager private constructor() : Disposable {
 
     private val keymapKeyEventDispatcher = KeymapKeyEventDispatcher()
     private val database get() = DatabaseManager.getInstance()
-    private val properties get() = Database.getDatabase().properties
+    private val properties get() = DatabaseManager.getInstance().properties
     private val keymaps = linkedMapOf<String, Keymap>()
     private val accountManager get() = AccountManager.getInstance()
     private val activeKeymap get() = properties.getString("Keymap.Active")

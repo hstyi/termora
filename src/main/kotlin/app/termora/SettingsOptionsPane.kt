@@ -5,6 +5,7 @@ import app.termora.Application.ohMyJson
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProviders
+import app.termora.db.DatabaseManager
 import app.termora.highlight.KeywordHighlight
 import app.termora.highlight.KeywordHighlightManager
 import app.termora.keymap.Keymap
@@ -23,10 +24,12 @@ import app.termora.terminal.CursorStyle
 import app.termora.terminal.DataKey
 import app.termora.terminal.panel.FloatingToolbarPanel
 import app.termora.terminal.panel.TerminalPanel
-import cash.z.ecc.android.bip39.Mnemonics
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.FlatSVGIcon
-import com.formdev.flatlaf.extras.components.*
+import com.formdev.flatlaf.extras.components.FlatButton
+import com.formdev.flatlaf.extras.components.FlatComboBox
+import com.formdev.flatlaf.extras.components.FlatPopupMenu
+import com.formdev.flatlaf.extras.components.FlatToolBar
 import com.formdev.flatlaf.util.FontUtils
 import com.formdev.flatlaf.util.SystemInfo
 import com.jgoodies.forms.builder.FormBuilder
@@ -46,13 +49,11 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.commons.lang3.time.DateFormatUtils
-import org.jdesktop.swingx.JXEditorPane
 import org.slf4j.LoggerFactory
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.Toolkit
-import java.awt.datatransfer.StringSelection
 import java.awt.event.ActionEvent
 import java.awt.event.ItemEvent
 import java.awt.event.ItemListener
@@ -71,7 +72,7 @@ import javax.swing.event.PopupMenuListener
 
 class SettingsOptionsPane : OptionsPane() {
     private val owner get() = SwingUtilities.getWindowAncestor(this@SettingsOptionsPane)
-    private val database get() = Database.getDatabase()
+    private val database get() = DatabaseManager.getInstance()
     private val hostManager get() = HostManager.getInstance()
     private val snippetManager get() = SnippetManager.getInstance()
     private val keymapManager get() = KeymapManager.getInstance()
@@ -123,7 +124,6 @@ class SettingsOptionsPane : OptionsPane() {
         addOption(PluginOption())
         addOption(SFTPOption())
         addOption(CloudSyncOption())
-        addOption(DoormanOption())
         addOption(AboutOption())
         setContentBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8))
     }
@@ -419,7 +419,7 @@ class SettingsOptionsPane : OptionsPane() {
         private val shellComboBox = FlatComboBox<String>()
         private val maxRowsTextField = IntSpinner(0, 0)
         private val fontSizeTextField = IntSpinner(0, 9, 99)
-        private val terminalSetting get() = Database.getDatabase().terminal
+        private val terminalSetting get() = DatabaseManager.getInstance().terminal
         private val selectCopyComboBox = YesOrNoComboBox()
         private val autoCloseTabComboBox = YesOrNoComboBox()
         private val floatingToolbarComboBox = YesOrNoComboBox()
@@ -1744,238 +1744,6 @@ class SettingsOptionsPane : OptionsPane() {
 
         override fun getTitle(): String {
             return I18n.getString("termora.settings.plugin")
-        }
-
-        override fun getJComponent(): JComponent {
-            return this
-        }
-
-    }
-
-    private inner class DoormanOption : JPanel(BorderLayout()), Option {
-        private val label = FlatLabel()
-        private val icon = JLabel()
-        private val passwordTextField = OutlinePasswordField(255)
-        private val twoPasswordTextField = OutlinePasswordField(255)
-        private val tip = FlatLabel()
-        private val safeBtn = FlatButton()
-        private val doorman get() = Doorman.getInstance()
-
-        init {
-            initView()
-            initEvents()
-        }
-
-
-        private fun initView() {
-
-            label.labelType = FlatLabel.LabelType.h2
-            label.horizontalAlignment = SwingConstants.CENTER
-            safeBtn.isFocusable = false
-            passwordTextField.placeholderText = I18n.getString("termora.setting.security.enter-password")
-            twoPasswordTextField.placeholderText = I18n.getString("termora.setting.security.enter-password-again")
-            tip.foreground = UIManager.getColor("TextField.placeholderForeground")
-            icon.horizontalAlignment = SwingConstants.CENTER
-
-            if (doorman.isWorking()) {
-                add(getSafeComponent(), BorderLayout.CENTER)
-            } else {
-                add(getUnsafeComponent(), BorderLayout.CENTER)
-            }
-
-        }
-
-        private fun getCenterComponent(unsafe: Boolean = false): JComponent {
-            var rows = 2
-            val step = 2
-
-            val panel = if (unsafe) {
-                FormBuilder.create().layout(
-                    FormLayout(
-                        "default:grow, 4dlu, default:grow",
-                        "pref"
-                    )
-                )
-                    .add(passwordTextField).xy(1, 1)
-                    .add(twoPasswordTextField).xy(3, 1)
-                    .build()
-            } else passwordTextField
-
-            return FormBuilder.create().debug(false)
-                .layout(
-                    FormLayout(
-                        "$formMargin, default:grow, 4dlu, pref, $formMargin",
-                        "15dlu, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin"
-                    )
-                )
-                .add(icon).xyw(2, rows, 4).apply { rows += step }
-                .add(label).xyw(2, rows, 4).apply { rows += step }
-                .add(panel).xy(2, rows)
-                .add(safeBtn).xy(4, rows).apply { rows += step }
-                .add(tip).xyw(2, rows, 4, "center, fill").apply { rows += step }
-                .build()
-        }
-
-        private fun getSafeComponent(): JComponent {
-            label.text = I18n.getString("termora.doorman.safe")
-            tip.text = I18n.getString("termora.doorman.verify-password")
-            icon.icon = FlatSVGIcon(Icons.role.name, 80, 80)
-            safeBtn.icon = Icons.unlocked
-
-            safeBtn.actionListeners.forEach { safeBtn.removeActionListener(it) }
-            passwordTextField.actionListeners.forEach { passwordTextField.removeActionListener(it) }
-
-            safeBtn.addActionListener { testPassword() }
-            passwordTextField.addActionListener { testPassword() }
-
-            return getCenterComponent(false)
-        }
-
-        private fun testPassword() {
-            if (passwordTextField.password.isEmpty()) {
-                passwordTextField.outline = "error"
-                passwordTextField.requestFocusInWindow()
-            } else {
-                if (doorman.test(passwordTextField.password)) {
-                    OptionPane.showMessageDialog(
-                        owner,
-                        I18n.getString("termora.doorman.password-correct"),
-                        messageType = JOptionPane.INFORMATION_MESSAGE
-                    )
-                } else {
-                    OptionPane.showMessageDialog(
-                        owner,
-                        I18n.getString("termora.doorman.password-wrong"),
-                        messageType = JOptionPane.ERROR_MESSAGE
-                    )
-                }
-            }
-        }
-
-        private fun setPassword() {
-
-            if (doorman.isWorking()) {
-                return
-            }
-
-            if (passwordTextField.password.isEmpty()) {
-                passwordTextField.outline = "error"
-                passwordTextField.requestFocusInWindow()
-                return
-            } else if (twoPasswordTextField.password.isEmpty()) {
-                twoPasswordTextField.outline = "error"
-                twoPasswordTextField.requestFocusInWindow()
-                return
-            } else if (!twoPasswordTextField.password.contentEquals(passwordTextField.password)) {
-                twoPasswordTextField.outline = "error"
-                OptionPane.showMessageDialog(
-                    owner,
-                    I18n.getString("termora.setting.security.password-is-different"),
-                    messageType = JOptionPane.ERROR_MESSAGE
-                )
-                twoPasswordTextField.requestFocusInWindow()
-                return
-            }
-
-            if (OptionPane.showConfirmDialog(
-                    owner, tip.text,
-                    optionType = JOptionPane.OK_CANCEL_OPTION
-                ) != JOptionPane.OK_OPTION
-            ) {
-                return
-            }
-
-            val hosts = hostManager.hosts()
-            val keyPairs = keyManager.getOhKeyPairs()
-            val snippets = snippetManager.snippets()
-
-            // 获取到安全的属性，如果设置密码那表示之前并未加密
-            // 这里取出来之后重新存储加密
-            val properties = database.getSafetyProperties().map { Pair(it, it.getProperties()) }
-            val key = doorman.work(passwordTextField.password)
-
-            hosts.forEach { hostManager.addHost(it) }
-            snippets.forEach { snippetManager.addSnippet(it) }
-            keyPairs.forEach { keyManager.addOhKeyPair(it) }
-            for (e in properties) {
-                for ((k, v) in e.second) {
-                    e.first.putString(k, v)
-                }
-            }
-
-            // 使用助记词对密钥加密
-            val mnemonicCode = Mnemonics.MnemonicCode(Mnemonics.WordCount.COUNT_12)
-            database.properties.putString(
-                "doorman-key-backup",
-                AES.ECB.encrypt(mnemonicCode.toEntropy(), key).encodeBase64String()
-            )
-
-            val sb = StringBuilder()
-            val iterator = mnemonicCode.iterator()
-            val group = 4
-            val lines = Mnemonics.WordCount.COUNT_12.count / group
-            sb.append("<table width=100%>")
-            for (i in 0 until lines) {
-                sb.append("<tr align=center>")
-                for (j in 0 until group) {
-                    sb.append("<td>")
-                    sb.append(iterator.next())
-                    sb.append("</td>")
-                }
-                sb.append("</tr>")
-            }
-            sb.append("</table>")
-
-            val pane = JXEditorPane()
-            pane.isEditable = false
-            pane.contentType = "text/html"
-            pane.text =
-                """<html><b>${I18n.getString("termora.setting.security.mnemonic-note")}</b><br/><br/>${sb}</html>""".trimIndent()
-
-            OptionPane.showConfirmDialog(
-                owner, pane, messageType = JOptionPane.PLAIN_MESSAGE,
-                options = arrayOf(I18n.getString("termora.copy")),
-                optionType = JOptionPane.YES_OPTION,
-                initialValue = I18n.getString("termora.copy")
-            )
-            // force copy
-            toolkit.systemClipboard.setContents(StringSelection(mnemonicCode.joinToString(StringUtils.SPACE)), null)
-            mnemonicCode.clear()
-
-            passwordTextField.text = StringUtils.EMPTY
-
-            removeAll()
-            add(getSafeComponent(), BorderLayout.CENTER)
-            revalidate()
-            repaint()
-        }
-
-        private fun getUnsafeComponent(): JComponent {
-            label.text = I18n.getString("termora.doorman.unsafe")
-            tip.text = I18n.getString("termora.doorman.lock-data")
-            icon.icon = FlatSVGIcon(Icons.warningDialog.name, 80, 80)
-            safeBtn.icon = Icons.locked
-
-            passwordTextField.actionListeners.forEach { passwordTextField.removeActionListener(it) }
-            twoPasswordTextField.actionListeners.forEach { twoPasswordTextField.removeActionListener(it) }
-
-            safeBtn.actionListeners.forEach { safeBtn.removeActionListener(it) }
-            safeBtn.addActionListener { setPassword() }
-            twoPasswordTextField.addActionListener { setPassword() }
-            passwordTextField.addActionListener { twoPasswordTextField.requestFocusInWindow() }
-
-            return getCenterComponent(true)
-        }
-
-
-        private fun initEvents() {}
-
-        override fun getIcon(isSelected: Boolean): Icon {
-            return Icons.clusterRole
-        }
-
-        override fun getTitle(): String {
-            return I18n.getString("termora.setting.security")
         }
 
         override fun getJComponent(): JComponent {

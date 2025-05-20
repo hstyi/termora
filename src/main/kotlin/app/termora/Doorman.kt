@@ -2,11 +2,12 @@ package app.termora
 
 import app.termora.AES.decodeBase64
 import app.termora.AES.encodeBase64String
+import app.termora.db.DatabaseManager
 
 class PasswordWrongException : RuntimeException()
 
 class Doorman private constructor() : Disposable {
-    private val properties get() = Database.getDatabase().properties
+    private val properties get() = DatabaseManager.getInstance().properties
     private var key = byteArrayOf()
 
     companion object {

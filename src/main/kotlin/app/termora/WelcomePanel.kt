@@ -2,6 +2,7 @@ package app.termora
 
 
 import app.termora.actions.*
+import app.termora.db.DatabaseManager
 import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereResult
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
@@ -24,7 +25,7 @@ import kotlin.math.max
 
 class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()), Disposable, TerminalTab,
     DataProvider {
-    private val properties get() = Database.getDatabase().properties
+    private val properties get() = DatabaseManager.getInstance().properties
     private val rootPanel = JPanel(BorderLayout())
     private val searchTextField = FlatTextField()
     private val hostTree = NewHostTree()

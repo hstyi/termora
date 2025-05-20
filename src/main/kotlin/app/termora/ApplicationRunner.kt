@@ -195,7 +195,7 @@ class ApplicationRunner {
     }
 
     private fun loadSettings() {
-        val language = Database.getDatabase().appearance.language
+        val language = DatabaseManager.getInstance().appearance.language
         val locale = runCatching { LocaleUtils.toLocale(language) }.getOrElse { Locale.getDefault() }
         if (log.isInfoEnabled) {
             log.info("Language: {} , Locale: {}", language, locale)
@@ -215,7 +215,7 @@ class ApplicationRunner {
         }
 
         val themeManager = ThemeManager.getInstance()
-        val appearance = Database.getDatabase().appearance
+        val appearance = DatabaseManager.getInstance().appearance
         var theme = appearance.theme
         // 如果是跟随系统
         if (appearance.followSystem) {
@@ -326,7 +326,6 @@ class ApplicationRunner {
 
     private fun openDatabase() {
         try {
-            Database.getDatabase()
             // 初始化数据库
             DatabaseManager.getInstance()
         } catch (e: Exception) {
@@ -376,10 +375,11 @@ class ApplicationRunner {
     }
 
     private fun getAnalyticsUserID(): String {
-        var id = Database.getDatabase().properties.getString("AnalyticsUserID")
+        val properties = DatabaseManager.getInstance().properties
+        var id = properties.getString("AnalyticsUserID")
         if (id.isNullOrBlank()) {
             id = UUID.randomUUID().toSimpleString()
-            Database.getDatabase().properties.putString("AnalyticsUserID", id)
+            properties.putString("AnalyticsUserID", id)
         }
         return id
     }

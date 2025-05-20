@@ -1,5 +1,6 @@
 package app.termora
 
+import app.termora.db.DatabaseManager
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.FlatAnimatedLafChange
 import com.jthemedetecor.OsThemeDetector
@@ -17,7 +18,7 @@ interface ThemeChangeListener : EventListener {
     fun onChanged()
 }
 
-class ThemeManager private constructor() {
+internal class ThemeManager private constructor() {
 
 
     companion object {
@@ -27,7 +28,7 @@ class ThemeManager private constructor() {
         }
     }
 
-    val appearance by lazy { Database.getDatabase().appearance }
+    val appearance by lazy { DatabaseManager.getInstance().appearance }
     val themes = mapOf(
         "Light" to LightLaf::class.java.name,
         "Dark" to DarkLaf::class.java.name,

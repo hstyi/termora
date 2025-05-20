@@ -5,6 +5,7 @@ import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviders
+import app.termora.db.DatabaseManager
 import app.termora.plugin.internal.ssh.SSHTerminalTab
 import app.termora.snippet.SnippetAction
 import app.termora.snippet.SnippetTreeDialog
@@ -22,7 +23,7 @@ import javax.swing.JButton
 import javax.swing.SwingUtilities
 
 class FloatingToolbarPanel : FlatToolBar(), Disposable {
-    private val floatingToolbarEnable get() = Database.getDatabase().terminal.floatingToolbar
+    private val floatingToolbarEnable get() = DatabaseManager.getInstance().terminal.floatingToolbar
     private var closed = false
     private val anEvent get() = AnActionEvent(this, StringUtils.EMPTY, EventObject(this))
 
@@ -33,7 +34,7 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
 
         private val pinAction by lazy {
             object : AnAction() {
-                private val properties get() = Database.getDatabase().properties
+                private val properties get() = DatabaseManager.getInstance().properties
                 private val key = "FloatingToolbar.pined"
 
                 init {

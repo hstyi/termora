@@ -3,6 +3,7 @@ package app.termora.sftp
 import app.termora.*
 import app.termora.actions.AnActionEvent
 import app.termora.actions.SettingsAction
+import app.termora.db.DatabaseManager
 import app.termora.sftp.FileSystemViewTable.AskTransfer.Action
 import app.termora.vfs2.VFSWalker
 import app.termora.vfs2.sftp.MySftpFileObject
@@ -78,7 +79,7 @@ class FileSystemViewTable(
         private val log = LoggerFactory.getLogger(FileSystemViewTable::class.java)
     }
 
-    private val sftp get() = Database.getDatabase().sftp
+    private val sftp get() = DatabaseManager.getInstance().sftp
     private val model = FileSystemViewTableModel()
     private val table = this
     private val owner get() = SwingUtilities.getWindowAncestor(this)

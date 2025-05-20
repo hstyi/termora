@@ -2,10 +2,10 @@ package app.termora
 
 import app.termora.Application.ohMyJson
 import app.termora.actions.OpenHostAction
+import app.termora.db.DatabaseManager
 import app.termora.plugin.internal.rdp.RDPProtocolProvider
 import app.termora.plugin.internal.sftppty.SFTPPtyProtocolProvider
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
-import app.termora.NewHostDialogV2
 import app.termora.sftp.SFTPActionEvent
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import kotlinx.serialization.Serializable
@@ -50,7 +50,7 @@ class NewHostTree : SimpleTree() {
     }
 
     private val hostManager get() = HostManager.getInstance()
-    private val properties get() = Database.getDatabase().properties
+    private val properties get() = DatabaseManager.getInstance().properties
     private val owner get() = SwingUtilities.getWindowAncestor(this)
     private val openHostAction get() = ActionManager.getInstance().getAction(OpenHostAction.OPEN_HOST)
     private val sftpAction get() = ActionManager.getInstance().getAction(app.termora.Actions.SFTP)

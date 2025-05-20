@@ -1,5 +1,6 @@
 package app.termora
 
+import app.termora.db.DatabaseManager
 import app.termora.native.osx.NativeMacLibrary
 import app.termora.plugin.ExtensionManager
 import com.formdev.flatlaf.ui.FlatNativeWindowsLibrary
@@ -38,9 +39,9 @@ class TermoraFrameManager : Disposable {
     }
 
     private val frames = mutableListOf<TermoraFrame>()
-    private val properties get() = Database.getDatabase().properties
+    private val properties get() = DatabaseManager.getInstance().properties
     private val isDisposed = AtomicBoolean(false)
-    private val isBackgroundRunning get() = Database.getDatabase().appearance.backgroundRunning
+    private val isBackgroundRunning get() = DatabaseManager.getInstance().appearance.backgroundRunning
     private val frameExtensions get() = ExtensionManager.getInstance().getExtensions(FrameExtension::class.java)
 
     fun createWindow(): TermoraFrame {
@@ -67,7 +68,7 @@ class TermoraFrameManager : Disposable {
         }
 
         frame.addNotifyListener(object : NotifyListener {
-            private val opacity get() = Database.getDatabase().appearance.opacity
+            private val opacity get() = DatabaseManager.getInstance().appearance.opacity
             override fun addNotify() {
                 val opacity = this.opacity
                 if (opacity >= 1.0) return

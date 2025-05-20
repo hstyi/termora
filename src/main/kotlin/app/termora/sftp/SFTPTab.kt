@@ -1,6 +1,7 @@
 package app.termora.sftp
 
 import app.termora.*
+import app.termora.db.DatabaseManager
 import app.termora.terminal.DataKey
 import java.beans.PropertyChangeListener
 import javax.swing.Icon
@@ -10,7 +11,7 @@ import javax.swing.SwingUtilities
 
 class SFTPTab : RememberFocusTerminalTab() {
     private val sftpPanel = SFTPPanel()
-    private val sftp get() = Database.getDatabase().sftp
+    private val sftp get() = DatabaseManager.getInstance().sftp
 
     init {
         Disposer.register(this, sftpPanel)

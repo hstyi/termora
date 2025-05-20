@@ -1,5 +1,6 @@
 package app.termora
 
+import app.termora.db.DatabaseManager
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import java.awt.image.BufferedImage
@@ -16,7 +17,7 @@ class BackgroundManager private constructor() {
         }
     }
 
-    private val appearance get() = Database.getDatabase().appearance
+    private val appearance get() = DatabaseManager.getInstance().appearance
     private var bufferedImage: BufferedImage? = null
     private var imageFilepath = StringUtils.EMPTY
 

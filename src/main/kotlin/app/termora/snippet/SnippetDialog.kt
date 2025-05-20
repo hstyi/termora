@@ -1,6 +1,10 @@
 package app.termora.snippet
 
-import app.termora.*
+import app.termora.DialogWrapper
+import app.termora.Disposable
+import app.termora.Disposer
+import app.termora.I18n
+import app.termora.db.DatabaseManager
 import java.awt.Dimension
 import java.awt.Window
 import javax.swing.JComponent
@@ -8,7 +12,7 @@ import javax.swing.UIManager
 import kotlin.math.max
 
 class SnippetDialog(owner: Window) : DialogWrapper(owner) {
-    private val properties get() = Database.getDatabase().properties
+    private val properties get() = DatabaseManager.getInstance().properties
 
     init {
         initViews()

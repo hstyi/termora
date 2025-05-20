@@ -3,6 +3,7 @@ package app.termora
 import app.termora.AES.decodeBase64
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
+import app.termora.db.DatabaseManager
 import app.termora.terminal.ControlCharacters
 import cash.z.ecc.android.bip39.Mnemonics
 import com.formdev.flatlaf.FlatClientProperties
@@ -130,7 +131,7 @@ class DoormanDialog(owner: Window?) : DialogWrapper(owner) {
         }
 
         try {
-            val keyBackup = Database.getDatabase()
+            val keyBackup = DatabaseManager.getInstance()
                 .properties.getString("doorman-key-backup")
                 ?: throw IllegalStateException("doorman-key-backup is null")
             val key = AES.ECB.decrypt(entropy, keyBackup.decodeBase64())

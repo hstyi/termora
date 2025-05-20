@@ -1,23 +1,27 @@
 package app.termora.db
 
-import app.termora.Application
+import app.termora.*
 import app.termora.Application.ohMyJson
-import app.termora.ApplicationScope
-import app.termora.Disposable
-import app.termora.swingCoroutineScope
+import app.termora.sync.SyncType
+import app.termora.terminal.CursorStyle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.apache.commons.lang3.StringUtils
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.statements.StatementType
 import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
+import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.KProperty
 
-internal class DatabaseManager private constructor() : Disposable {
+class DatabaseManager private constructor() : Disposable {
     companion object {
         val log = LoggerFactory.getLogger(DatabaseManager::class.java)!!
         fun getInstance(): DatabaseManager {
@@ -28,9 +32,14 @@ internal class DatabaseManager private constructor() : Disposable {
 
     val database: Database
     val lock = ReentrantLock()
-    private val map = mutableMapOf<String, String>()
 
-//    val sftp by lazy { SFTP() }
+    val properties by lazy { Properties() }
+    val terminal by lazy { Terminal() }
+    val appearance by lazy { Appearance() }
+    val sftp by lazy { SFTP() }
+    val sync by lazy { Sync() }
+
+    private val map = mutableMapOf<String, String>()
 
 
     init {
@@ -76,7 +85,6 @@ internal class DatabaseManager private constructor() : Disposable {
         }
         return list
     }
-
 
     fun rawData(type: DataType): List<String> {
         val list = mutableListOf<String>()
@@ -141,4 +149,350 @@ internal class DatabaseManager private constructor() : Disposable {
         return map
     }
 
+    private fun setSetting(name: String, value: String) {
+        lock.withLock {
+            transaction(database) {
+                for (row in Settings.selectAll().where { Settings.name eq name }.toList()) {
+                    Settings.deleteWhere { Settings.id eq row[Settings.id] }
+                }
+                Settings.insert {
+                    it[Settings.name] = name
+                    it[Settings.value] = value
+                }
+            }
+            map[name] = value
+        }
+    }
+
+    abstract inner class Property(private val name: String) {
+
+        protected open fun getString(key: String): String? {
+            val c = "${name}.$key"
+            return map[c]
+        }
+
+
+        protected open fun putString(key: String, value: String) {
+            val c = "${name}.$key"
+            setSetting(c, value)
+        }
+
+        fun getProperties(): Map<String, String> {
+            val properties = mutableMapOf<String, String>()
+            for (e in map.entries) {
+                if (e.key.startsWith("${name}.")) {
+                    properties[e.key] = e.value
+                }
+            }
+            return properties
+        }
+
+
+        protected abstract inner class PropertyLazyDelegate<T>(protected val initializer: () -> T) :
+            ReadWriteProperty<Any?, T> {
+            private var value: T? = null
+
+            override fun getValue(thisRef: Any?, property: KProperty<*>): T {
+                if (value == null) {
+                    val v = getString(property.name)
+                    value = if (v == null) {
+                        initializer.invoke()
+                    } else {
+                        convertValue(v)
+                    }
+                }
+
+                if (value == null) {
+                    value = initializer.invoke()
+                }
+                return value!!
+            }
+
+            abstract fun convertValue(value: String): T
+
+            override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
+                this.value = value
+                putString(property.name, value.toString())
+            }
+
+        }
+
+        protected abstract inner class PropertyDelegate<T>(private val defaultValue: T) :
+            PropertyLazyDelegate<T>({ defaultValue })
+
+
+        protected inner class StringPropertyDelegate(defaultValue: String) :
+            PropertyDelegate<String>(defaultValue) {
+            override fun convertValue(value: String): String {
+                return value
+            }
+        }
+
+        protected inner class IntPropertyDelegate(defaultValue: Int) :
+            PropertyDelegate<Int>(defaultValue) {
+            override fun convertValue(value: String): Int {
+                return value.toIntOrNull() ?: initializer.invoke()
+            }
+        }
+
+        protected inner class DoublePropertyDelegate(defaultValue: Double) :
+            PropertyDelegate<Double>(defaultValue) {
+            override fun convertValue(value: String): Double {
+                return value.toDoubleOrNull() ?: initializer.invoke()
+            }
+        }
+
+
+        protected inner class LongPropertyDelegate(defaultValue: Long) :
+            PropertyDelegate<Long>(defaultValue) {
+            override fun convertValue(value: String): Long {
+                return value.toLongOrNull() ?: initializer.invoke()
+            }
+        }
+
+        protected inner class BooleanPropertyDelegate(defaultValue: Boolean) :
+            PropertyDelegate<Boolean>(defaultValue) {
+            override fun convertValue(value: String): Boolean {
+                return value.toBooleanStrictOrNull() ?: initializer.invoke()
+            }
+        }
+
+        protected open inner class StringPropertyLazyDelegate(initializer: () -> String) :
+            PropertyLazyDelegate<String>(initializer) {
+            override fun convertValue(value: String): String {
+                return value
+            }
+        }
+
+
+        protected inner class CursorStylePropertyDelegate(defaultValue: CursorStyle) :
+            PropertyDelegate<CursorStyle>(defaultValue) {
+            override fun convertValue(value: String): CursorStyle {
+                return try {
+                    CursorStyle.valueOf(value)
+                } catch (_: Exception) {
+                    initializer.invoke()
+                }
+            }
+        }
+
+
+        protected inner class SyncTypePropertyDelegate(defaultValue: SyncType) :
+            PropertyDelegate<SyncType>(defaultValue) {
+            override fun convertValue(value: String): SyncType {
+                return try {
+                    SyncType.valueOf(value)
+                } catch (_: Exception) {
+                    initializer.invoke()
+                }
+            }
+        }
+
+    }
+
+    /**
+     * 终端设置
+     */
+    inner class Terminal : Property("Setting.Terminal") {
+
+        /**
+         * 字体
+         */
+        var font by StringPropertyDelegate("JetBrains Mono")
+
+        /**
+         * 默认终端
+         */
+        var localShell by StringPropertyLazyDelegate { Application.getDefaultShell() }
+
+        /**
+         * 字体大小
+         */
+        var fontSize by IntPropertyDelegate(14)
+
+        /**
+         * 最大行数
+         */
+        var maxRows by IntPropertyDelegate(5000)
+
+        /**
+         * 调试模式
+         */
+        var debug by BooleanPropertyDelegate(false)
+
+        /**
+         * 蜂鸣声
+         */
+        var beep by BooleanPropertyDelegate(true)
+
+        /**
+         * 超链接
+         */
+        var hyperlink by BooleanPropertyDelegate(true)
+
+        /**
+         * 光标闪烁
+         */
+        var cursorBlink by BooleanPropertyDelegate(false)
+
+        /**
+         * 选中复制
+         */
+        var selectCopy by BooleanPropertyDelegate(false)
+
+        /**
+         * 光标样式
+         */
+        var cursor by CursorStylePropertyDelegate(CursorStyle.Block)
+
+        /**
+         * 终端断开连接时自动关闭Tab
+         */
+        var autoCloseTabWhenDisconnected by BooleanPropertyDelegate(false)
+
+        /**
+         * 是否显示悬浮工具栏
+         */
+        var floatingToolbar by BooleanPropertyDelegate(true)
+    }
+
+    /**
+     * 通用属性
+     */
+    inner class Properties : Property("Setting.Properties") {
+        public override fun getString(key: String): String? {
+            return super.getString(key)
+        }
+
+
+        fun getString(key: String, defaultValue: String): String {
+            return getString(key) ?: defaultValue
+        }
+
+        public override fun putString(key: String, value: String) {
+            super.putString(key, value)
+        }
+    }
+
+    /**
+     * 外观
+     */
+    inner class Appearance : Property("Setting.Appearance") {
+
+
+        /**
+         * 外观
+         */
+        var theme by StringPropertyDelegate("Light")
+
+        /**
+         * 跟随系统
+         */
+        var followSystem by BooleanPropertyDelegate(true)
+        var darkTheme by StringPropertyDelegate("Dark")
+        var lightTheme by StringPropertyDelegate("Light")
+
+        /**
+         * 允许后台运行，也就是托盘
+         */
+        var backgroundRunning by BooleanPropertyDelegate(false)
+
+        /**
+         * 背景图片的地址
+         */
+        var backgroundImage by StringPropertyDelegate(StringUtils.EMPTY)
+
+        /**
+         * 语言
+         */
+        var language by StringPropertyLazyDelegate {
+            I18n.containsLanguage(Locale.getDefault()) ?: Locale.US.toString()
+        }
+
+
+        /**
+         * 透明度
+         */
+        var opacity by DoublePropertyDelegate(1.0)
+    }
+
+    /**
+     * SFTP
+     */
+    inner class SFTP : Property("Setting.SFTP") {
+
+
+        /**
+         * 编辑命令
+         */
+        var editCommand by StringPropertyDelegate(StringUtils.EMPTY)
+
+
+        /**
+         * sftp command
+         */
+        var sftpCommand by StringPropertyDelegate(StringUtils.EMPTY)
+
+        /**
+         * defaultDirectory
+         */
+        var defaultDirectory by StringPropertyDelegate(StringUtils.EMPTY)
+
+
+        /**
+         * 是否固定在标签栏
+         */
+        var pinTab by BooleanPropertyDelegate(false)
+
+        /**
+         * 是否保留原始文件时间
+         */
+        var preserveModificationTime by BooleanPropertyDelegate(false)
+
+    }
+
+    /**
+     * 同步配置
+     */
+    inner class Sync : Property("Setting.Sync") {
+        /**
+         * 同步类型
+         */
+        var type by SyncTypePropertyDelegate(SyncType.GitHub)
+
+        /**
+         * 范围
+         */
+        var rangeHosts by BooleanPropertyDelegate(true)
+        var rangeKeyPairs by BooleanPropertyDelegate(true)
+        var rangeSnippets by BooleanPropertyDelegate(true)
+        var rangeKeywordHighlights by BooleanPropertyDelegate(true)
+        var rangeMacros by BooleanPropertyDelegate(true)
+        var rangeKeymap by BooleanPropertyDelegate(true)
+
+        /**
+         * Token
+         */
+        var token by StringPropertyDelegate(String())
+
+        /**
+         * Gist ID
+         */
+        var gist by StringPropertyDelegate(String())
+
+        /**
+         * Domain
+         */
+        var domain by StringPropertyDelegate(String())
+
+        /**
+         * 最后同步时间
+         */
+        var lastSyncTime by LongPropertyDelegate(0L)
+
+        /**
+         * 同步策略，为空就是默认手动
+         */
+        var policy by StringPropertyDelegate(StringUtils.EMPTY)
+    }
 }

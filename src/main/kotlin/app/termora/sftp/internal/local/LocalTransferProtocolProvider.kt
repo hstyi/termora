@@ -1,6 +1,6 @@
 package app.termora.sftp.internal.local
 
-import app.termora.Database
+import app.termora.db.DatabaseManager
 import app.termora.protocol.FileObjectHandler
 import app.termora.protocol.FileObjectRequester
 import app.termora.protocol.TransferProtocolProvider
@@ -14,7 +14,7 @@ internal class LocalTransferProtocolProvider : TransferProtocolProvider {
     companion object {
         val instance by lazy { LocalTransferProtocolProvider() }
         private val localFileProvider by lazy { DefaultLocalFileProvider() }
-        private val sftp get() = Database.getDatabase().sftp
+        private val sftp get() = DatabaseManager.getInstance().sftp
         const val PROTOCOL = "file"
     }
 

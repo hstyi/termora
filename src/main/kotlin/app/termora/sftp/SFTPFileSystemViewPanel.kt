@@ -2,24 +2,19 @@ package app.termora.sftp
 
 import app.termora.*
 import app.termora.actions.DataProvider
+import app.termora.db.DatabaseManager
 import app.termora.protocol.FileObjectHandler
 import app.termora.protocol.FileObjectRequester
 import app.termora.protocol.TransferProtocolProvider
 import app.termora.terminal.DataKey
-import app.termora.vfs2.sftp.MySftpFileSystem
 import com.formdev.flatlaf.icons.FlatOptionPaneErrorIcon
-import com.formdev.flatlaf.util.SystemInfo
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
 import org.apache.commons.lang3.StringUtils
-import org.apache.commons.lang3.SystemUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.commons.vfs2.FileObject
-import org.apache.commons.vfs2.FileSystem
-import org.apache.commons.vfs2.VFS
-import org.apache.commons.vfs2.provider.local.LocalFileSystem
 import org.jdesktop.swingx.JXBusyLabel
 import org.jdesktop.swingx.JXHyperlink
 import org.slf4j.LoggerFactory
@@ -60,7 +55,7 @@ class SFTPFileSystemViewPanel(
     private val connectFailedPanel = ConnectFailedPanel()
     private val isDisposed = AtomicBoolean(false)
     private val that = this
-    private val properties get() = Database.getDatabase().properties
+    private val properties get() = DatabaseManager.getInstance().properties
 
     private var handler: FileObjectHandler? = null
     private var fileSystemPanel: FileSystemViewPanel? = null

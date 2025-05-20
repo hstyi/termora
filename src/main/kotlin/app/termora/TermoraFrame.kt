@@ -4,6 +4,7 @@ package app.termora
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviderSupport
 import app.termora.actions.DataProviders
+import app.termora.db.DatabaseManager
 import app.termora.plugin.ExtensionManager
 import app.termora.sftp.SFTPTab
 import app.termora.terminal.DataKey
@@ -43,7 +44,7 @@ class TermoraFrame : JFrame(), DataProvider {
     private val terminalTabbed = TerminalTabbed(windowScope, toolbar, tabbedPane)
     private val dataProviderSupport = DataProviderSupport()
     private val welcomePanel = WelcomePanel(windowScope)
-    private val sftp get() = Database.getDatabase().sftp
+    private val sftp get() = DatabaseManager.getInstance().sftp
     private var notifyListeners = emptyArray<NotifyListener>()
 
 
@@ -261,7 +262,7 @@ class TermoraFrame : JFrame(), DataProvider {
 
 
     private class GlassPane : JComponent() {
-        private val appearance get() = Database.getDatabase().appearance
+        private val appearance get() = DatabaseManager.getInstance().appearance
 
         override fun paintComponent(g2d: Graphics) {
             if (g2d !is Graphics2D) return

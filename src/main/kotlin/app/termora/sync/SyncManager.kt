@@ -1,8 +1,8 @@
 package app.termora.sync
 
 import app.termora.ApplicationScope
-import app.termora.Database
 import app.termora.Disposable
+import app.termora.db.DatabaseManager
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 import kotlin.random.Random
@@ -18,7 +18,7 @@ class SyncManager private constructor() : Disposable {
         }
     }
 
-    private val sync get() = Database.getDatabase().sync
+    private val sync get() = DatabaseManager.getInstance().sync
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var job: Job? = null
     private var disableTrigger = false

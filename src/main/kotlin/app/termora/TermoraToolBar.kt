@@ -2,6 +2,7 @@ package app.termora
 
 import app.termora.Application.ohMyJson
 import app.termora.actions.*
+import app.termora.db.DatabaseManager
 import app.termora.findeverywhere.FindEverywhereAction
 import app.termora.snippet.SnippetAction
 import com.formdev.flatlaf.FlatClientProperties
@@ -28,7 +29,7 @@ class TermoraToolBar(
     private val frame: TermoraFrame,
     private val tabbedPane: FlatTabbedPane
 ) {
-    private val properties by lazy { Database.getDatabase().properties }
+    private val properties get() = DatabaseManager.getInstance().properties
     private val toolbar by lazy { MyToolBar().apply { rebuild(this) } }
 
 
