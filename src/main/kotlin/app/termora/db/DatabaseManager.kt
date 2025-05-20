@@ -133,6 +133,10 @@ class DatabaseManager private constructor() : Disposable {
                 }
             }
         }
+
+        for (extension in ExtensionManager.getInstance().getExtensions(DatabaseManagerExtension::class.java)) {
+            extension.onDataChanged(id, type, data)
+        }
     }
 
     fun delete(id: String) {
