@@ -82,6 +82,14 @@ class UpdaterManager private constructor() {
 
             val json = ohMyJson.parseToJsonElement(text).jsonObject
             val version = json.getValue("tag_name").jsonPrimitive.content
+
+            val localVersion = Application.getVersion()
+            // 如果本地版本是 1.x 最新版本不是1.x ，那么不允许自动更新
+            // 因为 2.x 涉及到数据结构变更
+            if (localVersion.startsWith("1.") && version.startsWith("1.").not()) {
+                return LatestVersion.self
+            }
+
             val prerelease = json.getValue("prerelease").jsonPrimitive.boolean
             val draft = json.getValue("draft").jsonPrimitive.boolean
             val name = json.getValue("name").jsonPrimitive.content
