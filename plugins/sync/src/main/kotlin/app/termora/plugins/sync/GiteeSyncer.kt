@@ -3,7 +3,6 @@ package app.termora.sync
 import app.termora.Application.ohMyJson
 import app.termora.ApplicationScope
 import app.termora.ResponseException
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request

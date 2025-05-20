@@ -2,7 +2,7 @@ package app.termora.db
 
 import app.termora.*
 import app.termora.Application.ohMyJson
-import app.termora.sync.SyncType
+import app.termora.plugin.ExtensionManager
 import app.termora.terminal.CursorStyle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -12,7 +12,6 @@ import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.statements.StatementType
 import org.jetbrains.exposed.v1.jdbc.*
-import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 import java.util.*
@@ -33,11 +32,10 @@ class DatabaseManager private constructor() : Disposable {
     val database: Database
     val lock = ReentrantLock()
 
-    val properties by lazy { Properties() }
-    val terminal by lazy { Terminal() }
-    val appearance by lazy { Appearance() }
-    val sftp by lazy { SFTP() }
-    val sync by lazy { Sync() }
+    val properties by lazy { Properties(this) }
+    val terminal by lazy { Terminal(this) }
+    val appearance by lazy { Appearance(this) }
+    val sftp by lazy { SFTP(this) }
 
     private val map = mutableMapOf<String, String>()
 
@@ -69,6 +67,10 @@ class DatabaseManager private constructor() : Disposable {
         // 异步初始化
         swingCoroutineScope.launch(Dispatchers.IO) {
             map.putAll(getSettings())
+        }
+
+        for (extension in ExtensionManager.getInstance().getExtensions(DatabaseManagerExtension::class.java)) {
+            extension.ready(this)
         }
 
     }
@@ -168,22 +170,26 @@ class DatabaseManager private constructor() : Disposable {
         }
     }
 
-    abstract inner class Property(private val name: String) {
+    abstract class IProperties(
+        private val databaseManager: DatabaseManager,
+        private val name: String
+    ) {
 
         protected open fun getString(key: String): String? {
             val c = "${name}.$key"
-            return map[c]
+            return databaseManager.map[c]
         }
 
 
         protected open fun putString(key: String, value: String) {
             val c = "${name}.$key"
-            setSetting(c, value)
+            databaseManager.setSetting(c, value)
         }
+
 
         fun getProperties(): Map<String, String> {
             val properties = mutableMapOf<String, String>()
-            for (e in map.entries) {
+            for (e in databaseManager.map.entries) {
                 if (e.key.startsWith("${name}.")) {
                     properties[e.key] = e.value
                 }
@@ -281,23 +287,12 @@ class DatabaseManager private constructor() : Disposable {
         }
 
 
-        protected inner class SyncTypePropertyDelegate(defaultValue: SyncType) :
-            PropertyDelegate<SyncType>(defaultValue) {
-            override fun convertValue(value: String): SyncType {
-                return try {
-                    SyncType.valueOf(value)
-                } catch (_: Exception) {
-                    initializer.invoke()
-                }
-            }
-        }
-
     }
 
     /**
      * 终端设置
      */
-    inner class Terminal : Property("Setting.Terminal") {
+    class Terminal(databaseManager: DatabaseManager) : IProperties(databaseManager, "Setting.Terminal") {
 
         /**
          * 字体
@@ -363,7 +358,7 @@ class DatabaseManager private constructor() : Disposable {
     /**
      * 通用属性
      */
-    inner class Properties : Property("Setting.Properties") {
+    class Properties(databaseManager: DatabaseManager) : IProperties(databaseManager, "Setting.Properties") {
         public override fun getString(key: String): String? {
             return super.getString(key)
         }
@@ -381,7 +376,7 @@ class DatabaseManager private constructor() : Disposable {
     /**
      * 外观
      */
-    inner class Appearance : Property("Setting.Appearance") {
+    class Appearance(databaseManager: DatabaseManager) : IProperties(databaseManager, "Setting.Appearance") {
 
 
         /**
@@ -423,7 +418,7 @@ class DatabaseManager private constructor() : Disposable {
     /**
      * SFTP
      */
-    inner class SFTP : Property("Setting.SFTP") {
+    class SFTP(databaseManager: DatabaseManager) : IProperties(databaseManager, "Setting.SFTP") {
 
 
         /**
@@ -455,48 +450,4 @@ class DatabaseManager private constructor() : Disposable {
 
     }
 
-    /**
-     * 同步配置
-     */
-    inner class Sync : Property("Setting.Sync") {
-        /**
-         * 同步类型
-         */
-        var type by SyncTypePropertyDelegate(SyncType.GitHub)
-
-        /**
-         * 范围
-         */
-        var rangeHosts by BooleanPropertyDelegate(true)
-        var rangeKeyPairs by BooleanPropertyDelegate(true)
-        var rangeSnippets by BooleanPropertyDelegate(true)
-        var rangeKeywordHighlights by BooleanPropertyDelegate(true)
-        var rangeMacros by BooleanPropertyDelegate(true)
-        var rangeKeymap by BooleanPropertyDelegate(true)
-
-        /**
-         * Token
-         */
-        var token by StringPropertyDelegate(String())
-
-        /**
-         * Gist ID
-         */
-        var gist by StringPropertyDelegate(String())
-
-        /**
-         * Domain
-         */
-        var domain by StringPropertyDelegate(String())
-
-        /**
-         * 最后同步时间
-         */
-        var lastSyncTime by LongPropertyDelegate(0L)
-
-        /**
-         * 同步策略，为空就是默认手动
-         */
-        var policy by StringPropertyDelegate(StringUtils.EMPTY)
-    }
 }
