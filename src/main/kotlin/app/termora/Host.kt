@@ -299,6 +299,12 @@ data class Host(
      * 所属者
      */
     val ownerId: String = "0",
+
+    /**
+     * 所属者类型，默认是：用户
+     */
+    val ownerType: String = StringUtils.EMPTY,
+
     /**
      * 创建者
      */

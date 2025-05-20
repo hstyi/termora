@@ -12,7 +12,7 @@ commons-csv = "1.14.0"
 commons-net = "3.11.1"
 commons-text = "1.13.1"
 commons-compress = "1.27.1"
-commons-vfs2="2.10.0"
+commons-vfs2 = "2.10.0"
 swingx = "1.6.5-1"
 jgoodies-forms = "1.9.0"
 jfa = "1.2.0"
@@ -41,6 +41,9 @@ jSerialComm = "2.11.0"
 ini4j = "0.5.5-2"
 restart4j = "0.0.1"
 eddsa = "0.3.0"
+exposed = "1.0.0-beta-1"
+h2 = "2.3.232"
+sqlite = "3.49.1.0"
 
 [libraries]
 kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
@@ -96,6 +99,12 @@ colorpicker = { module = "org.drjekyll:colorpicker", version.ref = "colorpicker"
 mixpanel = { module = "com.mixpanel:mixpanel-java", version.ref = "mixpanel" }
 jSerialComm = { module = "com.fazecast:jSerialComm", version.ref = "jSerialComm" }
 eddsa = { module = "net.i2p.crypto:eddsa", version.ref = "eddsa" }
+exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
+exposed-crypt = { module = "org.jetbrains.exposed:exposed-crypt", version.ref = "exposed" }
+exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
+exposed-migration = { module = "org.jetbrains.exposed:exposed-migration", version.ref = "exposed" }
+h2 = { module = "com.h2database:h2", version.ref = "h2" }
+sqlite = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

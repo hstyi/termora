@@ -56,6 +56,7 @@ dependencies {
     testImplementation(libs.delight.rhino.sandbox)
     testImplementation(platform(libs.testcontainers.bom))
     testImplementation(libs.testcontainers)
+    testImplementation(libs.h2)
 
 //    implementation(platform(libs.koin.bom))
 //    implementation(libs.koin.core)
@@ -120,6 +121,12 @@ dependencies {
     api(libs.jSerialComm)
     api(libs.ini4j)
     api(libs.restart4j)
+    api(libs.exposed.core)
+    api(libs.exposed.crypt)
+    api(libs.exposed.jdbc)
+    api(libs.exposed.migration)
+    api(libs.sqlite)
+
 }
 
 application {

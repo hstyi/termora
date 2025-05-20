@@ -106,7 +106,8 @@ class MySftpFileProviderTest : SSHDTest() {
     private fun newFileObject(path: String): FileObject {
         val vfs = getVFS()
         val fileSystemOptions = FileSystemOptions()
-        MySftpFileSystemConfigBuilder.getInstance().setClientSession(fileSystemOptions, newClientSession())
+        MySftpFileSystemConfigBuilder.getInstance()
+            .setSftpFileSystem(fileSystemOptions, SftpClientFactory.instance().createSftpFileSystem(newClientSession()))
         return vfs.resolveFile("sftp://${path}", fileSystemOptions)
     }
 
