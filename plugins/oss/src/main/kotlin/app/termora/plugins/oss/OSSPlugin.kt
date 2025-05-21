@@ -26,7 +26,7 @@ class OSSPlugin : Plugin {
     }
 
     override fun getName(): String {
-        return "OSS"
+        return "Alibaba OSS"
     }
 
     override fun getDescription(): String {

@@ -26,7 +26,7 @@ class OBSPlugin : Plugin {
     }
 
     override fun getName(): String {
-        return "OBS"
+        return "Huawei OBS"
     }
 
     override fun getDescription(): String {

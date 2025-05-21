@@ -9,6 +9,9 @@ import app.termora.plugin.internal.sftppty.SFTPPtyInternalPlugin
 import app.termora.plugin.internal.ssh.SSHInternalPlugin
 import app.termora.sftp.internal.local.LocalPlugin
 import app.termora.sftp.internal.sftp.SFTPPlugin
+import app.termora.swingCoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.FileFilterUtils
 import org.apache.commons.lang3.ArrayUtils
@@ -112,6 +115,13 @@ class PluginManager private constructor() {
     }
 
     private fun loadPlugin(file: File, origin: PluginOrigin) {
+        // 如果有删除标识，那么忽略
+        val deletedFile = FileUtils.getFile(file, "deleted")
+        if (deletedFile.exists()) {
+            swingCoroutineScope.launch(Dispatchers.IO) { FileUtils.deleteQuietly(file) }
+            return
+        }
+
         val jars = FileUtils.listFiles(
             file, FileFilterUtils.suffixFileFilter(".jar"),
             FileFilterUtils.falseFileFilter()
@@ -138,7 +148,7 @@ class PluginManager private constructor() {
             if (clazz.interfaces.contains(Plugin::class.java).not()) return
             val entry = clazz.getConstructor().newInstance() as Plugin
 
-            plugins.add(PluginDescriptor(entry, origin, pluginVersion))
+            plugins.add(PluginDescriptor(entry, origin, pluginVersion, file))
             if (log.isInfoEnabled) {
                 log.info("Loaded plugin ${entry.getName()} from $entry")
             }

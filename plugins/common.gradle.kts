@@ -24,7 +24,7 @@ tasks.named("build") {
     dependsOn("copyDependencies")
 }
 
-tasks.register("run") {
+tasks.register("run-plugin") {
     dependsOn("build")
 
     doLast {
@@ -59,4 +59,10 @@ tasks.register("run") {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+}
+
+tasks.named("clean") {
+    doLast {
+        file("${rootProject.layout.buildDirectory.get().asFile.absolutePath}/plugins/${project.name}").deleteRecursively()
+    }
 }

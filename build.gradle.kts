@@ -145,6 +145,7 @@ application {
     }
 
     args.add("-Dapp-version=${project.version}")
+    args.add("-DTERMORA_PLUGIN_DIRECTORY=${layout.buildDirectory.get().asFile.absolutePath}${File.separator}plugins")
 
     if (os.isLinux) {
         args.add("-Dsun.java2d.opengl=true")

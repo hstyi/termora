@@ -7,6 +7,7 @@ import app.termora.db.DatabaseManager
 import app.termora.keymap.KeymapPanel
 import app.termora.nv.FileChooser
 import app.termora.plugin.ExtensionManager
+import app.termora.plugin.PluginDescriptor
 import app.termora.plugin.PluginManager
 import app.termora.plugin.PluginOrigin
 import app.termora.sftp.SFTPTab
@@ -901,22 +902,59 @@ class SettingsOptionsPane : OptionsPane() {
                 infoBox.add(descriptionLabel)
                 pluginBox.add(infoBox)
                 pluginBox.add(Box.createHorizontalGlue())
+                pluginBox.add(Box.createHorizontalStrut(8))
 
                 val uninstallButton = JButton(I18n.getString("termora.settings.plugin.uninstall"))
-                pluginBox.add(Box.createHorizontalStrut(8))
+                if (e.uninstalled) {
+                    uninstallButton.text = I18n.getString("termora.settings.plugin.uninstalled")
+                }
                 pluginBox.add(uninstallButton)
+                uninstallButton.isFocusable = false
+                uninstallButton.isEnabled = e.origin == PluginOrigin.External && e.uninstalled.not()
 
-                uninstallButton.isEnabled = e.origin == PluginOrigin.External
                 if (e.origin == PluginOrigin.System) {
                     uninstallButton.toolTipText = I18n.getString("termora.settings.plugin.cannot-uninstall")
+                } else if (e.origin == PluginOrigin.External) {
+                    uninstallButton.addActionListener { uninstall(uninstallButton, e) }
                 }
 
                 pluginBox.border = BorderFactory.createEmptyBorder(0, 8, 0, 8)
                 panel.add(pluginBox)
 
-                if (installedPlugins.size != index + 1) {
-                    panel.add(JToolBar.Separator())
-                }
+                panel.add(JToolBar.Separator())
+            }
+
+            for ((index, e) in installedPlugins.withIndex()) {
+                if (e.origin == PluginOrigin.Internal) continue
+                val plugin = e.plugin
+                val pluginBox = JPanel()
+                pluginBox.setLayout(BoxLayout(pluginBox, BoxLayout.X_AXIS))
+                pluginBox.add(JLabel(FlatSVGIcon(plugin.getIcon().name, 32, 32, e.plugin.javaClass.classLoader)))
+                pluginBox.add(Box.createHorizontalStrut(8))
+
+                val infoBox = Box.createVerticalBox()
+                infoBox.add(JLabel("<html><b>${plugin.getName()}</b>&nbsp;&nbsp;${e.version}</html>"))
+                infoBox.add(Box.createVerticalStrut(4))
+                val descriptionLabel = JXLabel(plugin.getDescription())
+                    .apply { foreground = DynamicColor("textInactiveText") }
+                descriptionLabel.preferredSize = Dimension(0, descriptionLabel.preferredSize.height)
+                descriptionLabel.toolTipText = plugin.getDescription()
+
+                infoBox.add(descriptionLabel)
+                pluginBox.add(infoBox)
+                pluginBox.add(Box.createHorizontalGlue())
+                pluginBox.add(Box.createHorizontalStrut(8))
+
+                val installButton = JButton(I18n.getString("termora.settings.plugin.install"))
+                installButton.isFocusable = false
+                installButton.icon = Icons.locked
+                installButton.addActionListener { install(installButton, e) }
+
+                pluginBox.add(installButton)
+                pluginBox.border = BorderFactory.createEmptyBorder(0, 8, 0, 8)
+                panel.add(pluginBox)
+
+                panel.add(JToolBar.Separator())
             }
 
 
@@ -926,6 +964,56 @@ class SettingsOptionsPane : OptionsPane() {
             scrollPane.verticalScrollBar.unitIncrement = 16
             scrollPane.horizontalScrollBar.unitIncrement = 16
             add(scrollPane, BorderLayout.CENTER)
+        }
+
+        private fun uninstall(button: JButton, descriptor: PluginDescriptor) {
+            if (descriptor.origin != PluginOrigin.External || descriptor.uninstalled) return
+            val file = descriptor.path ?: return
+            val option = OptionPane.showConfirmDialog(
+                owner,
+                I18n.getString("termora.settings.plugin.uninstall-confirm", descriptor.plugin.getName()),
+                optionType = JOptionPane.OK_CANCEL_OPTION,
+                messageType = JOptionPane.QUESTION_MESSAGE
+            )
+            if (option != JOptionPane.OK_OPTION) return
+
+            val deletedFile = FileUtils.getFile(file, "deleted")
+            if (deletedFile.exists()) return
+            if (deletedFile.createNewFile()) {
+                descriptor.uninstalled = true
+                button.text = I18n.getString("termora.settings.plugin.uninstalled")
+                button.isEnabled = false
+                TermoraRestarter.getInstance().scheduleRestart(owner)
+            } else {
+                OptionPane.showMessageDialog(
+                    owner,
+                    I18n.getString("termora.settings.plugin.uninstall-failed"),
+                    messageType = JOptionPane.ERROR_MESSAGE
+                )
+            }
+
+        }
+
+        private fun install(button: JButton, descriptor: PluginDescriptor) {
+            val option = OptionPane.showConfirmDialog(
+                owner,
+                I18n.getString("termora.settings.plugin.install-subscription-confirm", descriptor.plugin.getName()),
+                options = arrayOf(
+                    I18n.getString("termora.settings.plugin.subscribe"),
+                    I18n.getString("termora.cancel")
+                ),
+                optionType = JOptionPane.OK_CANCEL_OPTION,
+                messageType = JOptionPane.WARNING_MESSAGE,
+                initialValue = I18n.getString("termora.settings.plugin.subscribe")
+            )
+            if (option != JOptionPane.OK_OPTION) return
+
+            button.isEnabled = false
+            button.icon = null
+            button.text = I18n.getString("termora.settings.plugin.installed")
+
+            TermoraRestarter.getInstance().scheduleRestart(owner)
+
         }
 
 

@@ -22,11 +22,11 @@ class COSPlugin : Plugin {
     }
 
     override fun getIcon(): DynamicIcon {
-        return Icons.huawei
+        return Icons.tencent
     }
 
     override fun getName(): String {
-        return "COS"
+        return "Tencent COS"
     }
 
     override fun getDescription(): String {
