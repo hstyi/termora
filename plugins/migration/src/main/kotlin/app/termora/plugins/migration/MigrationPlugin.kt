@@ -20,7 +20,7 @@ class MigrationPlugin : Plugin {
     }
 
     override fun getIcon(): Icon {
-        return Icons.settingSync
+        return Icons.newUI
     }
 
     override fun getName(): String {
