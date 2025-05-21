@@ -16,6 +16,7 @@ import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.URLClassLoader
+import java.util.jar.Attributes
 import java.util.jar.Manifest
 
 class PluginManager private constructor() {
@@ -84,21 +85,22 @@ class PluginManager private constructor() {
     }
 
     private fun loadInternalPlugins() {
+        val version = Application.getVersion()
         // ssh plugin
-        plugins.add(PluginDescriptor(SSHInternalPlugin(), PluginOrigin.Internal))
+        plugins.add(PluginDescriptor(SSHInternalPlugin(), PluginOrigin.Internal, version))
         // serial plugin
-        plugins.add(PluginDescriptor(SerialInternalPlugin(), PluginOrigin.Internal))
+        plugins.add(PluginDescriptor(SerialInternalPlugin(), PluginOrigin.Internal, version))
         // local plugin
-        plugins.add(PluginDescriptor(LocalInternalPlugin(), PluginOrigin.Internal))
+        plugins.add(PluginDescriptor(LocalInternalPlugin(), PluginOrigin.Internal, version))
         // rdp plugin
-        plugins.add(PluginDescriptor(RDPInternalPlugin(), PluginOrigin.Internal))
+        plugins.add(PluginDescriptor(RDPInternalPlugin(), PluginOrigin.Internal, version))
         // sftp pty plugin
-        plugins.add(PluginDescriptor(SFTPPtyInternalPlugin(), PluginOrigin.Internal))
+        plugins.add(PluginDescriptor(SFTPPtyInternalPlugin(), PluginOrigin.Internal, version))
 
         // local transfer plugin
-        plugins.add(PluginDescriptor(LocalPlugin(), PluginOrigin.Internal))
+        plugins.add(PluginDescriptor(LocalPlugin(), PluginOrigin.Internal, version))
         // sftp transfer plugin
-        plugins.add(PluginDescriptor(SFTPPlugin(), PluginOrigin.Internal))
+        plugins.add(PluginDescriptor(SFTPPlugin(), PluginOrigin.Internal, version))
     }
 
     private fun loadSystemPlugins() {
@@ -120,8 +122,10 @@ class PluginManager private constructor() {
 
         var pluginEntry = StringUtils.EMPTY
         var pluginRange = StringUtils.EMPTY
+        var pluginVersion = StringUtils.EMPTY
         for (e in resources) {
             val attributes = e.openStream().use { Manifest(it).mainAttributes } ?: continue
+            pluginVersion = attributes.getValue(Attributes.Name.IMPLEMENTATION_VERSION) ?: continue
             pluginEntry = attributes.getValue(PLUGIN_ENTRY) ?: continue
             pluginRange = attributes.getValue(PLUGIN_RANGE) ?: continue
             break
@@ -133,7 +137,8 @@ class PluginManager private constructor() {
             val clazz = Class.forName(pluginEntry, false, loader)
             if (clazz.interfaces.contains(Plugin::class.java).not()) return
             val entry = clazz.getConstructor().newInstance() as Plugin
-            plugins.add(PluginDescriptor(entry, origin))
+
+            plugins.add(PluginDescriptor(entry, origin, pluginVersion))
             if (log.isInfoEnabled) {
                 log.info("Loaded plugin ${entry.getName()} from $entry")
             }

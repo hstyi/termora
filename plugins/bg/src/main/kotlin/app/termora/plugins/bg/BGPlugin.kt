@@ -1,12 +1,12 @@
 package app.termora.plugins.bg
 
+import app.termora.DynamicIcon
 import app.termora.GlassPaneExtension
+import app.termora.I18n
 import app.termora.Icons
 import app.termora.plugin.Extension
 import app.termora.plugin.ExtensionSupport
 import app.termora.plugin.Plugin
-import org.apache.commons.lang3.StringUtils
-import javax.swing.Icon
 
 class BGPlugin : Plugin {
     private val support = ExtensionSupport()
@@ -19,16 +19,16 @@ class BGPlugin : Plugin {
         return "TermoraDev"
     }
 
-    override fun getIcon(): Icon {
-        return Icons.huawei
+    override fun getIcon(): DynamicIcon {
+        return Icons.image
     }
 
     override fun getName(): String {
-        return "Url Background"
+        return "Customize Background"
     }
 
     override fun getDescription(): String {
-        return StringUtils.EMPTY
+        return I18n.getString("termora.plugins.bg.description")
     }
 
     override fun <T : Extension> getExtensions(clazz: Class<T>): List<T> {

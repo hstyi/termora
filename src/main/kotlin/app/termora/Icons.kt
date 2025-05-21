@@ -54,6 +54,7 @@ object Icons {
     val keyboard by lazy { DynamicIcon("icons/keyboard.svg", "icons/keyboard_dark.svg") }
     val moreVertical by lazy { DynamicIcon("icons/moreVertical.svg", "icons/moreVertical_dark.svg") }
     val colors by lazy { DynamicIcon("icons/colors.svg", "icons/colors_dark.svg") }
+    val image by lazy { DynamicIcon("icons/image.svg", "icons/image_dark.svg") }
     val chevronDown by lazy { DynamicIcon("icons/chevronDownLarge.svg", "icons/chevronDownLarge_dark.svg") }
     val chevronRight by lazy { DynamicIcon("icons/chevronRight.svg", "icons/chevronRight_dark.svg") }
     val homeFolder by lazy { DynamicIcon("icons/homeFolder.svg", "icons/homeFolder_dark.svg") }

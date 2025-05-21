@@ -8,7 +8,6 @@ import app.termora.vfs2.VFSWalker
 import io.minio.MakeBucketArgs
 import io.minio.MinioClient
 import io.minio.PutObjectArgs
-import org.apache.commons.lang3.StringUtils
 import org.apache.commons.vfs2.FileObject
 import org.apache.commons.vfs2.VFS
 import org.apache.commons.vfs2.cache.WeakRefFilesCache

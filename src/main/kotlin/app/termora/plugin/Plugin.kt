@@ -1,6 +1,6 @@
 package app.termora.plugin
 
-import javax.swing.Icon
+import app.termora.DynamicIcon
 
 /**
  * 插件类，此插件类不应该做任何业务操作，因为在插件初始化时还程序还尚未初始化完成
@@ -17,7 +17,7 @@ interface Plugin {
     /**
      * 图标
      */
-    fun getIcon(): Icon
+    fun getIcon(): DynamicIcon
 
     /**
      * 名称

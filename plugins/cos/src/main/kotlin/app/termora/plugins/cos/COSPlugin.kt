@@ -1,13 +1,13 @@
 package app.termora.plugins.cos
 
+import app.termora.DynamicIcon
+import app.termora.I18n
 import app.termora.Icons
 import app.termora.plugin.Extension
 import app.termora.plugin.ExtensionSupport
 import app.termora.plugin.Plugin
 import app.termora.protocol.ProtocolHostPanelExtension
 import app.termora.protocol.ProtocolProviderExtension
-import org.apache.commons.lang3.StringUtils
-import javax.swing.Icon
 
 class COSPlugin : Plugin {
     private val support = ExtensionSupport()
@@ -21,7 +21,7 @@ class COSPlugin : Plugin {
         return "TermoraDev"
     }
 
-    override fun getIcon(): Icon {
+    override fun getIcon(): DynamicIcon {
         return Icons.huawei
     }
 
@@ -30,7 +30,7 @@ class COSPlugin : Plugin {
     }
 
     override fun getDescription(): String {
-        return StringUtils.EMPTY
+        return I18n.getString("termora.plugins.cos.description")
     }
 
     override fun <T : Extension> getExtensions(clazz: Class<T>): List<T> {

@@ -7,6 +7,8 @@ import app.termora.db.DatabaseManager
 import app.termora.keymap.KeymapPanel
 import app.termora.nv.FileChooser
 import app.termora.plugin.ExtensionManager
+import app.termora.plugin.PluginManager
+import app.termora.plugin.PluginOrigin
 import app.termora.sftp.SFTPTab
 import app.termora.terminal.CursorStyle
 import app.termora.terminal.DataKey
@@ -29,6 +31,7 @@ import org.apache.commons.io.FilenameUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
+import org.jdesktop.swingx.JXLabel
 import org.slf4j.LoggerFactory
 import java.awt.BorderLayout
 import java.awt.Component
@@ -866,6 +869,7 @@ class SettingsOptionsPane : OptionsPane() {
     }
 
     private inner class PluginOption : JPanel(BorderLayout()), Option {
+        private val pluginManager = PluginManager.getInstance()
 
         init {
             initView()
@@ -874,30 +878,56 @@ class SettingsOptionsPane : OptionsPane() {
 
 
         private fun initView() {
-            val box = Box.createVerticalBox()
-            val scrollPane = JScrollPane(box)
-            for (i in 0 until 5) {
-                val pluginBox = Box.createHorizontalBox()
-                pluginBox.add(JLabel(FlatSVGIcon(Icons.plugin.name, 36, 36)))
-                pluginBox.add(Box.createHorizontalStrut(20))
-                pluginBox.preferredSize = Dimension(-1, 36)
+            val panel = JPanel(VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 8))
+            val scrollPane = JScrollPane(panel)
+
+            val installedPlugins = pluginManager.getLoadedPluginDescriptor()
+            for ((index, e) in installedPlugins.withIndex()) {
+                if (e.origin == PluginOrigin.Internal) continue
+                val plugin = e.plugin
+                val pluginBox = JPanel()
+                pluginBox.setLayout(BoxLayout(pluginBox, BoxLayout.X_AXIS))
+                pluginBox.add(JLabel(FlatSVGIcon(plugin.getIcon().name, 32, 32, e.plugin.javaClass.classLoader)))
+                pluginBox.add(Box.createHorizontalStrut(8))
+
                 val infoBox = Box.createVerticalBox()
-                infoBox.add(JLabel("S3").apply { putClientProperty("FlatLaf.style", "font: bold") })
-                infoBox.add(Box.createVerticalGlue())
-                infoBox.add(JLabel("1.0.1 TermoraDev").apply { foreground = DynamicColor("textInactiveText") })
+                infoBox.add(JLabel("<html><b>${plugin.getName()}</b>&nbsp;&nbsp;${e.version}</html>"))
+                infoBox.add(Box.createVerticalStrut(4))
+                val descriptionLabel = JXLabel(plugin.getDescription())
+                    .apply { foreground = DynamicColor("textInactiveText") }
+                descriptionLabel.preferredSize = Dimension(0, descriptionLabel.preferredSize.height)
+                descriptionLabel.toolTipText = plugin.getDescription()
+
+                infoBox.add(descriptionLabel)
                 pluginBox.add(infoBox)
                 pluginBox.add(Box.createHorizontalGlue())
-                pluginBox.add(JButton("Install"))
-                box.add(pluginBox)
-                box.add(Box.createVerticalStrut(20))
+
+                val uninstallButton = JButton(I18n.getString("termora.settings.plugin.uninstall"))
+                pluginBox.add(Box.createHorizontalStrut(8))
+                pluginBox.add(uninstallButton)
+
+                uninstallButton.isEnabled = e.origin == PluginOrigin.External
+                if (e.origin == PluginOrigin.System) {
+                    uninstallButton.toolTipText = I18n.getString("termora.settings.plugin.cannot-uninstall")
+                }
+
+                pluginBox.border = BorderFactory.createEmptyBorder(0, 8, 0, 8)
+                panel.add(pluginBox)
+
+                if (installedPlugins.size != index + 1) {
+                    panel.add(JToolBar.Separator())
+                }
             }
+
+
+
 
             scrollPane.border = BorderFactory.createEmptyBorder()
             scrollPane.verticalScrollBar.unitIncrement = 16
             scrollPane.horizontalScrollBar.unitIncrement = 16
-            scrollPane.verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
-            add(box, BorderLayout.CENTER)
+            add(scrollPane, BorderLayout.CENTER)
         }
+
 
         private fun initEvents() {}
 

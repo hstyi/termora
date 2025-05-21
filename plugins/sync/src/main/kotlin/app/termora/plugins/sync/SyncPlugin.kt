@@ -1,13 +1,13 @@
 package app.termora.plugins.sync
 
+import app.termora.DynamicIcon
+import app.termora.I18n
 import app.termora.Icons
 import app.termora.SettingsOptionExtension
 import app.termora.db.DatabaseManagerExtension
 import app.termora.plugin.Extension
 import app.termora.plugin.ExtensionSupport
 import app.termora.plugin.Plugin
-import org.apache.commons.lang3.StringUtils
-import javax.swing.Icon
 
 class SyncPlugin : Plugin {
     private val support = ExtensionSupport()
@@ -21,8 +21,8 @@ class SyncPlugin : Plugin {
         return "TermoraDev"
     }
 
-    override fun getIcon(): Icon {
-        return Icons.settingSync
+    override fun getIcon(): DynamicIcon {
+        return Icons.cloud
     }
 
     override fun getName(): String {
@@ -30,7 +30,7 @@ class SyncPlugin : Plugin {
     }
 
     override fun getDescription(): String {
-        return StringUtils.EMPTY
+        return I18n.getString("termora.plugins.sync.description")
     }
 
     override fun <T : Extension> getExtensions(clazz: Class<T>): List<T> {

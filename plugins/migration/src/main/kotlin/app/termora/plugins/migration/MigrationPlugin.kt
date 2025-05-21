@@ -1,12 +1,12 @@
 package app.termora.plugins.migration
 
 import app.termora.ApplicationRunnerExtension
+import app.termora.DynamicIcon
+import app.termora.I18n
 import app.termora.Icons
 import app.termora.plugin.Extension
 import app.termora.plugin.ExtensionSupport
 import app.termora.plugin.Plugin
-import org.apache.commons.lang3.StringUtils
-import javax.swing.Icon
 
 class MigrationPlugin : Plugin {
     private val support = ExtensionSupport()
@@ -19,7 +19,7 @@ class MigrationPlugin : Plugin {
         return "TermoraDev"
     }
 
-    override fun getIcon(): Icon {
+    override fun getIcon(): DynamicIcon {
         return Icons.newUI
     }
 
@@ -28,7 +28,7 @@ class MigrationPlugin : Plugin {
     }
 
     override fun getDescription(): String {
-        return StringUtils.EMPTY
+        return I18n.getString("termora.plugins.migration.description")
     }
 
     override fun <T : Extension> getExtensions(clazz: Class<T>): List<T> {

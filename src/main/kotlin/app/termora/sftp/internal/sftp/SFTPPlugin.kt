@@ -1,6 +1,5 @@
 package app.termora.sftp.internal.sftp
 
-import app.termora.I18n
 import app.termora.plugin.Extension
 import app.termora.plugin.InternalPlugin
 import app.termora.protocol.ProtocolProviderExtension
@@ -11,7 +10,7 @@ internal class SFTPPlugin : InternalPlugin() {
     }
 
     override fun getName(): String {
-        return I18n.getString("termora.transport.sftp")
+        return "Transfer"
     }
 
     override fun getDescription(): String {

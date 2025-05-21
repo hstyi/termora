@@ -1,7 +1,7 @@
 package app.termora.plugin
 
+import app.termora.DynamicIcon
 import app.termora.Icons
-import javax.swing.Icon
 
 internal abstract class InternalPlugin() : Plugin {
     protected val support = ExtensionSupport()
@@ -10,7 +10,7 @@ internal abstract class InternalPlugin() : Plugin {
         return "TermoraDev"
     }
 
-    override fun getIcon(): Icon {
+    override fun getIcon(): DynamicIcon {
         return Icons.plugin
     }
 

@@ -5,7 +5,6 @@ import app.termora.Icons
 import app.termora.protocol.FileObjectHandler
 import app.termora.protocol.FileObjectRequester
 import app.termora.protocol.TransferProtocolProvider
-import app.termora.vfs2.s3.AbstractS3FileSystemConfigBuilder
 import io.minio.MinioClient
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.vfs2.FileSystemOptions

@@ -12,6 +12,10 @@ class OSSProtocolHostPanel : ProtocolHostPanel() {
         )
     }
 
+    override fun setHost(host: Host) {
+
+    }
+
     override fun validateFields(): Boolean {
         return true
     }
