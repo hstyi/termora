@@ -1,12 +1,13 @@
 package app.termora.db
 
-import app.termora.*
+import app.termora.Application
 import app.termora.Application.ohMyJson
+import app.termora.ApplicationScope
+import app.termora.Disposable
+import app.termora.I18n
 import app.termora.account.AccountManager
 import app.termora.plugin.ExtensionManager
 import app.termora.terminal.CursorStyle
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
@@ -16,6 +17,7 @@ import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 import java.util.*
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.properties.ReadWriteProperty
@@ -39,6 +41,7 @@ class DatabaseManager private constructor() : Disposable {
     val sftp by lazy { SFTP(this) }
 
     private val map = mutableMapOf<String, String>()
+    private val mapFuture = CompletableFuture<Map<String, String>>()
 
 
     init {
@@ -66,9 +69,7 @@ class DatabaseManager private constructor() : Disposable {
         }
 
         // 异步初始化
-        swingCoroutineScope.launch(Dispatchers.IO) {
-            map.putAll(getSettings())
-        }
+        Thread.ofVirtual().start { map.putAll(getSettings());mapFuture.complete(map) }
 
         for (extension in ExtensionManager.getInstance().getExtensions(DatabaseManagerExtension::class.java)) {
             extension.ready(this)
@@ -189,9 +190,11 @@ class DatabaseManager private constructor() : Disposable {
         private val name: String
     ) {
 
+        private val map get() = databaseManager.mapFuture.get()
+
         protected open fun getString(key: String): String? {
             val c = "${name}.$key"
-            return databaseManager.map[c]
+            return map[c]
         }
 
 
@@ -203,7 +206,7 @@ class DatabaseManager private constructor() : Disposable {
 
         fun getProperties(): Map<String, String> {
             val properties = mutableMapOf<String, String>()
-            for (e in databaseManager.map.entries) {
+            for (e in map.entries) {
                 if (e.key.startsWith("${name}.")) {
                     properties[e.key] = e.value
                 }

@@ -7,7 +7,9 @@ import javax.swing.border.Border
 
 
 open class OptionsPane : JPanel(BorderLayout()) {
-    protected val formMargin = "7dlu"
+    companion object {
+        val formMargin = "7dlu"
+    }
 
     protected val tabListModel = DefaultListModel<Option>()
     protected val tabList = object : JList<Option>(tabListModel) {

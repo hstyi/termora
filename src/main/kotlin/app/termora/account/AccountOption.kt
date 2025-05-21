@@ -1,24 +1,24 @@
 package app.termora.account
 
-import app.termora.*
-import app.termora.plugin.PluginDescriptor
-import app.termora.plugin.PluginManager
-import app.termora.plugin.PluginOrigin
-import com.formdev.flatlaf.extras.FlatSVGIcon
-import org.apache.commons.io.FileUtils
-import org.jdesktop.swingx.JXLabel
+import app.termora.Application
+import app.termora.I18n
+import app.termora.Icons
+import app.termora.OptionsPane
+import app.termora.OptionsPane.Companion.formMargin
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
+import com.formdev.flatlaf.extras.components.FlatLabel
+import com.jgoodies.forms.builder.FormBuilder
+import com.jgoodies.forms.layout.FormLayout
+import org.apache.commons.lang3.time.DateFormatUtils
+import org.jdesktop.swingx.JXHyperlink
 import java.awt.BorderLayout
-import java.awt.Dimension
+import java.util.*
 import javax.swing.*
 
 class AccountOption : JPanel(BorderLayout()), OptionsPane.Option {
-    private val pluginManager = PluginManager.getInstance()
     private val owner get() = SwingUtilities.getWindowAncestor(this)
-
-    companion object {
-        private val installed = mutableSetOf<String>()
-        private val uninstalled = mutableSetOf<String>()
-    }
+    private val accountManager get() = AccountManager.getInstance()
 
     init {
         initView()
@@ -27,153 +27,99 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option {
 
 
     private fun initView() {
-        val panel = JPanel(VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 8))
-        val scrollPane = JScrollPane(panel)
-
-        val installedPlugins = pluginManager.getLoadedPluginDescriptor()
-            .sortedBy { it.plugin.getName().length }
-        for ((index, e) in installedPlugins.withIndex()) {
-            if (e.origin == PluginOrigin.Internal) continue
-            val plugin = e.plugin
-            val pluginBox = JPanel()
-            pluginBox.setLayout(BoxLayout(pluginBox, BoxLayout.X_AXIS))
-            pluginBox.add(JLabel(FlatSVGIcon(plugin.getIcon().name, 32, 32, e.plugin.javaClass.classLoader)))
-            pluginBox.add(Box.createHorizontalStrut(8))
-
-            val infoBox = Box.createVerticalBox()
-            infoBox.add(JLabel("<html><b>${plugin.getName()}</b>&nbsp;&nbsp;${e.version}</html>"))
-            infoBox.add(Box.createVerticalStrut(4))
-            val descriptionLabel = JXLabel(plugin.getDescription())
-                .apply { foreground = DynamicColor("textInactiveText") }
-            descriptionLabel.preferredSize = Dimension(0, descriptionLabel.preferredSize.height)
-            descriptionLabel.toolTipText = plugin.getDescription()
-
-            infoBox.add(descriptionLabel)
-            pluginBox.add(infoBox)
-            pluginBox.add(Box.createHorizontalGlue())
-            pluginBox.add(Box.createHorizontalStrut(8))
-
-            val uninstallButton = JButton(I18n.getString("termora.settings.plugin.uninstall"))
-            if (uninstalled.contains(plugin.getName())) {
-                uninstallButton.text = I18n.getString("termora.settings.plugin.uninstalled")
-            }
-            pluginBox.add(uninstallButton)
-            uninstallButton.isFocusable = false
-            uninstallButton.isEnabled = e.origin == PluginOrigin.External
-                    && uninstalled.contains(plugin.getName()).not()
-
-            if (e.origin == PluginOrigin.System) {
-                uninstallButton.toolTipText = I18n.getString("termora.settings.plugin.cannot-uninstall")
-            } else if (e.origin == PluginOrigin.External) {
-                uninstallButton.addActionListener { uninstall(uninstallButton, e) }
-            }
-
-            pluginBox.border = BorderFactory.createEmptyBorder(0, 8, 0, 8)
-            panel.add(pluginBox)
-
-            panel.add(JToolBar.Separator())
-        }
-
-        for ((index, e) in installedPlugins.withIndex()) {
-            if (e.origin == PluginOrigin.Internal) continue
-            val plugin = e.plugin
-            val pluginBox = JPanel()
-            pluginBox.setLayout(BoxLayout(pluginBox, BoxLayout.X_AXIS))
-            pluginBox.add(JLabel(FlatSVGIcon(plugin.getIcon().name, 32, 32, e.plugin.javaClass.classLoader)))
-            pluginBox.add(Box.createHorizontalStrut(8))
-
-            val infoBox = Box.createVerticalBox()
-            infoBox.add(JLabel("<html><b>${plugin.getName()}</b>&nbsp;&nbsp;${e.version}</html>"))
-            infoBox.add(Box.createVerticalStrut(4))
-            val descriptionLabel = JXLabel(plugin.getDescription())
-                .apply { foreground = DynamicColor("textInactiveText") }
-            descriptionLabel.preferredSize = Dimension(0, descriptionLabel.preferredSize.height)
-            descriptionLabel.toolTipText = plugin.getDescription()
-
-            infoBox.add(descriptionLabel)
-            pluginBox.add(infoBox)
-            pluginBox.add(Box.createHorizontalGlue())
-            pluginBox.add(Box.createHorizontalStrut(8))
-
-            val installButton = JButton(I18n.getString("termora.settings.plugin.install"))
-            installButton.isFocusable = false
-            installButton.isEnabled = installed.contains(plugin.getName()).not()
-            if (installButton.isEnabled) {
-                installButton.icon = Icons.locked
-                installButton.addActionListener { install(installButton, e) }
-            } else {
-                installButton.text = I18n.getString("termora.settings.plugin.installed")
-            }
-
-            pluginBox.add(installButton)
-            pluginBox.border = BorderFactory.createEmptyBorder(0, 8, 0, 8)
-            panel.add(pluginBox)
-
-            panel.add(JToolBar.Separator())
-        }
-
-
-
-
-        scrollPane.border = BorderFactory.createEmptyBorder()
-        scrollPane.verticalScrollBar.unitIncrement = 16
-        scrollPane.horizontalScrollBar.unitIncrement = 16
-        add(scrollPane, BorderLayout.CENTER)
-    }
-
-    private fun uninstall(button: JButton, descriptor: PluginDescriptor) {
-        if (descriptor.origin != PluginOrigin.External || uninstalled.contains(descriptor.plugin.getName())) return
-        val file = descriptor.path ?: return
-        val option = OptionPane.showConfirmDialog(
-            owner,
-            I18n.getString("termora.settings.plugin.uninstall-confirm", descriptor.plugin.getName()),
-            optionType = JOptionPane.OK_CANCEL_OPTION,
-            messageType = JOptionPane.QUESTION_MESSAGE
-        )
-        if (option != JOptionPane.OK_OPTION) return
-
-        val deletedFile = FileUtils.getFile(file, "deleted")
-        if (deletedFile.exists()) return
-        if (deletedFile.createNewFile()) {
-            uninstalled.add(descriptor.plugin.getName())
-            button.text = I18n.getString("termora.settings.plugin.uninstalled")
-            button.isEnabled = false
-            TermoraRestarter.getInstance().scheduleRestart(owner)
-        } else {
-            OptionPane.showMessageDialog(
-                owner,
-                I18n.getString("termora.settings.plugin.uninstall-failed"),
-                messageType = JOptionPane.ERROR_MESSAGE
-            )
-        }
-
-    }
-
-    private fun install(button: JButton, descriptor: PluginDescriptor) {
-        val option = OptionPane.showConfirmDialog(
-            owner,
-            I18n.getString("termora.settings.plugin.install-subscription-confirm", descriptor.plugin.getName()),
-            options = arrayOf(
-                I18n.getString("termora.settings.plugin.subscribe"),
-                I18n.getString("termora.cancel")
-            ),
-            optionType = JOptionPane.OK_CANCEL_OPTION,
-            messageType = JOptionPane.WARNING_MESSAGE,
-            initialValue = I18n.getString("termora.settings.plugin.subscribe")
-        )
-        if (option != JOptionPane.OK_OPTION) return
-
-        button.isEnabled = false
-        button.icon = null
-        button.text = I18n.getString("termora.settings.plugin.installed")
-        installed.add(descriptor.plugin.getName())
-
-        TermoraRestarter.getInstance().scheduleRestart(owner)
-
+        add(getCenterComponent(), BorderLayout.CENTER)
     }
 
 
     private fun initEvents() {}
+
+    private fun getCenterComponent(): JComponent {
+        val layout = FormLayout(
+            "left:pref, $formMargin, default:grow",
+            "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
+        )
+
+        var rows = 1
+        val step = 2
+
+        val subscription = accountManager.getSubscription()
+        val isFreePlan = accountManager.isLocally() || subscription.endDate == Long.MAX_VALUE
+                || subscription.plan == SubscriptionPlan.Free
+
+        val validTo = if (isFreePlan) "-" else
+            DateFormatUtils.format(Date(subscription.endDate), I18n.getString("termora.date-format"))
+        val lastSynchronizationOn = if (isFreePlan) "-" else
+            DateFormatUtils.format(
+                Date(accountManager.getLastSynchronizationOn()),
+                I18n.getString("termora.date-format")
+            )
+
+        val title = FlatLabel()
+        title.text = Application.getName()
+        title.labelType = FlatLabel.LabelType.h1
+
+        return FormBuilder.create().layout(layout).debug(false)
+            .add(title).xyw(1, rows, 3).apply { rows += step }
+            .add("Server:").xy(1, rows)
+            .add(accountManager.getServer()).xy(3, rows).apply { rows += step }
+            .add("Account:").xy(1, rows)
+            .add(accountManager.getEmail()).xy(3, rows).apply { rows += step }
+            .add("Subscription:").xy(1, rows)
+            .add(subscription.plan.name).xy(3, rows).apply { rows += step }
+            .add("Valid to:").xy(1, rows)
+            .add(validTo).xy(3, rows).apply { rows += step }
+            .add("Synchronization on:").xy(1, rows)
+            .add(lastSynchronizationOn).xy(3, rows).apply { rows += step }
+            .add(createActionPanel(isFreePlan)).xyw(1, rows, 3).apply { rows += step }
+            .build()
+    }
+
+    private fun createActionPanel(isFreePlan: Boolean): JComponent {
+        val actionBox = Box.createHorizontalBox()
+        actionBox.add(Box.createHorizontalGlue())
+        val actions = mutableSetOf<JComponent>()
+
+        if (accountManager.isLocally()) {
+            actions.add(JXHyperlink(object : AnAction("Login...") {
+                override fun actionPerformed(evt: AnActionEvent) {
+
+                }
+            }).apply { isFocusable = false })
+        } else {
+            if (isFreePlan) {
+                actions.add(JXHyperlink(object : AnAction("Upgrade") {
+                    override fun actionPerformed(evt: AnActionEvent) {
+
+                    }
+                }).apply { isFocusable = false })
+            } else {
+                actions.add(JXHyperlink(object : AnAction("Sync now") {
+                    override fun actionPerformed(evt: AnActionEvent) {
+
+                    }
+                }).apply { isFocusable = false })
+            }
+
+            actions.add(JXHyperlink(object : AnAction("Logout...") {
+                override fun actionPerformed(evt: AnActionEvent) {
+
+                }
+            }).apply { isFocusable = false })
+        }
+
+        for (component in actions) {
+            actionBox.add(component)
+            if (actions.last() != component) {
+                actionBox.add(Box.createHorizontalStrut(8))
+            }
+        }
+
+        actionBox.add(Box.createHorizontalGlue())
+
+
+
+        return actionBox
+    }
 
     override fun getIcon(isSelected: Boolean): Icon {
         return Icons.user

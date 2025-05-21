@@ -13,7 +13,7 @@ tasks.withType<Jar> {
     destinationDirectory.set(file("${rootProject.layout.buildDirectory.get().asFile.absolutePath}/plugins/${project.name}"))
 }
 
-tasks.register<Copy>("copyDependencies") {
+tasks.register<Copy>("copy-dependencies") {
     from(configurations.getByName("runtimeClasspath").filterNot {
         it.name.startsWith("kotlin-stdlib") || it.name.startsWith("annotations")
     })
@@ -21,7 +21,7 @@ tasks.register<Copy>("copyDependencies") {
 }
 
 tasks.named("build") {
-    dependsOn("copyDependencies")
+    dependsOn("copy-dependencies")
 }
 
 tasks.register("run-plugin") {

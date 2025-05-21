@@ -1,12 +1,12 @@
 package app.termora.vfs2.sftp
 
 import app.termora.SSHDTest
+import app.termora.randomUUID
 import org.apache.commons.vfs2.*
 import org.apache.commons.vfs2.impl.DefaultFileSystemManager
 import org.apache.commons.vfs2.provider.local.DefaultLocalFileProvider
 import org.apache.sshd.sftp.client.SftpClientFactory
 import java.io.File
-import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

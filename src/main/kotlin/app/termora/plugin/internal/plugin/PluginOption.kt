@@ -32,13 +32,6 @@ class PluginOption : JPanel(BorderLayout()), OptionsPane.Option {
 
         val installedPlugins = pluginManager.getLoadedPluginDescriptor()
             .sortedBy { it.plugin.getName().length }
-        if (Application.isUnknownVersion()) {
-            for (e in installedPlugins) {
-                if (e.origin != PluginOrigin.Internal) continue
-                panel.add(createUninstallPanel(e))
-                panel.add(JToolBar.Separator())
-            }
-        }
 
         for (e in installedPlugins) {
             if (e.origin == PluginOrigin.Internal) continue
@@ -50,6 +43,14 @@ class PluginOption : JPanel(BorderLayout()), OptionsPane.Option {
             if (e.origin == PluginOrigin.Internal) continue
             panel.add(createInstallPanel(e))
             panel.add(JToolBar.Separator())
+        }
+
+        if (Application.isUnknownVersion()) {
+            for (e in installedPlugins) {
+                if (e.origin != PluginOrigin.Internal) continue
+                panel.add(createUninstallPanel(e))
+                panel.add(JToolBar.Separator())
+            }
         }
 
 
