@@ -227,7 +227,7 @@ class AppUpdateAction private constructor() : AnAction(
             log.info("restart {}", commands.joinToString(StringUtils.SPACE))
         }
 
-        TermoraRestarter.getInstance().scheduleRestart(owner, commands)
+        TermoraRestarter.getInstance().scheduleRestart(owner, true, commands)
 
     }
 

@@ -154,7 +154,7 @@ class DatabaseManager private constructor() : Disposable {
         }
     }
 
-    private fun getSettings(): Map<String, String> {
+    fun getSettings(): Map<String, String> {
         val map = mutableMapOf<String, String>()
         lock.withLock {
             transaction(database) {
@@ -166,7 +166,7 @@ class DatabaseManager private constructor() : Disposable {
         return map
     }
 
-    private fun setSetting(name: String, value: String) {
+    fun setSetting(name: String, value: String) {
         val accountManager = AccountManager.getInstance()
         lock.withLock {
             transaction(database) {
