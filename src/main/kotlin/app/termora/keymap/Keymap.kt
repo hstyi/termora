@@ -1,9 +1,8 @@
 package app.termora.keymap
 
 import app.termora.Application.ohMyJson
-import app.termora.toSimpleString
+import app.termora.randomUUID
 import kotlinx.serialization.json.*
-import java.util.*
 import javax.swing.KeyStroke
 
 open class Keymap(
@@ -21,7 +20,7 @@ open class Keymap(
     /**
      * ID
      */
-    var id: String = UUID.randomUUID().toSimpleString(),
+    var id: String = randomUUID(),
 ) {
 
     companion object {
@@ -34,7 +33,7 @@ open class Keymap(
             val name = json["name"]?.jsonPrimitive?.content ?: return null
             val readonly = json["readonly"]?.jsonPrimitive?.booleanOrNull ?: return null
             val updateDate = json["updateDate"]?.jsonPrimitive?.longOrNull ?: 0
-            val id = json["id"]?.jsonPrimitive?.content ?: UUID.randomUUID().toSimpleString()
+            val id = json["id"]?.jsonPrimitive?.content ?: randomUUID()
             val keymap = Keymap(name, null, readonly, updateDate, id = id)
 
             for (shortcut in (json["shortcuts"]?.jsonArray ?: emptyList()).map { it.jsonObject }) {

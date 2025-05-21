@@ -666,7 +666,7 @@ object SshClients {
                 // 获取代理连接器
                 val clientProxyConnector = getClientProxyConnector(host, address) ?: return targetAddress
 
-                val id = UUID.randomUUID().toSimpleString()
+                val id = randomUUID()
                 entry.setProperty(CLIENT_PROXY_CONNECTOR, id)
                 sshClient.clientProxyConnectors[id] = clientProxyConnector
 

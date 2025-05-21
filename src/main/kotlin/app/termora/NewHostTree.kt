@@ -241,7 +241,7 @@ class NewHostTree : SimpleTree() {
         openWithSFTPCommand.addActionListener { openWithSFTPCommand(it) }
         newFolder.addActionListener {
             val host = Host(
-                id = UUID.randomUUID().toSimpleString(),
+                id = randomUUID(),
                 protocol = "Folder",
                 name = I18n.getString("termora.welcome.contextmenu.new.folder.name"),
                 sort = System.currentTimeMillis(),
@@ -373,7 +373,7 @@ class NewHostTree : SimpleTree() {
     private fun copyNode(
         node: HostTreeNode,
         parentId: String,
-        idGenerator: () -> String = { UUID.randomUUID().toSimpleString() },
+        idGenerator: () -> String = { randomUUID() },
         level: Int = 0
     ): HostTreeNode {
 

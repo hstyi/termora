@@ -2,6 +2,7 @@ package app.termora.db
 
 import app.termora.*
 import app.termora.Application.ohMyJson
+import app.termora.account.AccountManager
 import app.termora.plugin.ExtensionManager
 import app.termora.terminal.CursorStyle
 import kotlinx.coroutines.Dispatchers
@@ -166,6 +167,7 @@ class DatabaseManager private constructor() : Disposable {
     }
 
     private fun setSetting(name: String, value: String) {
+        val accountManager = AccountManager.getInstance()
         lock.withLock {
             transaction(database) {
                 for (row in Settings.selectAll().where { Settings.name eq name }.toList()) {
@@ -174,6 +176,8 @@ class DatabaseManager private constructor() : Disposable {
                 Settings.insert {
                     it[Settings.name] = name
                     it[Settings.value] = value
+                    it[Settings.ownerId] = accountManager.getAccountId()
+                    it[Settings.ownerType] = OwnerType.User.name
                 }
             }
             map[name] = value

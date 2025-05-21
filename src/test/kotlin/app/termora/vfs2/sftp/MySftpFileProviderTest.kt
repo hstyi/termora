@@ -1,7 +1,6 @@
 package app.termora.vfs2.sftp
 
 import app.termora.SSHDTest
-import app.termora.toSimpleString
 import org.apache.commons.vfs2.*
 import org.apache.commons.vfs2.impl.DefaultFileSystemManager
 import org.apache.commons.vfs2.provider.local.DefaultLocalFileProvider
@@ -87,7 +86,7 @@ class MySftpFileProviderTest : SSHDTest() {
     @Test
     fun testCopy() {
         val file = newFileObject("/config/sshd.pid")
-        val filepath = File("build", UUID.randomUUID().toSimpleString())
+        val filepath = File("build", randomUUID())
         val localFile = getVFS().resolveFile("file://${filepath.absolutePath}")
 
         localFile.copyFrom(file, Selectors.SELECT_ALL)

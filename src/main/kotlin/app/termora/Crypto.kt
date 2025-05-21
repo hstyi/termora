@@ -1,7 +1,9 @@
 package app.termora
 
+import com.fasterxml.uuid.Generators
 import org.apache.commons.codec.binary.Base64
 import org.apache.commons.lang3.RandomUtils
+import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import java.security.*
 import java.security.spec.PKCS8EncodedKeySpec
@@ -12,6 +14,13 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 import kotlin.time.measureTime
+
+private val jug = Generators.timeBasedEpochRandomGenerator(SecureRandom.getInstanceStrong())
+
+
+fun randomUUID(): String {
+    return jug.generate().toString().replace("-", StringUtils.EMPTY)
+}
 
 object AES {
     private const val ALGORITHM = "AES"

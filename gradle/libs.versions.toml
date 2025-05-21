@@ -44,6 +44,7 @@ eddsa = "0.3.0"
 exposed = "1.0.0-beta-1"
 h2 = "2.3.232"
 sqlite = "3.49.1.0"
+jug = "5.1.0"
 
 [libraries]
 kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
@@ -105,6 +106,7 @@ exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "e
 exposed-migration = { module = "org.jetbrains.exposed:exposed-migration", version.ref = "exposed" }
 h2 = { module = "com.h2database:h2", version.ref = "h2" }
 sqlite = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite" }
+jug = { module = "com.fasterxml.uuid:java-uuid-generator", version.ref = "jug" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

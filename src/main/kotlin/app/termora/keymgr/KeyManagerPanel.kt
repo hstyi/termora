@@ -420,7 +420,7 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
                     KeyPairProvider.SSH_RSA else KeyPairProvider.SSH_ED25519
                 val keyPair = KeyUtils.generateKeyPair(keyType, lengthComboBox.selectedItem as Int)
                 ohKeyPair = OhKeyPair(
-                    id = UUID.randomUUID().toSimpleString(),
+                    id = randomUUID(),
                     name = nameTextField.text,
                     remark = remarkTextField.text,
                     type = typeComboBox.selectedItem as String,
@@ -610,7 +610,7 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
                     publicKey = Base64.encodeBase64String(keyPair.public.encoded),
                     sort = System.currentTimeMillis(),
                     type = typeComboBox.selectedItem as String,
-                    id = UUID.randomUUID().toSimpleString(),
+                    id = randomUUID(),
                     length = lengthComboBox.selectedItem as Int,
                 )
             } catch (e: Exception) {

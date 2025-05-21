@@ -14,7 +14,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Window
-import java.util.*
 import javax.swing.*
 
 class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
@@ -58,7 +57,7 @@ class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
 
                 swingCoroutineScope.launch(Dispatchers.IO) {
                     // 因为测试连接的时候从数据库读取会导致失效，所以这里生成随机ID
-                    testConnection(evt, pane.getHost().copy(id = UUID.randomUUID().toSimpleString()))
+                    testConnection(evt, pane.getHost().copy(id = randomUUID()))
                     withContext(Dispatchers.Swing) {
                         putValue(NAME, I18n.getString("termora.new-host.test-connection"))
                         isEnabled = true

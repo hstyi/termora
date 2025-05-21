@@ -13,7 +13,6 @@ import org.apache.commons.lang3.StringUtils
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
 import java.net.URI
-import java.util.*
 import javax.swing.JOptionPane
 import kotlin.time.Duration.Companion.seconds
 
@@ -68,7 +67,7 @@ internal class RDPProtocolProvider private constructor() : GenericProtocolProvid
         sb.append("full address:s:").append(host.host).append(':').append(host.port).appendLine()
         sb.append("username:s:").append(host.username).appendLine()
 
-        val file = FileUtils.getFile(Application.getTemporaryDir(), UUID.randomUUID().toSimpleString() + ".rdp")
+        val file = FileUtils.getFile(Application.getTemporaryDir(), randomUUID() + ".rdp")
         file.outputStream().use { IOUtils.write(sb.toString(), it, Charsets.UTF_8) }
 
         if (host.authentication.type == AuthenticationType.Password) {

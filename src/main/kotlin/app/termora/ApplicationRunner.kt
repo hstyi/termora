@@ -50,15 +50,6 @@ class ApplicationRunner {
         // 异步初始化
         val loadPluginThread = Thread.ofVirtual().start { PluginManager.getInstance() }
 
-        // 初始化机密库
-        if (runCatching { LocalSecret.getInstance() }.isFailure) {
-            JOptionPane.showMessageDialog(
-                null, "Unable to init local-secret",
-                I18n.getString("termora.title"), JOptionPane.ERROR_MESSAGE
-            )
-            exitProcess(1)
-        }
-
         // 打印系统信息
         printSystemInfo()
 
@@ -367,7 +358,7 @@ class ApplicationRunner {
         val properties = DatabaseManager.getInstance().properties
         var id = properties.getString("AnalyticsUserID")
         if (id.isNullOrBlank()) {
-            id = UUID.randomUUID().toSimpleString()
+            id = randomUUID()
             properties.putString("AnalyticsUserID", id)
         }
         return id

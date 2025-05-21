@@ -2,7 +2,6 @@ package app.termora
 
 import kotlinx.serialization.Serializable
 import org.apache.commons.lang3.StringUtils
-import java.util.*
 
 
 fun Map<*, *>.toPropertiesString(): String {
@@ -14,10 +13,6 @@ fun Map<*, *>.toPropertiesString(): String {
         }
     }
     return env.toString()
-}
-
-fun UUID.toSimpleString(): String {
-    return toString().replace("-", StringUtils.EMPTY)
 }
 
 
@@ -243,7 +238,7 @@ data class Host(
     /**
      * 唯一ID
      */
-    val id: String = UUID.randomUUID().toSimpleString(),
+    val id: String = randomUUID(),
     /**
      * 名称
      */

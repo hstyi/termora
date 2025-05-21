@@ -36,8 +36,10 @@ class PluginManager private constructor() {
     init {
         // load internal plugins
         loadInternalPlugins()
-        // load plugins
-        loadPlugins()
+        // load system plugins
+        loadSystemPlugins()
+        // load user plugins
+        loadPlugins(getPluginDirectory())
     }
 
     /**
@@ -58,8 +60,7 @@ class PluginManager private constructor() {
         return File(Application.getBaseDataDir(), "plugins")
     }
 
-    private fun loadPlugins() {
-        val pluginsFile = getPluginDirectory()
+    private fun loadPlugins(pluginsFile: File) {
         if (log.isInfoEnabled) {
             log.info("Loading plugins ${pluginsFile.absolutePath}")
         }
@@ -94,6 +95,14 @@ class PluginManager private constructor() {
         plugins.add(LocalPlugin())
         // sftp transfer plugin
         plugins.add(SFTPPlugin())
+    }
+
+    private fun loadSystemPlugins() {
+        val appPath = Application.getAppPath()
+        if (appPath.isBlank()) return
+
+        val plugins = FileUtils.getFile(appPath, "plugins")
+        loadPlugins(plugins)
     }
 
     private fun loadPlugin(file: File) {

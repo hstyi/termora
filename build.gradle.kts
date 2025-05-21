@@ -57,6 +57,7 @@ dependencies {
     testImplementation(platform(libs.testcontainers.bom))
     testImplementation(libs.testcontainers)
     testImplementation(libs.h2)
+    testImplementation(libs.exposed.migration)
 
 //    implementation(platform(libs.koin.bom))
 //    implementation(libs.koin.core)
@@ -70,7 +71,6 @@ dependencies {
     api(libs.commons.csv)
     api(libs.commons.net)
     api(libs.commons.text)
-    api(libs.commons.compress)
     api(libs.commons.vfs2) { exclude(group = "*", module = "*") }
     api(libs.kotlinx.coroutines.swing)
     api(libs.kotlinx.coroutines.core)
@@ -121,8 +121,8 @@ dependencies {
     api(libs.exposed.core)
     api(libs.exposed.crypt)
     api(libs.exposed.jdbc)
-    api(libs.exposed.migration)
     api(libs.sqlite)
+    api(libs.jug)
 
 }
 

@@ -34,7 +34,7 @@ class TerminalTabbed(
     private val toolbar = termoraToolBar.getJToolBar()
     private val actionManager = ActionManager.getInstance()
     private val dataProviderSupport = DataProviderSupport()
-    private val titleProperty = UUID.randomUUID().toSimpleString()
+    private val titleProperty = randomUUID()
     private val iconListener = PropertyChangeListener { e ->
         val source = e.source
         if (e.propertyName == "icon" && source is TerminalTab) {

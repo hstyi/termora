@@ -95,10 +95,6 @@ object Application {
         return dir
     }
 
-    fun getDatabaseFile(): File {
-        return FileUtils.getFile(getBaseDataDir(), "storage")
-    }
-
     fun getVersion(): String {
         var version = System.getProperty("jpackage.app-version")
         if (version.isNullOrBlank()) {
