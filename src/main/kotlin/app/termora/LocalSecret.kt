@@ -22,8 +22,8 @@ internal class LocalSecret private constructor() {
     val password: String = StringUtils.substring(DigestUtils.sha256Hex(SystemUtils.USER_NAME), 0, 16)
 
     /**
-     * 一个 16 长度的盐
+     * 一个 12 长度的盐
      */
-    val salt: ByteArray = DigestUtils.sha256(password).copyOf(16)
+    val salt: String = StringUtils.substring(password, 0, 16)
 
 }
