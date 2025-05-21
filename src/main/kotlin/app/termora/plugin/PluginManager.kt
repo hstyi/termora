@@ -2,6 +2,7 @@ package app.termora.plugin
 
 import app.termora.Application
 import app.termora.ApplicationScope
+import app.termora.account.AccountPlugin
 import app.termora.plugin.internal.local.LocalInternalPlugin
 import app.termora.plugin.internal.plugin.PluginInternalPlugin
 import app.termora.plugin.internal.rdp.RDPInternalPlugin
@@ -93,6 +94,8 @@ class PluginManager private constructor() {
 
         // plugin
         plugins.add(PluginDescriptor(PluginInternalPlugin(), PluginOrigin.Internal, version))
+        // account plugin
+        plugins.add(PluginDescriptor(AccountPlugin(), PluginOrigin.Internal, version))
 
         // ssh plugin
         plugins.add(PluginDescriptor(SSHInternalPlugin(), PluginOrigin.Internal, version))

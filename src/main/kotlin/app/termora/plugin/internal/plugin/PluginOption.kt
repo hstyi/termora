@@ -31,93 +31,109 @@ class PluginOption : JPanel(BorderLayout()), OptionsPane.Option {
         val scrollPane = JScrollPane(panel)
 
         val installedPlugins = pluginManager.getLoadedPluginDescriptor()
-        for ((index, e) in installedPlugins.withIndex()) {
+            .sortedBy { it.plugin.getName().length }
+        if (Application.isUnknownVersion()) {
+            for (e in installedPlugins) {
+                if (e.origin != PluginOrigin.Internal) continue
+                panel.add(createUninstallPanel(e))
+                panel.add(JToolBar.Separator())
+            }
+        }
+
+        for (e in installedPlugins) {
             if (e.origin == PluginOrigin.Internal) continue
-            val plugin = e.plugin
-            val pluginBox = JPanel()
-            pluginBox.setLayout(BoxLayout(pluginBox, BoxLayout.X_AXIS))
-            pluginBox.add(JLabel(FlatSVGIcon(plugin.getIcon().name, 32, 32, e.plugin.javaClass.classLoader)))
-            pluginBox.add(Box.createHorizontalStrut(8))
-
-            val infoBox = Box.createVerticalBox()
-            infoBox.add(JLabel("<html><b>${plugin.getName()}</b>&nbsp;&nbsp;${e.version}</html>"))
-            infoBox.add(Box.createVerticalStrut(4))
-            val descriptionLabel = JXLabel(plugin.getDescription())
-                .apply { foreground = DynamicColor("textInactiveText") }
-            descriptionLabel.preferredSize = Dimension(0, descriptionLabel.preferredSize.height)
-            descriptionLabel.toolTipText = plugin.getDescription()
-
-            infoBox.add(descriptionLabel)
-            pluginBox.add(infoBox)
-            pluginBox.add(Box.createHorizontalGlue())
-            pluginBox.add(Box.createHorizontalStrut(8))
-
-            val uninstallButton = JButton(I18n.getString("termora.settings.plugin.uninstall"))
-            if (uninstalled.contains(plugin.getName())) {
-                uninstallButton.text = I18n.getString("termora.settings.plugin.uninstalled")
-            }
-            pluginBox.add(uninstallButton)
-            uninstallButton.isFocusable = false
-            uninstallButton.isEnabled = e.origin == PluginOrigin.External
-                    && uninstalled.contains(plugin.getName()).not()
-
-            if (e.origin == PluginOrigin.System) {
-                uninstallButton.toolTipText = I18n.getString("termora.settings.plugin.cannot-uninstall")
-            } else if (e.origin == PluginOrigin.External) {
-                uninstallButton.addActionListener { uninstall(uninstallButton, e) }
-            }
-
-            pluginBox.border = BorderFactory.createEmptyBorder(0, 8, 0, 8)
-            panel.add(pluginBox)
-
+            panel.add(createUninstallPanel(e))
             panel.add(JToolBar.Separator())
         }
 
-        for ((index, e) in installedPlugins.withIndex()) {
+        for (e in installedPlugins) {
             if (e.origin == PluginOrigin.Internal) continue
-            val plugin = e.plugin
-            val pluginBox = JPanel()
-            pluginBox.setLayout(BoxLayout(pluginBox, BoxLayout.X_AXIS))
-            pluginBox.add(JLabel(FlatSVGIcon(plugin.getIcon().name, 32, 32, e.plugin.javaClass.classLoader)))
-            pluginBox.add(Box.createHorizontalStrut(8))
-
-            val infoBox = Box.createVerticalBox()
-            infoBox.add(JLabel("<html><b>${plugin.getName()}</b>&nbsp;&nbsp;${e.version}</html>"))
-            infoBox.add(Box.createVerticalStrut(4))
-            val descriptionLabel = JXLabel(plugin.getDescription())
-                .apply { foreground = DynamicColor("textInactiveText") }
-            descriptionLabel.preferredSize = Dimension(0, descriptionLabel.preferredSize.height)
-            descriptionLabel.toolTipText = plugin.getDescription()
-
-            infoBox.add(descriptionLabel)
-            pluginBox.add(infoBox)
-            pluginBox.add(Box.createHorizontalGlue())
-            pluginBox.add(Box.createHorizontalStrut(8))
-
-            val installButton = JButton(I18n.getString("termora.settings.plugin.install"))
-            installButton.isFocusable = false
-            installButton.isEnabled = installed.contains(plugin.getName()).not()
-            if (installButton.isEnabled) {
-                installButton.icon = Icons.locked
-                installButton.addActionListener { install(installButton, e) }
-            } else {
-                installButton.text = I18n.getString("termora.settings.plugin.installed")
-            }
-
-            pluginBox.add(installButton)
-            pluginBox.border = BorderFactory.createEmptyBorder(0, 8, 0, 8)
-            panel.add(pluginBox)
-
+            panel.add(createInstallPanel(e))
             panel.add(JToolBar.Separator())
         }
-
-
 
 
         scrollPane.border = BorderFactory.createEmptyBorder()
         scrollPane.verticalScrollBar.unitIncrement = 16
         scrollPane.horizontalScrollBar.unitIncrement = 16
         add(scrollPane, BorderLayout.CENTER)
+    }
+
+    private fun createUninstallPanel(e: PluginDescriptor): JPanel {
+        val plugin = e.plugin
+        val pluginBox = JPanel()
+        pluginBox.setLayout(BoxLayout(pluginBox, BoxLayout.X_AXIS))
+        pluginBox.add(JLabel(FlatSVGIcon(plugin.getIcon().name, 32, 32, e.plugin.javaClass.classLoader)))
+        pluginBox.add(Box.createHorizontalStrut(8))
+
+        val infoBox = Box.createVerticalBox()
+        infoBox.add(JLabel("<html><b>${plugin.getName()}</b>&nbsp;&nbsp;${e.version}</html>"))
+        infoBox.add(Box.createVerticalStrut(4))
+        val descriptionLabel = JXLabel(plugin.getDescription())
+            .apply { foreground = DynamicColor("textInactiveText") }
+        descriptionLabel.preferredSize = Dimension(0, descriptionLabel.preferredSize.height)
+        descriptionLabel.toolTipText = plugin.getDescription()
+
+        infoBox.add(descriptionLabel)
+        pluginBox.add(infoBox)
+        pluginBox.add(Box.createHorizontalGlue())
+        pluginBox.add(Box.createHorizontalStrut(8))
+
+        val uninstallButton = JButton(I18n.getString("termora.settings.plugin.uninstall"))
+        if (uninstalled.contains(plugin.getName())) {
+            uninstallButton.text = I18n.getString("termora.settings.plugin.uninstalled")
+        }
+        uninstallButton.isFocusable = false
+        uninstallButton.isEnabled = e.origin == PluginOrigin.External
+                && uninstalled.contains(plugin.getName()).not()
+
+        if (e.origin == PluginOrigin.System) {
+            uninstallButton.toolTipText = I18n.getString("termora.settings.plugin.cannot-uninstall")
+            pluginBox.add(uninstallButton)
+        } else if (e.origin == PluginOrigin.External) {
+            uninstallButton.addActionListener { uninstall(uninstallButton, e) }
+            pluginBox.add(uninstallButton)
+        }
+
+        pluginBox.border = BorderFactory.createEmptyBorder(0, 8, 0, 8)
+
+        return pluginBox
+    }
+
+    private fun createInstallPanel(e: PluginDescriptor): JPanel {
+        val plugin = e.plugin
+        val pluginBox = JPanel()
+        pluginBox.setLayout(BoxLayout(pluginBox, BoxLayout.X_AXIS))
+        pluginBox.add(JLabel(FlatSVGIcon(plugin.getIcon().name, 32, 32, e.plugin.javaClass.classLoader)))
+        pluginBox.add(Box.createHorizontalStrut(8))
+
+        val infoBox = Box.createVerticalBox()
+        infoBox.add(JLabel("<html><b>${plugin.getName()}</b>&nbsp;&nbsp;${e.version}</html>"))
+        infoBox.add(Box.createVerticalStrut(4))
+        val descriptionLabel = JXLabel(plugin.getDescription())
+            .apply { foreground = DynamicColor("textInactiveText") }
+        descriptionLabel.preferredSize = Dimension(0, descriptionLabel.preferredSize.height)
+        descriptionLabel.toolTipText = plugin.getDescription()
+
+        infoBox.add(descriptionLabel)
+        pluginBox.add(infoBox)
+        pluginBox.add(Box.createHorizontalGlue())
+        pluginBox.add(Box.createHorizontalStrut(8))
+
+        val installButton = JButton(I18n.getString("termora.settings.plugin.install"))
+        installButton.isFocusable = false
+        installButton.isEnabled = installed.contains(plugin.getName()).not()
+        if (installButton.isEnabled) {
+            installButton.icon = Icons.locked
+            installButton.addActionListener { install(installButton, e) }
+        } else {
+            installButton.text = I18n.getString("termora.settings.plugin.installed")
+        }
+
+        pluginBox.add(installButton)
+        pluginBox.border = BorderFactory.createEmptyBorder(0, 8, 0, 8)
+
+        return pluginBox
     }
 
     private fun uninstall(button: JButton, descriptor: PluginDescriptor) {

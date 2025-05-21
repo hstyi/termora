@@ -1,5 +1,6 @@
 package app.termora
 
+import app.termora.account.AccountSettingsOptionExtension
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProviders
@@ -90,12 +91,23 @@ class SettingsOptionsPane : OptionsPane() {
     }
 
     init {
+
+        val extensions = ExtensionManager.getInstance().getExtensions(SettingsOptionExtension::class.java)
+
+        // account
+        for (extension in extensions) {
+            if (extension is AccountSettingsOptionExtension) {
+                addOption(extension.createSettingsOption())
+            }
+        }
+
         addOption(AppearanceOption())
         addOption(TerminalOption())
         addOption(KeyShortcutsOption())
         addOption(SFTPOption())
 
-        for (extension in ExtensionManager.getInstance().getExtensions(SettingsOptionExtension::class.java)) {
+        for (extension in extensions) {
+            if (extension is AccountSettingsOptionExtension) continue
             addOption(extension.createSettingsOption())
         }
 

@@ -144,7 +144,6 @@ application {
         args.add("-Dapple.awt.application.appearance=system")
     }
 
-    args.add("-Dapp-version=${project.version}")
     args.add("-DTERMORA_PLUGIN_DIRECTORY=${layout.buildDirectory.get().asFile.absolutePath}${File.separator}plugins")
 
     if (os.isLinux) {
