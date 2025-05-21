@@ -31,7 +31,7 @@ class PluginManager private constructor() {
         }
     }
 
-    private val plugins = mutableListOf<Plugin>()
+    private val plugins = mutableListOf<PluginDescriptor>()
 
     init {
         // load internal plugins
@@ -39,14 +39,18 @@ class PluginManager private constructor() {
         // load system plugins
         loadSystemPlugins()
         // load user plugins
-        loadPlugins(getPluginDirectory())
+        loadPlugins(getPluginDirectory(), PluginOrigin.External)
     }
 
     /**
      * 获取已经加载的插件
      */
     fun getLoadedPlugins(): List<Plugin> {
-        return plugins
+        return plugins.map { it.plugin }
+    }
+
+    fun getLoadedPluginDescriptor(): Array<PluginDescriptor> {
+        return plugins.toTypedArray()
     }
 
     fun getPluginDirectory(): File {
@@ -60,7 +64,7 @@ class PluginManager private constructor() {
         return File(Application.getBaseDataDir(), "plugins")
     }
 
-    private fun loadPlugins(pluginsFile: File) {
+    private fun loadPlugins(pluginsFile: File, origin: PluginOrigin) {
         if (log.isInfoEnabled) {
             log.info("Loading plugins ${pluginsFile.absolutePath}")
         }
@@ -70,7 +74,7 @@ class PluginManager private constructor() {
 
         for (file in dirs) {
             try {
-                loadPlugin(file)
+                loadPlugin(file, origin)
             } catch (e: Throwable) {
                 if (log.isErrorEnabled) {
                     log.error("Failed to load plugin file $file", e)
@@ -81,20 +85,20 @@ class PluginManager private constructor() {
 
     private fun loadInternalPlugins() {
         // ssh plugin
-        plugins.add(SSHInternalPlugin())
+        plugins.add(PluginDescriptor(SSHInternalPlugin(), PluginOrigin.Internal))
         // serial plugin
-        plugins.add(SerialInternalPlugin())
+        plugins.add(PluginDescriptor(SerialInternalPlugin(), PluginOrigin.Internal))
         // local plugin
-        plugins.add(LocalInternalPlugin())
+        plugins.add(PluginDescriptor(LocalInternalPlugin(), PluginOrigin.Internal))
         // rdp plugin
-        plugins.add(RDPInternalPlugin())
+        plugins.add(PluginDescriptor(RDPInternalPlugin(), PluginOrigin.Internal))
         // sftp pty plugin
-        plugins.add(SFTPPtyInternalPlugin())
+        plugins.add(PluginDescriptor(SFTPPtyInternalPlugin(), PluginOrigin.Internal))
 
         // local transfer plugin
-        plugins.add(LocalPlugin())
+        plugins.add(PluginDescriptor(LocalPlugin(), PluginOrigin.Internal))
         // sftp transfer plugin
-        plugins.add(SFTPPlugin())
+        plugins.add(PluginDescriptor(SFTPPlugin(), PluginOrigin.Internal))
     }
 
     private fun loadSystemPlugins() {
@@ -102,10 +106,10 @@ class PluginManager private constructor() {
         if (appPath.isBlank()) return
 
         val plugins = FileUtils.getFile(appPath, "plugins")
-        loadPlugins(plugins)
+        loadPlugins(plugins, PluginOrigin.System)
     }
 
-    private fun loadPlugin(file: File) {
+    private fun loadPlugin(file: File, origin: PluginOrigin) {
         val jars = FileUtils.listFiles(
             file, FileFilterUtils.suffixFileFilter(".jar"),
             FileFilterUtils.falseFileFilter()
@@ -129,7 +133,7 @@ class PluginManager private constructor() {
             val clazz = Class.forName(pluginEntry, false, loader)
             if (clazz.interfaces.contains(Plugin::class.java).not()) return
             val entry = clazz.getConstructor().newInstance() as Plugin
-            plugins.add(entry)
+            plugins.add(PluginDescriptor(entry, origin))
             if (log.isInfoEnabled) {
                 log.info("Loaded plugin ${entry.getName()} from $entry")
             }
