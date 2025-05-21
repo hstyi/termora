@@ -3,6 +3,7 @@ package app.termora.plugin
 import app.termora.Application
 import app.termora.ApplicationScope
 import app.termora.plugin.internal.local.LocalInternalPlugin
+import app.termora.plugin.internal.plugin.PluginInternalPlugin
 import app.termora.plugin.internal.rdp.RDPInternalPlugin
 import app.termora.plugin.internal.serial.SerialInternalPlugin
 import app.termora.plugin.internal.sftppty.SFTPPtyInternalPlugin
@@ -89,6 +90,10 @@ class PluginManager private constructor() {
 
     private fun loadInternalPlugins() {
         val version = Application.getVersion()
+
+        // plugin
+        plugins.add(PluginDescriptor(PluginInternalPlugin(), PluginOrigin.Internal, version))
+
         // ssh plugin
         plugins.add(PluginDescriptor(SSHInternalPlugin(), PluginOrigin.Internal, version))
         // serial plugin

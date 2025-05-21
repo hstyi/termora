@@ -7,9 +7,4 @@ class PluginDescriptor(
     val origin: PluginOrigin,
     val version: String,
     val path: File? = null,
-
-    /**
-     * 是否已经卸载
-     */
-    internal var uninstalled: Boolean = false
 )
