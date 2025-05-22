@@ -10,6 +10,15 @@ tasks.withType<Jar> {
             "TO-Plugin-Range" to ">=${rootProject.version}",
         )
     }
+
+    from("${rootProject.projectDir}/plugins/LICENSE") {
+        into("META-INF")
+    }
+
+    from("${rootProject.projectDir}/plugins/THIRDPARTY") {
+        into("META-INF")
+    }
+
     destinationDirectory.set(file("${rootProject.layout.buildDirectory.get().asFile.absolutePath}/plugins/${project.name}"))
 }
 
