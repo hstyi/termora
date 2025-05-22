@@ -99,7 +99,7 @@ open class OptionsPane : JPanel(BorderLayout()) {
     }
 
 
-    fun addOption(option: Option) {
+    open fun addOption(option: Option) {
         for (element in tabListModel.elements()) {
             if (element.getTitle() == option.getTitle()) {
                 throw UnsupportedOperationException("Title already exists")
@@ -128,11 +128,21 @@ open class OptionsPane : JPanel(BorderLayout()) {
                 cardLayout.show(contentPanel, tabListModel.get(tabList.selectedIndex).getTitle())
             }
         }
+
+        tabList.addListSelectionListener {
+            val index = tabList.selectedIndex
+            if (index >= 0) {
+                // 选中事件
+                tabListModel.getElementAt(index).onSelected()
+            }
+        }
     }
 
     interface Option {
         fun getIcon(isSelected: Boolean): Icon
         fun getTitle(): String
         fun getJComponent(): JComponent
+
+        fun onSelected() {}
     }
 }

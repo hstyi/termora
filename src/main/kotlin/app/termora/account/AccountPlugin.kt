@@ -2,6 +2,7 @@ package app.termora.account
 
 import app.termora.ApplicationRunnerExtension
 import app.termora.SettingsOptionExtension
+import app.termora.db.DatabaseManagerExtension
 import app.termora.plugin.Extension
 import app.termora.plugin.InternalPlugin
 
@@ -9,6 +10,8 @@ internal class AccountPlugin : InternalPlugin() {
     init {
         support.addExtension(SettingsOptionExtension::class.java) { AccountSettingsOptionExtension.instance }
         support.addExtension(ApplicationRunnerExtension::class.java) { AccountManager.AccountApplicationRunnerExtension.instance }
+        support.addExtension(ApplicationRunnerExtension::class.java) { SyncService.instance }
+        support.addExtension(DatabaseManagerExtension::class.java) { SyncService.instance }
     }
 
     override fun getName(): String {

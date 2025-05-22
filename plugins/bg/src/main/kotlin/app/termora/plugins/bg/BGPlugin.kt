@@ -6,9 +6,9 @@ import app.termora.I18n
 import app.termora.Icons
 import app.termora.plugin.Extension
 import app.termora.plugin.ExtensionSupport
-import app.termora.plugin.Plugin
+import app.termora.plugin.PaidPlugin
 
-class BGPlugin : Plugin {
+class BGPlugin : PaidPlugin {
     private val support = ExtensionSupport()
 
     init {

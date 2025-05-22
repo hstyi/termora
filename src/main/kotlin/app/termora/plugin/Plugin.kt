@@ -32,6 +32,10 @@ interface Plugin {
      */
     fun getDescription(): String
 
+    /**
+     * 是否需要付费的
+     */
+    fun isPaid(): Boolean = false
 
     /**
      * 获取扩展，会多次调用

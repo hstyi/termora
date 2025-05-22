@@ -97,11 +97,7 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
         // account
         for (extension in extensions) {
             if (extension is AccountSettingsOptionExtension) {
-                val option = extension.createSettingsOption()
-                if (option is Disposable) {
-                    Disposer.register(this, option)
-                }
-                addOption(option)
+                addOption(extension.createSettingsOption())
             }
         }
 
@@ -112,15 +108,18 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
 
         for (extension in extensions) {
             if (extension is AccountSettingsOptionExtension) continue
-            val option = extension.createSettingsOption()
-            if (option is Disposable) {
-                Disposer.register(this, option)
-            }
-            addOption(option)
+            addOption(extension.createSettingsOption())
         }
 
         addOption(AboutOption())
         setContentBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8))
+    }
+
+    override fun addOption(option: Option) {
+        super.addOption(option)
+        if (option is Disposable) {
+            Disposer.register(this, option)
+        }
     }
 
     private inner class AppearanceOption : JPanel(BorderLayout()), Option {
@@ -136,6 +135,7 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
         private val appearance get() = database.appearance
         private val backgroundButton = JButton(Icons.folder)
         private val backgroundClearButton = FlatButton()
+
 
         init {
             initView()
@@ -360,7 +360,6 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
             popupMenu.show(preferredThemeBtn, 0, preferredThemeBtn.height + 2)
         }
 
-
         private fun getFormPanel(): JPanel {
             val layout = FormLayout(
                 "left:pref, $formMargin, default:grow, $formMargin, default, default:grow",
@@ -419,12 +418,7 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
         private val autoCloseTabComboBox = YesOrNoComboBox()
         private val floatingToolbarComboBox = YesOrNoComboBox()
         private val hyperlinkComboBox = YesOrNoComboBox()
-
-        init {
-            initView()
-            initEvents()
-            add(getCenterComponent(), BorderLayout.CENTER)
-        }
+        private var isInitialized = false
 
         private fun initEvents() {
             fontComboBox.addItemListener {
@@ -613,6 +607,19 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
 
         override fun getJComponent(): JComponent {
             return this
+        }
+
+        /**
+         * 因为字体初始化很慢，这里只有选中的时候才初始化
+         */
+        override fun onSelected() {
+            if (isInitialized) return
+
+            initView()
+            initEvents()
+            add(getCenterComponent(), BorderLayout.CENTER)
+
+            isInitialized = true
         }
 
         private fun getCenterComponent(): JComponent {
