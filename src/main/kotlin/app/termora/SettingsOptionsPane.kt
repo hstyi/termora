@@ -48,7 +48,7 @@ import javax.swing.event.PopupMenuEvent
 import javax.swing.event.PopupMenuListener
 
 
-class SettingsOptionsPane : OptionsPane() {
+class SettingsOptionsPane : OptionsPane(), Disposable {
     private val owner get() = SwingUtilities.getWindowAncestor(this@SettingsOptionsPane)
     private val database get() = DatabaseManager.getInstance()
 
@@ -97,7 +97,11 @@ class SettingsOptionsPane : OptionsPane() {
         // account
         for (extension in extensions) {
             if (extension is AccountSettingsOptionExtension) {
-                addOption(extension.createSettingsOption())
+                val option = extension.createSettingsOption()
+                if (option is Disposable) {
+                    Disposer.register(this, option)
+                }
+                addOption(option)
             }
         }
 
@@ -108,7 +112,11 @@ class SettingsOptionsPane : OptionsPane() {
 
         for (extension in extensions) {
             if (extension is AccountSettingsOptionExtension) continue
-            addOption(extension.createSettingsOption())
+            val option = extension.createSettingsOption()
+            if (option is Disposable) {
+                Disposer.register(this, option)
+            }
+            addOption(option)
         }
 
         addOption(AboutOption())

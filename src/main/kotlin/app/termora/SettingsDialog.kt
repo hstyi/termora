@@ -33,6 +33,8 @@ class SettingsDialog(owner: Window) : DialogWrapper(owner) {
             }
         })
 
+        Disposer.register(disposable, optionsPane)
+
         addWindowListener(object : WindowAdapter() {
             override fun windowActivated(e: WindowEvent) {
                 removeWindowListener(this)
