@@ -176,7 +176,7 @@ class PluginManager private constructor() {
 
         try {
             val clazz = Class.forName(pluginEntry, false, loader)
-            if (clazz.interfaces.contains(Plugin::class.java).not()) return
+            if (Plugin::class.java.isAssignableFrom(clazz).not()) return
             val entry = clazz.getConstructor().newInstance() as Plugin
 
             plugins.add(PluginDescriptor(entry, origin, pluginVersion, file))

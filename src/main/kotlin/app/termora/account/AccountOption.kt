@@ -279,13 +279,13 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
                 coroutineScope.launch(Dispatchers.IO) {
                     delay(3.seconds)
                     val password = Base64.encodeBase64URLSafeString(
-                        RSA.encrypt(keypair.public, "8888@qq.com".toByteArray())
+                        RSA.encrypt(keypair.public, "888@qq.com".toByteArray())
                     )
                     val url = StringBuilder()
                     url.append("termora://login-success?")
                     url.append("refreshToken=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ0ZXJtb3JhLWJhY2tlbmQiLCJleHAiOjE3NTA1NzcxMjIsInN1YiI6IlJlZnJlc2hUb2tlbiIsImVtYWlsIjoiODg4OEBxcS5jb20iLCJpZCI6IjMyNzRhM2JiLTY4YWYtNDE3OC04NzQzLWI1YjQ0Mjg5ZGQ3MCIsImRpZ2VzdCI6Ijc1YTAxMDdlIn0.UXSW0-DaQopgxRwQxI5cl2bt572hIknqvRWFQct2Yvw_Of8JiTJxkZbWdEznoqTESLVMPpjCpW5YBoclMLLutQ")
                         .append("&")
-                    url.append("accessToken=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ0ZXJtb3JhLWJhY2tlbmQiLCJleHAiOjE3NDc5MDIwMTUsInN1YiI6IkFjY2Vzc1Rva2VuIiwiZW1haWwiOiI4ODg4QHFxLmNvbSIsImlkIjoiMDE5NmY2ZjY5ZmU1NzY3ZGFhYjUyNWFjZmUxNzI1YWUifQ.ekt-ZojS-I0c70Kb3A8ObxXgZwAd5RqhlNgUx4AWjzELsLJgQmjIdisFDUVPEEvXxXbsPJZtiRrCwcYng5edJw")
+                    url.append("accessToken=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ0ZXJtb3JhLWJhY2tlbmQiLCJleHAiOjE3NDc5MDk1NDUsInN1YiI6IkFjY2Vzc1Rva2VuIiwiZW1haWwiOiI4ODhAcXEuY29tIiwiaWQiOiIwMTk2ZjcxYTdjZWE3NTQwODlkMDk3YTBjMDFjNzIxZCJ9.0CQxjldz_3jO2pzS1eqVa9jipsh7kwfza0xtNhGgMDnqrVRAJYq7qz1PNk1UA2XXDgLmYnVoSouPpcTa0olqEQ")
                         .append("&")
                     url.append("password=${password}").append("&")
                     url.append("ticket=${ticket}")
