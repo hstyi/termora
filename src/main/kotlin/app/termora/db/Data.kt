@@ -26,23 +26,14 @@ object Data : Table() {
     val type: Column<String> = varchar("type", 32)
 
     /**
-     * 版本，当和数据库不一致时会同步，以最大的为准
+     * 版本，当和云端不一致时会同步，以最大的为准
      */
-    val version = integer("version").clientDefault { 0 }
+    val version = long("version").clientDefault { 0L }
 
     /**
      * 是否已经同步标识，每次更新都要设置成 false 否则不会同步
      */
     val synced: Column<Boolean> = bool("synced").clientDefault { false }
-
-    /**
-     * 备用字段1-5
-     */
-    val extra1: Column<String> = text("extra1").clientDefault { StringUtils.EMPTY }
-    val extra2: Column<String> = text("extra2").clientDefault { StringUtils.EMPTY }
-    val extra3: Column<String> = text("extra3").clientDefault { StringUtils.EMPTY }
-    val extra4: Column<String> = text("extra4").clientDefault { StringUtils.EMPTY }
-    val extra5: Column<String> = text("extra5").clientDefault { StringUtils.EMPTY }
 
     /**
      * 数据
@@ -53,6 +44,15 @@ object Data : Table() {
             LocalSecret.getInstance().salt
         )
     )
+
+    /**
+     * 备用字段1-5
+     */
+    val extra1: Column<String> = text("extra1").clientDefault { StringUtils.EMPTY }
+    val extra2: Column<String> = text("extra2").clientDefault { StringUtils.EMPTY }
+    val extra3: Column<String> = text("extra3").clientDefault { StringUtils.EMPTY }
+    val extra4: Column<String> = text("extra4").clientDefault { StringUtils.EMPTY }
+    val extra5: Column<String> = text("extra5").clientDefault { StringUtils.EMPTY }
 
     override val primaryKey: PrimaryKey get() = PrimaryKey(id)
 }
