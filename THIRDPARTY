@@ -261,3 +261,27 @@ https://github.com/stleary/JSON-java/blob/master/LICENSE
 jSerialComm
 Apache License 2.0
 https://github.com/Fazecast/jSerialComm/blob/master/LICENSE-APACHE-2.0
+
+exposed-core
+Apache License 2.0
+https://github.com/JetBrains/Exposed/blob/main/LICENSE.txt
+
+exposed-crypt
+Apache License 2.0
+https://github.com/JetBrains/Exposed/blob/main/LICENSE.txt
+
+exposed-jdbc
+Apache License 2.0
+https://github.com/JetBrains/Exposed/blob/main/LICENSE.txt
+
+sqlite-jdbc
+Apache License 2.0
+https://www.apache.org/licenses/LICENSE-2.0.txt
+
+java-uuid-generator
+Apache License 2.0
+https://github.com/cowtowncoder/java-uuid-generator/blob/master/LICENSE
+
+semver4j
+MIT
+https://github.com/semver4j/semver4j/blob/main/LICENSE

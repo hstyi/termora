@@ -7,7 +7,7 @@ tasks.withType<Jar> {
             "Implementation-Title" to project.name,
             "Implementation-Version" to rootProject.version,
             "TO-Plugin-Entry" to project.extra.properties["TO-Plugin-Entry"] as String,
-            "TO-Plugin-Range" to "${rootProject.version}+",
+            "TO-Plugin-Range" to "${rootProject.version}",
         )
     }
     destinationDirectory.set(file("${rootProject.layout.buildDirectory.get().asFile.absolutePath}/plugins/${project.name}"))

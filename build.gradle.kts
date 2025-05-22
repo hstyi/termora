@@ -123,6 +123,7 @@ dependencies {
     api(libs.exposed.jdbc)
     api(libs.sqlite)
     api(libs.jug)
+    api(libs.semver4j)
 
 }
 

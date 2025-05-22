@@ -18,6 +18,8 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.FileFilterUtils
 import org.apache.commons.lang3.ArrayUtils
 import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.StringUtils.EMPTY
+import org.semver4j.Semver
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.URLClassLoader
@@ -138,18 +140,36 @@ class PluginManager private constructor() {
         val loader = PluginClassLoader(jars.toTypedArray())
         val resources = loader.findResources("META-INF/MANIFEST.MF")
 
-        var pluginEntry = StringUtils.EMPTY
-        var pluginRange = StringUtils.EMPTY
-        var pluginVersion = StringUtils.EMPTY
+        var pluginEntry = EMPTY
+        var pluginRange = EMPTY
+        var pluginVersion = EMPTY
+        val version = Semver.parse(Application.getVersion())
+
         for (e in resources) {
+            pluginEntry = EMPTY
+            pluginRange = EMPTY
+            pluginVersion = EMPTY
+
             val attributes = e.openStream().use { Manifest(it).mainAttributes } ?: continue
             pluginVersion = attributes.getValue(Attributes.Name.IMPLEMENTATION_VERSION) ?: continue
             pluginEntry = attributes.getValue(PLUGIN_ENTRY) ?: continue
             pluginRange = attributes.getValue(PLUGIN_RANGE) ?: continue
+
+            if (version != null) {
+                if (version.satisfies(pluginRange).not()) {
+                    pluginEntry = EMPTY
+                    pluginRange = EMPTY
+                    pluginVersion = EMPTY
+                    if (log.isWarnEnabled) {
+                        log.warn("Plugin: ${file.absolutePath} version is not satisfies")
+                    }
+                    continue
+                }
+            }
             break
         }
 
-        if (pluginEntry.isBlank() || pluginEntry.isBlank()) return
+        if (pluginEntry.isBlank() || pluginRange.isBlank() || pluginVersion.isBlank()) return
 
         try {
             val clazz = Class.forName(pluginEntry, false, loader)

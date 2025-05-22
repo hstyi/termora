@@ -45,6 +45,7 @@ exposed = "1.0.0-beta-1"
 h2 = "2.3.232"
 sqlite = "3.49.1.0"
 jug = "5.1.0"
+semver4j = "5.7.0"
 
 [libraries]
 kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
@@ -107,6 +108,7 @@ exposed-migration = { module = "org.jetbrains.exposed:exposed-migration", versio
 h2 = { module = "com.h2database:h2", version.ref = "h2" }
 sqlite = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite" }
 jug = { module = "com.fasterxml.uuid:java-uuid-generator", version.ref = "jug" }
+semver4j = { module = "org.semver4j:semver4j", version.ref = "semver4j" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
