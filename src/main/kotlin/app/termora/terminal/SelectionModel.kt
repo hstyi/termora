@@ -22,6 +22,16 @@ interface SelectionModel {
     fun setSelection(startPosition: Position, endPosition: Position)
 
     /**
+     * 设置块选中模式
+     */
+    fun setBlockSelection(block: Boolean)
+
+    /**
+     * 是否是块选中模式
+     */
+    fun isBlockSelection(): Boolean
+
+    /**
      * 获取开始选中的位置
      */
     fun getSelectionStartPosition(): Position

@@ -7,6 +7,7 @@ import kotlin.math.min
 open class SelectionModelImpl(private val terminal: Terminal) : SelectionModel {
     private var startPosition = Position.unknown
     private var endPosition = Position.unknown
+    private var block = false
     private val document = terminal.getDocument()
 
     internal companion object {
@@ -67,29 +68,60 @@ open class SelectionModelImpl(private val terminal: Terminal) : SelectionModel {
             return sb.toString()
         }
 
-        val iterator = getChars(getSelectionStartPosition(), getSelectionEndPosition())
-        while (iterator.hasNext()) {
-            val line = iterator.next()
-            val chars = line.chars()
-            if (chars.isEmpty() || chars.first().first.isNull) {
-                continue
-            }
+        val start = getSelectionStartPosition()
+        val end = getSelectionEndPosition()
 
-            for (e in chars) {
-                if (e.first.isSoftHyphen) {
-                    continue
-                } else if (e.first.isNull) {
-                    break
+        if (isBlockSelection()) {
+            val left = min(start.x, end.x)
+            val right = max(start.x, end.x)
+            val top = min(start.y, end.y)
+            val bottom = max(start.y, end.y)
+
+            for (lineNum in top..bottom) {
+                val line = document.getLine(lineNum)
+                val chars = line.chars()
+
+                // 块选中要处理超出边界
+                val from = (left - 1).coerceAtLeast(0)
+                val to = right.coerceAtMost(chars.size)
+
+                if (from < to) {
+                    val selected = chars.subList(from, to)
+                        .filter { !it.first.isNull && !it.first.isSoftHyphen }
+                        .joinToString("") { it.first.toString() }
+                    sb.append(selected)
                 }
-                sb.append(e.first)
+
+                if (lineNum != bottom) {
+                    sb.appendLine()
+                }
             }
 
-            if (line.wrapped) {
-                continue
-            }
+        } else {
+            val iterator = getChars(start, end)
+            while (iterator.hasNext()) {
+                val line = iterator.next()
+                val chars = line.chars()
+                if (chars.isEmpty() || chars.first().first.isNull) {
+                    continue
+                }
 
-            if (iterator.hasNext()) {
-                sb.appendLine()
+                for (e in chars) {
+                    if (e.first.isSoftHyphen) {
+                        continue
+                    } else if (e.first.isNull) {
+                        break
+                    }
+                    sb.append(e.first)
+                }
+
+                if (line.wrapped) {
+                    continue
+                }
+
+                if (iterator.hasNext()) {
+                    sb.appendLine()
+                }
             }
         }
 
@@ -171,6 +203,12 @@ open class SelectionModelImpl(private val terminal: Terminal) : SelectionModel {
         fireSelectionChanged()
     }
 
+    override fun setBlockSelection(block: Boolean) {
+        this.block = block
+    }
+
+    override fun isBlockSelection() = block
+
     override fun getSelectionStartPosition(): Position {
         return startPosition
     }
@@ -202,13 +240,20 @@ open class SelectionModelImpl(private val terminal: Terminal) : SelectionModel {
     }
 
     override fun hasSelection(x: Int, y: Int): Boolean {
-        return hasSelection() && isPointInsideArea(
-            startPosition,
-            endPosition,
-            x,
-            y,
-            terminal.getTerminalModel().getCols()
-        )
+
+        if (hasSelection().not()) return false
+
+        // 如果是块选中
+        if (isBlockSelection()) {
+            val left = min(startPosition.x, endPosition.x)
+            val right = max(startPosition.x, endPosition.x)
+            val top = min(startPosition.y, endPosition.y)
+            val bottom = max(startPosition.y, endPosition.y)
+
+            return x in left..right && y in top..bottom
+        }
+
+        return isPointInsideArea(startPosition, endPosition, x, y, terminal.getTerminalModel().getCols())
     }
 
 
