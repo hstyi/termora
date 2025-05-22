@@ -27,7 +27,7 @@ class ChooseLoginServerDialog(owner: Window) : DialogWrapper(owner) {
         isModal = true
         isResizable = true
         controlsVisible = false
-        title = "Choose Server"
+        title = I18n.getString("termora.settings.account.choose-server")
         init()
         pack()
         size = Dimension(max(preferredSize.width, UIManager.getInt("Dialog.width") - 250), preferredSize.height)
@@ -44,8 +44,13 @@ class ChooseLoginServerDialog(owner: Window) : DialogWrapper(owner) {
         val step = 2
 
 
-        val singaporeServer = Server("新加坡", "https://account.termora.app")
-        val chinaServer = Server("中国大陆", "https://account.termora.cn")
+        val singaporeServer = Server(I18n.getString("termora.settings.account.server-singapore"), "https://account.termora.app")
+        val chinaServer = Server(I18n.getString("termora.settings.account.server-china"), "https://account.termora.cn")
+
+        if (Application.isUnknownVersion()) {
+            serverComboBox.addItem(Server("Localhost", "http://localhost:8080"))
+        }
+
         serverComboBox.addItem(singaporeServer)
         serverComboBox.addItem(chinaServer)
 
@@ -90,7 +95,7 @@ class ChooseLoginServerDialog(owner: Window) : DialogWrapper(owner) {
 
 
         val dialog = this
-        val newAction = object : AnAction("New") {
+        val newAction = object : AnAction(I18n.getString("termora.welcome.contextmenu.new")) {
             override fun actionPerformed(evt: AnActionEvent) {
                 if (serverComboBox.selectedItem == singaporeServer || serverComboBox.selectedItem == chinaServer) {
                     val c = NewServerDialog(dialog)
@@ -122,16 +127,16 @@ class ChooseLoginServerDialog(owner: Window) : DialogWrapper(owner) {
         serverComboBox.addItemListener {
             if (it.stateChange == ItemEvent.SELECTED) {
                 if (serverComboBox.selectedItem == singaporeServer || serverComboBox.selectedItem == chinaServer) {
-                    newAction.name = "New"
+                    newAction.name = I18n.getString("termora.welcome.contextmenu.new")
                 } else {
-                    newAction.name = "Delete"
+                    newAction.name = I18n.getString("termora.remove")
                 }
             }
         }
 
 
         return FormBuilder.create().layout(layout).debug(false).padding("0dlu, $formMargin, 0dlu, $formMargin")
-            .add("Server:").xy(1, rows)
+            .add("${I18n.getString("termora.settings.account.server")}:").xy(1, rows)
             .add(serverComboBox).xy(3, rows)
             .add(newServer).xy(5, rows).apply { rows += step }
             .build()
@@ -146,7 +151,7 @@ class ChooseLoginServerDialog(owner: Window) : DialogWrapper(owner) {
             isModal = true
             isResizable = false
             controlsVisible = false
-            title = "New Server"
+            title = I18n.getString("termora.settings.account.new-server")
             init()
             pack()
             size = Dimension(max(preferredSize.width, UIManager.getInt("Dialog.width") - 320), preferredSize.height)
@@ -162,7 +167,7 @@ class ChooseLoginServerDialog(owner: Window) : DialogWrapper(owner) {
             var rows = 1
             val step = 2
 
-            val deploy = JXHyperlink(object : AnAction("Deploy") {
+            val deploy = JXHyperlink(object : AnAction(I18n.getString("termora.settings.account.deploy-server")) {
                 override fun actionPerformed(evt: AnActionEvent) {
                     Application.browse(URI.create("https://github.com/TermoraDev/termora-backend"))
                 }
@@ -171,9 +176,9 @@ class ChooseLoginServerDialog(owner: Window) : DialogWrapper(owner) {
 
 
             return FormBuilder.create().layout(layout).debug(false).padding("0dlu, $formMargin, 0dlu, $formMargin")
-                .add("Name:").xy(1, rows)
+                .add("${I18n.getString("termora.new-host.general.name")}:").xy(1, rows)
                 .add(nameTextField).xyw(3, rows, 3).apply { rows += step }
-                .add("Server:").xy(1, rows)
+                .add("${I18n.getString("termora.settings.account.server")}:").xy(1, rows)
                 .add(serverTextField).xy(3, rows)
                 .add(deploy).xy(5, rows).apply { rows += step }
                 .build()

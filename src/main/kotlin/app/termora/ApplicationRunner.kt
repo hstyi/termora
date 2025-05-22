@@ -131,6 +131,9 @@ class ApplicationRunner {
             // 设置托盘
             SwingUtilities.invokeLater { setupSystemTray() }
         }
+
+        // 初始化 Scheme
+        OpenURIHandlers.getInstance()
     }
 
     private fun setupSystemTray() {
