@@ -2,10 +2,6 @@ annotations
 Apache License 2.0
 https://github.com/JetBrains/java-annotations/blob/master/LICENSE.txt
 
-kotlin-bip39
-MIT License
-https://github.com/Electric-Coin-Company/kotlin-bip39/blob/main/LICENSE
-
 colorpicker
 BSD 3-Clause "New" or "Revised" License
 https://github.com/dheid/colorpicker/blob/main/LICENSE
@@ -17,10 +13,6 @@ https://github.com/commonmark/commonmark-java/blob/main/LICENSE.txt
 commons-codec
 Apache License 2.0
 https://github.com/apache/commons-codec/blob/master/LICENSE.txt
-
-commons-compress
-Apache License 2.0
-https://github.com/apache/commons-compress/blob/master/LICENSE.txt
 
 commons-vfs2
 Apache License 2.0
@@ -225,26 +217,6 @@ https://github.com/tinylog-org/tinylog/blob/v2.7/license.txt
 versioncompare
 Apache License 2.0
 https://github.com/G00fY2/version-compare/blob/main/LICENSE
-
-xodus-compress
-Apache License 2.0
-https://github.com/JetBrains/xodus/blob/master/LICENSE.txt
-
-xodus-environment
-Apache License 2.0
-https://github.com/JetBrains/xodus/blob/master/LICENSE.txt
-
-xodus-openAPI
-Apache License 2.0
-https://github.com/JetBrains/xodus/blob/master/LICENSE.txt
-
-xodus-utils
-Apache License 2.0
-https://github.com/JetBrains/xodus/blob/master/LICENSE.txt
-
-xodus-vfs
-Apache License 2.0
-https://github.com/JetBrains/xodus/blob/master/LICENSE.txt
 
 jediterm
 Apache License 2.0
