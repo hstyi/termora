@@ -7,19 +7,21 @@ import org.apache.commons.lang3.StringUtils
 /**
  * 账号配置
  */
-class AccountProperties private constructor(databaseManager: DatabaseManager, val id: String) :
-    DatabaseManager.IProperties(databaseManager, "Setting.Account.$id") {
+class AccountProperties private constructor(databaseManager: DatabaseManager) :
+    DatabaseManager.IProperties(databaseManager, "Setting.Account") {
 
     companion object {
         fun getInstance(): AccountProperties {
-            val databaseManager = DatabaseManager.getInstance()
-            val accountId = databaseManager.properties.getString("CurrentAccountId") ?: "0"
             return ApplicationScope.forApplicationScope()
-                .getOrCreate(AccountProperties::class) { AccountProperties(databaseManager, accountId) }
+                .getOrCreate(AccountProperties::class) { AccountProperties(DatabaseManager.getInstance()) }
         }
     }
 
 
+    /**
+     * id
+     */
+    var id by StringPropertyDelegate(StringUtils.EMPTY)
     /**
      * server
      */
@@ -59,5 +61,8 @@ class AccountProperties private constructor(databaseManager: DatabaseManager, va
      * 用户私钥，base64
      */
     var privateKey by StringPropertyDelegate(StringUtils.EMPTY)
+
+    var accessToken by StringPropertyDelegate(StringUtils.EMPTY)
+    var refreshToken by StringPropertyDelegate(StringUtils.EMPTY)
 
 }

@@ -1,9 +1,12 @@
 package app.termora.plugin
 
+import app.termora.ApplicationRunnerExtension
 import app.termora.DynamicIcon
 
 /**
- * 插件类，此插件类不应该做任何业务操作，因为在插件初始化时还程序还尚未初始化完成
+ * 插件类
+ *
+ * 此插件类不应该做任何业务操作，因为在插件初始化时还程序还尚未初始化完成。如果要初始化数据应该实现 [ApplicationRunnerExtension.ready] 扩展
  *
  * 实现类必须有一个默认构造器
  */

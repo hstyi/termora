@@ -1,9 +1,12 @@
 package app.termora.plugin.internal.plugin
 
 import app.termora.*
+import app.termora.account.AccountExtension
+import app.termora.account.AccountManager
 import app.termora.plugin.PluginDescriptor
 import app.termora.plugin.PluginManager
 import app.termora.plugin.PluginOrigin
+import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import com.formdev.flatlaf.extras.FlatSVGIcon
 import org.apache.commons.io.FileUtils
 import org.jdesktop.swingx.JXLabel
@@ -11,9 +14,10 @@ import java.awt.BorderLayout
 import java.awt.Dimension
 import javax.swing.*
 
-class PluginOption : JPanel(BorderLayout()), OptionsPane.Option {
+class PluginOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable, AccountExtension {
     private val pluginManager = PluginManager.getInstance()
     private val owner get() = SwingUtilities.getWindowAncestor(this)
+    private val installButtons = mutableListOf<JButton>()
 
     companion object {
         private val installed = mutableSetOf<String>()
@@ -124,12 +128,14 @@ class PluginOption : JPanel(BorderLayout()), OptionsPane.Option {
         val installButton = JButton(I18n.getString("termora.settings.plugin.install"))
         installButton.isFocusable = false
         installButton.isEnabled = installed.contains(plugin.getName()).not()
-        if (installButton.isEnabled) {
+        if (AccountManager.getInstance().isFreePlan()) {
             installButton.icon = Icons.locked
             installButton.addActionListener { install(installButton, e) }
         } else {
             installButton.text = I18n.getString("termora.settings.plugin.installed")
         }
+
+        installButtons.add(installButton)
 
         pluginBox.add(installButton)
         pluginBox.border = BorderFactory.createEmptyBorder(0, 8, 0, 8)
@@ -166,18 +172,23 @@ class PluginOption : JPanel(BorderLayout()), OptionsPane.Option {
     }
 
     private fun install(button: JButton, descriptor: PluginDescriptor) {
-        val option = OptionPane.showConfirmDialog(
-            owner,
-            I18n.getString("termora.settings.plugin.install-subscription-confirm", descriptor.plugin.getName()),
-            options = arrayOf(
-                I18n.getString("termora.settings.plugin.subscribe"),
-                I18n.getString("termora.cancel")
-            ),
-            optionType = JOptionPane.OK_CANCEL_OPTION,
-            messageType = JOptionPane.WARNING_MESSAGE,
-            initialValue = I18n.getString("termora.settings.plugin.subscribe")
-        )
-        if (option != JOptionPane.OK_OPTION) return
+        if (AccountManager.getInstance().isFreePlan()) {
+            val option = OptionPane.showConfirmDialog(
+                owner,
+                I18n.getString("termora.settings.plugin.install-subscription-confirm", descriptor.plugin.getName()),
+                options = arrayOf(
+                    I18n.getString("termora.settings.account.upgrade"),
+                    I18n.getString("termora.cancel")
+                ),
+                optionType = JOptionPane.OK_CANCEL_OPTION,
+                messageType = JOptionPane.WARNING_MESSAGE,
+                initialValue = I18n.getString("termora.settings.account.upgrade")
+            )
+            if (option == JOptionPane.OK_OPTION) {
+                return
+            }
+            return
+        }
 
         button.isEnabled = false
         button.icon = null
@@ -189,7 +200,9 @@ class PluginOption : JPanel(BorderLayout()), OptionsPane.Option {
     }
 
 
-    private fun initEvents() {}
+    private fun initEvents() {
+        DynamicExtensionHandler.getInstance().register(AccountExtension::class.java, this)
+    }
 
     override fun getIcon(isSelected: Boolean): Icon {
         return Icons.plugin
@@ -201,6 +214,17 @@ class PluginOption : JPanel(BorderLayout()), OptionsPane.Option {
 
     override fun getJComponent(): JComponent {
         return this
+    }
+
+    override fun dispose() {
+        DynamicExtensionHandler.getInstance().unregister(this)
+    }
+
+    override fun onAccountChanged() {
+        val isFreePlan = AccountManager.getInstance().isFreePlan()
+        for (button in installButtons) {
+            button.icon = if (isFreePlan) Icons.locked else null
+        }
     }
 
 }

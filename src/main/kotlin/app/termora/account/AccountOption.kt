@@ -1,6 +1,7 @@
 package app.termora.account
 
 import app.termora.*
+import app.termora.Application.ohMyJson
 import app.termora.OptionsPane.Companion.formMargin
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
@@ -9,6 +10,7 @@ import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
+import kotlinx.serialization.json.*
 import okhttp3.Request
 import org.apache.commons.codec.binary.Base64
 import org.apache.commons.lang3.StringUtils
@@ -40,6 +42,7 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
     private val cardLayout = CardLayout()
     private val rootPanel = JPanel(cardLayout)
     private val loginPanel = LoginPanel()
+    private val userInfoPanel = JPanel(BorderLayout())
 
     init {
         initView()
@@ -48,7 +51,8 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
 
 
     private fun initView() {
-        rootPanel.add(getCenterComponent(), "UserInfo")
+        refreshUserInfoPanel()
+        rootPanel.add(userInfoPanel, "UserInfo")
         rootPanel.add(loginPanel, "Login")
         cardLayout.show(rootPanel, "UserInfo")
         add(rootPanel, BorderLayout.CENTER)
@@ -69,8 +73,7 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
         val step = 2
 
         val subscription = accountManager.getSubscription()
-        val isFreePlan = accountManager.isLocally() || subscription.endDate == Long.MAX_VALUE
-                || subscription.plan == SubscriptionPlan.Free
+        val isFreePlan = accountManager.isFreePlan()
 
         val validTo = if (isFreePlan) "-" else
             DateFormatUtils.format(Date(subscription.endDate), I18n.getString("termora.date-format"))
@@ -80,6 +83,18 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
                 I18n.getString("termora.date-format")
             )
 
+        val planBox = Box.createHorizontalBox()
+        planBox.add(JLabel(subscription.plan.name))
+        if (isFreePlan && accountManager.isLocally().not()) {
+            planBox.add(Box.createHorizontalStrut(8))
+            val upgrade = JXHyperlink(object : AnAction("${I18n.getString("termora.settings.account.upgrade")}...") {
+                override fun actionPerformed(evt: AnActionEvent) {
+
+                }
+            })
+            upgrade.isFocusable = false
+            planBox.add(upgrade)
+        }
 
         return FormBuilder.create().layout(layout).debug(false)
             .add("${I18n.getString("termora.settings.account.server")}:").xy(1, rows)
@@ -87,7 +102,7 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
             .add("${I18n.getString("termora.settings.account")}:").xy(1, rows)
             .add(accountManager.getEmail()).xy(3, rows).apply { rows += step }
             .add("${I18n.getString("termora.settings.account.subscription")}:").xy(1, rows)
-            .add(subscription.plan.name).xy(3, rows).apply { rows += step }
+            .add(planBox).xy(3, rows).apply { rows += step }
             .add("${I18n.getString("termora.settings.account.valid-to")}:").xy(1, rows)
             .add(validTo).xy(3, rows).apply { rows += step }
             .add("${I18n.getString("termora.settings.account.synchronization-on")}:").xy(1, rows)
@@ -108,13 +123,7 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
                 }
             }).apply { isFocusable = false })
         } else {
-            if (isFreePlan) {
-                actions.add(JXHyperlink(object : AnAction(I18n.getString("termora.settings.plugin.subscribe")) {
-                    override fun actionPerformed(evt: AnActionEvent) {
-
-                    }
-                }).apply { isFocusable = false })
-            } else {
+            if (isFreePlan.not()) {
                 actions.add(JXHyperlink(object : AnAction(I18n.getString("termora.settings.account.sync-now")) {
                     override fun actionPerformed(evt: AnActionEvent) {
 
@@ -122,9 +131,18 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
                 }).apply { isFocusable = false })
             }
 
-            actions.add(JXHyperlink(object : AnAction("${I18n.getString("termora.settings.account.logout")}...") {
+            actions.add(JXHyperlink(object : AnAction(I18n.getString("termora.settings.account.logout")) {
                 override fun actionPerformed(evt: AnActionEvent) {
-
+                    val option = OptionPane.showConfirmDialog(
+                        owner, I18n.getString("termora.settings.account.logout-confirm"),
+                        optionType = JOptionPane.OK_CANCEL_OPTION,
+                        messageType = JOptionPane.QUESTION_MESSAGE,
+                    )
+                    if (option != JOptionPane.OK_OPTION) {
+                        return
+                    }
+                    AccountManager.getInstance().logout()
+                    refreshUserInfoPanel()
                 }
             }).apply { isFocusable = false })
         }
@@ -160,6 +178,18 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
         loginPanel.login(url.toString())
         cardLayout.show(rootPanel, "Login")
 
+    }
+
+    private fun onLoginSuccess() {
+        refreshUserInfoPanel()
+        cardLayout.show(rootPanel, "UserInfo")
+    }
+
+    private fun refreshUserInfoPanel() {
+        userInfoPanel.removeAll()
+        userInfoPanel.add(getCenterComponent(), BorderLayout.CENTER)
+        userInfoPanel.revalidate()
+        userInfoPanel.repaint()
     }
 
     override fun getIcon(isSelected: Boolean): Icon {
@@ -205,7 +235,7 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
 
             val cancelHyperlink = JXHyperlink(object : AnAction(I18n.getString("termora.cancel")) {
                 override fun actionPerformed(evt: AnActionEvent) {
-                    cancel()
+                    cancelLogin()
                 }
             })
             cancelHyperlink.isFocusable = false
@@ -248,21 +278,24 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
             if (Application.isUnknownVersion()) {
                 coroutineScope.launch(Dispatchers.IO) {
                     delay(3.seconds)
-                    withContext(Dispatchers.Swing) {
-                        OpenURIHandlers.getInstance().trigger(
-                            OpenURIEvent(
-                                URI.create(
-                                    "termora://login-success?ticket=0196f61bc34d7742978e6c30725733770196f61bc34d76a396c06751a9f4f5d1&refreshToken=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ0ZXJtb3JhLWJhY2tlbmQiLCJleHAiOjE3NTA1NjcxNTUsInN1YiI6IlJlZnJlc2hUb2tlbiIsImVtYWlsIjoiODg4QHFxLmNvbSIsImlkIjoiZmQzMGU5ZTctOWJhMi00ZWJiLTg3MGItOGZhOWVlYmNkYzNkIiwiZGlnZXN0IjoiOGZjMDVhYTgifQ.oV0NpI_kkF2HJuW0ISvcZskBlsyyudaPc9j_tUvkoi3fu3XjKjyqEWExxHnnCXeYilmmYlMFBnAjvVd5hVXgPQ&accessToken=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ0ZXJtb3JhLWJhY2tlbmQiLCJleHAiOjE3NDc4OTA1NTUsInN1YiI6IkFjY2Vzc1Rva2VuIiwiZW1haWwiOiI4ODhAcXEuY29tIiwiaWQiOiJmZDMwZTllNy05YmEyLTRlYmItODcwYi04ZmE5ZWViY2RjM2QifQ.tQI8vDP1IhEMeoXL9mAU-VVEtyqUez7m9bqTmAYC7f2DNSC5dAmFiOfZLnLkaaPdQafaiFBs9QOgqRlN27i1PQ&password=HI3H5xOohZ6YsNq8MAu6hmT8l68jfOMxC5VRXdwJStIHvSRgb9ECvV5XzbkBFHImIaO61+GXNQvENzWWZ9d1KKG76T6CbE1klpBeeZtj5yvutgAa608VklOUHwzGS6aFBPo5S2lqmTMSaso3jpyTBsWx4IgEwctf5VhjQMqLcw9LvKP9Z4PiZgQw1yowihYOdrUEGFw3g02P1zS8fu5lfR+tZFm01ZrMnv7uHaJ6BiuoJjxxY5XHhqZre85gVcUKlBgNR5zf4UFOx9++kz8MNO58rlIv/geKKEHBrQhEppXCPBG6O8aUzJdmjYT0bG/vjUPUDlsT9ymlf1WxIltMgQ=="
-                                )
-                            )
-                        )
-                    }
+                    val password = Base64.encodeBase64URLSafeString(
+                        RSA.encrypt(keypair.public, "8888@qq.com".toByteArray())
+                    )
+                    val url = StringBuilder()
+                    url.append("termora://login-success?")
+                    url.append("refreshToken=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ0ZXJtb3JhLWJhY2tlbmQiLCJleHAiOjE3NTA1NzcxMjIsInN1YiI6IlJlZnJlc2hUb2tlbiIsImVtYWlsIjoiODg4OEBxcS5jb20iLCJpZCI6IjMyNzRhM2JiLTY4YWYtNDE3OC04NzQzLWI1YjQ0Mjg5ZGQ3MCIsImRpZ2VzdCI6Ijc1YTAxMDdlIn0.UXSW0-DaQopgxRwQxI5cl2bt572hIknqvRWFQct2Yvw_Of8JiTJxkZbWdEznoqTESLVMPpjCpW5YBoclMLLutQ")
+                        .append("&")
+                    url.append("accessToken=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ0ZXJtb3JhLWJhY2tlbmQiLCJleHAiOjE3NDc5MDIwMTUsInN1YiI6IkFjY2Vzc1Rva2VuIiwiZW1haWwiOiI4ODg4QHFxLmNvbSIsImlkIjoiMDE5NmY2ZjY5ZmU1NzY3ZGFhYjUyNWFjZmUxNzI1YWUifQ.ekt-ZojS-I0c70Kb3A8ObxXgZwAd5RqhlNgUx4AWjzELsLJgQmjIdisFDUVPEEvXxXbsPJZtiRrCwcYng5edJw")
+                        .append("&")
+                    url.append("password=${password}").append("&")
+                    url.append("ticket=${ticket}")
+                    onCallback(server, URI.create(url.toString()), keypair)
                 }
             }
 
         }
 
-        fun cancel() {
+        fun cancelLogin() {
             busyLabel.isBusy = false
             keypair = null
             server = null
@@ -278,11 +311,80 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
             refreshToken: String,
             accessToken: String
         ) {
-            val response = AccountHttp.client.newCall(
-                Request.Builder().url("${server}/v1/users/me")
-                    .get().build()
-            ).execute()
+            val request = Request.Builder().url("${server}/v1/users/me")
+                .header("Authorization", "Bearer $accessToken")
+                .get().build()
+            val text = AccountHttp.execute(request = request)
+            val json = ohMyJson.decodeFromString<JsonObject>(text)
 
+            val id = json["id"]?.jsonPrimitive?.content
+            val email = json["email"]?.jsonPrimitive?.content
+            val saltBase64 = json["salt"]?.jsonPrimitive?.content
+            val publicKeyBase64 = json["publicKey"]?.jsonPrimitive?.content
+            val privateKeyBase64 = json["privateKey"]?.jsonPrimitive?.content
+            val secretKeyBase64 = json["secretKey"]?.jsonPrimitive?.content
+            val encryptedTeams = json["teams"]?.jsonArray
+            val subscriptions = json["subscriptions"]?.jsonArray
+
+            if (id == null || saltBase64 == null || email == null || publicKeyBase64 == null || privateKeyBase64 == null || secretKeyBase64 == null) {
+                throw IllegalStateException()
+            }
+
+            val salt = Base64.decodeBase64(saltBase64)
+            val privateKeyEncoded = Base64.decodeBase64(privateKeyBase64)
+            val secretKeyEncrypted = Base64.decodeBase64(secretKeyBase64)
+            val publicKeyEncoded = Base64.decodeBase64(publicKeyBase64)
+
+            // 解密RSA私钥
+            // @formatter:off
+            val privateKeySecureKey = PBKDF2.hash(salt, "key:$email:$password".toCharArray(), 450000, 128)
+            val privateKeySecureKeyIv = PBKDF2.hash(salt, "iv:$email:$password".toCharArray(), 450000, 96)
+            val privateKey = RSA.generatePrivate(AES.GCM.decrypt(privateKeySecureKey, privateKeySecureKeyIv, privateKeyEncoded))
+            // @formatter:on
+
+            // 解密用户私钥
+            val secretKey = RSA.decrypt(privateKey, secretKeyEncrypted)
+            val teams = mutableListOf<Team>()
+
+            if (encryptedTeams != null) {
+                for (i in 0 until encryptedTeams.size) {
+                    val team = encryptedTeams[i].jsonObject
+                    val id = team["id"]?.jsonPrimitive?.content
+                    val name = team["name"]?.jsonPrimitive?.content
+                    val role = team["role"]?.jsonPrimitive?.content
+                    val secretKeyBase64 = team["secretKey"]?.jsonPrimitive?.content
+                    if (id == null || name == null || role == null || secretKeyBase64 == null) {
+                        continue
+                    }
+                    teams.add(
+                        Team(
+                            id = id,
+                            name = name,
+                            secretKey = RSA.decrypt(privateKey, Base64.decodeBase64(secretKeyBase64)),
+                            role = TeamRole.valueOf(role)
+                        )
+                    )
+                }
+            }
+
+            // 登录成功
+            val account = Account(
+                id = id,
+                server = server,
+                email = email,
+                teams = teams,
+                subscriptions = if (subscriptions == null) emptyList()
+                else ohMyJson.decodeFromJsonElement<List<Subscription>>(subscriptions),
+                lastSynchronizationOn = accountManager.getLastSynchronizationOn(),
+                accessToken = accessToken,
+                refreshToken = refreshToken,
+                secretKey = secretKey,
+                publicKey = RSA.generatePublic(publicKeyEncoded),
+                privateKey = privateKey
+            )
+
+            // 登录成功
+            SwingUtilities.invokeLater { accountManager.login(account) }
         }
 
         override fun dispose() {
@@ -295,38 +397,55 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
             val uri = e.uri
             if (uri.host != "login-success") return
             if (uri.query == null) return
+            val keypair = keypair ?: return
+            val server = server ?: return
+            onCallback(server, uri, keypair)
+        }
+
+        private fun onCallback(server: String, uri: URI, keypair: KeyPair) {
 
             try {
-                onCallback(uri)
-            } catch (e: Exception) {
-                if (log.isErrorEnabled) {
-                    log.error(e.message, e)
+                val params = parseQuery(uri.query)
+                val password = params["password"]
+                val ticket = params["ticket"]
+                val refreshToken = params["refreshToken"]
+                val accessToken = params["accessToken"]
+                if (password.isNullOrBlank() || ticket.isNullOrBlank() || refreshToken.isNullOrBlank() || accessToken.isNullOrBlank()) return
+
+                // 解密密码
+                val realPassword = String(RSA.decrypt(keypair.private, Base64.decodeBase64(password)))
+
+                // 登录成功回调
+                coroutineScope.launch {
+                    try {
+
+                        loginSuccess(server, ticket, realPassword, refreshToken, accessToken)
+
+                        // 没有错误那么就回跳
+                        withContext(Dispatchers.Swing) { onLoginSuccess() }
+
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Swing) {
+                            onLoginFailed(e)
+                        }
+                    }
+
                 }
-                OptionPane.showMessageDialog(
-                    owner,
-                    I18n.getString("termora.settings.account.login-failed"),
-                    messageType = JOptionPane.ERROR_MESSAGE
-                )
-                cancel()
+            } catch (e: Exception) {
+                onLoginFailed(e)
             }
         }
 
-        private fun onCallback(uri: URI) {
-            val keypair = keypair ?: return
-            val server = server ?: return
-
-            val params = parseQuery(uri.query)
-            val password = params["password"]
-            val ticket = params["ticket"]
-            val refreshToken = params["refreshToken"]
-            val accessToken = params["accessToken"]
-            if (password.isNullOrBlank() || ticket.isNullOrBlank() || refreshToken.isNullOrBlank() || accessToken.isNullOrBlank()) return
-
-            // 解密密码
-            val realPassword = String(RSA.decrypt(keypair.private, Base64.decodeBase64(password)))
-
-            // 登录成功回调
-            coroutineScope.launch { loginSuccess(server, ticket, realPassword, refreshToken, accessToken) }
+        private fun onLoginFailed(e: Exception) {
+            if (log.isErrorEnabled) {
+                log.error(e.message, e)
+            }
+            OptionPane.showMessageDialog(
+                owner,
+                I18n.getString("termora.settings.account.login-failed"),
+                messageType = JOptionPane.ERROR_MESSAGE
+            )
+            cancelLogin()
         }
 
         private fun parseQuery(query: String): Map<String, String> {

@@ -36,6 +36,16 @@ class Account(
     val lastSynchronizationOn: Long,
 
     /**
+     * 访问 Token
+     */
+    val accessToken: String,
+
+    /**
+     * 刷新 Token
+     */
+    val refreshToken: String,
+
+    /**
      * 用户的密钥
      */
     val secretKey: ByteArray,

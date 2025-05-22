@@ -3,6 +3,7 @@ package app.termora.plugin
 import app.termora.Application
 import app.termora.ApplicationScope
 import app.termora.account.AccountPlugin
+import app.termora.plugin.internal.extension.DynamicExtensionPlugin
 import app.termora.plugin.internal.local.LocalInternalPlugin
 import app.termora.plugin.internal.plugin.PluginInternalPlugin
 import app.termora.plugin.internal.rdp.RDPInternalPlugin
@@ -94,6 +95,8 @@ class PluginManager private constructor() {
     private fun loadInternalPlugins() {
         val version = Application.getVersion()
 
+        // 动态注册扩展
+        plugins.add(PluginDescriptor(DynamicExtensionPlugin(), PluginOrigin.Internal, version))
         // plugin
         plugins.add(PluginDescriptor(PluginInternalPlugin(), PluginOrigin.Internal, version))
         // account plugin
