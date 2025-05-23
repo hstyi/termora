@@ -41,17 +41,20 @@ class PullService private constructor() : SyncService(), Disposable, Application
     private val accountProperties get() = AccountProperties.getInstance()
 
     private suspend fun schedule() {
-        channel.receive()
-
         try {
             // 同步
-            synchronize()
+            synchronize(channel.receive())
         } catch (e: Exception) {
             if (log.isErrorEnabled) {
                 log.error(e.message, e)
             }
         }
     }
+
+    private suspend fun synchronize(id: String) {
+        log.info("Starting pull service for {}", id)
+    }
+
 
     private fun pullChanges() {
         try {
@@ -64,7 +67,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
     }
 
     private fun doPullChanges() {
-        val since = accountProperties.nextSynchronizationSince
+        val since = 0L
         var after = StringUtils.EMPTY
         var nextSince = since
         val limit = 2
@@ -96,11 +99,6 @@ class PullService private constructor() : SyncService(), Disposable, Application
 
         accountProperties.nextSynchronizationSince = nextSince
         accountProperties.lastSynchronizationOn = System.currentTimeMillis()
-
-    }
-
-    private suspend fun synchronize() {
-
 
     }
 
