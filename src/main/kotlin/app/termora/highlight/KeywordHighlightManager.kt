@@ -5,6 +5,7 @@ import app.termora.ApplicationScope
 import app.termora.DeleteDataManager
 import app.termora.TerminalPanelFactory
 import app.termora.account.AccountManager
+import app.termora.db.Data
 import app.termora.db.DataType
 import app.termora.db.DatabaseManager
 import app.termora.db.OwnerType
@@ -28,9 +29,15 @@ class KeywordHighlightManager private constructor() {
     fun addKeywordHighlight(keywordHighlight: KeywordHighlight) {
 
         val accountId = AccountManager.getInstance().getAccountId()
+
         database.save(
-            accountId, OwnerType.User, keywordHighlight.id,
-            DataType.KeywordHighlight, ohMyJson.encodeToString(keywordHighlight)
+            Data(
+                id = keywordHighlight.id,
+                ownerId = accountId,
+                ownerType = OwnerType.User.name,
+                type = DataType.KeywordHighlight.name,
+                data = ohMyJson.encodeToString(keywordHighlight),
+            )
         )
 
         keywordHighlights[keywordHighlight.id] = keywordHighlight

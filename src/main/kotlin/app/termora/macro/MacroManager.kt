@@ -4,6 +4,7 @@ import app.termora.Application.ohMyJson
 import app.termora.ApplicationScope
 import app.termora.DeleteDataManager
 import app.termora.account.AccountManager
+import app.termora.db.Data
 import app.termora.db.DataType
 import app.termora.db.DatabaseManager
 import app.termora.db.OwnerType
@@ -37,9 +38,15 @@ class MacroManager private constructor() {
         macros[macro.id] = macro
 
         val accountId = AccountManager.getInstance().getAccountId()
+
         database.save(
-            accountId, OwnerType.User, macro.id,
-            DataType.Macro, ohMyJson.encodeToString(macro)
+            Data(
+                id = macro.id,
+                ownerId = accountId,
+                ownerType = OwnerType.User.name,
+                type = DataType.Macro.name,
+                data = ohMyJson.encodeToString(macro),
+            )
         )
 
         if (log.isDebugEnabled) {

@@ -2,9 +2,9 @@ package app.termora
 
 import app.termora.Application.ohMyJson
 import app.termora.account.AccountManager
+import app.termora.db.Data
 import app.termora.db.DataType
 import app.termora.db.DatabaseManager
-import app.termora.db.OwnerType
 
 
 class HostManager private constructor() {
@@ -26,10 +26,14 @@ class HostManager private constructor() {
         if (host.deleted) {
             removeHost(host.id)
         } else {
-            val ownerType = runCatching { OwnerType.valueOf(host.ownerType) }.getOrNull() ?: OwnerType.User
             database.save(
-                host.ownerId, ownerType, host.id,
-                DataType.Host, ohMyJson.encodeToString(host)
+                Data(
+                    id = host.id,
+                    ownerId = host.ownerId,
+                    ownerType = host.ownerType,
+                    type = DataType.Host.name,
+                    data = ohMyJson.encodeToString(host),
+                )
             )
             hosts[host.id] = host
         }

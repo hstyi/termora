@@ -6,6 +6,7 @@ import app.termora.Disposable
 import app.termora.SwingUtils
 import app.termora.account.AccountManager
 import app.termora.actions.AnActionEvent
+import app.termora.db.Data
 import app.termora.db.DataType
 import app.termora.db.DatabaseManager
 import app.termora.db.OwnerType
@@ -100,9 +101,15 @@ class KeymapManager private constructor() : Disposable {
     fun addKeymap(keymap: Keymap) {
         keymaps.putFirst(keymap.name, keymap)
         val accountId = accountManager.getAccountId()
+
         database.save(
-            accountId, OwnerType.User, keymap.id,
-            DataType.Keymap, keymap.toJSON()
+            Data(
+                id = keymap.id,
+                ownerId = accountId,
+                ownerType = OwnerType.User.name,
+                type = DataType.KeywordHighlight.name,
+                data = keymap.toJSON(),
+            )
         )
     }
 

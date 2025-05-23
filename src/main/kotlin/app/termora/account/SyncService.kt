@@ -1,5 +1,7 @@
 package app.termora.account
 
+import app.termora.db.Data
+import app.termora.db.Data.Companion.toData
 import app.termora.db.DataEntity
 import app.termora.db.DatabaseManager
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -13,13 +15,13 @@ abstract class SyncService {
     protected val database get() = databaseManager.database
     protected val lock get() = databaseManager.lock
 
-    protected fun getData(id: String): DataRow? {
-        val list = mutableListOf<DataRow>()
+    protected fun getData(id: String): Data? {
+        val list = mutableListOf<Data>()
         lock.withLock {
             transaction(database) {
                 val rows = DataEntity.selectAll().where { (DataEntity.id.eq(id)) }.toList()
                 for (row in rows) {
-                    list.add(DataRow.fromResultRow(row) ?: continue)
+                    list.add(row.toData())
                 }
             }
         }
@@ -40,13 +42,13 @@ abstract class SyncService {
     }
 
 
-    protected fun getUnsyncedData(): List<DataRow> {
-        val list = mutableListOf<DataRow>()
+    protected fun getUnsyncedData(): List<Data> {
+        val list = mutableListOf<Data>()
         lock.withLock {
             transaction(database) {
                 val rows = DataEntity.selectAll().where { (DataEntity.synced eq false) }.toList()
                 for (row in rows) {
-                    list.add(DataRow.fromResultRow(row) ?: continue)
+                    list.add(row.toData())
                 }
             }
         }

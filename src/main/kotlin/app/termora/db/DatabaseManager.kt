@@ -10,7 +10,6 @@ import app.termora.terminal.CursorStyle
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.statements.StatementType
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -61,7 +60,7 @@ class DatabaseManager private constructor() : Disposable {
         if (isExists.not()) {
             transaction(database) {
                 // 创建数据库
-                SchemaUtils.create(Data, Settings)
+                SchemaUtils.create(DataEntity, SettingEntity)
                 @Suppress("SqlNoDataSourceInspection")
                 exec("PRAGMA db_version = 1", explicitStatementType = StatementType.UPDATE)
             }
@@ -97,10 +96,10 @@ class DatabaseManager private constructor() : Disposable {
         val list = mutableListOf<String>()
         lock.withLock {
             transaction(database) {
-                val rows = Data.selectAll().where { (Data.type eq type.name) }.toList()
+                val rows = DataEntity.selectAll().where { (DataEntity.type eq type.name) }.toList()
                 for (row in rows) {
                     try {
-                        list.add(row[Data.data])
+                        list.add(row[DataEntity.data])
                     } catch (e: Exception) {
                         if (log.isWarnEnabled) {
                             log.warn(e.message, e)
@@ -112,24 +111,28 @@ class DatabaseManager private constructor() : Disposable {
         return list
     }
 
-    fun save(ownerId: String, ownerType: OwnerType, id: String, type: DataType, data: String) {
+    fun save(data: Data) {
         lock.withLock {
             transaction(database) {
-                val exists = Data.selectAll()
-                    .where { (Data.id eq id) and (Data.type eq type.name) and (Data.ownerType eq ownerType.name) }
+                val exists = DataEntity.selectAll()
+                    .where { (DataEntity.id eq data.id) }
                     .any()
 
                 if (exists) {
-                    Data.update({ (Data.id eq id) }) {
-                        it[Data.data] = data
+                    DataEntity.update({ (DataEntity.id eq data.id) }) {
+                        it[DataEntity.data] = data.data
                     }
                 } else {
-                    Data.insert {
-                        it[Data.id] = id
-                        it[Data.ownerId] = ownerId
-                        it[Data.ownerType] = ownerType.name
-                        it[Data.type] = type.name
-                        it[Data.data] = data
+                    DataEntity.insert {
+                        it[DataEntity.id] = data.id
+                        it[DataEntity.ownerId] = data.ownerId
+                        it[DataEntity.ownerType] = data.ownerType
+                        it[DataEntity.type] = data.type
+                        it[DataEntity.data] = data.data
+                        it[DataEntity.synced] = data.synced
+                        it[DataEntity.deleted] = data.deleted
+                        it[DataEntity.iv] = data.iv
+                        it[DataEntity.version] = data.version
                     }
                 }
             }
@@ -137,7 +140,7 @@ class DatabaseManager private constructor() : Disposable {
 
         for (extension in ExtensionManager.getInstance().getExtensions(DatabaseManagerExtension::class.java)) {
             try {
-                extension.onDataChanged(id, type, data)
+                extension.onDataChanged(data)
             } catch (e: Exception) {
                 if (log.isErrorEnabled) {
                     log.error(e.message, e)
@@ -149,7 +152,7 @@ class DatabaseManager private constructor() : Disposable {
     fun delete(id: String) {
         lock.withLock {
             transaction(database) {
-                Data.deleteWhere { Data.id eq id }
+                DataEntity.deleteWhere { DataEntity.id eq id }
             }
         }
     }
@@ -158,8 +161,8 @@ class DatabaseManager private constructor() : Disposable {
         val map = mutableMapOf<String, String>()
         lock.withLock {
             transaction(database) {
-                for (row in Settings.selectAll().toList()) {
-                    map[row[Settings.name]] = row[Settings.value]
+                for (row in SettingEntity.selectAll().toList()) {
+                    map[row[SettingEntity.name]] = row[SettingEntity.value]
                 }
             }
         }
@@ -169,12 +172,12 @@ class DatabaseManager private constructor() : Disposable {
     fun setSetting(name: String, value: String) {
         lock.withLock {
             transaction(database) {
-                for (row in Settings.selectAll().where { Settings.name eq name }.toList()) {
-                    Settings.deleteWhere { Settings.id eq row[Settings.id] }
+                for (row in SettingEntity.selectAll().where { SettingEntity.name eq name }.toList()) {
+                    SettingEntity.deleteWhere { SettingEntity.id eq row[SettingEntity.id] }
                 }
-                Settings.insert {
-                    it[Settings.name] = name
-                    it[Settings.value] = value
+                SettingEntity.insert {
+                    it[SettingEntity.name] = name
+                    it[SettingEntity.value] = value
                 }
             }
             map[name] = value

@@ -11,5 +11,5 @@ interface DatabaseManagerExtension : Extension {
     /**
      * 数据变动
      */
-    fun onDataChanged(id: String, type: DataType, data: String) {}
+    fun onDataChanged(data: Data) {}
 }

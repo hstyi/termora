@@ -98,7 +98,7 @@ class PushService private constructor() : SyncService(), Disposable, Application
     }
 
 
-    private fun synchronize(data: DataRow) {
+    private fun synchronize(data: Data) {
         val key = data.data
         val request = Request.Builder().url("${accountManager.getServer()}/v1/data/push")
             .post(ohMyJson.encodeToString(data).toRequestBody("application/json".toMediaType()))

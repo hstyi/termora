@@ -7,7 +7,7 @@ import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.crypt.Algorithms
 
-object Settings : Table() {
+object SettingEntity : Table() {
     val id: Column<String> = char("id", length = 32).clientDefault { randomUUID() }
     val name: Column<String> = varchar("name", length = 128).index()
     val value: Column<String> = encryptedText(
@@ -25,4 +25,6 @@ object Settings : Table() {
     val extra3: Column<String> = text("extra3").clientDefault { StringUtils.EMPTY }
 
     override val primaryKey: PrimaryKey get() = PrimaryKey(id)
+    override val tableName: String
+        get() = "tb_setting"
 }

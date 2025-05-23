@@ -4,6 +4,7 @@ import app.termora.Application.ohMyJson
 import app.termora.ApplicationScope
 import app.termora.DeleteDataManager
 import app.termora.account.AccountManager
+import app.termora.db.Data
 import app.termora.db.DataType
 import app.termora.db.DatabaseManager
 import app.termora.db.OwnerType
@@ -28,9 +29,15 @@ class KeyManager private constructor() {
         keyPairs.add(keyPair)
 
         val accountId = AccountManager.getInstance().getAccountId()
+
         database.save(
-            accountId, OwnerType.User, keyPair.id,
-            DataType.KeyPair, ohMyJson.encodeToString(keyPair)
+            Data(
+                id = keyPair.id,
+                ownerId = accountId,
+                ownerType = OwnerType.User.name,
+                type = DataType.KeyPair.name,
+                data = ohMyJson.encodeToString(keyPair),
+            )
         )
     }
 

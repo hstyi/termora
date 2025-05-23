@@ -5,6 +5,7 @@ import app.termora.ApplicationScope
 import app.termora.DeleteDataManager
 import app.termora.account.AccountManager
 import app.termora.assertEventDispatchThread
+import app.termora.db.Data
 import app.termora.db.DataType
 import app.termora.db.DatabaseManager
 import app.termora.db.OwnerType
@@ -29,10 +30,17 @@ class SnippetManager private constructor() {
             removeSnippet(snippet.id)
         } else {
             val accountId = AccountManager.getInstance().getAccountId()
+        
             database.save(
-                accountId, OwnerType.User, snippet.id,
-                DataType.Snippet, ohMyJson.encodeToString(snippet)
+                Data(
+                    id = snippet.id,
+                    ownerId = accountId,
+                    ownerType = OwnerType.User.name,
+                    type = DataType.Snippet.name,
+                    data = ohMyJson.encodeToString(snippet),
+                )
             )
+
             snippets[snippet.id] = snippet
         }
     }
