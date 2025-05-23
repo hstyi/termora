@@ -1,7 +1,6 @@
 package app.termora
 
 import app.termora.Application.ohMyJson
-import app.termora.account.AccountManager
 import app.termora.db.Data
 import app.termora.db.DataType
 import app.termora.db.DatabaseManager
@@ -15,7 +14,6 @@ class HostManager private constructor() {
     }
 
     private val database get() = DatabaseManager.getInstance()
-    private val accountManager get() = AccountManager.getInstance()
     private var hosts = mutableMapOf<String, Host>()
 
     /**
@@ -23,20 +21,16 @@ class HostManager private constructor() {
      */
     fun addHost(host: Host) {
         assertEventDispatchThread()
-        if (host.deleted) {
-            removeHost(host.id)
-        } else {
-            database.save(
-                Data(
-                    id = host.id,
-                    ownerId = host.ownerId,
-                    ownerType = host.ownerType,
-                    type = DataType.Host.name,
-                    data = ohMyJson.encodeToString(host),
-                )
+        database.save(
+            Data(
+                id = host.id,
+                ownerId = host.ownerId,
+                ownerType = host.ownerType,
+                type = DataType.Host.name,
+                data = ohMyJson.encodeToString(host),
             )
-            hosts[host.id] = host
-        }
+        )
+        hosts[host.id] = host
     }
 
     fun removeHost(id: String) {
@@ -52,7 +46,7 @@ class HostManager private constructor() {
         if (hosts.isEmpty()) {
             database.data<Host>(DataType.Host).forEach { hosts[it.id] = it }
         }
-        return hosts.values.filter { !it.deleted }
+        return hosts.values
             .sortedWith(compareBy<Host> { if (it.isFolder) 0 else 1 }.thenBy { it.sort })
     }
 

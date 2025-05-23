@@ -10,6 +10,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -17,6 +18,7 @@ import kotlinx.serialization.json.long
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.apache.commons.codec.binary.Base64
 import org.slf4j.LoggerFactory
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
@@ -85,7 +87,8 @@ class PushService private constructor() : SyncService(), Disposable, Application
         if (isFreePlan) return
 
         // 同步
-        for (data in getUnsyncedData()) {
+        val list = getUnsyncedData()
+        for (data in list) {
             try {
                 synchronize(data)
             } catch (e: Exception) {
@@ -99,9 +102,43 @@ class PushService private constructor() : SyncService(), Disposable, Application
 
 
     private fun synchronize(data: Data) {
-        val key = data.data
+        if (data.deleted) {
+            delete(data)
+        } else {
+            push(data)
+        }
+    }
+
+    private fun delete(data: Data) {
+        val request = Request.Builder().url("${accountManager.getServer()}/v1/data/${data.id}")
+            .delete()
+            .build()
+        AccountHttp.execute(request = request)
+        // 修改为已经同步
+        updateData(data.id, synced = true)
+
+        if (log.isInfoEnabled) {
+            log.info("{} has been deleted from the cloud", data.id)
+        }
+    }
+
+    private fun push(data: Data) {
+        val iv = PBKDF2.hash(data.id.toByteArray(), data.id.toCharArray(), 1, 96)
+        val requestData = PushDataRequest(
+            objectId = data.id,
+            ownerId = data.ownerId,
+            ownerType = data.ownerType,
+            version = data.version,
+            type = data.type,
+            data = Base64.encodeBase64String(
+                AES.GCM.encrypt(
+                    accountManager.getSecretKey(), iv,
+                    data.data.toByteArray()
+                )
+            )
+        )
         val request = Request.Builder().url("${accountManager.getServer()}/v1/data/push")
-            .post(ohMyJson.encodeToString(data).toRequestBody("application/json".toMediaType()))
+            .post(ohMyJson.encodeToString(requestData).toRequestBody("application/json".toMediaType()))
             .build()
         val response = AccountHttp.client.newCall(request).execute()
 
@@ -137,10 +174,12 @@ class PushService private constructor() : SyncService(), Disposable, Application
             throw ResponseException(response.code, response)
         }
 
+        // 修改为已经同步
+        updateData(data.id, synced = true, version = data.version)
+
         if (log.isInfoEnabled) {
             log.info("Data.id {} pushed into cloud", data.id)
         }
-
 
     }
 
@@ -149,8 +188,18 @@ class PushService private constructor() : SyncService(), Disposable, Application
         run()
     }
 
-    override fun onDataChanged(data: Data) {
+    override fun onDataChanged(id: String, type: String) {
         channel.trySend(Unit).isSuccess
     }
 
+
+    @Serializable
+    private data class PushDataRequest(
+        val objectId: String,
+        val ownerId: String,
+        val ownerType: String,
+        val version: Long,
+        val type: String,
+        val data: String
+    )
 }

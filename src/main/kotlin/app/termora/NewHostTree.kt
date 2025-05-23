@@ -1,6 +1,7 @@
 package app.termora
 
 import app.termora.Application.ohMyJson
+import app.termora.account.AccountManager
 import app.termora.actions.OpenHostAction
 import app.termora.db.DatabaseManager
 import app.termora.plugin.internal.rdp.RDPProtocolProvider
@@ -58,6 +59,8 @@ class NewHostTree : SimpleTree() {
         get() = properties.getString("HostTree.showMoreInfo", "false").toBoolean()
         set(value) = properties.putString("HostTree.showMoreInfo", value.toString())
     private var isPopupMenu = false
+    private val accountManager get() = AccountManager.getInstance()
+    private val ownerId get() = accountManager.getAccountId()
     override val model = NewHostTreeModel()
 
     /**
@@ -243,6 +246,8 @@ class NewHostTree : SimpleTree() {
             val host = Host(
                 id = randomUUID(),
                 protocol = "Folder",
+                ownerId = lastNode.host.ownerId,
+                ownerType = lastNode.host.ownerType,
                 name = I18n.getString("termora.welcome.contextmenu.new.folder.name"),
                 sort = System.currentTimeMillis(),
                 parentId = lastHost.id
@@ -265,16 +270,11 @@ class NewHostTree : SimpleTree() {
                     ) == JOptionPane.YES_OPTION
                 ) {
                     for (c in nodes) {
-                        hostManager.addHost(c.host.copy(deleted = true, updateDate = System.currentTimeMillis()))
+                        hostManager.removeHost(c.host.id)
                         model.removeNodeFromParent(c)
                         // 将所有子孙也删除
                         for (child in c.getAllChildren()) {
-                            hostManager.addHost(
-                                child.host.copy(
-                                    deleted = true,
-                                    updateDate = System.currentTimeMillis()
-                                )
-                            )
+                            hostManager.removeHost(child.host.id)
                         }
                     }
                 }
@@ -304,7 +304,11 @@ class NewHostTree : SimpleTree() {
                 val dialog = NewHostDialogV2(owner)
                 dialog.setLocationRelativeTo(owner)
                 dialog.isVisible = true
-                val host = (dialog.host ?: return).copy(parentId = lastHost.id)
+                val host = (dialog.host ?: return).copy(
+                    parentId = lastHost.id,
+                    ownerId = lastNode.host.ownerId,
+                    ownerType = lastNode.host.ownerType,
+                )
                 hostManager.addHost(host)
                 val newNode = HostTreeNode(host)
                 model.insertNodeInto(newNode, lastNode, lastNode.childCount)
@@ -357,7 +361,7 @@ class NewHostTree : SimpleTree() {
 
     override fun onRenamed(node: SimpleTreeNode<*>, text: String) {
         val lastNode = node as? HostTreeNode ?: return
-        lastNode.host = lastNode.host.copy(name = text, updateDate = System.currentTimeMillis())
+        lastNode.host = lastNode.host.copy(name = text)
         model.nodeStructureChanged(lastNode)
         hostManager.addHost(lastNode.host)
     }
@@ -365,7 +369,7 @@ class NewHostTree : SimpleTree() {
     override fun rebase(node: SimpleTreeNode<*>, parent: SimpleTreeNode<*>) {
         val nNode = node as? HostTreeNode ?: return
         val nParent = parent as? HostTreeNode ?: return
-        nNode.data = nNode.data.copy(parentId = nParent.id, updateDate = System.currentTimeMillis())
+        nNode.data = nNode.data.copy(parentId = nParent.id)
         hostManager.addHost(nNode.host)
     }
 
@@ -386,8 +390,6 @@ class NewHostTree : SimpleTree() {
             id = idGenerator.invoke(),
             name = name,
             parentId = parentId,
-            updateDate = System.currentTimeMillis(),
-            createDate = System.currentTimeMillis(),
             sort = now
         )
         val newNode = HostTreeNode(newHost)
@@ -582,7 +584,7 @@ class NewHostTree : SimpleTree() {
         if (nodes.isEmpty()) return
 
         for (node in nodes) {
-            node.host = node.host.copy(parentId = folder.host.id, updateDate = System.currentTimeMillis())
+            node.host = node.host.copy(parentId = folder.host.id)
             if (folder.getIndex(node) != -1) {
                 continue
             }

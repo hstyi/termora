@@ -59,7 +59,6 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
         // 如果配置了跳板机或者代理，那么通过 SSH 的端口转发到本地
         if (useJumpHosts) {
             host = host.copy(
-                updateDate = System.currentTimeMillis(),
                 tunnelings = listOf(
                     Tunneling(
                         type = TunnelingType.Local,
@@ -79,7 +78,6 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
                 host = host.copy(
                     host = address.hostName,
                     port = address.port,
-                    updateDate = System.currentTimeMillis(),
                 )
             }
         }

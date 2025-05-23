@@ -373,7 +373,7 @@ class TerminalTabbed(
             }
 
             host = host.copy(
-                protocol = SFTPPtyProtocolProvider.PROTOCOL, updateDate = System.currentTimeMillis(),
+                protocol = SFTPPtyProtocolProvider.PROTOCOL,
                 options = host.options.copy(env = envs.toPropertiesString())
             )
         }

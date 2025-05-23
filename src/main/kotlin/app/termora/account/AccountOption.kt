@@ -285,7 +285,7 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
                     url.append("termora://login-success?")
                     url.append("refreshToken=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ0ZXJtb3JhLWJhY2tlbmQiLCJleHAiOjE3NTA1NzcxMjIsInN1YiI6IlJlZnJlc2hUb2tlbiIsImVtYWlsIjoiODg4OEBxcS5jb20iLCJpZCI6IjMyNzRhM2JiLTY4YWYtNDE3OC04NzQzLWI1YjQ0Mjg5ZGQ3MCIsImRpZ2VzdCI6Ijc1YTAxMDdlIn0.UXSW0-DaQopgxRwQxI5cl2bt572hIknqvRWFQct2Yvw_Of8JiTJxkZbWdEznoqTESLVMPpjCpW5YBoclMLLutQ")
                         .append("&")
-                    url.append("accessToken=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ0ZXJtb3JhLWJhY2tlbmQiLCJleHAiOjE3NDc5MDk1NDUsInN1YiI6IkFjY2Vzc1Rva2VuIiwiZW1haWwiOiI4ODhAcXEuY29tIiwiaWQiOiIwMTk2ZjcxYTdjZWE3NTQwODlkMDk3YTBjMDFjNzIxZCJ9.0CQxjldz_3jO2pzS1eqVa9jipsh7kwfza0xtNhGgMDnqrVRAJYq7qz1PNk1UA2XXDgLmYnVoSouPpcTa0olqEQ")
+                    url.append("accessToken=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ0ZXJtb3JhLWJhY2tlbmQiLCJleHAiOjE3NTA2Njc3MzEsInN1YiI6IkFjY2Vzc1Rva2VuIiwiZW1haWwiOiI4ODhAcXEuY29tIiwiaWQiOiIwMTk2ZmM0ODE4NmU3ZjAyYTQ4N2JhNDAyYTNkMmQ4YSJ9.lN7Thoi6kCcHl664ywSgAS6uYGDNTXESFRW42TOvSjwUAaxSIG2vO0XlMdMVXXna2yXJ00i0qgqYZwMYlz-o0g")
                         .append("&")
                     url.append("password=${password}").append("&")
                     url.append("ticket=${ticket}")
@@ -319,18 +319,17 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
 
             val id = json["id"]?.jsonPrimitive?.content
             val email = json["email"]?.jsonPrimitive?.content
-            val saltBase64 = json["salt"]?.jsonPrimitive?.content
             val publicKeyBase64 = json["publicKey"]?.jsonPrimitive?.content
             val privateKeyBase64 = json["privateKey"]?.jsonPrimitive?.content
             val secretKeyBase64 = json["secretKey"]?.jsonPrimitive?.content
             val encryptedTeams = json["teams"]?.jsonArray
             val subscriptions = json["subscriptions"]?.jsonArray
 
-            if (id == null || saltBase64 == null || email == null || publicKeyBase64 == null || privateKeyBase64 == null || secretKeyBase64 == null) {
+            if (id == null || email == null || publicKeyBase64 == null || privateKeyBase64 == null || secretKeyBase64 == null) {
                 throw IllegalStateException()
             }
 
-            val salt = Base64.decodeBase64(saltBase64)
+            val salt = PBKDF2.hash("termora".toByteArray(), email.toCharArray(), 450000, 128)
             val privateKeyEncoded = Base64.decodeBase64(privateKeyBase64)
             val secretKeyEncrypted = Base64.decodeBase64(secretKeyBase64)
             val publicKeyEncoded = Base64.decodeBase64(publicKeyBase64)

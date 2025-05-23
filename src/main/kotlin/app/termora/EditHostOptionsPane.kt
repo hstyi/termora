@@ -69,7 +69,6 @@ class EditHostOptionsPane(private val host: Host) : HostOptionsPane() {
             authentication = newHost.authentication,
             proxy = newHost.proxy,
             remark = newHost.remark,
-            updateDate = System.currentTimeMillis(),
             options = newHost.options,
             tunnelings = newHost.tunnelings,
         )

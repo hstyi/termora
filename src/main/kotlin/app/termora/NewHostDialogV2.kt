@@ -168,7 +168,6 @@ class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : Dialo
         val panel = card.panel
         if (panel.validateFields().not()) return
         var host = panel.getHost()
-        println(ohMyJson.encodeToString(host))
 
         if (editHost != null) host = host.copy(id = editHost.id)
         this.host = host

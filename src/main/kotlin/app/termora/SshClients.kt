@@ -198,7 +198,7 @@ object SshClients {
                 }
                 // 映射完毕之后修改Host和端口
                 jumpHosts[i + 1] =
-                    nextHost.copy(host = address.hostName, port = address.port, updateDate = System.currentTimeMillis())
+                    nextHost.copy(host = address.hostName, port = address.port)
             }
         }
 
@@ -425,7 +425,7 @@ object SshClients {
                 hostManager.addHost(
                     host.copy(
                         authentication = authentication,
-                        username = dialog.getUsername(), updateDate = System.currentTimeMillis(),
+                        username = dialog.getUsername(),
                     )
                 )
             }

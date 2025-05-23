@@ -1,6 +1,7 @@
 package app.termora
 
-import org.apache.commons.lang3.StringUtils
+import app.termora.account.AccountManager
+import app.termora.db.OwnerType
 import javax.swing.tree.MutableTreeNode
 import javax.swing.tree.TreeNode
 
@@ -8,16 +9,14 @@ import javax.swing.tree.TreeNode
 class NewHostTreeModel : SimpleTreeModel<Host>(
     HostTreeNode(
         Host(
-            id = "0",
             protocol = "Folder",
             name = I18n.getString("termora.welcome.my-hosts"),
-            host = StringUtils.EMPTY,
-            port = 0,
-            remark = StringUtils.EMPTY,
-            username = StringUtils.EMPTY
+            id = "0",
+            ownerType = OwnerType.User.name,
         )
     )
 ) {
+
     private val Host.isRoot get() = this.parentId == "0" || this.parentId.isBlank()
     private val hostManager get() = HostManager.getInstance()
 
@@ -25,9 +24,12 @@ class NewHostTreeModel : SimpleTreeModel<Host>(
         reload()
     }
 
-
     override fun getRoot(): HostTreeNode {
-        return super.getRoot() as HostTreeNode
+        val root = super.getRoot() as HostTreeNode
+        root.host = root.host.copy(
+            ownerId = AccountManager.getInstance().getAccountId(),
+        )
+        return root
     }
 
 
@@ -72,7 +74,7 @@ class NewHostTreeModel : SimpleTreeModel<Host>(
             for ((i, c) in parent.children().toList().filterIsInstance<HostTreeNode>().withIndex()) {
                 val sort = i.toLong()
                 if (c.host.sort == sort) continue
-                c.host = c.host.copy(sort = sort, updateDate = System.currentTimeMillis())
+                c.host = c.host.copy(sort = sort)
                 hostManager.addHost(c.host)
             }
         }

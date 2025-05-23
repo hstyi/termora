@@ -10,6 +10,7 @@ import app.termora.terminal.CursorStyle
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.statements.StatementType
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -92,11 +93,16 @@ class DatabaseManager private constructor() : Disposable {
         return list
     }
 
+    /**
+     * 不会返回已删除的数据
+     */
     fun rawData(type: DataType): List<String> {
         val list = mutableListOf<String>()
         lock.withLock {
             transaction(database) {
-                val rows = DataEntity.selectAll().where { (DataEntity.type eq type.name) }.toList()
+                val rows = DataEntity.selectAll()
+                    .where { (DataEntity.type eq type.name) and (DataEntity.deleted.eq(false)) }
+                    .toList()
                 for (row in rows) {
                     try {
                         list.add(row[DataEntity.data])
@@ -131,7 +137,6 @@ class DatabaseManager private constructor() : Disposable {
                         it[DataEntity.data] = data.data
                         it[DataEntity.synced] = data.synced
                         it[DataEntity.deleted] = data.deleted
-                        it[DataEntity.iv] = data.iv
                         it[DataEntity.version] = data.version
                     }
                 }
@@ -140,7 +145,7 @@ class DatabaseManager private constructor() : Disposable {
 
         for (extension in ExtensionManager.getInstance().getExtensions(DatabaseManagerExtension::class.java)) {
             try {
-                extension.onDataChanged(data)
+                extension.onDataChanged(data.id, data.type)
             } catch (e: Exception) {
                 if (log.isErrorEnabled) {
                     log.error(e.message, e)
@@ -152,7 +157,20 @@ class DatabaseManager private constructor() : Disposable {
     fun delete(id: String) {
         lock.withLock {
             transaction(database) {
-                DataEntity.deleteWhere { DataEntity.id eq id }
+                DataEntity.update({ DataEntity.id eq id }) {
+                    it[DataEntity.deleted] = true
+                    it[DataEntity.synced] = false
+                }
+            }
+        }
+
+        for (extension in ExtensionManager.getInstance().getExtensions(DatabaseManagerExtension::class.java)) {
+            try {
+                extension.onDataChanged(id, StringUtils.EMPTY)
+            } catch (e: Exception) {
+                if (log.isErrorEnabled) {
+                    log.error(e.message, e)
+                }
             }
         }
     }

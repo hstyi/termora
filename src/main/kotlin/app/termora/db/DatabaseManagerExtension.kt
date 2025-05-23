@@ -10,6 +10,8 @@ interface DatabaseManagerExtension : Extension {
 
     /**
      * 数据变动
+     *
+     * @param type 为空时表示删除
      */
-    fun onDataChanged(data: Data) {}
+    fun onDataChanged(id: String, type: String) {}
 }

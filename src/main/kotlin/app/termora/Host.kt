@@ -300,24 +300,7 @@ data class Host(
      */
     val ownerType: String = StringUtils.EMPTY,
 
-    /**
-     * 创建者
-     */
-    val creatorId: String = "0",
-    /**
-     * 创建时间
-     */
-    val createDate: Long = System.currentTimeMillis(),
-    /**
-     * 更新时间
-     */
-    val updateDate: Long = System.currentTimeMillis(),
-
-    /**
-     * 是否已经删除
-     */
-    val deleted: Boolean = false
-) {
+    ) {
 
     val isFolder get() = StringUtils.equalsIgnoreCase(protocol, "Folder")
 

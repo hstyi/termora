@@ -26,12 +26,7 @@ class HostTreeNode(host: Host) : SimpleTreeNode<Host>(host) {
      */
     override var data: Host
         get() {
-            val cacheHost = hostManager.getHost((userObject as Host).id)
-            val myHost = userObject as Host
-            if (cacheHost == null) {
-                return myHost
-            }
-            return if (cacheHost.updateDate > myHost.updateDate) cacheHost else myHost
+            return userObject as Host
         }
         set(value) = setUserObject(value)
 

@@ -153,7 +153,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
         if (row.version > version) {
             // 如果没有同步标识，那么修改为代同步
             if (row.synced.not()) {
-                updateData(id, id, false, row.version)
+                updateData(id, false, row.version)
             }
             return
         }

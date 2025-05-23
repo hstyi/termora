@@ -29,12 +29,11 @@ abstract class SyncService {
     }
 
 
-    protected fun updateData(id: String, newId: String = id, synced: Boolean, version: Long) {
+    protected fun updateData(id: String, synced: Boolean, version: Long? = null) {
         lock.withLock {
             transaction(database) {
                 DataEntity.update({ DataEntity.id.eq(id) }) {
-                    it[DataEntity.id] = newId
-                    it[DataEntity.version] = version
+                    if (version != null) it[DataEntity.version] = version
                     it[DataEntity.synced] = synced
                 }
             }

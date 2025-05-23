@@ -51,11 +51,6 @@ object DataEntity : Table() {
     )
 
     /**
-     * ID是可能会变得，但是 iv 绝对不能变，因为它涉及到加密。只有与云端同步时才会用到这个字段
-     */
-    val iv: Column<String> = varchar("iv", 32)
-
-    /**
      * 备用字段1-5
      */
     val extra1: Column<String> = text("extra1").clientDefault { StringUtils.EMPTY }
