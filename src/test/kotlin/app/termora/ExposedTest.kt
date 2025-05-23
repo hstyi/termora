@@ -1,6 +1,6 @@
 package app.termora
 
-import app.termora.db.Data
+import app.termora.db.DataEntity
 import app.termora.db.DataType
 import app.termora.db.OwnerType
 import app.termora.db.Settings
@@ -19,14 +19,14 @@ class ExposedTest {
         val database = Database.connect("jdbc:h2:mem:test", driver = "org.h2.Driver", user = "sa")
 
         transaction(database) {
-            SchemaUtils.create(Data, Settings)
+            SchemaUtils.create(DataEntity, Settings)
 
-            println(Data.insert {
+            println(DataEntity.insert {
                 it[ownerId] = "Test"
                 it[ownerType] = OwnerType.User.name
                 it[type] = DataType.KeywordHighlight.name
                 it[data] = "hello 中文".repeat(10000)
-            } get Data.id)
+            } get DataEntity.id)
 
             println(Settings.insert {
                 it[name] = "Test"

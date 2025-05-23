@@ -10,8 +10,9 @@ internal class AccountPlugin : InternalPlugin() {
     init {
         support.addExtension(SettingsOptionExtension::class.java) { AccountSettingsOptionExtension.instance }
         support.addExtension(ApplicationRunnerExtension::class.java) { AccountManager.AccountApplicationRunnerExtension.instance }
-        support.addExtension(ApplicationRunnerExtension::class.java) { SyncService.instance }
-        support.addExtension(DatabaseManagerExtension::class.java) { SyncService.instance }
+        support.addExtension(ApplicationRunnerExtension::class.java) { PushService.instance }
+        support.addExtension(ApplicationRunnerExtension::class.java) { PullService.instance }
+        support.addExtension(DatabaseManagerExtension::class.java) { PushService.instance }
     }
 
     override fun getName(): String {

@@ -4,7 +4,7 @@ import org.apache.commons.lang3.StringUtils
 import java.security.PrivateKey
 import java.security.PublicKey
 
-class Account(
+data class Account(
     /**
      * 账户唯一 ID
      */
@@ -64,4 +64,42 @@ class Account(
     val isLocally
         get() = id == "0" || StringUtils.equalsIgnoreCase(email, "locally") ||
                 StringUtils.equalsIgnoreCase(server, "locally")
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Account
+
+        if (lastSynchronizationOn != other.lastSynchronizationOn) return false
+        if (id != other.id) return false
+        if (server != other.server) return false
+        if (email != other.email) return false
+        if (teams != other.teams) return false
+        if (subscriptions != other.subscriptions) return false
+        if (accessToken != other.accessToken) return false
+        if (refreshToken != other.refreshToken) return false
+        if (!secretKey.contentEquals(other.secretKey)) return false
+        if (publicKey != other.publicKey) return false
+        if (privateKey != other.privateKey) return false
+        if (isLocally != other.isLocally) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = lastSynchronizationOn.hashCode()
+        result = 31 * result + id.hashCode()
+        result = 31 * result + server.hashCode()
+        result = 31 * result + email.hashCode()
+        result = 31 * result + teams.hashCode()
+        result = 31 * result + subscriptions.hashCode()
+        result = 31 * result + accessToken.hashCode()
+        result = 31 * result + refreshToken.hashCode()
+        result = 31 * result + secretKey.contentHashCode()
+        result = 31 * result + publicKey.hashCode()
+        result = 31 * result + privateKey.hashCode()
+        result = 31 * result + isLocally.hashCode()
+        return result
+    }
 }

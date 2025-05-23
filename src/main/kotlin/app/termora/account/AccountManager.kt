@@ -40,6 +40,7 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     fun getRefreshToken() = account.refreshToken
 
     fun isFreePlan(): Boolean {
+        if (true) return false
         val subscription = getSubscription()
         return isLocally() || subscription.plan == SubscriptionPlan.Free
     }
@@ -97,25 +98,8 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
             throw ResponseException(response.code, "token is empty", response)
         }
 
-        // 登录成功
-        account = Account(
-            id = account.id,
-            server = account.server,
-            email = account.email,
-            teams = account.teams,
-            subscriptions = account.subscriptions,
-            lastSynchronizationOn = account.lastSynchronizationOn,
-            accessToken = accessToken,
-            refreshToken = refreshToken,
-            secretKey = account.secretKey,
-            publicKey = account.publicKey,
-            privateKey = account.privateKey
-        )
-
-        val accountProperties = AccountProperties.getInstance()
-        accountProperties.accessToken = accessToken
-        accountProperties.refreshToken = refreshToken
-
+        // 设置用户信息
+        login(account.copy(accessToken = accessToken, refreshToken = refreshToken))
 
     }
 
@@ -123,7 +107,6 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
      * 设置账户信息
      */
     internal fun login(account: Account) {
-        assertEventDispatchThread()
 
         this.account = account
 
@@ -147,8 +130,11 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
             accountProperties.privateKey = StringUtils.EMPTY
         }
 
-        for (extension in ExtensionManager.getInstance().getExtensions(AccountExtension::class.java)) {
-            extension.onAccountChanged()
+        // 通知变化
+        SwingUtilities.invokeLater {
+            for (extension in ExtensionManager.getInstance().getExtensions(AccountExtension::class.java)) {
+                extension.onAccountChanged()
+            }
         }
     }
 
@@ -156,7 +142,7 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
         if (account.isLocally) return
 
         // 登入本地用户
-        SwingUtilities.invokeLater { login(locally()) }
+        login(locally())
 
     }
 
