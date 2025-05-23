@@ -374,7 +374,6 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
                 teams = teams,
                 subscriptions = if (subscriptions == null) emptyList()
                 else ohMyJson.decodeFromJsonElement<List<Subscription>>(subscriptions),
-                lastSynchronizationOn = accountManager.getLastSynchronizationOn(),
                 accessToken = accessToken,
                 refreshToken = refreshToken,
                 secretKey = secretKey,

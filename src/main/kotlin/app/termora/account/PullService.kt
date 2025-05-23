@@ -1,21 +1,25 @@
 package app.termora.account
 
-import app.termora.*
 import app.termora.Application.ohMyJson
-import app.termora.plugin.internal.extension.DynamicExtensionHandler
+import app.termora.ApplicationRunnerExtension
+import app.termora.Disposable
+import app.termora.ResponseException
+import app.termora.swingCoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
 import okhttp3.Request
+import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
-import java.awt.event.WindowAdapter
-import java.awt.event.WindowEvent
+import kotlin.random.Random
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 
 /**
@@ -36,40 +40,6 @@ class PullService private constructor() : SyncService(), Disposable, Application
     private val accountManager get() = AccountManager.getInstance()
     private val accountProperties get() = AccountProperties.getInstance()
 
-    private fun run() {
-
-        // 同步
-        swingCoroutineScope.launch(Dispatchers.IO) { while (isActive) schedule() }
-
-        // 在 Frame 显示后再开始同步
-        DynamicExtensionHandler.getInstance().register(FrameExtension::class.java, object : FrameExtension {
-            override fun customize(frame: TermoraFrame) {
-                DynamicExtensionHandler.getInstance().unregister(this)
-                frame.addWindowListener(object : WindowAdapter() {
-                    override fun windowOpened(e: WindowEvent) {
-                        frame.removeWindowListener(this)
-                        // 定时同步
-                        swingCoroutineScope.launch(Dispatchers.IO) {
-                            while (isActive) {
-                                try {
-                                    // 拉取变动的
-                                    pullChanges()
-                                } catch (e: Exception) {
-                                    if (log.isErrorEnabled) {
-                                        log.error(e.message, e)
-                                    }
-                                }
-                                // 每 1 分钟尝试同步一次，除非收到数据变动通知
-                                delay(1.minutes)
-                            }
-                        }
-                    }
-                })
-            }
-        })
-
-    }
-
     private suspend fun schedule() {
         channel.receive()
 
@@ -84,7 +54,48 @@ class PullService private constructor() : SyncService(), Disposable, Application
     }
 
     private fun pullChanges() {
-        val lastSynchronizationOn = accountProperties.lastSynchronizationOn
+        try {
+            doPullChanges()
+        } catch (e: Exception) {
+            if (log.isErrorEnabled) {
+                log.error(e.message, e)
+            }
+        }
+    }
+
+    private fun doPullChanges() {
+        val since = accountProperties.nextSynchronizationSince
+        var after = StringUtils.EMPTY
+        var nextSince = since
+        val limit = 2
+
+        while (true) {
+            val request = Request.Builder()
+                .get()
+                .url("${accountManager.getServer()}/v1/data/changes?since=${since}&after=${after}&limit=${limit}")
+                .build()
+            val text = AccountHttp.execute(request = request)
+            val response = ohMyJson.decodeFromString<DataChangesResponse>(text)
+            if (response.changes.isEmpty()) break
+
+            for (e in response.changes) {
+                val data = getData(e.objectId)
+                // 如果本地不存在，并且云端已经删除，那么不需要处理
+                if (data == null && e.deleted) {
+                    continue
+                }
+                if (data == null || data.version != e.version) {
+                    trigger(e.objectId)
+                }
+            }
+
+            after = response.after
+            nextSince = response.since
+            if (response.changes.size < limit) break
+        }
+
+        accountProperties.nextSynchronizationSince = nextSince
+        accountProperties.lastSynchronizationOn = System.currentTimeMillis()
 
     }
 
@@ -149,6 +160,11 @@ class PullService private constructor() : SyncService(), Disposable, Application
             return
         }
 
+        // 如果本地存在，云端已经删除，那么本地删除
+        if (deleted) {
+            databaseManager.delete(id)
+        }
+
         // 如果本地版本大于云端版本，那么忽略，因为需要同步
         if (row.version > version) {
             // 如果没有同步标识，那么修改为代同步
@@ -172,9 +188,36 @@ class PullService private constructor() : SyncService(), Disposable, Application
 
 
     override fun ready() {
-        // 开始工作
-        run()
+        // 同步
+        swingCoroutineScope.launch(Dispatchers.IO) { while (isActive) schedule() }
+
+        // 定时同步
+        swingCoroutineScope.launch(Dispatchers.IO) {
+            // 等一会儿再同步
+            delay(Random.nextInt(500, 1500).milliseconds)
+            while (isActive) {
+                // 拉取变动的
+                pullChanges()
+                // 每 1 分钟尝试同步一次，除非收到数据变动通知
+                delay(1.minutes)
+            }
+        }
     }
+
+
+    @Serializable
+    private data class DataChangesResponse(
+        val after: String,
+        val since: Long,
+        val changes: List<DataChanges>
+    )
+
+    @Serializable
+    private data class DataChanges(
+        val objectId: String,
+        val version: Long,
+        val deleted: Boolean,
+    )
 
 
 }

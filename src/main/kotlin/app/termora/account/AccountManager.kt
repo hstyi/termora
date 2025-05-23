@@ -35,7 +35,7 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     fun getPublicKey() = account.publicKey
     fun getPrivateKey() = account.privateKey
     fun isLocally() = account.isLocally
-    fun getLastSynchronizationOn() = account.lastSynchronizationOn
+    fun getLastSynchronizationOn() = AccountProperties.getInstance().lastSynchronizationOn
     fun getAccessToken() = account.accessToken
     fun getRefreshToken() = account.refreshToken
 
@@ -117,7 +117,6 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
         accountProperties.email = account.email
         accountProperties.teams = ohMyJson.encodeToString(account.teams)
         accountProperties.subscriptions = ohMyJson.encodeToString(account.subscriptions)
-        accountProperties.lastSynchronizationOn = account.lastSynchronizationOn
         accountProperties.accessToken = account.accessToken
         accountProperties.refreshToken = account.refreshToken
         accountProperties.secretKey = ohMyJson.encodeToString(account.secretKey)
@@ -153,7 +152,6 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
             email = "locally",
             teams = emptyList(),
             subscriptions = listOf(),
-            lastSynchronizationOn = 0,
             secretKey = byteArrayOf(),
             accessToken = StringUtils.EMPTY,
             refreshToken = StringUtils.EMPTY,
@@ -216,12 +214,15 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
                 refreshToken = accountProperties.refreshToken,
                 teams = ohMyJson.decodeFromString(accountProperties.teams),
                 subscriptions = ohMyJson.decodeFromString(accountProperties.subscriptions),
-                lastSynchronizationOn = accountProperties.lastSynchronizationOn,
                 secretKey = ohMyJson.decodeFromString(accountProperties.secretKey),
                 publicKey = RSA.generatePublic(Base64.decodeBase64(accountProperties.publicKey)),
                 privateKey = RSA.generatePrivate(Base64.decodeBase64(accountProperties.privateKey))
             )
 
+        }
+
+        override fun ordered(): Long {
+            return 0
         }
     }
 

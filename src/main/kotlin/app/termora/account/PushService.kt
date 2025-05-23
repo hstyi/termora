@@ -4,7 +4,6 @@ import app.termora.*
 import app.termora.Application.ohMyJson
 import app.termora.db.Data
 import app.termora.db.DatabaseManagerExtension
-import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -20,9 +19,8 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.apache.commons.codec.binary.Base64
 import org.slf4j.LoggerFactory
-import java.awt.event.WindowAdapter
-import java.awt.event.WindowEvent
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * 同步服务
@@ -43,33 +41,6 @@ class PushService private constructor() : SyncService(), Disposable, Application
     private val accountManager get() = AccountManager.getInstance()
     private val isFreePlan get() = accountManager.isFreePlan()
 
-    private fun run() {
-
-        // 同步
-        swingCoroutineScope.launch(Dispatchers.IO) { while (isActive) schedule() }
-
-        // 在 Frame 显示后再开始同步
-        DynamicExtensionHandler.getInstance().register(FrameExtension::class.java, object : FrameExtension {
-            override fun customize(frame: TermoraFrame) {
-                DynamicExtensionHandler.getInstance().unregister(this)
-                frame.addWindowListener(object : WindowAdapter() {
-                    override fun windowOpened(e: WindowEvent) {
-                        frame.removeWindowListener(this)
-                        // 定时同步
-                        swingCoroutineScope.launch(Dispatchers.IO) {
-                            while (isActive) {
-                                // 发送同步
-                                channel.send(Unit)
-                                // 每 1 分钟尝试同步一次，除非收到数据变动通知
-                                delay(1.minutes)
-                            }
-                        }
-                    }
-                })
-            }
-        })
-
-    }
 
     private suspend fun schedule() {
         try {
@@ -113,7 +84,9 @@ class PushService private constructor() : SyncService(), Disposable, Application
         val request = Request.Builder().url("${accountManager.getServer()}/v1/data/${data.id}")
             .delete()
             .build()
+
         AccountHttp.execute(request = request)
+
         // 修改为已经同步
         updateData(data.id, synced = true)
 
@@ -184,8 +157,21 @@ class PushService private constructor() : SyncService(), Disposable, Application
     }
 
     override fun ready() {
-        // 开始工作
-        run()
+
+        // 同步
+        swingCoroutineScope.launch(Dispatchers.IO) { while (isActive) schedule() }
+
+        // 定时同步
+        swingCoroutineScope.launch(Dispatchers.IO) {
+            delay(10.seconds)
+            while (isActive) {
+                // 发送同步
+                channel.send(Unit)
+                // 每 1 分钟尝试同步一次，除非收到数据变动通知
+                delay(1.minutes)
+            }
+        }
+
     }
 
     override fun onDataChanged(id: String, type: String) {

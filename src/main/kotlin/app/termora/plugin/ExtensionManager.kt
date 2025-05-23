@@ -29,6 +29,6 @@ class ExtensionManager private constructor() {
 
         }
 
-        return extensions
+        return extensions.sortedBy { it.ordered() }
     }
 }

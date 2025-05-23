@@ -30,10 +30,6 @@ data class Account(
      */
     val subscriptions: List<Subscription>,
 
-    /**
-     * 最后同步时间
-     */
-    val lastSynchronizationOn: Long,
 
     /**
      * 访问 Token
@@ -71,7 +67,6 @@ data class Account(
 
         other as Account
 
-        if (lastSynchronizationOn != other.lastSynchronizationOn) return false
         if (id != other.id) return false
         if (server != other.server) return false
         if (email != other.email) return false
@@ -88,8 +83,7 @@ data class Account(
     }
 
     override fun hashCode(): Int {
-        var result = lastSynchronizationOn.hashCode()
-        result = 31 * result + id.hashCode()
+        var result = id.hashCode()
         result = 31 * result + server.hashCode()
         result = 31 * result + email.hashCode()
         result = 31 * result + teams.hashCode()

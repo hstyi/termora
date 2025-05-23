@@ -43,9 +43,14 @@ class AccountProperties private constructor(databaseManager: DatabaseManager) :
     var subscriptions by StringPropertyDelegate(StringUtils.EMPTY)
 
     /**
-     * 最后同步时间
+     * 最后同步时间（本地时间）
      */
     var lastSynchronizationOn by LongPropertyDelegate(0)
+
+    /**
+     * 下次同步时间的开始时间
+     */
+    var nextSynchronizationSince by LongPropertyDelegate(0)
 
     /**
      * 用户密钥，array string
