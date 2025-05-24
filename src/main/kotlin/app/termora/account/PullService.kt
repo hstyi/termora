@@ -59,7 +59,9 @@ class PullService private constructor() : SyncService(), Disposable, Application
 
     private fun pullChanges() {
         try {
-            doPullChanges()
+            if (isFreePlan.not()) {
+                doPullChanges()
+            }
         } catch (e: Exception) {
             if (log.isErrorEnabled) {
                 log.error(e.message, e)
@@ -68,6 +70,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
     }
 
     private fun doPullChanges() {
+
         val since = 0L
         var after = StringUtils.EMPTY
         var nextSince = since

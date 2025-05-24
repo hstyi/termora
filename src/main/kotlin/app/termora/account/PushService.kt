@@ -42,7 +42,6 @@ class PushService private constructor() : SyncService(), Disposable, Application
      * 多次通知只会生效一次 也就是最后一次
      */
     private val channel = Channel<Unit>(Channel.CONFLATED)
-    private val isFreePlan get() = accountManager.isFreePlan()
 
 
     private suspend fun schedule() {

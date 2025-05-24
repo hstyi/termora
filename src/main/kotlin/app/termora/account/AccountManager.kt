@@ -2,7 +2,6 @@ package app.termora.account
 
 import app.termora.*
 import app.termora.Application.ohMyJson
-import app.termora.Icons.server
 import app.termora.plugin.ExtensionManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -77,7 +76,7 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     internal fun refreshToken() {
         val body = ohMyJson.encodeToString(mapOf("refreshToken" to getRefreshToken()))
             .toRequestBody("application/json".toMediaType())
-        val request = Request.Builder().url("${server}/v1/token")
+        val request = Request.Builder().url("${getServer()}/v1/token")
             .header("Authorization", "Bearer ${getRefreshToken()}")
             .post(body)
             .build()

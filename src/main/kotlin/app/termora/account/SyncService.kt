@@ -23,6 +23,7 @@ abstract class SyncService {
     private val database get() = databaseManager.database
     private val databaseLock get() = databaseManager.lock
     protected val accountManager get() = AccountManager.getInstance()
+    protected val isFreePlan get() = accountManager.isFreePlan()
 
     /**
      * 同一时刻，要么拉取 要么推送
