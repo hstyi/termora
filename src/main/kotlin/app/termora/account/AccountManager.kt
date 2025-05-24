@@ -3,8 +3,6 @@ package app.termora.account
 import app.termora.*
 import app.termora.Application.ohMyJson
 import app.termora.plugin.ExtensionManager
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.MediaType.Companion.toMediaType
@@ -187,8 +185,7 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     }
 
     override fun ready() {
-        // 刷新 Token
-        swingCoroutineScope.launch(Dispatchers.IO) { refreshToken() }
+
     }
 
     class AccountApplicationRunnerExtension private constructor() : ApplicationRunnerExtension {

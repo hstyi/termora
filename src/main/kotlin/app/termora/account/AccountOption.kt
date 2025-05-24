@@ -8,11 +8,15 @@ import app.termora.actions.AnActionEvent
 import com.formdev.flatlaf.extras.components.FlatLabel
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
+import com.sun.net.httpserver.HttpExchange
+import com.sun.net.httpserver.HttpHandler
+import com.sun.net.httpserver.HttpServer
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
 import kotlinx.serialization.json.*
 import okhttp3.Request
 import org.apache.commons.codec.binary.Base64
+import org.apache.commons.codec.binary.Hex
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.time.DateFormatUtils
 import org.jdesktop.swingx.JXBusyLabel
@@ -23,13 +27,14 @@ import java.awt.CardLayout
 import java.awt.Dimension
 import java.awt.desktop.OpenURIEvent
 import java.awt.desktop.OpenURIHandler
+import java.net.InetSocketAddress
 import java.net.URI
 import java.net.URLDecoder
+import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.security.KeyPair
 import java.util.*
 import javax.swing.*
-import kotlin.time.Duration.Companion.seconds
 
 
 class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
@@ -74,7 +79,7 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
 
         val subscription = accountManager.getSubscription()
         val isFreePlan = accountManager.isFreePlan()
-
+        val isLocally = accountManager.isLocally()
         val validTo = if (isFreePlan) "-" else
             DateFormatUtils.format(Date(subscription.endDate), I18n.getString("termora.date-format"))
         val lastSynchronizationOn = if (isFreePlan) "-" else
@@ -84,8 +89,8 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
             )
 
         val planBox = Box.createHorizontalBox()
-        planBox.add(JLabel(subscription.plan.name))
-        if (isFreePlan && accountManager.isLocally().not()) {
+        planBox.add(JLabel(if (isLocally) "-" else subscription.plan.name))
+        if (isFreePlan && isLocally.not()) {
             planBox.add(Box.createHorizontalStrut(8))
             val upgrade = JXHyperlink(object : AnAction("${I18n.getString("termora.settings.account.upgrade")}...") {
                 override fun actionPerformed(evt: AnActionEvent) {
@@ -96,11 +101,18 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
             planBox.add(upgrade)
         }
 
+        var server = accountManager.getServer()
+        var email = accountManager.getEmail()
+        if (isLocally) {
+            server = I18n.getString("termora.settings.account.locally")
+            email = I18n.getString("termora.settings.account.locally")
+        }
+
         return FormBuilder.create().layout(layout).debug(false)
             .add("${I18n.getString("termora.settings.account.server")}:").xy(1, rows)
-            .add(accountManager.getServer()).xy(3, rows).apply { rows += step }
+            .add(server).xy(3, rows).apply { rows += step }
             .add("${I18n.getString("termora.settings.account")}:").xy(1, rows)
-            .add(accountManager.getEmail()).xy(3, rows).apply { rows += step }
+            .add(email).xy(3, rows).apply { rows += step }
             .add("${I18n.getString("termora.settings.account.subscription")}:").xy(1, rows)
             .add(planBox).xy(3, rows).apply { rows += step }
             .add("${I18n.getString("termora.settings.account.valid-to")}:").xy(1, rows)
@@ -212,7 +224,7 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
         private var ticket = StringUtils.EMPTY
         private var keypair: KeyPair? = null
         private var server: String? = null
-
+        private var httpServer: HttpServer? = null
 
         init {
 
@@ -260,12 +272,38 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
             busyLabel.isBusy = true
             loginLabel.text = "${I18n.getString("termora.settings.account.login-to")} $server ..."
 
-
             val ticket = randomUUID()
             val keypair = RSA.generateKeyPair(2048)
             // 用户填写的密码回调时会通过它加密
             val publicKey = Base64.encodeBase64URLSafeString(keypair.public.encoded)
-            val loginUrl = "${server}/v1/client/login?ticket=${ticket}&publicKey=${publicKey}"
+            var callback = StringUtils.EMPTY
+
+            // 测试环境 通过 HTTP 回调
+            if (Application.isUnknownVersion()) {
+                this.httpServer?.stop(0)
+                this.httpServer = null
+
+                val httpServer = HttpServer.create(InetSocketAddress(0), 0)
+                // 创建上下文（即路径）及其处理器
+                httpServer.createContext("/login-success", object : HttpHandler {
+                    override fun handle(exchange: HttpExchange) {
+                        val text = "OK".toByteArray()
+                        exchange.responseHeaders.add("Access-Control-Allow-Origin", "*")
+                        exchange.sendResponseHeaders(200, text.size.toLong())
+                        exchange.responseBody.write(text, 0, text.size)
+                        exchange.close()
+
+                        onCallback(server, exchange.requestURI, keypair)
+                    }
+                })
+                httpServer.start()
+
+                val port = httpServer.address.port
+                callback = URLEncoder.encode("http://127.0.0.1:${port}/login-success", Charsets.UTF_8)
+                this.httpServer = httpServer
+            }
+
+            val loginUrl = "${server}/v1/client/login?ticket=${ticket}&publicKey=${publicKey}&callback=${callback}"
 
             // 打开登录页面
             Application.browse(URI.create(loginUrl))
@@ -274,24 +312,6 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
             this.ticket = ticket
             this.server = server
 
-            // 测试环境
-            if (Application.isUnknownVersion()) {
-                coroutineScope.launch(Dispatchers.IO) {
-                    delay(3.seconds)
-                    val password = Base64.encodeBase64URLSafeString(
-                        RSA.encrypt(keypair.public, "888@qq.com".toByteArray())
-                    )
-                    val url = StringBuilder()
-                    url.append("termora://login-success?")
-                    url.append("refreshToken=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ0ZXJtb3JhLWJhY2tlbmQiLCJleHAiOjE3NTA1NzcxMjIsInN1YiI6IlJlZnJlc2hUb2tlbiIsImVtYWlsIjoiODg4OEBxcS5jb20iLCJpZCI6IjMyNzRhM2JiLTY4YWYtNDE3OC04NzQzLWI1YjQ0Mjg5ZGQ3MCIsImRpZ2VzdCI6Ijc1YTAxMDdlIn0.UXSW0-DaQopgxRwQxI5cl2bt572hIknqvRWFQct2Yvw_Of8JiTJxkZbWdEznoqTESLVMPpjCpW5YBoclMLLutQ")
-                        .append("&")
-                    url.append("accessToken=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ0ZXJtb3JhLWJhY2tlbmQiLCJleHAiOjE3NTA2Njc3MzEsInN1YiI6IkFjY2Vzc1Rva2VuIiwiZW1haWwiOiI4ODhAcXEuY29tIiwiaWQiOiIwMTk2ZmM0ODE4NmU3ZjAyYTQ4N2JhNDAyYTNkMmQ4YSJ9.lN7Thoi6kCcHl664ywSgAS6uYGDNTXESFRW42TOvSjwUAaxSIG2vO0XlMdMVXXna2yXJ00i0qgqYZwMYlz-o0g")
-                        .append("&")
-                    url.append("password=${password}").append("&")
-                    url.append("ticket=${ticket}")
-                    onCallback(server, URI.create(url.toString()), keypair)
-                }
-            }
 
         }
 
@@ -300,6 +320,8 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
             keypair = null
             server = null
             ticket = StringUtils.EMPTY
+            httpServer?.stop(0)
+            httpServer = null
 
             cardLayout.show(rootPanel, "UserInfo")
         }
@@ -383,10 +405,15 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
 
             // 登录成功
             SwingUtilities.invokeLater { accountManager.login(account) }
+
+            httpServer?.stop(0)
+            httpServer = null
         }
 
         override fun dispose() {
             busyLabel.isBusy = false
+            httpServer?.stop(0)
+            httpServer = null
             OpenURIHandlers.getInstance().unregister(this)
             coroutineScope.cancel()
         }
@@ -409,9 +436,7 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
                 val refreshToken = params["refreshToken"]
                 val accessToken = params["accessToken"]
                 if (password.isNullOrBlank() || ticket.isNullOrBlank() || refreshToken.isNullOrBlank() || accessToken.isNullOrBlank()) return
-
-                // 解密密码
-                val realPassword = String(RSA.decrypt(keypair.private, Base64.decodeBase64(password)))
+                val realPassword = String(RSA.decrypt(keypair.private, Hex.decodeHex(password)))
 
                 // 登录成功回调
                 coroutineScope.launch {
@@ -420,7 +445,10 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
                         loginSuccess(server, ticket, realPassword, refreshToken, accessToken)
 
                         // 没有错误那么就回跳
-                        withContext(Dispatchers.Swing) { onLoginSuccess() }
+                        withContext(Dispatchers.Swing) {
+                            busyLabel.isBusy = false
+                            onLoginSuccess()
+                        }
 
                     } catch (e: Exception) {
                         withContext(Dispatchers.Swing) {
