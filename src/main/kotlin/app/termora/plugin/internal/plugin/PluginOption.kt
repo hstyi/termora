@@ -1,6 +1,7 @@
 package app.termora.plugin.internal.plugin
 
 import app.termora.*
+import app.termora.account.Account
 import app.termora.account.AccountExtension
 import app.termora.account.AccountManager
 import app.termora.plugin.PluginDescriptor
@@ -220,7 +221,7 @@ class PluginOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable, Acc
         DynamicExtensionHandler.getInstance().unregister(this)
     }
 
-    override fun onAccountChanged() {
+    override fun onAccountChanged(oldAccount: Account, newAccount: Account) {
         val isFreePlan = AccountManager.getInstance().isFreePlan()
         for (button in installButtons) {
             button.icon = if (isFreePlan) Icons.locked else null

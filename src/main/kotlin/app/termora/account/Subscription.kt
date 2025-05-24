@@ -6,6 +6,6 @@ import kotlinx.serialization.Serializable
 data class Subscription(
     val id: String,
     val plan: SubscriptionPlan,
-    val startDate: Long,
-    val endDate: Long,
+    val startAt: Long,
+    val endAt: Long,
 )

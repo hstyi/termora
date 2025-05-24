@@ -1,6 +1,5 @@
 package app.termora.account
 
-import org.apache.commons.lang3.StringUtils
 import java.security.PrivateKey
 import java.security.PublicKey
 
@@ -57,10 +56,6 @@ data class Account(
     val privateKey: PrivateKey,
 ) {
 
-    val isLocally
-        get() = id == "0" || StringUtils.equalsIgnoreCase(email, "locally") ||
-                StringUtils.equalsIgnoreCase(server, "locally")
-
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -77,7 +72,6 @@ data class Account(
         if (!secretKey.contentEquals(other.secretKey)) return false
         if (publicKey != other.publicKey) return false
         if (privateKey != other.privateKey) return false
-        if (isLocally != other.isLocally) return false
 
         return true
     }
@@ -93,7 +87,6 @@ data class Account(
         result = 31 * result + secretKey.contentHashCode()
         result = 31 * result + publicKey.hashCode()
         result = 31 * result + privateKey.hashCode()
-        result = 31 * result + isLocally.hashCode()
         return result
     }
 }

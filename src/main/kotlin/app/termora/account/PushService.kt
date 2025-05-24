@@ -181,6 +181,10 @@ class PushService private constructor() : SyncService(), Disposable, Application
         channel.trySend(Unit).isSuccess
     }
 
+    fun trigger() {
+        channel.trySend(Unit).isSuccess
+    }
+
 
     @Serializable
     private data class PushDataRequest(

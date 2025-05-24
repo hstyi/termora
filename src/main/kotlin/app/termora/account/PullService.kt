@@ -3,11 +3,8 @@ package app.termora.account
 import app.termora.*
 import app.termora.Application.ohMyJson
 import app.termora.db.Data
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
@@ -19,7 +16,7 @@ import org.slf4j.LoggerFactory
 import kotlin.concurrent.withLock
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * 同步服务
@@ -39,6 +36,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
      * 多次通知只会生效一次 也就是最后一次
      */
     private val channel = Channel<String>(Channel.UNLIMITED)
+    private val pullChannel = Channel<Unit>(Channel.CONFLATED)
     private val accountProperties get() = AccountProperties.getInstance()
 
     private suspend fun schedule() {
@@ -71,7 +69,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
 
     private fun doPullChanges() {
 
-        val since = 0L
+        val since = accountProperties.nextSynchronizationSince
         var after = StringUtils.EMPTY
         var nextSince = since
         val limit = 100
@@ -250,6 +248,10 @@ class PullService private constructor() : SyncService(), Disposable, Application
         channel.trySend(id).isSuccess
     }
 
+    fun trigger() {
+        pullChannel.trySend(Unit).isSuccess
+    }
+
 
     override fun ready() {
         // 同步
@@ -259,17 +261,25 @@ class PullService private constructor() : SyncService(), Disposable, Application
         swingCoroutineScope.launch(Dispatchers.IO) {
             // 等一会儿再同步
             delay(Random.nextInt(500, 1500).milliseconds)
+
             while (isActive) {
+
                 // 拉取变动的
                 pullChanges()
-                // 每 1 分钟尝试同步一次，除非收到数据变动通知
-                delay(1.minutes)
+
+                // 30秒拉取一次变动
+                val result = withTimeoutOrNull(30.seconds) { pullChannel.receiveCatching() }
+                if (result != null && result.isFailure) {
+                    break
+                }
+
             }
         }
 
         Disposer.register(this, object : Disposable {
             override fun dispose() {
                 channel.close()
+                pullChannel.close()
             }
         })
     }

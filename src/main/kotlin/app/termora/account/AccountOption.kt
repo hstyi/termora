@@ -8,8 +8,6 @@ import app.termora.actions.AnActionEvent
 import com.formdev.flatlaf.extras.components.FlatLabel
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
-import com.sun.net.httpserver.HttpExchange
-import com.sun.net.httpserver.HttpHandler
 import com.sun.net.httpserver.HttpServer
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
@@ -44,6 +42,7 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
 
     private val owner get() = SwingUtilities.getWindowAncestor(this)
     private val accountManager get() = AccountManager.getInstance()
+    private val accountProperties get() = AccountProperties.getInstance()
     private val cardLayout = CardLayout()
     private val rootPanel = JPanel(cardLayout)
     private val loginPanel = LoginPanel()
@@ -80,26 +79,14 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
         val subscription = accountManager.getSubscription()
         val isFreePlan = accountManager.isFreePlan()
         val isLocally = accountManager.isLocally()
-        val validTo = if (isFreePlan) "-" else
-            DateFormatUtils.format(Date(subscription.endDate), I18n.getString("termora.date-format"))
+        val validTo = if (isFreePlan) "-" else if (subscription.endAt >= Long.MAX_VALUE)
+            I18n.getString("termora.settings.account.lifetime") else
+            DateFormatUtils.format(Date(subscription.endAt), I18n.getString("termora.date-format"))
         val lastSynchronizationOn = if (isFreePlan) "-" else
             DateFormatUtils.format(
                 Date(accountManager.getLastSynchronizationOn()),
                 I18n.getString("termora.date-format")
             )
-
-        val planBox = Box.createHorizontalBox()
-        planBox.add(JLabel(if (isLocally) "-" else subscription.plan.name))
-        if (isFreePlan && isLocally.not()) {
-            planBox.add(Box.createHorizontalStrut(8))
-            val upgrade = JXHyperlink(object : AnAction("${I18n.getString("termora.settings.account.upgrade")}...") {
-                override fun actionPerformed(evt: AnActionEvent) {
-
-                }
-            })
-            upgrade.isFocusable = false
-            planBox.add(upgrade)
-        }
 
         var server = accountManager.getServer()
         var email = accountManager.getEmail()
@@ -108,9 +95,40 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
             email = I18n.getString("termora.settings.account.locally")
         }
 
+        val planBox = Box.createHorizontalBox()
+        planBox.add(JLabel(if (isLocally) "-" else subscription.plan.name))
+        if (isFreePlan && isLocally.not()) {
+            planBox.add(Box.createHorizontalStrut(16))
+            val upgrade = JXHyperlink(object : AnAction(I18n.getString("termora.settings.account.upgrade")) {
+                override fun actionPerformed(evt: AnActionEvent) {
+
+                }
+            })
+            upgrade.isFocusable = false
+            planBox.add(upgrade)
+        }
+
+        val serverBox = Box.createHorizontalBox()
+        serverBox.add(JLabel(server))
+        if (isLocally.not()) {
+            serverBox.add(Box.createHorizontalStrut(8))
+            if (accountManager.isSigned().not()) {
+                val upgrade =
+                    JXHyperlink(object : AnAction(I18n.getString("termora.settings.account.verify"), Icons.error) {
+                        override fun actionPerformed(evt: AnActionEvent) {
+
+                        }
+                    })
+                upgrade.isFocusable = false
+                serverBox.add(upgrade)
+            } else {
+                serverBox.add(JLabel(Icons.success))
+            }
+        }
+
         return FormBuilder.create().layout(layout).debug(false)
             .add("${I18n.getString("termora.settings.account.server")}:").xy(1, rows)
-            .add(server).xy(3, rows).apply { rows += step }
+            .add(serverBox).xy(3, rows).apply { rows += step }
             .add("${I18n.getString("termora.settings.account")}:").xy(1, rows)
             .add(email).xy(3, rows).apply { rows += step }
             .add("${I18n.getString("termora.settings.account.subscription")}:").xy(1, rows)
@@ -138,7 +156,10 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
             if (isFreePlan.not()) {
                 actions.add(JXHyperlink(object : AnAction(I18n.getString("termora.settings.account.sync-now")) {
                     override fun actionPerformed(evt: AnActionEvent) {
-
+                        PullService.getInstance().trigger()
+                        PushService.getInstance().trigger()
+                        accountProperties.lastSynchronizationOn = System.currentTimeMillis()
+                        refreshUserInfoPanel()
                     }
                 }).apply { isFocusable = false })
             }
@@ -284,22 +305,19 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
                 this.httpServer = null
 
                 val httpServer = HttpServer.create(InetSocketAddress(0), 0)
-                // 创建上下文（即路径）及其处理器
-                httpServer.createContext("/login-success", object : HttpHandler {
-                    override fun handle(exchange: HttpExchange) {
-                        val text = "OK".toByteArray()
-                        exchange.responseHeaders.add("Access-Control-Allow-Origin", "*")
-                        exchange.sendResponseHeaders(200, text.size.toLong())
-                        exchange.responseBody.write(text, 0, text.size)
-                        exchange.close()
-
-                        onCallback(server, exchange.requestURI, keypair)
-                    }
-                })
+                httpServer.createContext("/login-success") { exchange ->
+                    val text = "OK".toByteArray()
+                    exchange.responseHeaders.add("Access-Control-Allow-Origin", "*")
+                    exchange.sendResponseHeaders(200, text.size.toLong())
+                    exchange.responseBody.write(text, 0, text.size)
+                    exchange.close()
+                    onCallback(server, exchange.requestURI, keypair)
+                }
                 httpServer.start()
 
                 val port = httpServer.address.port
                 callback = URLEncoder.encode("http://127.0.0.1:${port}/login-success", Charsets.UTF_8)
+
                 this.httpServer = httpServer
             }
 
@@ -436,6 +454,7 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
                 val refreshToken = params["refreshToken"]
                 val accessToken = params["accessToken"]
                 if (password.isNullOrBlank() || ticket.isNullOrBlank() || refreshToken.isNullOrBlank() || accessToken.isNullOrBlank()) return
+                if (ticket != this.ticket) return
                 val realPassword = String(RSA.decrypt(keypair.private, Hex.decodeHex(password)))
 
                 // 登录成功回调

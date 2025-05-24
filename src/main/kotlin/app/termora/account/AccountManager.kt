@@ -33,14 +33,17 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     fun getSecretKey() = account.secretKey
     fun getPublicKey() = account.publicKey
     fun getPrivateKey() = account.privateKey
-    fun isLocally() = account.isLocally
+    fun isSigned() = isFreePlan().not() && AccountProperties.getInstance().signed
+    fun isLocally() = (getAccountId() == "0" || StringUtils.equalsIgnoreCase(getEmail(), "locally") ||
+            StringUtils.equalsIgnoreCase(getServer(), "locally"))
+
     fun getLastSynchronizationOn() = accountProperties.lastSynchronizationOn
     fun getAccessToken() = account.accessToken
     fun getRefreshToken() = account.refreshToken
 
     fun isFreePlan(): Boolean {
         val subscription = getSubscription()
-        return isLocally() || subscription.plan == SubscriptionPlan.Free || accountProperties.signed.not()
+        return isLocally() || subscription.plan == SubscriptionPlan.Free
     }
 
     fun getSubscription(): Subscription {
@@ -51,21 +54,16 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
             val pros = account.subscriptions.filter { it.plan == SubscriptionPlan.Pro }
             val now = System.currentTimeMillis()
 
-            if (enterprises.any { it.endDate > now }) {
-                return enterprises.first { it.endDate > now }
-            } else if (teams.any { it.endDate > now }) {
-                return teams.first { it.endDate > now }
-            } else if (pros.any { it.endDate > now }) {
-                return pros.first { it.endDate > now }
+            if (enterprises.any { it.endAt > now }) {
+                return enterprises.first { it.endAt > now }
+            } else if (teams.any { it.endAt > now }) {
+                return teams.first { it.endAt > now }
+            } else if (pros.any { it.endAt > now }) {
+                return pros.first { it.endAt > now }
             }
         }
 
-        return Subscription(
-            id = "0",
-            plan = SubscriptionPlan.Free,
-            startDate = 0,
-            endDate = Long.MAX_VALUE
-        )
+        return Subscription(id = "0", plan = SubscriptionPlan.Free, startAt = 0, endAt = 0)
     }
 
     /**
@@ -106,6 +104,8 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
      */
     internal fun login(account: Account) {
 
+        val oldAccount = this.account
+
         this.account = account
 
         // 立即保存到数据库
@@ -130,7 +130,7 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
         // 通知变化
         SwingUtilities.invokeLater {
             for (extension in ExtensionManager.getInstance().getExtensions(AccountExtension::class.java)) {
-                extension.onAccountChanged()
+                extension.onAccountChanged(oldAccount, account)
             }
         }
     }

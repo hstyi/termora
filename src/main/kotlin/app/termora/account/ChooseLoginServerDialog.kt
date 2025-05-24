@@ -48,7 +48,7 @@ class ChooseLoginServerDialog(owner: Window) : DialogWrapper(owner) {
         val chinaServer = Server(I18n.getString("termora.settings.account.server-china"), "https://account.termora.cn")
 
         if (Application.isUnknownVersion()) {
-            serverComboBox.addItem(Server("Localhost", "http://localhost:8080"))
+            serverComboBox.addItem(Server("Localhost", "http://127.0.0.1:8080"))
         }
 
         serverComboBox.addItem(singaporeServer)

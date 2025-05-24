@@ -6,5 +6,5 @@ interface AccountExtension : Extension {
     /**
      * 账户发生变更
      */
-    fun onAccountChanged()
+    fun onAccountChanged(oldAccount: Account, newAccount: Account)
 }

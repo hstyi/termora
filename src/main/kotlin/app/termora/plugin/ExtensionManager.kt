@@ -17,8 +17,10 @@ class ExtensionManager private constructor() {
         for (plugin in PluginManager.getInstance().getLoadedPlugins()) {
 
             // 如果是免费方案，那么不提供此插件的功能
-            if (plugin.isPaid() && AccountManager.getInstance().isFreePlan()) {
-                continue
+            if (plugin.isPaid()) {
+                if (AccountManager.getInstance().isFreePlan()) {
+                    continue
+                }
             }
 
             for (extension in plugin.getExtensions(clazz)) {

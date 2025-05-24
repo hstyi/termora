@@ -36,6 +36,7 @@ object Icons {
     val percentage by lazy { DynamicIcon("icons/percentage.svg", "icons/percentage_dark.svg") }
     val text by lazy { DynamicIcon("icons/text.svg", "icons/text_dark.svg") }
     val errorIntroduction by lazy { DynamicIcon("icons/errorIntroduction.svg", "icons/errorIntroduction_dark.svg") }
+    val error by lazy { DynamicIcon("icons/error.svg", "icons/error_dark.svg") }
     val warningIntroduction by lazy { DynamicIcon("icons/warningIntroduction.svg", "icons/warningIntroduction_dark.svg") }
     val networkPolicy by lazy { DynamicIcon("icons/networkPolicy.svg", "icons/networkPolicy_dark.svg") }
     val clusterRole by lazy { DynamicIcon("icons/clusterRole.svg", "icons/clusterRole_dark.svg") }
@@ -86,6 +87,7 @@ object Icons {
     val dbPrimitive by lazy { DynamicIcon("icons/dbPrimitive.svg", "icons/dbPrimitive_dark.svg") }
     val linux by lazy { DynamicIcon("icons/linux.svg", "icons/linux_dark.svg") }
     val success by lazy { DynamicIcon("icons/success.svg", "icons/success_dark.svg") }
+    val errorDialog by lazy { DynamicIcon("icons/errorDialog.svg", "icons/errorDialog_dark.svg") }
     val network by lazy { DynamicIcon("icons/network.svg", "icons/network_dark.svg") }
     val server by lazy { DynamicIcon("icons/server.svg", "icons/server_dark.svg") }
     val runAnything by lazy { DynamicIcon("icons/runAnything.svg", "icons/runAnything_dark.svg") }
