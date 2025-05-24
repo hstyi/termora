@@ -138,11 +138,10 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     }
 
     internal fun logout() {
-        if (account.isLocally) return
-
-        // 登入本地用户
-        login(locally())
-
+        if (isLocally().not()) {
+            // 登入本地用户
+            login(locally())
+        }
     }
 
     private fun locally(): Account {

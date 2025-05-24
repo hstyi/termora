@@ -78,6 +78,7 @@ object AccountHttp {
                     }
                 }
 
+                // 校验 host 是否与签名一致
                 if (signed == null) {
                     if (isInRange(chain.request(), json).not()) {
                         signed = false
