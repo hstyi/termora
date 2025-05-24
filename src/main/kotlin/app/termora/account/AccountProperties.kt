@@ -22,6 +22,7 @@ class AccountProperties private constructor(databaseManager: DatabaseManager) :
      * id
      */
     var id by StringPropertyDelegate(StringUtils.EMPTY)
+
     /**
      * server
      */
@@ -69,5 +70,10 @@ class AccountProperties private constructor(databaseManager: DatabaseManager) :
 
     var accessToken by StringPropertyDelegate(StringUtils.EMPTY)
     var refreshToken by StringPropertyDelegate(StringUtils.EMPTY)
+
+    /**
+     * 服务器 是否经过验证
+     */
+    var signed by BooleanPropertyDelegate(false)
 
 }

@@ -5,8 +5,10 @@ import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 import org.jetbrains.kotlin.org.apache.commons.io.FileUtils
 import org.jetbrains.kotlin.org.apache.commons.io.filefilter.FileFilterUtils
 import org.jetbrains.kotlin.org.apache.commons.lang3.StringUtils
+import org.jetbrains.kotlin.org.apache.commons.lang3.time.DateFormatUtils
 import java.io.FileNotFoundException
 import java.nio.file.Files
+import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 
@@ -134,6 +136,7 @@ application {
         "-XX:+ZUncommit",
         "-XX:+ZGenerational",
         "-XX:ZUncommitDelay=60",
+        "-Drelease-date=${DateFormatUtils.format(Date(), "yyyy-MM-dd")}"
     )
 
     if (os.isMacOsX) {
@@ -419,6 +422,7 @@ tasks.register<Exec>("jpackage") {
         "-Dlogger.console.level=off",
         "-Dkotlinx.coroutines.debug=off",
         "-Dapp-version=${project.version}",
+        "-Drelease-date=${DateFormatUtils.format(Date(), "yyyy-MM-dd")}"
     )
 
     options.add("-Dsun.java2d.metal=true")

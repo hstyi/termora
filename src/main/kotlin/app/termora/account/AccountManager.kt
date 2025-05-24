@@ -26,6 +26,8 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     }
 
     private var account = locally()
+    private val accountProperties get() = AccountProperties.getInstance()
+
     fun getAccountId() = account.id
     fun getServer() = account.server
     fun getEmail() = account.email
@@ -35,14 +37,13 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     fun getPublicKey() = account.publicKey
     fun getPrivateKey() = account.privateKey
     fun isLocally() = account.isLocally
-    fun getLastSynchronizationOn() = AccountProperties.getInstance().lastSynchronizationOn
+    fun getLastSynchronizationOn() = accountProperties.lastSynchronizationOn
     fun getAccessToken() = account.accessToken
     fun getRefreshToken() = account.refreshToken
 
     fun isFreePlan(): Boolean {
-        if (true) return false
         val subscription = getSubscription()
-        return isLocally() || subscription.plan == SubscriptionPlan.Free
+        return isLocally() || subscription.plan == SubscriptionPlan.Free || accountProperties.signed.not()
     }
 
     fun getSubscription(): Subscription {

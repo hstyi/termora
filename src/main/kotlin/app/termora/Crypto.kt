@@ -204,4 +204,18 @@ object RSA {
         generator.initialize(keySize)
         return generator.generateKeyPair()
     }
+
+    fun sign(privateKey: PrivateKey, data: ByteArray): ByteArray {
+        val rsa = Signature.getInstance("SHA256withRSA")
+        rsa.initSign(privateKey)
+        rsa.update(data)
+        return rsa.sign()
+    }
+
+    fun verify(publicKey: PublicKey, data: ByteArray, signature: ByteArray): Boolean {
+        val rsa = Signature.getInstance("SHA256withRSA")
+        rsa.initVerify(publicKey)
+        rsa.update(data)
+        return rsa.verify(signature)
+    }
 }

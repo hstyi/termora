@@ -10,6 +10,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
+import org.apache.commons.lang3.time.DateUtils
 import org.slf4j.LoggerFactory
 import java.awt.Desktop
 import java.io.File
@@ -17,6 +18,7 @@ import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
+import java.util.*
 import kotlin.math.ln
 import kotlin.math.pow
 
@@ -108,6 +110,14 @@ object Application {
 
     fun isUnknownVersion(): Boolean {
         return getVersion().contains("unknown")
+    }
+
+    fun getReleaseDate(): Date {
+        val releaseDate = System.getProperty("release-date")
+        if (releaseDate.isNullOrBlank()) {
+            return Date()
+        }
+        return runCatching { DateUtils.parseDate(releaseDate, "yyyy-MM-dd") }.getOrNull() ?: Date()
     }
 
     fun getAppPath(): String {
