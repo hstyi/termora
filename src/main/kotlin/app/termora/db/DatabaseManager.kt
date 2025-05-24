@@ -211,6 +211,7 @@ class DatabaseManager private constructor() : Disposable {
                 DataEntity.update({ DataEntity.id eq id }) {
                     it[DataEntity.deleted] = true
                     it[DataEntity.synced] = false
+                    it[DataEntity.data] = StringUtils.EMPTY
                 }
             }
         }

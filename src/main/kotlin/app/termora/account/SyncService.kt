@@ -6,6 +6,7 @@ import app.termora.db.Data.Companion.toData
 import org.apache.commons.codec.binary.Base64
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.lang3.ObjectUtils
+import org.apache.commons.lang3.StringUtils
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
@@ -19,8 +20,8 @@ abstract class SyncService {
     }
 
     protected val databaseManager get() = DatabaseManager.getInstance()
-    protected val database get() = databaseManager.database
-    private val lock get() = databaseManager.lock
+    private val database get() = databaseManager.database
+    private val databaseLock get() = databaseManager.lock
     protected val accountManager get() = AccountManager.getInstance()
 
     /**
@@ -30,7 +31,7 @@ abstract class SyncService {
 
     protected fun getData(id: String): Data? {
         val list = mutableListOf<Data>()
-        lock.withLock {
+        databaseLock.withLock {
             transaction(database) {
                 val rows = DataEntity.selectAll().where { (DataEntity.id.eq(id)) }.toList()
                 for (row in rows) {
@@ -50,12 +51,15 @@ abstract class SyncService {
     ) {
         if (ObjectUtils.allNull(version, deleted, synced)) return
 
-        lock.withLock {
+        databaseLock.withLock {
             transaction(database) {
                 DataEntity.update({ DataEntity.id.eq(id) }) {
                     if (version != null) it[DataEntity.version] = version
                     if (synced != null) it[DataEntity.synced] = synced
-                    if (deleted != null) it[DataEntity.deleted] = deleted
+                    if (deleted != null) {
+                        it[DataEntity.deleted] = deleted
+                        it[DataEntity.data] = StringUtils.EMPTY
+                    }
                 }
             }
         }
@@ -67,7 +71,7 @@ abstract class SyncService {
 
     protected fun getUnsyncedData(): List<Data> {
         val list = mutableListOf<Data>()
-        lock.withLock {
+        databaseLock.withLock {
             transaction(database) {
                 val rows = DataEntity.selectAll().where { (DataEntity.synced eq false) }.toList()
                 for (row in rows) {

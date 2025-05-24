@@ -4,13 +4,29 @@ import app.termora.Application.ohMyJson
 import app.termora.db.Data
 import app.termora.db.DataType
 import app.termora.db.DatabaseManager
+import app.termora.db.DatabaseManagerExtension
+import app.termora.plugin.internal.extension.DynamicExtensionHandler
+import org.apache.commons.lang3.StringUtils
 
 
-class HostManager private constructor() {
+class HostManager private constructor() : Disposable {
     companion object {
         fun getInstance(): HostManager {
             return ApplicationScope.forApplicationScope().getOrCreate(HostManager::class) { HostManager() }
         }
+    }
+
+    init {
+        Disposer.register(
+            this, DynamicExtensionHandler.getInstance()
+            .register(DatabaseManagerExtension::class.java, object : DatabaseManagerExtension {
+                override fun onDataChanged(id: String, type: String) {
+                    if (StringUtils.isBlank(type)) {
+                        hosts.remove(id)
+                    }
+                }
+            })
+        )
     }
 
     private val databaseManager get() = DatabaseManager.getInstance()

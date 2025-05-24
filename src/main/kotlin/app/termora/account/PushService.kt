@@ -1,12 +1,9 @@
 package app.termora.account
 
+import app.termora.*
 import app.termora.Application.ohMyJson
-import app.termora.ApplicationRunnerExtension
-import app.termora.Disposable
-import app.termora.ResponseException
 import app.termora.db.Data
 import app.termora.db.DatabaseManagerExtension
-import app.termora.swingCoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -34,7 +31,11 @@ class PushService private constructor() : SyncService(), Disposable, Application
 
     companion object {
         private val log = LoggerFactory.getLogger(PushService::class.java)
-        val instance by lazy { PushService() }
+
+        fun getInstance(): PushService {
+            return ApplicationScope.forApplicationScope()
+                .getOrCreate(PushService::class) { PushService() }
+        }
     }
 
     /**
@@ -46,8 +47,9 @@ class PushService private constructor() : SyncService(), Disposable, Application
 
     private suspend fun schedule() {
         try {
-            channel.receive()
-            synchronize()
+            if (channel.receiveCatching().isSuccess) {
+                synchronize()
+            }
         } catch (e: Exception) {
             if (log.isErrorEnabled) {
                 log.error(e.message, e)
@@ -130,7 +132,7 @@ class PushService private constructor() : SyncService(), Disposable, Application
                 }
             }
             // 通知拉取
-            PullService.instance.trigger(data.id)
+            PullService.getInstance().trigger(data.id)
             return
         }
 
@@ -167,6 +169,12 @@ class PushService private constructor() : SyncService(), Disposable, Application
                 delay(1.minutes)
             }
         }
+
+        Disposer.register(this, object : Disposable {
+            override fun dispose() {
+                channel.close()
+            }
+        })
 
     }
 
