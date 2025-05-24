@@ -14,6 +14,7 @@ import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.statements.StatementType
 import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 import java.util.*
@@ -244,6 +245,12 @@ class DatabaseManager private constructor() : Disposable {
                 }
             }
             map[name] = value
+        }
+    }
+
+    override fun dispose() {
+        lock.withLock {
+            TransactionManager.closeAndUnregister(database)
         }
     }
 
