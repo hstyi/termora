@@ -22,31 +22,15 @@ class HostManager private constructor() {
     fun addHost(host: Host) {
         assertEventDispatchThread()
 
-        val oldData = databaseManager.data(host.id)
-        if (oldData != null) {
-            // 已经删除的数据，将不处理
-            if (oldData.deleted) {
-                return
-            }
-            // 修改数据
-            databaseManager.save(
-                oldData.copy(
-                    version = oldData.version + 1,
-                    synced = false,
-                    data = ohMyJson.encodeToString(host)
-                )
+        databaseManager.saveAndIncrementVersion(
+            Data(
+                id = host.id,
+                ownerId = host.ownerId,
+                ownerType = host.ownerType,
+                type = DataType.Host.name,
+                data = ohMyJson.encodeToString(host),
             )
-        } else {
-            databaseManager.save(
-                Data(
-                    id = host.id,
-                    ownerId = host.ownerId,
-                    ownerType = host.ownerType,
-                    type = DataType.Host.name,
-                    data = ohMyJson.encodeToString(host),
-                )
-            )
-        }
+        )
 
         hosts[host.id] = host
     }

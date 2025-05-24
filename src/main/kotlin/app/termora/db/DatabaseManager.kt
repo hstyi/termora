@@ -144,6 +144,34 @@ class DatabaseManager private constructor() : Disposable {
         return list
     }
 
+    /**
+     * 存在则获取本地版本 +1 然后修改，synced 会改成 false ，不存在则新增
+     */
+    fun saveAndIncrementVersion(data: Data) {
+        val oldData = data(data.id)
+        if (oldData != null) {
+            // 已经删除的数据，将不处理
+            if (oldData.deleted) {
+                return
+            }
+
+            lock.withLock {
+                transaction(database) {
+                    DataEntity.update({ (DataEntity.id eq data.id) }) {
+                        it[DataEntity.data] = data.data
+                        it[DataEntity.version] = oldData.version + 1
+                        it[DataEntity.synced] = false
+                    }
+                }
+            }
+
+            // 触发更改
+            DatabaseManagerExtension.fireDataChanged(data.id, data.type)
+        } else {
+            save(data)
+        }
+    }
+
     fun save(data: Data) {
         lock.withLock {
             transaction(database) {
