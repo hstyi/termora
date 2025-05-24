@@ -1,19 +1,32 @@
 package app.termora.account
 
-import app.termora.db.Data
+import app.termora.AES
+import app.termora.db.*
 import app.termora.db.Data.Companion.toData
-import app.termora.db.DataEntity
-import app.termora.db.DatabaseManager
+import org.apache.commons.codec.binary.Base64
+import org.apache.commons.codec.digest.DigestUtils
+import org.apache.commons.lang3.ObjectUtils
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
+import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
 abstract class SyncService {
 
+    companion object {
+        private val syncLock = ReentrantLock()
+    }
+
     protected val databaseManager get() = DatabaseManager.getInstance()
     protected val database get() = databaseManager.database
-    protected val lock get() = databaseManager.lock
+    private val lock get() = databaseManager.lock
+    protected val accountManager get() = AccountManager.getInstance()
+
+    /**
+     * 同一时刻，要么拉取 要么推送
+     */
+    protected val syncLock get() = Companion.syncLock
 
     protected fun getData(id: String): Data? {
         val list = mutableListOf<Data>()
@@ -29,15 +42,26 @@ abstract class SyncService {
     }
 
 
-    protected fun updateData(id: String, synced: Boolean, version: Long? = null) {
+    protected fun updateData(
+        id: String,
+        synced: Boolean? = null,
+        version: Long? = null,
+        deleted: Boolean? = null,
+    ) {
+        if (ObjectUtils.allNull(version, deleted, synced)) return
+
         lock.withLock {
             transaction(database) {
                 DataEntity.update({ DataEntity.id.eq(id) }) {
                     if (version != null) it[DataEntity.version] = version
-                    it[DataEntity.synced] = synced
+                    if (synced != null) it[DataEntity.synced] = synced
+                    if (deleted != null) it[DataEntity.deleted] = deleted
                 }
             }
         }
+
+        // 触发更改
+        DatabaseManagerExtension.fireDataChanged(id, DataType.Host.name)
     }
 
 
@@ -52,5 +76,25 @@ abstract class SyncService {
             }
         }
         return list
+    }
+
+    protected fun encryptData(id: String, data: String): String {
+        val iv = DigestUtils.sha256(id).copyOf(12)
+        return Base64.encodeBase64String(
+            AES.GCM.encrypt(
+                accountManager.getSecretKey(), iv,
+                data.toByteArray()
+            )
+        )
+    }
+
+    protected fun decryptData(id: String, data: String): String {
+        val iv = DigestUtils.sha256(id).copyOf(12)
+        return String(
+            AES.GCM.decrypt(
+                accountManager.getSecretKey(), iv,
+                Base64.decodeBase64(data)
+            )
+        )
     }
 }

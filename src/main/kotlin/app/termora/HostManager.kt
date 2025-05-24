@@ -13,7 +13,7 @@ class HostManager private constructor() {
         }
     }
 
-    private val database get() = DatabaseManager.getInstance()
+    private val databaseManager get() = DatabaseManager.getInstance()
     private var hosts = mutableMapOf<String, Host>()
 
     /**
@@ -21,21 +21,39 @@ class HostManager private constructor() {
      */
     fun addHost(host: Host) {
         assertEventDispatchThread()
-        database.save(
-            Data(
-                id = host.id,
-                ownerId = host.ownerId,
-                ownerType = host.ownerType,
-                type = DataType.Host.name,
-                data = ohMyJson.encodeToString(host),
+
+        val oldData = databaseManager.data(host.id)
+        if (oldData != null) {
+            // 已经删除的数据，将不处理
+            if (oldData.deleted) {
+                return
+            }
+            // 修改数据
+            databaseManager.save(
+                oldData.copy(
+                    version = oldData.version + 1,
+                    synced = false,
+                    data = ohMyJson.encodeToString(host)
+                )
             )
-        )
+        } else {
+            databaseManager.save(
+                Data(
+                    id = host.id,
+                    ownerId = host.ownerId,
+                    ownerType = host.ownerType,
+                    type = DataType.Host.name,
+                    data = ohMyJson.encodeToString(host),
+                )
+            )
+        }
+
         hosts[host.id] = host
     }
 
     fun removeHost(id: String) {
         hosts.entries.removeIf { it.value.id == id || it.value.parentId == id }
-        database.delete(id)
+        databaseManager.delete(id)
         DeleteDataManager.getInstance().removeHost(id)
     }
 
@@ -44,7 +62,7 @@ class HostManager private constructor() {
      */
     fun hosts(): List<Host> {
         if (hosts.isEmpty()) {
-            database.data<Host>(DataType.Host).forEach { hosts[it.id] = it }
+            databaseManager.data<Host>(DataType.Host).forEach { hosts[it.id] = it }
         }
         return hosts.values
             .sortedWith(compareBy<Host> { if (it.isFolder) 0 else 1 }.thenBy { it.sort })

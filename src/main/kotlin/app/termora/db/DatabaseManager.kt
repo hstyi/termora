@@ -5,6 +5,7 @@ import app.termora.Application.ohMyJson
 import app.termora.ApplicationScope
 import app.termora.Disposable
 import app.termora.I18n
+import app.termora.db.Data.Companion.toData
 import app.termora.plugin.ExtensionManager
 import app.termora.terminal.CursorStyle
 import org.apache.commons.io.FileUtils
@@ -94,6 +95,32 @@ class DatabaseManager private constructor() : Disposable {
     }
 
     /**
+     * 返回本地所有用户的数据，调用者需要过滤具体用户
+     */
+    fun data(id: String): Data? {
+        return lock.withLock {
+            transaction(database) {
+                DataEntity.selectAll()
+                    .where { (DataEntity.id.eq(id)) }
+                    .firstOrNull()?.toData()
+            }
+        }
+    }
+
+    /**
+     * 获取数据版本
+     */
+    fun version(id: String): Long? {
+        return lock.withLock {
+            transaction(database) {
+                DataEntity.select(DataEntity.version)
+                    .where { (DataEntity.id.eq(id) and DataEntity.deleted.eq(false)) }
+                    .firstOrNull()?.get(DataEntity.version) ?: 0
+            }
+        }
+    }
+
+    /**
      * 不会返回已删除的数据
      */
     fun rawData(type: DataType): List<String> {
@@ -127,6 +154,9 @@ class DatabaseManager private constructor() : Disposable {
                 if (exists) {
                     DataEntity.update({ (DataEntity.id eq data.id) }) {
                         it[DataEntity.data] = data.data
+                        it[DataEntity.version] = data.version
+                        it[DataEntity.synced] = data.synced
+                        it[DataEntity.deleted] = data.deleted
                     }
                 } else {
                     DataEntity.insert {
@@ -143,15 +173,8 @@ class DatabaseManager private constructor() : Disposable {
             }
         }
 
-        for (extension in ExtensionManager.getInstance().getExtensions(DatabaseManagerExtension::class.java)) {
-            try {
-                extension.onDataChanged(data.id, data.type)
-            } catch (e: Exception) {
-                if (log.isErrorEnabled) {
-                    log.error(e.message, e)
-                }
-            }
-        }
+        // 触发更改
+        DatabaseManagerExtension.fireDataChanged(data.id, data.type)
     }
 
     fun delete(id: String) {
@@ -164,15 +187,8 @@ class DatabaseManager private constructor() : Disposable {
             }
         }
 
-        for (extension in ExtensionManager.getInstance().getExtensions(DatabaseManagerExtension::class.java)) {
-            try {
-                extension.onDataChanged(id, StringUtils.EMPTY)
-            } catch (e: Exception) {
-                if (log.isErrorEnabled) {
-                    log.error(e.message, e)
-                }
-            }
-        }
+        // 触发更改
+        DatabaseManagerExtension.fireDataChanged(id, StringUtils.EMPTY)
     }
 
     fun getSettings(): Map<String, String> {

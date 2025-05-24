@@ -104,7 +104,7 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     }
 
     /**
-     * 设置账户信息
+     * 设置账户信息，可以多次调用，每次修改用户信息都要通过这个方法
      */
     internal fun login(account: Account) {
 

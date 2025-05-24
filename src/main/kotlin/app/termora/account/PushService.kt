@@ -1,9 +1,12 @@
 package app.termora.account
 
-import app.termora.*
 import app.termora.Application.ohMyJson
+import app.termora.ApplicationRunnerExtension
+import app.termora.Disposable
+import app.termora.ResponseException
 import app.termora.db.Data
 import app.termora.db.DatabaseManagerExtension
+import app.termora.swingCoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -17,9 +20,8 @@ import kotlinx.serialization.json.long
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.apache.commons.codec.binary.Base64
-import org.apache.commons.codec.digest.DigestUtils
 import org.slf4j.LoggerFactory
+import kotlin.concurrent.withLock
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -39,7 +41,6 @@ class PushService private constructor() : SyncService(), Disposable, Application
      * 多次通知只会生效一次 也就是最后一次
      */
     private val channel = Channel<Unit>(Channel.CONFLATED)
-    private val accountManager get() = AccountManager.getInstance()
     private val isFreePlan get() = accountManager.isFreePlan()
 
 
@@ -74,11 +75,7 @@ class PushService private constructor() : SyncService(), Disposable, Application
 
 
     private fun synchronize(data: Data) {
-        if (data.deleted) {
-            delete(data)
-        } else {
-            push(data)
-        }
+        syncLock.withLock { if (data.deleted) delete(data) else push(data) }
     }
 
     private fun delete(data: Data) {
@@ -92,24 +89,18 @@ class PushService private constructor() : SyncService(), Disposable, Application
         updateData(data.id, synced = true)
 
         if (log.isInfoEnabled) {
-            log.info("{} has been deleted from the cloud", data.id)
+            log.info("数据: {} 已从云端删除", data.id)
         }
     }
 
     private fun push(data: Data) {
-        val iv = DigestUtils.sha256(data.id).copyOf(12)
         val requestData = PushDataRequest(
             objectId = data.id,
             ownerId = data.ownerId,
             ownerType = data.ownerType,
             version = data.version,
             type = data.type,
-            data = Base64.encodeBase64String(
-                AES.GCM.encrypt(
-                    accountManager.getSecretKey(), iv,
-                    data.data.toByteArray()
-                )
-            )
+            data = encryptData(data.id, data.data),
         )
         val request = Request.Builder().url("${accountManager.getServer()}/v1/data/push")
             .post(ohMyJson.encodeToString(requestData).toRequestBody("application/json".toMediaType()))
@@ -124,7 +115,7 @@ class PushService private constructor() : SyncService(), Disposable, Application
         // 如果是 403 ，说明没有权限
         if (response.code == 403) {
             if (log.isWarnEnabled) {
-                log.warn("Data.id {} No permission to push", data.id)
+                log.warn("数据: {} 没有权限推送到云端，此数据将在下次修改时推送", data.id)
             }
             // 标记为已经同步
             updateData(data.id, synced = true, version = data.version)
@@ -135,7 +126,7 @@ class PushService private constructor() : SyncService(), Disposable, Application
             val version = json["data"]?.jsonObject?.get("version")?.jsonPrimitive?.long
             if (version == null) {
                 if (log.isWarnEnabled) {
-                    log.warn("Data.id {} conflict, last version is null", data.id)
+                    log.warn("数据: {} 推送时版本冲突，触发拉取", data.id)
                 }
             }
             // 通知拉取
@@ -148,11 +139,15 @@ class PushService private constructor() : SyncService(), Disposable, Application
             throw ResponseException(response.code, response)
         }
 
-        // 修改为已经同步
-        updateData(data.id, synced = true, version = data.version)
+        // 获取到响应体
+        val json = ohMyJson.decodeFromString<JsonObject>(text)
+        val version = json["version"]?.jsonPrimitive?.long ?: data.version
+
+        // 修改为已经同步，并且将版本改为云端版本
+        updateData(data.id, synced = true, version = version)
 
         if (log.isInfoEnabled) {
-            log.info("Data.id {} pushed into cloud", data.id)
+            log.info("数据: {} 已推送至云端", data.id)
         }
 
     }

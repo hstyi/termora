@@ -1,8 +1,25 @@
 package app.termora.db
 
+import app.termora.db.DatabaseManager.Companion.log
 import app.termora.plugin.Extension
+import app.termora.plugin.ExtensionManager
 
 interface DatabaseManagerExtension : Extension {
+
+    companion object {
+        fun fireDataChanged(id: String, type: String) {
+            for (extension in ExtensionManager.getInstance().getExtensions(DatabaseManagerExtension::class.java)) {
+                try {
+                    extension.onDataChanged(id, type)
+                } catch (e: Exception) {
+                    if (log.isErrorEnabled) {
+                        log.error(e.message, e)
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * 数据库初始化完成
      */
