@@ -51,8 +51,8 @@ class PullService private constructor() : SyncService(), Disposable, Application
         }
     }
 
-    private suspend fun synchronize(id: String) {
-        log.info("Starting pull service for {}", id)
+    private fun synchronize(id: String) {
+        pull(id)
     }
 
 

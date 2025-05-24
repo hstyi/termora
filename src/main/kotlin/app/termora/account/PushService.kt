@@ -18,6 +18,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.apache.commons.codec.binary.Base64
+import org.apache.commons.codec.digest.DigestUtils
 import org.slf4j.LoggerFactory
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -96,7 +97,7 @@ class PushService private constructor() : SyncService(), Disposable, Application
     }
 
     private fun push(data: Data) {
-        val iv = PBKDF2.hash(data.id.toByteArray(), data.id.toCharArray(), 1, 96)
+        val iv = DigestUtils.sha256(data.id).copyOf(12)
         val requestData = PushDataRequest(
             objectId = data.id,
             ownerId = data.ownerId,
