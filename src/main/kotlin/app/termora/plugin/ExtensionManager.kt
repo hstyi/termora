@@ -11,6 +11,9 @@ class ExtensionManager private constructor() {
         }
     }
 
+    /**
+     * @return 不要缓存结果，因为可能会有动态扩展
+     */
     fun <T : Extension> getExtensions(clazz: Class<T>): List<T> {
         val extensions = mutableListOf<T>()
 
@@ -18,7 +21,7 @@ class ExtensionManager private constructor() {
 
             // 如果是免费方案，那么不提供此插件的功能
             if (plugin.isPaid()) {
-                if (AccountManager.getInstance().isFreePlan()) {
+                if (AccountManager.getInstance().isSigned().not()) {
                     continue
                 }
             }

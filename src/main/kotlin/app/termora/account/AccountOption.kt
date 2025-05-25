@@ -116,7 +116,7 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
                 val upgrade =
                     JXHyperlink(object : AnAction(I18n.getString("termora.settings.account.verify"), Icons.error) {
                         override fun actionPerformed(evt: AnActionEvent) {
-
+                            Application.browse(URI.create("https://www.termora.app"))
                         }
                     })
                 upgrade.isFocusable = false

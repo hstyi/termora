@@ -46,9 +46,9 @@ class KeymapManager private constructor() : Disposable {
         keyboardFocusManager.addKeyEventDispatcher(keymapKeyEventDispatcher)
 
         try {
-            for (text in database.rawData(DataType.Keymap)) {
+            for (data in database.rawData(DataType.Keymap)) {
                 try {
-                    val keymap = Keymap.fromJSON(text) ?: continue
+                    val keymap = Keymap.fromJSON(data.data) ?: continue
                     keymaps[keymap.name] = keymap
                 } catch (e: Exception) {
                     if (log.isWarnEnabled) {

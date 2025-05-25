@@ -1,5 +1,6 @@
 package app.termora.account
 
+import org.apache.commons.lang3.StringUtils
 import java.security.PrivateKey
 import java.security.PublicKey
 
@@ -55,6 +56,10 @@ data class Account(
      */
     val privateKey: PrivateKey,
 ) {
+
+    val isLocally
+        get() = (id == "0" || StringUtils.equalsIgnoreCase(email, "locally") ||
+                StringUtils.equalsIgnoreCase(server, "locally"))
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

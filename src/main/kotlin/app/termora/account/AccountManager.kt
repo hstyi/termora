@@ -3,6 +3,8 @@ package app.termora.account
 import app.termora.*
 import app.termora.Application.ohMyJson
 import app.termora.plugin.ExtensionManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.MediaType.Companion.toMediaType
@@ -34,8 +36,7 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     fun getPublicKey() = account.publicKey
     fun getPrivateKey() = account.privateKey
     fun isSigned() = isFreePlan().not() && AccountProperties.getInstance().signed
-    fun isLocally() = (getAccountId() == "0" || StringUtils.equalsIgnoreCase(getEmail(), "locally") ||
-            StringUtils.equalsIgnoreCase(getServer(), "locally"))
+    fun isLocally() = account.isLocally
 
     fun getLastSynchronizationOn() = accountProperties.lastSynchronizationOn
     fun getAccessToken() = account.accessToken
@@ -185,6 +186,15 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     }
 
     override fun ready() {
+        if (isLocally().not()) {
+            swingCoroutineScope.launch(Dispatchers.IO) { refreshToken() }
+        }
+    }
+
+    /**
+     * 刷新用户
+     */
+    fun refresh(accessToken: String = getAccessToken()) {
 
     }
 

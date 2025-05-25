@@ -31,7 +31,7 @@ interface DatabaseManagerExtension : Extension {
     fun ready(databaseManager: DatabaseManager) {}
 
     /**
-     * 数据变动
+     * 数据变动 如果 [type] 和 [id] 同时为空，那么不知道删除了什么，所有类型都需要刷新
      *
      * @param type 为空时表示删除
      */

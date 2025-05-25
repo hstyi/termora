@@ -1,12 +1,12 @@
 package app.termora.db
 
-import app.termora.Application
+import app.termora.*
 import app.termora.Application.ohMyJson
-import app.termora.ApplicationScope
-import app.termora.Disposable
-import app.termora.I18n
+import app.termora.account.Account
+import app.termora.account.AccountExtension
 import app.termora.db.Data.Companion.toData
 import app.termora.plugin.ExtensionManager
+import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import app.termora.terminal.CursorStyle
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
@@ -18,7 +18,6 @@ import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 import java.util.*
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.properties.ReadWriteProperty
@@ -41,8 +40,7 @@ class DatabaseManager private constructor() : Disposable {
     val appearance by lazy { Appearance(this) }
     val sftp by lazy { SFTP(this) }
 
-    private val map = mutableMapOf<String, String>()
-    private val mapFuture = CompletableFuture<Map<String, String>>()
+    private val map = Collections.synchronizedMap<String, String?>(mutableMapOf())
 
 
     init {
@@ -70,11 +68,80 @@ class DatabaseManager private constructor() : Disposable {
         }
 
         // 异步初始化
-        Thread.ofVirtual().start { map.putAll(getSettings());mapFuture.complete(map) }
+        Thread.ofVirtual().start { map.putAll(getSettings()); }
+
+        // 注册动态扩展
+        registerDynamicExtensions()
 
         for (extension in ExtensionManager.getInstance().getExtensions(DatabaseManagerExtension::class.java)) {
             extension.ready(this)
         }
+
+
+    }
+
+    private fun registerDynamicExtensions() {
+        DynamicExtensionHandler.getInstance().register(AccountExtension::class.java, object : AccountExtension {
+            override fun onAccountChanged(
+                oldAccount: Account,
+                newAccount: Account
+            ) {
+                if (oldAccount.isLocally && newAccount.isLocally) {
+                    return
+                }
+
+                if (oldAccount.id == newAccount.id) {
+                    return
+                }
+
+                // 如果之前是本地用户，现在是云端用户，那么把之前的数据复制一份到云端用户
+                // 复制到云端之后就可以删除本地数据了
+                if (oldAccount.isLocally && newAccount.isLocally.not()) {
+                    for (type in DataType.entries) {
+                        for (data in rawData(type)) {
+                            // 已经删除了，那么忽略
+                            if (data.deleted) continue
+                            // 不是用户数据，那么忽略
+                            if (data.ownerType != OwnerType.User.name) continue
+                            // 不是本地用户数据，那么忽略
+                            if (data.ownerId != "0") continue
+
+                            // 保存
+                            save(
+                                data.copy(
+                                    ownerId = newAccount.id,
+                                    synced = false,
+                                    id = randomUUID()
+                                )
+                            )
+
+                            // 物理删除本地数据
+                            lock.withLock { transaction(database) { DataEntity.deleteWhere { DataEntity.id.eq(data.id) } } }
+                        }
+                    }
+                }
+
+                // 如果之前是云端用户，退出登录了要删除本地数据
+                if (oldAccount.isLocally.not()) {
+                    lock.withLock {
+                        transaction(database) {
+                            // 删除用户的数据
+                            DataEntity.deleteWhere {
+                                DataEntity.ownerId.eq(oldAccount.id) and (DataEntity.ownerType.eq(OwnerType.User.name))
+                            }
+                            // 删除团队的数据
+                            for (team in oldAccount.teams) {
+                                DataEntity.deleteWhere {
+                                    DataEntity.ownerId.eq(team.id) and (DataEntity.ownerType.eq(OwnerType.Team.name))
+                                }
+                            }
+                            DatabaseManagerExtension.fireDataChanged(StringUtils.EMPTY, StringUtils.EMPTY)
+                        }
+                    }
+                }
+
+            }
+        }).let { Disposer.register(this, it) }
 
     }
 
@@ -84,8 +151,8 @@ class DatabaseManager private constructor() : Disposable {
     inline fun <reified T> data(type: DataType): List<T> {
         val list = mutableListOf<T>()
         try {
-            for (text in rawData(type)) {
-                list.add(ohMyJson.decodeFromString<T>(text))
+            for (data in rawData(type)) {
+                list.add(ohMyJson.decodeFromString<T>(data.data))
             }
         } catch (e: Exception) {
             if (log.isWarnEnabled) {
@@ -124,8 +191,8 @@ class DatabaseManager private constructor() : Disposable {
     /**
      * 不会返回已删除的数据
      */
-    fun rawData(type: DataType): List<String> {
-        val list = mutableListOf<String>()
+    fun rawData(type: DataType): List<Data> {
+        val list = mutableListOf<Data>()
         lock.withLock {
             transaction(database) {
                 val rows = DataEntity.selectAll()
@@ -133,7 +200,7 @@ class DatabaseManager private constructor() : Disposable {
                     .toList()
                 for (row in rows) {
                     try {
-                        list.add(row[DataEntity.data])
+                        list.add(row.toData())
                     } catch (e: Exception) {
                         if (log.isWarnEnabled) {
                             log.warn(e.message, e)
@@ -248,6 +315,20 @@ class DatabaseManager private constructor() : Disposable {
         }
     }
 
+    fun getSetting(name: String): String? {
+        if (map.containsKey(name)) {
+            return map[name]
+        }
+        lock.withLock {
+            transaction(database) {
+                map[name] = SettingEntity.selectAll()
+                    .where { SettingEntity.name eq name }.toList()
+                    .singleOrNull()?.getOrNull(SettingEntity.value)
+            }
+        }
+        return map[name]
+    }
+
     override fun dispose() {
         lock.withLock {
             TransactionManager.closeAndUnregister(database)
@@ -259,17 +340,15 @@ class DatabaseManager private constructor() : Disposable {
         private val name: String
     ) {
 
-        private val map get() = databaseManager.mapFuture.get()
+        private val map get() = databaseManager.map
 
         protected open fun getString(key: String): String? {
-            val c = "${name}.$key"
-            return map[c]
+            return databaseManager.getSetting("${name}.$key")
         }
 
 
         protected open fun putString(key: String, value: String) {
-            val c = "${name}.$key"
-            databaseManager.setSetting(c, value)
+            databaseManager.setSetting("${name}.$key", value)
         }
 
 
@@ -277,7 +356,7 @@ class DatabaseManager private constructor() : Disposable {
             val properties = mutableMapOf<String, String>()
             for (e in map.entries) {
                 if (e.key.startsWith("${name}.")) {
-                    properties[e.key] = e.value
+                    properties[e.key] = e.value ?: continue
                 }
             }
             return properties

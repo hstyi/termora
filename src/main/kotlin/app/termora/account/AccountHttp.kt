@@ -87,7 +87,7 @@ object AccountHttp {
 
                 // 校验许可证签名
                 if (signed == null) {
-                    signed = RSA.verify(publicKey, data, signature)
+                    signed = runCatching { RSA.verify(publicKey, data, signature) }.getOrNull() ?: false
                 }
             }
 
@@ -99,13 +99,16 @@ object AccountHttp {
         }
 
         private fun isInRange(request: Request, json: JsonObject): Boolean {
-            val hosts = json["Hosts"]?.jsonArray
-            if (hosts.isNullOrEmpty()) {
+            val hostsArray = json["Hosts"]?.jsonArray
+            if (hostsArray.isNullOrEmpty()) {
                 return false
             }
 
-            val host = "account.termora.app"
-            for (cidr in ohMyJson.decodeFromJsonElement<List<String>>(hosts)) {
+            val host = request.url.host
+            val hosts = ohMyJson.decodeFromJsonElement<List<String>>(hostsArray).toMutableList()
+            hosts.addFirst("127.0.0.1")
+            hosts.addFirst("localhost")
+            for (cidr in hosts) {
                 try {
                     if (cidr == host) {
                         return true
