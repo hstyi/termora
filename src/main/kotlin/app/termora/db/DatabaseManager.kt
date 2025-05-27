@@ -302,18 +302,8 @@ class DatabaseManager private constructor() : Disposable {
                         if (data.ownerType != OwnerType.User.name) continue
                         // 不是本地用户数据，那么忽略
                         if (AccountManager.isLocally(data.ownerId).not()) continue
-
                         // 保存
-                        save(
-                            data.copy(
-                                ownerId = newAccount.id,
-                                synced = false,
-                                id = randomUUID()
-                            )
-                        )
-
-                        // 物理删除本地数据
-                        lock.withLock { transaction(database) { DataEntity.deleteWhere { DataEntity.id.eq(data.id) } } }
+                        save(data.copy(ownerId = newAccount.id, synced = false, id = randomUUID()))
                     }
                 }
             }
@@ -340,6 +330,10 @@ class DatabaseManager private constructor() : Disposable {
                     }
                 }
             }
+        }
+
+        override fun ordered(): Long {
+            return 0
         }
 
     }

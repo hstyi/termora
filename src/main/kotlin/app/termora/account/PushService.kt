@@ -4,6 +4,7 @@ import app.termora.*
 import app.termora.Application.ohMyJson
 import app.termora.db.Data
 import app.termora.db.DatabaseManagerExtension
+import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -36,6 +37,18 @@ class PushService private constructor() : SyncService(), Disposable, Application
             return ApplicationScope.forApplicationScope()
                 .getOrCreate(PushService::class) { PushService() }
         }
+    }
+
+
+    init {
+        Disposer.register(this, DynamicExtensionHandler.getInstance().register(AccountExtension::class.java, object :
+            AccountExtension {
+            override fun onAccountChanged(oldAccount: Account, newAccount: Account) {
+                if (oldAccount.isLocally && newAccount.isLocally.not()) {
+                    trigger()
+                }
+            }
+        }))
     }
 
     /**

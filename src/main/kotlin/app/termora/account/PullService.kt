@@ -3,6 +3,7 @@ package app.termora.account
 import app.termora.*
 import app.termora.Application.ohMyJson
 import app.termora.db.Data
+import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.Serializable
@@ -30,6 +31,17 @@ class PullService private constructor() : SyncService(), Disposable, Application
             return ApplicationScope.forApplicationScope()
                 .getOrCreate(PullService::class) { PullService() }
         }
+    }
+
+    init {
+        Disposer.register(this, DynamicExtensionHandler.getInstance().register(AccountExtension::class.java, object :
+            AccountExtension {
+            override fun onAccountChanged(oldAccount: Account, newAccount: Account) {
+                if (oldAccount.isLocally && newAccount.isLocally.not()) {
+                    trigger()
+                }
+            }
+        }))
     }
 
     /**
@@ -108,6 +120,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
 
         accountProperties.nextSynchronizationSince = nextSince
         accountProperties.lastSynchronizationOn = System.currentTimeMillis()
+
 
     }
 

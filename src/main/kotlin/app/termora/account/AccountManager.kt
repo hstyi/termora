@@ -124,6 +124,11 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
         accountProperties.refreshToken = account.refreshToken
         accountProperties.secretKey = ohMyJson.encodeToString(account.secretKey)
 
+        // 如果变更账户了，那么同步时间从0开始
+        if (oldAccount.id != account.id) {
+            accountProperties.nextSynchronizationSince = 0
+        }
+
         if (isLocally().not()) {
             accountProperties.publicKey = Base64.encodeBase64String(account.publicKey.encoded)
             accountProperties.privateKey = Base64.encodeBase64String(account.privateKey.encoded)
@@ -133,10 +138,16 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
         }
 
         // 通知变化
-        SwingUtilities.invokeLater {
+        notifyAccountChanged(oldAccount, account)
+    }
+
+    private fun notifyAccountChanged(oldAccount: Account, newAccount: Account) {
+        if (SwingUtilities.isEventDispatchThread()) {
             for (extension in ExtensionManager.getInstance().getExtensions(AccountExtension::class.java)) {
-                extension.onAccountChanged(oldAccount, account)
+                extension.onAccountChanged(oldAccount, newAccount)
             }
+        } else {
+            SwingUtilities.invokeLater { notifyAccountChanged(oldAccount, newAccount) }
         }
     }
 
