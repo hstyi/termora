@@ -856,7 +856,8 @@ class NewHostTree : SimpleTree() {
             val port = map["Port"]?.toIntOrNull() ?: 22
             val username = map["Username"] ?: StringUtils.EMPTY
             val protocol = map["Protocol"] ?: "SSH"
-            if (!StringUtils.equalsIgnoreCase(protocol, "SSH")) continue
+            // 仅支持 SSH、RDP 协议
+            if (StringUtils.equalsAnyIgnoreCase(protocol, "SSH", "RDP").not()) continue
             if (StringUtils.isAllBlank(hostname, label)) continue
 
             var p: HostTreeNode? = null
@@ -891,7 +892,7 @@ class NewHostTree : SimpleTree() {
                     host = hostname,
                     port = port,
                     username = username,
-                    protocol = Protocol.SSH,
+                    protocol = runCatching { Protocol.valueOf(protocol) }.getOrNull() ?: Protocol.SSH,
                     parentId = p?.host?.id ?: StringUtils.EMPTY,
                 )
             )
