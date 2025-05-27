@@ -176,13 +176,14 @@ class DatabaseManager private constructor() : Disposable {
             }
 
             // 触发更改
-            DatabaseManagerExtension.fireDataChanged(data.id, data.type)
+            DatabaseManagerExtension.fireDataChanged(data.id, data.type, DatabaseManagerExtension.Action.Changed)
         } else {
             save(data)
         }
     }
 
     fun save(data: Data) {
+        var action = DatabaseManagerExtension.Action.Changed
         lock.withLock {
             transaction(database) {
                 val exists = DataEntity.selectAll()
@@ -196,6 +197,7 @@ class DatabaseManager private constructor() : Disposable {
                         it[DataEntity.synced] = data.synced
                         it[DataEntity.deleted] = data.deleted
                     }
+                    action = DatabaseManagerExtension.Action.Changed
                 } else {
                     DataEntity.insert {
                         it[DataEntity.id] = data.id
@@ -207,15 +209,16 @@ class DatabaseManager private constructor() : Disposable {
                         it[DataEntity.deleted] = data.deleted
                         it[DataEntity.version] = data.version
                     }
+                    action = DatabaseManagerExtension.Action.Added
                 }
             }
         }
 
         // 触发更改
-        DatabaseManagerExtension.fireDataChanged(data.id, data.type)
+        DatabaseManagerExtension.fireDataChanged(data.id, data.type, action)
     }
 
-    fun delete(id: String) {
+    fun delete(id: String, type: String) {
         lock.withLock {
             transaction(database) {
                 DataEntity.update({ DataEntity.id eq id }) {
@@ -227,7 +230,7 @@ class DatabaseManager private constructor() : Disposable {
         }
 
         // 触发更改
-        DatabaseManagerExtension.fireDataChanged(id, StringUtils.EMPTY)
+        DatabaseManagerExtension.fireDataChanged(id, type, DatabaseManagerExtension.Action.Removed)
     }
 
     fun getSettings(): Map<String, String> {
@@ -329,7 +332,11 @@ class DatabaseManager private constructor() : Disposable {
                                 DataEntity.ownerId.eq(team.id) and (DataEntity.ownerType.eq(OwnerType.Team.name))
                             }
                         }
-                        DatabaseManagerExtension.fireDataChanged(StringUtils.EMPTY, StringUtils.EMPTY)
+                        DatabaseManagerExtension.fireDataChanged(
+                            StringUtils.EMPTY,
+                            StringUtils.EMPTY,
+                            DatabaseManagerExtension.Action.Removed
+                        )
                     }
                 }
             }

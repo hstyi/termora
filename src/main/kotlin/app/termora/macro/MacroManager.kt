@@ -22,20 +22,14 @@ class MacroManager private constructor() {
         private val log = LoggerFactory.getLogger(MacroManager::class.java)
     }
 
-    private val macros = mutableMapOf<String, Macro>()
     private val database get() = DatabaseManager.getInstance()
 
 
     fun getMacros(): List<Macro> {
-        if (macros.isEmpty()) {
-            database.data<Macro>(DataType.Macro)
-                .forEach { macros[it.id] = it }
-        }
-        return macros.values.sortedBy { it.created }
+        return database.data<Macro>(DataType.Macro).sortedBy { it.created }
     }
 
     fun addMacro(macro: Macro) {
-        macros[macro.id] = macro
 
         val accountId = AccountManager.getInstance().getAccountId()
 
@@ -55,8 +49,7 @@ class MacroManager private constructor() {
     }
 
     fun removeMacro(id: String) {
-        database.delete(id)
-        macros.remove(id)
+        database.delete(id, DataType.Macro.name)
         DeleteDataManager.getInstance().removeMacro(id)
 
         if (log.isDebugEnabled) {

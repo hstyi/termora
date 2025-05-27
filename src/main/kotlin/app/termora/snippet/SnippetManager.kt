@@ -19,7 +19,6 @@ class SnippetManager private constructor() {
     }
 
     private val database get() = DatabaseManager.getInstance()
-    private var snippets = mutableMapOf<String, Snippet>()
 
     /**
      * 修改缓存并存入数据库
@@ -30,7 +29,7 @@ class SnippetManager private constructor() {
             removeSnippet(snippet.id)
         } else {
             val accountId = AccountManager.getInstance().getAccountId()
-        
+
             database.save(
                 Data(
                     id = snippet.id,
@@ -41,13 +40,11 @@ class SnippetManager private constructor() {
                 )
             )
 
-            snippets[snippet.id] = snippet
         }
     }
 
     fun removeSnippet(id: String) {
-        snippets.entries.removeIf { it.value.id == id || it.value.parentId == id }
-        database.delete(id)
+        database.delete(id, DataType.Snippet.name)
         DeleteDataManager.getInstance().removeSnippet(id)
     }
 
@@ -55,11 +52,7 @@ class SnippetManager private constructor() {
      * 第一次调用从数据库中获取，后续从缓存中获取
      */
     fun snippets(): List<Snippet> {
-        if (snippets.isEmpty()) {
-            database.data<Snippet>(DataType.Snippet)
-                .forEach { snippets[it.id] = it }
-        }
-        return snippets.values.filter { !it.deleted }
+        return database.data<Snippet>(DataType.Snippet)
             .sortedWith(compareBy<Snippet> { if (it.type == SnippetType.Folder) 0 else 1 }.thenBy { it.sort })
     }
 

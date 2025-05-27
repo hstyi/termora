@@ -280,6 +280,9 @@ class SFTPFileSystemViewPanel(
         }
 
         private fun initEvents() {
+
+            Disposer.register(this, tree)
+
             tree.addMouseListener(object : MouseAdapter() {
                 override fun mouseClicked(e: MouseEvent) {
                     if (SwingUtilities.isLeftMouseButton(e) && e.clickCount % 2 == 0) {

@@ -1,12 +1,17 @@
 package app.termora
 
+import app.termora.Application.ohMyJson
 import app.termora.account.AccountManager
+import app.termora.db.DataType
+import app.termora.db.DatabaseManager
+import app.termora.db.DatabaseManagerExtension
 import app.termora.db.OwnerType
+import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import javax.swing.tree.MutableTreeNode
 import javax.swing.tree.TreeNode
 
 
-class NewHostTreeModel : SimpleTreeModel<Host>(
+class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
     HostTreeNode(
         Host(
             protocol = "Folder",
@@ -17,11 +22,18 @@ class NewHostTreeModel : SimpleTreeModel<Host>(
     )
 ), Disposable {
 
+    companion object {
+        fun getInstance(): NewHostTreeModel {
+            return ApplicationScope.forApplicationScope().getOrCreate(NewHostTreeModel::class) { NewHostTreeModel() }
+        }
+    }
+
     private val Host.isRoot get() = this.parentId == "0" || this.parentId.isBlank()
     private val hostManager get() = HostManager.getInstance()
 
     init {
         reload()
+        registerDynamicExtensions()
     }
 
     override fun getRoot(): HostTreeNode {
@@ -59,7 +71,9 @@ class NewHostTreeModel : SimpleTreeModel<Host>(
         }
 
         for ((_, v) in nodes.entries) {
-            if (parent.host.id == v.host.parentId) {
+            if (v.host.isRoot && parent == root) {
+                parent.add(v)
+            } else if (parent.host.id == v.host.parentId) {
                 parent.add(v)
             }
         }
@@ -76,6 +90,37 @@ class NewHostTreeModel : SimpleTreeModel<Host>(
                 if (c.host.sort == sort) continue
                 c.host = c.host.copy(sort = sort)
                 hostManager.addHost(c.host)
+            }
+        }
+    }
+
+    private fun registerDynamicExtensions() {
+        DynamicExtensionHandler.getInstance()
+            .register(DatabaseManagerExtension::class.java, MyDatabaseManagerExtension())
+            .let { Disposer.register(this, it) }
+    }
+
+    private inner class MyDatabaseManagerExtension : DatabaseManagerExtension {
+        private val databaseManager get() = DatabaseManager.getInstance()
+
+        override fun onDataChanged(id: String, type: String, action: DatabaseManagerExtension.Action) {
+            if (type.isNotBlank() && type != DataType.Host.name) return
+
+            val root = getRoot()
+            val children = root.getAllChildren()
+
+            if (action == DatabaseManagerExtension.Action.Added) {
+                if (children.any { it.id == id }) return
+                val data = databaseManager.data(id) ?: return
+                if (data.type != DataType.Host.name) return
+                val host = ohMyJson.decodeFromString<Host>(data.data)
+                val parent = if (host.parentId == "0" || host.parentId.isBlank()) root else
+                    children.firstOrNull { it.id == host.parentId } ?: return
+                val node = HostTreeNode(host)
+                insertNodeInto(node, parent, if (host.isFolder) parent.folderCount else parent.childCount)
+            } else if (action == DatabaseManagerExtension.Action.Removed) {
+                val node = children.firstOrNull { it.id == id } ?: return
+                removeNodeFromParent(node)
             }
         }
     }

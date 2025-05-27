@@ -43,7 +43,7 @@ class KeyManager private constructor() {
 
     fun removeOhKeyPair(id: String) {
         keyPairs.removeIf { it.id == id }
-        database.delete(id)
+        database.delete(id, DataType.KeyPair.name)
         DeleteDataManager.getInstance().removeKeyPair(id)
     }
 

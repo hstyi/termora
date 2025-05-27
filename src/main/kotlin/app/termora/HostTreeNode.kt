@@ -41,6 +41,10 @@ class HostTreeNode(host: Host) : SimpleTreeNode<Host>(host) {
         return super.getAllChildren().filterIsInstance<HostTreeNode>()
     }
 
+    fun findChild(id: String): HostTreeNode? {
+        return getAllChildren().firstOrNull { it.id == id }
+    }
+
     override fun getIcon(selected: Boolean, expanded: Boolean, hasFocus: Boolean): Icon {
         if (host.isFolder) return if (expanded) FlatTreeOpenIcon() else FlatTreeClosedIcon()
         val icon = ProtocolProvider.valueOf(host.protocol)?.getIcon() ?: Icons.terminal

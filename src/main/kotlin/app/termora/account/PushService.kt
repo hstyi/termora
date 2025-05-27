@@ -177,8 +177,8 @@ class PushService private constructor() : SyncService(), Disposable, Application
 
     }
 
-    override fun onDataChanged(id: String, type: String) {
-        channel.trySend(Unit).isSuccess
+    override fun onDataChanged(id: String, type: String, action: DatabaseManagerExtension.Action) {
+        trigger()
     }
 
     fun trigger() {

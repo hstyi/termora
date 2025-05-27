@@ -155,6 +155,8 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
 
     private fun initEvents() {
 
+        Disposer.register(this, hostTree)
+
         addComponentListener(object : ComponentAdapter() {
             override fun componentShown(e: ComponentEvent) {
                 if (!searchTextField.hasFocus()) {

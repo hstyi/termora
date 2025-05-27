@@ -1,7 +1,6 @@
 package app.termora
 
 import app.termora.Application.ohMyJson
-import app.termora.account.AccountManager
 import app.termora.actions.OpenHostAction
 import app.termora.db.DatabaseManager
 import app.termora.plugin.internal.rdp.RDPProtocolProvider
@@ -42,8 +41,7 @@ import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.xpath.XPathConstants
 import javax.xml.xpath.XPathFactory
 
-@Suppress("CascadeIf")
-class NewHostTree : SimpleTree() {
+class NewHostTree : SimpleTree(), Disposable {
 
     companion object {
         private val log = LoggerFactory.getLogger(NewHostTree::class.java)
@@ -59,9 +57,7 @@ class NewHostTree : SimpleTree() {
         get() = properties.getString("HostTree.showMoreInfo", "false").toBoolean()
         set(value) = properties.putString("HostTree.showMoreInfo", value.toString())
     private var isPopupMenu = false
-    private val accountManager get() = AccountManager.getInstance()
-    private val ownerId get() = accountManager.getAccountId()
-    override val model = NewHostTreeModel()
+    override val model = NewHostTreeModel.getInstance()
 
     /**
      * 是否允许显示右键菜单
@@ -176,6 +172,10 @@ class NewHostTree : SimpleTree() {
 
     }
 
+    override fun dispose() {
+        super.setModel(null)
+    }
+
 
     override fun showContextmenu(evt: MouseEvent) {
         if (!contextmenu) return
@@ -242,22 +242,23 @@ class NewHostTree : SimpleTree() {
         openInNewWindow.addActionListener { openHosts(it, true) }
         openWithSFTP.addActionListener { openWithSFTP(it) }
         openWithSFTPCommand.addActionListener { openWithSFTPCommand(it) }
-        newFolder.addActionListener {
-            val host = Host(
-                id = randomUUID(),
-                protocol = "Folder",
-                ownerId = lastNode.host.ownerId,
-                ownerType = lastNode.host.ownerType,
-                name = I18n.getString("termora.welcome.contextmenu.new.folder.name"),
-                sort = System.currentTimeMillis(),
-                parentId = lastHost.id
-            )
-            hostManager.addHost(host)
-            val newNode = HostTreeNode(host)
-            model.insertNodeInto(newNode, lastNode, lastNode.folderCount)
-            selectionPath = TreePath(model.getPathToRoot(newNode))
-            startEditingAtPath(selectionPath)
-        }
+        newFolder.addActionListener(object : ActionListener {
+            override fun actionPerformed(e: ActionEvent) {
+                val host = Host(
+                    id = randomUUID(),
+                    protocol = "Folder",
+                    ownerId = lastNode.host.ownerId,
+                    ownerType = lastNode.host.ownerType,
+                    name = I18n.getString("termora.welcome.contextmenu.new.folder.name"),
+                    sort = System.currentTimeMillis(),
+                    parentId = lastHost.id
+                )
+                hostManager.addHost(host)
+                val node = model.root.findChild(host.id) ?: return
+                selectionPath = TreePath(model.getPathToRoot(node))
+                startEditingAtPath(selectionPath)
+            }
+        })
         remove.addActionListener(object : ActionListener {
             override fun actionPerformed(e: ActionEvent) {
                 if (nodes.isEmpty()) return
@@ -270,12 +271,11 @@ class NewHostTree : SimpleTree() {
                     ) == JOptionPane.YES_OPTION
                 ) {
                     for (c in nodes) {
-                        hostManager.removeHost(c.host.id)
-                        model.removeNodeFromParent(c)
-                        // 将所有子孙也删除
+                        // 先删除子孙
                         for (child in c.getAllChildren()) {
                             hostManager.removeHost(child.host.id)
                         }
+                        hostManager.removeHost(c.host.id)
                     }
                 }
             }
@@ -284,8 +284,19 @@ class NewHostTree : SimpleTree() {
             for (c in nodes) {
                 val p = c.parent ?: continue
                 val newNode = copyNode(c, p.host.id)
+
+                // 先入 Model
                 model.insertNodeInto(newNode, p, lastNodeParent.getIndex(c) + 1)
+
+                // 最后再落库
+                hostManager.addHost(newNode.host)
+                for (node in newNode.getAllChildren()) {
+                    hostManager.addHost(node.host)
+                }
+
+                // 开启编辑
                 selectionPath = TreePath(model.getPathToRoot(newNode))
+
             }
         }
         rename.addActionListener { startEditingAtPath(TreePath(model.getPathToRoot(lastNode))) }
@@ -309,9 +320,10 @@ class NewHostTree : SimpleTree() {
                     ownerId = lastNode.host.ownerId,
                     ownerType = lastNode.host.ownerType,
                 )
-                hostManager.addHost(host)
+
                 val newNode = HostTreeNode(host)
                 model.insertNodeInto(newNode, lastNode, lastNode.childCount)
+                hostManager.addHost(host)
                 selectionPath = TreePath(model.getPathToRoot(newNode))
             }
         })
@@ -393,8 +405,6 @@ class NewHostTree : SimpleTree() {
             sort = now
         )
         val newNode = HostTreeNode(newHost)
-
-        hostManager.addHost(newHost)
 
         if (host.isFolder) {
             for (child in node.children()) {
@@ -582,18 +592,6 @@ class NewHostTree : SimpleTree() {
         }
 
         if (nodes.isEmpty()) return
-
-        for (node in nodes) {
-            node.host = node.host.copy(parentId = folder.host.id)
-            if (folder.getIndex(node) != -1) {
-                continue
-            }
-            model.insertNodeInto(
-                node,
-                folder,
-                if (node.host.isFolder) folder.folderCount else folder.childCount
-            )
-        }
 
         for (node in nodes) {
             hostManager.addHost(node.host)

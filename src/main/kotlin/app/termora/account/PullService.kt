@@ -198,7 +198,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
             if (log.isInfoEnabled) {
                 log.info("数据: {}, 类型: {} 云端已经删除，本地即将删除", id, type)
             }
-            databaseManager.delete(id)
+            databaseManager.delete(id, type)
         } else if (row.version > version) { // 如果本地版本大于云端版本，那么忽略，因为需要推送到云端
             if (log.isInfoEnabled) {
                 log.info(

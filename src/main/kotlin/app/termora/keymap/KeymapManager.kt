@@ -119,7 +119,7 @@ class KeymapManager private constructor() : Disposable {
                 keymaps.remove(name)
             }
         }
-        database.delete(id)
+        database.delete(id, DataType.Keymap.name)
     }
 
     private inner class KeymapKeyEventDispatcher : KeyEventDispatcher {

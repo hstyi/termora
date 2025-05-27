@@ -50,7 +50,7 @@ class KeywordHighlightManager private constructor() {
 
     fun removeKeywordHighlight(id: String) {
         keywordHighlights.remove(id)
-        database.delete(id)
+        database.delete(id, DataType.KeywordHighlight.name)
         TerminalPanelFactory.getInstance().repaintAll()
         DeleteDataManager.getInstance().removeKeywordHighlight(id)
 

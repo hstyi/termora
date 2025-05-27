@@ -4,9 +4,6 @@ import app.termora.Application.ohMyJson
 import app.termora.db.Data
 import app.termora.db.DataType
 import app.termora.db.DatabaseManager
-import app.termora.db.DatabaseManagerExtension
-import app.termora.plugin.internal.extension.DynamicExtensionHandler
-import org.apache.commons.lang3.StringUtils
 
 
 class HostManager private constructor() : Disposable {
@@ -16,28 +13,13 @@ class HostManager private constructor() : Disposable {
         }
     }
 
-    init {
-        Disposer.register(
-            this, DynamicExtensionHandler.getInstance()
-            .register(DatabaseManagerExtension::class.java, object : DatabaseManagerExtension {
-                override fun onDataChanged(id: String, type: String) {
-                    if (StringUtils.isBlank(type)) {
-                        hosts.remove(id)
-                    }
-                }
-            })
-        )
-    }
-
     private val databaseManager get() = DatabaseManager.getInstance()
-    private var hosts = mutableMapOf<String, Host>()
 
     /**
      * 修改缓存并存入数据库
      */
     fun addHost(host: Host) {
         assertEventDispatchThread()
-
         databaseManager.saveAndIncrementVersion(
             Data(
                 id = host.id,
@@ -48,23 +30,17 @@ class HostManager private constructor() : Disposable {
             )
         )
 
-        hosts[host.id] = host
     }
 
     fun removeHost(id: String) {
-        hosts.entries.removeIf { it.value.id == id || it.value.parentId == id }
-        databaseManager.delete(id)
-        DeleteDataManager.getInstance().removeHost(id)
+        databaseManager.delete(id, DataType.Host.name)
     }
 
     /**
      * 第一次调用从数据库中获取，后续从缓存中获取
      */
     fun hosts(): List<Host> {
-        if (hosts.isEmpty()) {
-            databaseManager.data<Host>(DataType.Host).forEach { hosts[it.id] = it }
-        }
-        return hosts.values
+        return databaseManager.data<Host>(DataType.Host)
             .sortedWith(compareBy<Host> { if (it.isFolder) 0 else 1 }.thenBy { it.sort })
     }
 
@@ -72,7 +48,9 @@ class HostManager private constructor() : Disposable {
      * 从缓存中获取
      */
     fun getHost(id: String): Host? {
-        return hosts[id]
+        val data = databaseManager.data(id) ?: return null
+        if (data.type != DataType.Host.name) return null
+        return ohMyJson.decodeFromString(data.data)
     }
 
 }

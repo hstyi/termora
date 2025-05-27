@@ -66,7 +66,7 @@ abstract class SyncService {
         }
 
         // 触发更改
-        DatabaseManagerExtension.fireDataChanged(id, DataType.Host.name)
+        DatabaseManagerExtension.fireDataChanged(id, DataType.Host.name, DatabaseManagerExtension.Action.Changed)
     }
 
 
