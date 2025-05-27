@@ -4,6 +4,7 @@ import app.termora.*
 import app.termora.Application.ohMyJson
 import app.termora.account.Account
 import app.termora.account.AccountExtension
+import app.termora.account.AccountManager
 import app.termora.db.Data.Companion.toData
 import app.termora.plugin.ExtensionManager
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
@@ -81,68 +82,9 @@ class DatabaseManager private constructor() : Disposable {
     }
 
     private fun registerDynamicExtensions() {
-        DynamicExtensionHandler.getInstance().register(AccountExtension::class.java, object : AccountExtension {
-            override fun onAccountChanged(
-                oldAccount: Account,
-                newAccount: Account
-            ) {
-                if (oldAccount.isLocally && newAccount.isLocally) {
-                    return
-                }
-
-                if (oldAccount.id == newAccount.id) {
-                    return
-                }
-
-                // 如果之前是本地用户，现在是云端用户，那么把之前的数据复制一份到云端用户
-                // 复制到云端之后就可以删除本地数据了
-                if (oldAccount.isLocally && newAccount.isLocally.not()) {
-                    for (type in DataType.entries) {
-                        for (data in rawData(type)) {
-                            // 已经删除了，那么忽略
-                            if (data.deleted) continue
-                            // 不是用户数据，那么忽略
-                            if (data.ownerType != OwnerType.User.name) continue
-                            // 不是本地用户数据，那么忽略
-                            if (data.ownerId != "0") continue
-
-                            // 保存
-                            save(
-                                data.copy(
-                                    ownerId = newAccount.id,
-                                    synced = false,
-                                    id = randomUUID()
-                                )
-                            )
-
-                            // 物理删除本地数据
-                            lock.withLock { transaction(database) { DataEntity.deleteWhere { DataEntity.id.eq(data.id) } } }
-                        }
-                    }
-                }
-
-                // 如果之前是云端用户，退出登录了要删除本地数据
-                if (oldAccount.isLocally.not()) {
-                    lock.withLock {
-                        transaction(database) {
-                            // 删除用户的数据
-                            DataEntity.deleteWhere {
-                                DataEntity.ownerId.eq(oldAccount.id) and (DataEntity.ownerType.eq(OwnerType.User.name))
-                            }
-                            // 删除团队的数据
-                            for (team in oldAccount.teams) {
-                                DataEntity.deleteWhere {
-                                    DataEntity.ownerId.eq(team.id) and (DataEntity.ownerType.eq(OwnerType.Team.name))
-                                }
-                            }
-                            DatabaseManagerExtension.fireDataChanged(StringUtils.EMPTY, StringUtils.EMPTY)
-                        }
-                    }
-                }
-
-            }
-        }).let { Disposer.register(this, it) }
-
+        // 负责清理或转移数据，如果从本地用户切换到云端用户，那么把本地用户的数据复制到云端用户下，然后本地用户数据清除
+        DynamicExtensionHandler.getInstance().register(AccountExtension::class.java, AccountDataTransferExtension())
+            .let { Disposer.register(this, it) }
     }
 
     /**
@@ -333,6 +275,66 @@ class DatabaseManager private constructor() : Disposable {
         lock.withLock {
             TransactionManager.closeAndUnregister(database)
         }
+    }
+
+
+    private inner class AccountDataTransferExtension : AccountExtension {
+        override fun onAccountChanged(oldAccount: Account, newAccount: Account) {
+            if (oldAccount.isLocally && newAccount.isLocally) {
+                return
+            }
+
+            if (oldAccount.id == newAccount.id) {
+                return
+            }
+
+            // 如果之前是本地用户，现在是云端用户，那么把之前的数据复制一份到云端用户
+            // 复制到云端之后就可以删除本地数据了
+            if (oldAccount.isLocally && newAccount.isLocally.not()) {
+                for (type in DataType.entries) {
+                    for (data in rawData(type)) {
+                        // 已经删除了，那么忽略
+                        if (data.deleted) continue
+                        // 不是用户数据，那么忽略
+                        if (data.ownerType != OwnerType.User.name) continue
+                        // 不是本地用户数据，那么忽略
+                        if (AccountManager.isLocally(data.ownerId).not()) continue
+
+                        // 保存
+                        save(
+                            data.copy(
+                                ownerId = newAccount.id,
+                                synced = false,
+                                id = randomUUID()
+                            )
+                        )
+
+                        // 物理删除本地数据
+                        lock.withLock { transaction(database) { DataEntity.deleteWhere { DataEntity.id.eq(data.id) } } }
+                    }
+                }
+            }
+
+            // 如果之前是云端用户，退出登录了要删除本地数据
+            if (oldAccount.isLocally.not()) {
+                lock.withLock {
+                    transaction(database) {
+                        // 删除用户的数据
+                        DataEntity.deleteWhere {
+                            DataEntity.ownerId.eq(oldAccount.id) and (DataEntity.ownerType.eq(OwnerType.User.name))
+                        }
+                        // 删除团队的数据
+                        for (team in oldAccount.teams) {
+                            DataEntity.deleteWhere {
+                                DataEntity.ownerId.eq(team.id) and (DataEntity.ownerType.eq(OwnerType.Team.name))
+                            }
+                        }
+                        DatabaseManagerExtension.fireDataChanged(StringUtils.EMPTY, StringUtils.EMPTY)
+                    }
+                }
+            }
+        }
+
     }
 
     abstract class IProperties(

@@ -15,7 +15,7 @@ class NewHostTreeModel : SimpleTreeModel<Host>(
             ownerType = OwnerType.User.name,
         )
     )
-) {
+), Disposable {
 
     private val Host.isRoot get() = this.parentId == "0" || this.parentId.isBlank()
     private val hostManager get() = HostManager.getInstance()

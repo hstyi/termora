@@ -22,6 +22,10 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
             return ApplicationScope.forApplicationScope()
                 .getOrCreate(AccountManager::class) { AccountManager() }
         }
+
+        fun isLocally(id: String): Boolean {
+            return StringUtils.isBlank(id) || id == "0"
+        }
     }
 
     private var account = locally()
@@ -190,6 +194,7 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
             swingCoroutineScope.launch(Dispatchers.IO) { refreshToken() }
         }
     }
+
 
     /**
      * 刷新用户

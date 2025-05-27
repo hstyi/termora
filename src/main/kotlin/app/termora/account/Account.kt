@@ -58,7 +58,7 @@ data class Account(
 ) {
 
     val isLocally
-        get() = (id == "0" || StringUtils.equalsIgnoreCase(email, "locally") ||
+        get() = (AccountManager.isLocally(id) || StringUtils.equalsIgnoreCase(email, "locally") ||
                 StringUtils.equalsIgnoreCase(server, "locally"))
 
     override fun equals(other: Any?): Boolean {
