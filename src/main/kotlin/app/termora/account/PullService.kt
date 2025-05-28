@@ -3,6 +3,7 @@ package app.termora.account
 import app.termora.*
 import app.termora.Application.ohMyJson
 import app.termora.db.Data
+import app.termora.db.DatabaseManagerExtension
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -14,6 +15,7 @@ import kotlinx.serialization.json.long
 import okhttp3.Request
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.withLock
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
@@ -50,6 +52,8 @@ class PullService private constructor() : SyncService(), Disposable, Application
     private val channel = Channel<String>(Channel.UNLIMITED)
     private val pullChannel = Channel<Unit>(Channel.CONFLATED)
     private val accountProperties get() = AccountProperties.getInstance()
+    private val pulling = AtomicBoolean(false)
+    val isPulling get() = pulling.get()
 
     private suspend fun schedule() {
         try {
@@ -68,23 +72,29 @@ class PullService private constructor() : SyncService(), Disposable, Application
 
 
     private fun pullChanges() {
-        try {
-            if (isFreePlan.not()) {
-                doPullChanges()
-            }
-        } catch (e: Exception) {
-            if (log.isErrorEnabled) {
-                log.error(e.message, e)
+        if (isFreePlan.not() && pulling.compareAndSet(false, true)) {
+            var count = 0
+            try {
+                PullServiceExtension.firePullStarted()
+                count = doPullChanges()
+            } catch (e: Exception) {
+                if (log.isErrorEnabled) {
+                    log.error(e.message, e)
+                }
+            } finally {
+                pulling.set(false)
+                PullServiceExtension.firePullFinished(count)
             }
         }
     }
 
-    private fun doPullChanges() {
+    private fun doPullChanges(): Int {
 
         val since = accountProperties.nextSynchronizationSince
         var after = StringUtils.EMPTY
         var nextSince = since
         val limit = 100
+        var count = 0
 
         while (true) {
             val request = Request.Builder()
@@ -107,7 +117,15 @@ class PullService private constructor() : SyncService(), Disposable, Application
                     if (log.isInfoEnabled) {
                         log.info("数据: {}, 本地版本: {}, 云端版本: {} 触发同步", e.objectId, data?.version, e.version)
                     }
-                    trigger(e.objectId)
+                    try {
+                        if (pull(e.objectId) == PullResult.Changed) {
+                            count++
+                        }
+                    } catch (e: Exception) {
+                        if (log.isErrorEnabled) {
+                            log.error(e.message, e)
+                        }
+                    }
                 } else if (log.isDebugEnabled) {
                     log.debug("数据: {} 本地版本与云端版本一致", e.objectId)
                 }
@@ -121,11 +139,12 @@ class PullService private constructor() : SyncService(), Disposable, Application
         accountProperties.nextSynchronizationSince = nextSince
         accountProperties.lastSynchronizationOn = System.currentTimeMillis()
 
+        return count
 
     }
 
 
-    private fun pull(id: String) {
+    private fun pull(id: String): PullResult {
         val request = Request.Builder().url("${accountManager.getServer()}/v1/data/${id}")
             .get()
             .build()
@@ -142,7 +161,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
             }
             // 云端数据不存在，那么本地也要删除
             updateData(id, synced = true, deleted = true)
-            return
+            return PullResult.Changed
         }
 
         // 没有权限拉取
@@ -151,7 +170,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
                 log.warn("数据: {} 没有权限拉取，本地数据将会删除", id)
             }
             updateData(id, synced = true, deleted = true)
-            return
+            return PullResult.Changed
         }
 
         // 其他错误
@@ -185,7 +204,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
                 if (log.isInfoEnabled) {
                     log.info("数据: {}, 类型: {} 云端已经删除，本地也不存在", id, type)
                 }
-                return
+                return PullResult.Nothing
             }
 
             if (log.isInfoEnabled) {
@@ -204,14 +223,18 @@ class PullService private constructor() : SyncService(), Disposable, Application
                     // 因为已经是拉取最新版本了，所以这里无需再同步了
                     synced = true,
                     deleted = false
-                )
+                ),
+                DatabaseManagerExtension.Source.Sync
             )
 
         } else if (deleted && row.deleted.not()) { // 如果本地存在，云端已经删除，那么本地删除
             if (log.isInfoEnabled) {
                 log.info("数据: {}, 类型: {} 云端已经删除，本地即将删除", id, type)
             }
-            databaseManager.delete(id, type)
+            databaseManager.delete(
+                id, type,
+                DatabaseManagerExtension.Source.Sync
+            )
         } else if (row.version > version) { // 如果本地版本大于云端版本，那么忽略，因为需要推送到云端
             if (log.isInfoEnabled) {
                 log.info(
@@ -250,11 +273,14 @@ class PullService private constructor() : SyncService(), Disposable, Application
                     // 因为已经是拉取最新版本了，所以这里无需再同步了
                     synced = true,
                     deleted = false
-                )
+                ),
+                DatabaseManagerExtension.Source.Sync
             )
+        } else {
+            return PullResult.Nothing
         }
 
-
+        return PullResult.Changed
     }
 
     fun trigger(id: String) {
@@ -297,6 +323,10 @@ class PullService private constructor() : SyncService(), Disposable, Application
         })
     }
 
+    private enum class PullResult {
+        Nothing,
+        Changed
+    }
 
     @Serializable
     private data class DataChangesResponse(

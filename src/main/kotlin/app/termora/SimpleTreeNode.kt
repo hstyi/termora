@@ -34,4 +34,5 @@ abstract class SimpleTreeNode<T>(data: T) : DefaultMutableTreeNode(data) {
         }
         return children
     }
+
 }

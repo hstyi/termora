@@ -21,7 +21,7 @@ class FilterableHostTreeModel(
     private val model = tree.model
     private val root = ReferenceTreeNode(model.root)
     private var listeners = emptyArray<TreeModelListener>()
-    private var filters = emptyArray<Function<HostTreeNode, Boolean>>()
+    private var filters = emptyArray<Function<SimpleTreeNode<*>, Boolean>>()
     private val mapping = mutableMapOf<TreeNode, ReferenceTreeNode>()
 
     init {
@@ -34,14 +34,14 @@ class FilterableHostTreeModel(
      * @param a 旧的
      * @param b 新的
      */
-    private fun cloneTree(a: HostTreeNode, b: DefaultMutableTreeNode) {
+    private fun cloneTree(a: SimpleTreeNode<*>, b: DefaultMutableTreeNode) {
         b.removeAllChildren()
         for (c in a.children()) {
-            if (c !is HostTreeNode) {
+            if (c !is SimpleTreeNode<*>) {
                 continue
             }
 
-            if (c.data.isFolder.not()) {
+            if (c.isFolder.not()) {
                 if (filters.isNotEmpty() && filters.none { it.apply(c) }) {
                     continue
                 }
@@ -50,12 +50,12 @@ class FilterableHostTreeModel(
             val n = ReferenceTreeNode(c).apply { mapping[c] = this }.apply { b.add(this) }
 
             // 文件夹递归复制
-            if (c.host.isFolder) {
+            if (c.isFolder) {
                 cloneTree(c, n)
             }
 
             // 如果是文件夹
-            if (c.host.isFolder) {
+            if (c.isFolder) {
                 if (n.childCount == 0) {
                     if (showEmptyFolder.invoke()) {
                         continue
@@ -136,7 +136,7 @@ class FilterableHostTreeModel(
         listeners = ArrayUtils.removeElement(listeners, l)
     }
 
-    fun addFilter(f: Function<HostTreeNode, Boolean>) {
+    fun addFilter(f: Function<SimpleTreeNode<*>, Boolean>) {
         filters = ArrayUtils.add(filters, f)
     }
 

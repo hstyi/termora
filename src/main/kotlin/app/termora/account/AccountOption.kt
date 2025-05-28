@@ -5,6 +5,7 @@ import app.termora.Application.ohMyJson
 import app.termora.OptionsPane.Companion.formMargin
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
+import app.termora.db.DatabaseManager
 import com.formdev.flatlaf.extras.components.FlatLabel
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
@@ -41,6 +42,7 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
     }
 
     private val owner get() = SwingUtilities.getWindowAncestor(this)
+    private val databaseManager get() = DatabaseManager.getInstance()
     private val accountManager get() = AccountManager.getInstance()
     private val accountProperties get() = AccountProperties.getInstance()
     private val cardLayout = CardLayout()
@@ -166,8 +168,11 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
 
             actions.add(JXHyperlink(object : AnAction(I18n.getString("termora.settings.account.logout")) {
                 override fun actionPerformed(evt: AnActionEvent) {
+                    val hasUnsyncedData = databaseManager.unsyncedData().isNotEmpty()
+                    val message = if (hasUnsyncedData) "termora.settings.account.unsynced-logout-confirm"
+                    else "termora.settings.account.logout-confirm"
                     val option = OptionPane.showConfirmDialog(
-                        owner, I18n.getString("termora.settings.account.logout-confirm"),
+                        owner, I18n.getString(message),
                         optionType = JOptionPane.OK_CANCEL_OPTION,
                         messageType = JOptionPane.QUESTION_MESSAGE,
                     )

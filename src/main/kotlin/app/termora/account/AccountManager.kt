@@ -41,7 +41,7 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     fun getPrivateKey() = account.privateKey
     fun isSigned() = isFreePlan().not() && AccountProperties.getInstance().signed
     fun isLocally() = account.isLocally
-
+    fun hasTeamFeature() = setOf(SubscriptionPlan.Team, SubscriptionPlan.Enterprise).contains(getSubscription().plan)
     fun getLastSynchronizationOn() = accountProperties.lastSynchronizationOn
     fun getAccessToken() = account.accessToken
     fun getRefreshToken() = account.refreshToken

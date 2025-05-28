@@ -190,8 +190,13 @@ class PushService private constructor() : SyncService(), Disposable, Application
 
     }
 
-    override fun onDataChanged(id: String, type: String, action: DatabaseManagerExtension.Action) {
-        trigger()
+    override fun onDataChanged(
+        id: String,
+        type: String,
+        action: DatabaseManagerExtension.Action,
+        source: DatabaseManagerExtension.Source
+    ) {
+        if (source == DatabaseManagerExtension.Source.User) trigger()
     }
 
     fun trigger() {

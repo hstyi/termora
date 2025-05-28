@@ -4,6 +4,7 @@ import app.termora.Application.ohMyJson
 import app.termora.account.Account
 import app.termora.account.AccountExtension
 import app.termora.account.AccountManager
+import app.termora.account.PullServiceExtension
 import app.termora.db.DataType
 import app.termora.db.DatabaseManager
 import app.termora.db.DatabaseManagerExtension
@@ -17,8 +18,7 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
     HostTreeNode(
         Host(
             protocol = "Folder",
-            name = I18n.getString("termora.welcome.my-hosts"),
-            id = "0",
+            name = "Root",
             ownerType = OwnerType.User.name,
         )
     )
@@ -30,6 +30,7 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
         }
     }
 
+
     private val Host.isRoot get() = this.parentId == "0" || this.parentId.isBlank()
     private val hostManager get() = HostManager.getInstance()
     private val accountManager get() = AccountManager.getInstance()
@@ -40,9 +41,7 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
     }
 
     override fun getRoot(): HostTreeNode {
-        val root = super.getRoot() as HostTreeNode
-        root.host = root.host.copy(ownerId = accountManager.getAccountId())
-        return root
+        return super.getRoot() as HostTreeNode
     }
 
 
@@ -55,8 +54,29 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
 
         parent.removeAllChildren()
 
-        val hosts = hostManager.hosts()
+        val ownerIds = mutableSetOf(accountManager.getAccountId())
+        ownerIds.addAll(accountManager.getTeams().map { it.id })
+        val hosts = hostManager.hosts().filter { ownerIds.contains(it.ownerId) }
         val nodes = linkedMapOf<String, HostTreeNode>()
+
+        // 如果是根，需要引入团队功能
+        if (parent == getRoot()) {
+            if (accountManager.hasTeamFeature()) {
+                for (team in accountManager.getTeams()) {
+                    nodes[team.id] = TeamTreeNode(team)
+                }
+            }
+
+            nodes[accountManager.getAccountId()] = HostTreeNode(
+                Host(
+                    id = "0",
+                    name = I18n.getString("termora.welcome.my-hosts"),
+                    ownerId = accountManager.getAccountId(),
+                    ownerType = OwnerType.User.name,
+                    protocol = "Folder"
+                )
+            )
+        }
 
         // 遍历 Host 列表，构建树节点
         for (host in hosts) {
@@ -66,16 +86,24 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
 
         for (host in hosts) {
             val node = nodes[host.id] ?: continue
-            if (host.isRoot) continue
-            val p = nodes[host.parentId] ?: continue
+            val p = if (host.parentId == "0" || host.parentId.isBlank())
+                nodes[accountManager.getAccountId()] else nodes[host.parentId]
+            if (p == null) continue
             p.add(node)
         }
 
-        for ((_, v) in nodes.entries) {
-            if (v.host.isRoot && parent == root) {
-                parent.add(v)
-            } else if (parent.host.id == v.host.parentId) {
-                parent.add(v)
+        if (parent == getRoot()) {
+            if (accountManager.hasTeamFeature()) {
+                for (team in accountManager.getTeams()) {
+                    parent.add(nodes.getValue(team.id))
+                }
+            }
+            parent.add(nodes.getValue(accountManager.getAccountId()))
+        } else {
+            for (node in nodes.values) {
+                if (node.host.parentId == parent.id) {
+                    parent.add(node)
+                }
             }
         }
 
@@ -83,7 +111,12 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
     }
 
     override fun insertNodeInto(newChild: MutableTreeNode, parent: MutableTreeNode, index: Int) {
-        super.insertNodeInto(newChild, parent, index)
+        var idx = index
+        if (parent == getRoot() && index == 0 && accountManager.hasTeamFeature()) {
+            idx = accountManager.getTeams().size
+        }
+        super.insertNodeInto(newChild, parent, idx)
+
         // 重置所有排序
         if (parent is HostTreeNode) {
             for ((i, c) in parent.children().toList().filterIsInstance<HostTreeNode>().withIndex()) {
@@ -105,12 +138,24 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
         DynamicExtensionHandler.getInstance()
             .register(AccountExtension::class.java, MyAccountAccountExtension())
             .let { Disposer.register(this, it) }
+
+        // 拉取后，刷新整个 reload
+        DynamicExtensionHandler.getInstance()
+            .register(PullServiceExtension::class.java, MyPullServiceExtension())
+            .let { Disposer.register(this, it) }
     }
 
     private inner class MyDatabaseManagerExtension : DatabaseManagerExtension {
         private val databaseManager get() = DatabaseManager.getInstance()
 
-        override fun onDataChanged(id: String, type: String, action: DatabaseManagerExtension.Action) {
+        override fun onDataChanged(
+            id: String,
+            type: String,
+            action: DatabaseManagerExtension.Action,
+            source: DatabaseManagerExtension.Source
+        ) {
+
+            if (source == DatabaseManagerExtension.Source.Sync) return
             if (type.isNotBlank() && type != DataType.Host.name) return
             if (action == DatabaseManagerExtension.Action.Changed) return
 
@@ -122,15 +167,10 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
                 val data = databaseManager.data(id) ?: return
                 if (data.type != DataType.Host.name) return
                 val host = ohMyJson.decodeFromString<Host>(data.data)
-                val parent = if (host.parentId == "0" || host.parentId.isBlank()) root else
-                    children.firstOrNull { it.id == host.parentId } ?: return
-
+                val parent = children.firstOrNull { it.id == host.parentId } ?: return
+                if (parent.host.ownerId != data.ownerId) return
                 val node = HostTreeNode(host)
                 insertNodeInto(node, parent, if (host.isFolder) parent.folderCount else parent.childCount)
-
-                // 如果是个文件夹，那么强制刷新一下子，因为同步原因，子落库的时候父还没落库
-                if (host.isFolder) reload(node)
-
             } else if (action == DatabaseManagerExtension.Action.Removed) {
                 val node = children.firstOrNull { it.id == id } ?: return
                 removeNodeFromParent(node)
@@ -138,9 +178,17 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
         }
     }
 
+    private inner class MyPullServiceExtension : PullServiceExtension {
+        override fun onPullFinished(count: Int) {
+            if (count != 0)
+                reload(getRoot())
+        }
+    }
+
     private inner class MyAccountAccountExtension : AccountExtension {
         override fun onAccountChanged(oldAccount: Account, newAccount: Account) {
-            reload(root)
+            if (oldAccount.id != newAccount.id)
+                reload(getRoot())
         }
     }
 

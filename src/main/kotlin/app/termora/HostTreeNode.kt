@@ -6,20 +6,17 @@ import com.formdev.flatlaf.icons.FlatTreeOpenIcon
 import javax.swing.Icon
 import javax.swing.tree.TreeNode
 
-class HostTreeNode(host: Host) : SimpleTreeNode<Host>(host) {
-    companion object {
-        private val hostManager get() = HostManager.getInstance()
-    }
+open class HostTreeNode(host: Host) : SimpleTreeNode<Host>(host) {
 
     var host: Host
         get() = data
         set(value) = setUserObject(value)
 
     override val isFolder: Boolean
-        get() = data.isFolder
+        get() = host.isFolder
 
     override val id: String
-        get() = data.id
+        get() = host.id
 
     /**
      * 如果要重新赋值，记得修改 [Host.updateDate] 否则下次取出时可能时缓存的
@@ -31,7 +28,7 @@ class HostTreeNode(host: Host) : SimpleTreeNode<Host>(host) {
         set(value) = setUserObject(value)
 
     override val folderCount
-        get() = children().toList().count { if (it is HostTreeNode) it.data.isFolder else false }
+        get() = children().toList().filterIsInstance<SimpleTreeNode<*>>().count { it.isFolder }
 
     override fun getParent(): HostTreeNode? {
         return super.getParent() as HostTreeNode?
@@ -104,5 +101,9 @@ class HostTreeNode(host: Host) : SimpleTreeNode<Host>(host) {
 
     override fun hashCode(): Int {
         return data.hashCode()
+    }
+
+    override fun toString(): String {
+        return host.name
     }
 }

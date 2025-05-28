@@ -132,6 +132,7 @@ open class SimpleTree : JXTree() {
         transferHandler = object : TransferHandler() {
 
             override fun createTransferable(c: JComponent): Transferable? {
+                if (tree.canCreateTransferable(c).not()) return null
                 val nodes = getSelectionSimpleTreeNodes().toMutableList()
                 if (nodes.isEmpty()) return null
                 if (nodes.contains(model.root)) return null
@@ -154,6 +155,7 @@ open class SimpleTree : JXTree() {
 
             override fun canImport(support: TransferSupport): Boolean {
                 if (support.component != tree) return false
+                if (tree.canImport(support).not()) return false
                 val dropLocation = support.dropLocation as? JTree.DropLocation ?: return false
                 val path = dropLocation.path ?: return false
                 val node = path.lastPathComponent as? SimpleTreeNode<*> ?: return false
@@ -244,6 +246,14 @@ open class SimpleTree : JXTree() {
                 return true
             }
         }
+    }
+
+    protected open fun canImport(support: TransferHandler.TransferSupport): Boolean {
+        return true
+    }
+
+    protected open fun canCreateTransferable(c: JComponent): Boolean {
+        return true
     }
 
     protected open fun newFolder(newNode: SimpleTreeNode<*>): Boolean {

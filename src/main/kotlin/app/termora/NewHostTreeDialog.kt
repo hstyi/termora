@@ -46,7 +46,7 @@ class NewHostTreeDialog(
 
     }
 
-    fun setFilter(filter: Function<HostTreeNode, Boolean>) {
+    fun setFilter(filter: Function<SimpleTreeNode<*>, Boolean>) {
         tree.model = FilterableHostTreeModel(tree) { false }.apply {
             addFilter(filter)
             refresh()

@@ -12,6 +12,7 @@ import app.termora.terminal.CursorStyle
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.statements.StatementType
 import org.jetbrains.exposed.v1.jdbc.*
@@ -42,7 +43,7 @@ class DatabaseManager private constructor() : Disposable {
     val sftp by lazy { SFTP(this) }
 
     private val map = Collections.synchronizedMap<String, String?>(mutableMapOf())
-
+    private val accountManager get() = AccountManager.getInstance()
 
     init {
 
@@ -117,6 +118,20 @@ class DatabaseManager private constructor() : Disposable {
         }
     }
 
+
+    fun unsyncedData(): List<Data> {
+        val list = mutableListOf<Data>()
+        lock.withLock {
+            transaction(database) {
+                val rows = DataEntity.selectAll().where { (DataEntity.synced eq false) }.toList()
+                for (row in rows) {
+                    list.add(row.toData())
+                }
+            }
+        }
+        return list
+    }
+
     /**
      * 获取数据版本
      */
@@ -182,7 +197,7 @@ class DatabaseManager private constructor() : Disposable {
         }
     }
 
-    fun save(data: Data) {
+    fun save(data: Data, source: DatabaseManagerExtension.Source = DatabaseManagerExtension.Source.User) {
         var action = DatabaseManagerExtension.Action.Changed
         lock.withLock {
             transaction(database) {
@@ -215,22 +230,28 @@ class DatabaseManager private constructor() : Disposable {
         }
 
         // 触发更改
-        DatabaseManagerExtension.fireDataChanged(data.id, data.type, action)
+        DatabaseManagerExtension.fireDataChanged(data.id, data.type, action, source)
     }
 
-    fun delete(id: String, type: String) {
+    fun delete(
+        id: String,
+        type: String,
+        source: DatabaseManagerExtension.Source = DatabaseManagerExtension.Source.User
+    ) {
+
         lock.withLock {
             transaction(database) {
                 DataEntity.update({ DataEntity.id eq id }) {
                     it[DataEntity.deleted] = true
-                    it[DataEntity.synced] = false
+                    // 如果是本地用户，那么删除是不需要同步的，云端用户才需要同步
+                    it[DataEntity.synced] = accountManager.isLocally()
                     it[DataEntity.data] = StringUtils.EMPTY
                 }
             }
         }
 
         // 触发更改
-        DatabaseManagerExtension.fireDataChanged(id, type, DatabaseManagerExtension.Action.Removed)
+        DatabaseManagerExtension.fireDataChanged(id, type, DatabaseManagerExtension.Action.Removed, source)
     }
 
     fun getSettings(): Map<String, String> {
@@ -282,6 +303,7 @@ class DatabaseManager private constructor() : Disposable {
 
 
     private inner class AccountDataTransferExtension : AccountExtension {
+        private val hostManager get() = HostManager.getInstance()
         override fun onAccountChanged(oldAccount: Account, newAccount: Account) {
             if (oldAccount.isLocally && newAccount.isLocally) {
                 return
@@ -294,18 +316,7 @@ class DatabaseManager private constructor() : Disposable {
             // 如果之前是本地用户，现在是云端用户，那么把之前的数据复制一份到云端用户
             // 复制到云端之后就可以删除本地数据了
             if (oldAccount.isLocally && newAccount.isLocally.not()) {
-                for (type in DataType.entries) {
-                    for (data in rawData(type)) {
-                        // 已经删除了，那么忽略
-                        if (data.deleted) continue
-                        // 不是用户数据，那么忽略
-                        if (data.ownerType != OwnerType.User.name) continue
-                        // 不是本地用户数据，那么忽略
-                        if (AccountManager.isLocally(data.ownerId).not()) continue
-                        // 保存
-                        save(data.copy(ownerId = newAccount.id, synced = false, id = randomUUID()))
-                    }
-                }
+                transferData(newAccount)
             }
 
             // 如果之前是云端用户，退出登录了要删除本地数据
@@ -327,6 +338,43 @@ class DatabaseManager private constructor() : Disposable {
                             StringUtils.EMPTY,
                             DatabaseManagerExtension.Action.Removed
                         )
+                    }
+                }
+            }
+        }
+
+        private fun transferData(account: Account) {
+            val deleteIds = mutableSetOf<String>()
+
+            for (host in hostManager.hosts()) {
+                // 不是用户数据，那么忽略
+                if (host.ownerType.isNotBlank() && host.ownerType != OwnerType.User.name) continue
+                // 不是本地用户数据，那么忽略
+                if (AccountManager.isLocally(host.ownerId).not()) continue
+                // 转移资产
+                val newHost = host.copy(
+                    id = randomUUID(),
+                    ownerId = account.id,
+                    ownerType = OwnerType.User.name,
+                )
+                // 保存数据
+                save(
+                    Data(
+                        id = newHost.id,
+                        ownerId = newHost.ownerId,
+                        ownerType = newHost.ownerType,
+                        type = DataType.Host.name,
+                        data = ohMyJson.encodeToString(newHost),
+                    )
+                )
+
+                deleteIds.add(host.id)
+            }
+
+            if (deleteIds.isNotEmpty()) {
+                lock.withLock {
+                    transaction(database) {
+                        DataEntity.deleteWhere { DataEntity.id.inList(deleteIds) }
                     }
                 }
             }

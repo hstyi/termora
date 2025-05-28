@@ -978,7 +978,7 @@ open class SSHHostOptionsPane : OptionsPane() {
             addBtn.addActionListener(object : AbstractAction() {
                 override fun actionPerformed(e: ActionEvent?) {
                     val dialog = NewHostTreeDialog(owner)
-                    dialog.setFilter { node -> jumpHosts.none { it.id == node.host.id } && filter.invoke(node.host) }
+                    dialog.setFilter { node -> node is HostTreeNode && jumpHosts.none { it.id == node.host.id } && filter.invoke(node.host) }
                     dialog.setTreeName("HostOptionsPane.JumpHostsOption.Tree")
                     dialog.setLocationRelativeTo(owner)
                     dialog.isVisible = true

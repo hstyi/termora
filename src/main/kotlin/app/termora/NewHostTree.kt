@@ -1,6 +1,7 @@
 package app.termora
 
 import app.termora.Application.ohMyJson
+import app.termora.account.AccountManager
 import app.termora.actions.OpenHostAction
 import app.termora.db.DatabaseManager
 import app.termora.plugin.internal.rdp.RDPProtocolProvider
@@ -58,6 +59,7 @@ class NewHostTree : SimpleTree(), Disposable {
         set(value) = properties.putString("HostTree.showMoreInfo", value.toString())
     private var isPopupMenu = false
     override val model = NewHostTreeModel.getInstance()
+    private val accountManager get() = AccountManager.getInstance()
 
     /**
      * 是否允许显示右键菜单
@@ -79,7 +81,7 @@ class NewHostTree : SimpleTree(), Disposable {
         super.setModel(model)
         isEditable = true
         dragEnabled = true
-        isRootVisible = true
+        isRootVisible = false
         dropMode = DropMode.ON_OR_INSERT
         selectionModel.selectionMode = TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION
 
@@ -94,10 +96,8 @@ class NewHostTree : SimpleTree(), Disposable {
                 row: Int,
                 hasFocus: Boolean
             ): Component {
-                val node = value as HostTreeNode
-                val host = node.host
-                var text = host.name
-
+                val node = value as SimpleTreeNode<*>
+                var text = value.toString()
                 // 是否显示更多信息
                 if (isShowMoreInfo) {
                     val color = if (sel) {
@@ -114,19 +114,21 @@ class NewHostTree : SimpleTree(), Disposable {
                         """<font color=rgb(${color.red},${color.green},${color.blue})>${it}</font>"""
                     }
 
-                    // @formatter:off
-                    if (host.protocol == SSHProtocolProvider.PROTOCOL || host.protocol == RDPProtocolProvider.PROTOCOL) {
-                        text = "<html>${host.name}&nbsp;&nbsp;&nbsp;&nbsp;${fontTag.apply("${host.username}@${host.host}")}</html>"
-                    } else if (host.protocol == "Serial") {
-                        text = "<html>${host.name}&nbsp;&nbsp;&nbsp;&nbsp;${fontTag.apply(host.options.serialComm.port)}</html>"
-                    } else if (host.isFolder) {
-                        text = "<html>${host.name}${fontTag.apply(" (${node.getAllChildren().size})")}</html>"
+                    if (node.isFolder) {
+                        text = "<html>${node}${fontTag.apply(" (${node.getAllChildren().size})")}</html>"
+                    } else if (node is HostTreeNode) {
+                        val host = node.host
+                        // @formatter:off
+                        if (host.protocol == SSHProtocolProvider.PROTOCOL || host.protocol == RDPProtocolProvider.PROTOCOL) {
+                            text = "<html>${host.name}&nbsp;&nbsp;&nbsp;&nbsp;${fontTag.apply("${host.username}@${host.host}")}</html>"
+                        } else if (host.protocol == "Serial") {
+                            text = "<html>${host.name}&nbsp;&nbsp;&nbsp;&nbsp;${fontTag.apply(host.options.serialComm.port)}</html>"
+                        }
+                        // @formatter:on
                     }
-                    // @formatter:on
                 }
 
                 val c = super.getTreeCellRendererComponent(tree, text, sel, expanded, leaf, row, hasFocus)
-
                 icon = node.getIcon(sel, expanded, tree.hasFocus() || isPopupMenu)
                 return c
             }
@@ -140,7 +142,7 @@ class NewHostTree : SimpleTree(), Disposable {
             override fun mouseClicked(e: MouseEvent) {
                 if (doubleClickConnection && SwingUtilities.isLeftMouseButton(e) && e.clickCount % 2 == 0) {
                     val lastNode = lastSelectedPathComponent as? HostTreeNode ?: return
-                    if (lastNode.host.isFolder.not()) {
+                    if (lastNode.isFolder.not()) {
                         val path = tree.getClosestPathForLocation(e.x, e.y) ?: return
                         val bounds = tree.getRowBounds(tree.getRowForPath(path)) ?: return
                         if ((e.y >= bounds.y && e.y < (bounds.y + bounds.height)).not()) return
@@ -154,7 +156,7 @@ class NewHostTree : SimpleTree(), Disposable {
             override fun keyPressed(e: KeyEvent) {
                 if (e.keyCode == KeyEvent.VK_ENTER && doubleClickConnection) {
                     val nodes = getSelectionSimpleTreeNodes()
-                    if (nodes.size == 1 && nodes.first().host.isFolder) {
+                    if (nodes.size == 1 && nodes.first().isFolder) {
                         val path = TreePath(model.getPathToRoot(nodes.first()))
                         if (isExpanded(path)) {
                             collapsePath(path)
@@ -176,6 +178,27 @@ class NewHostTree : SimpleTree(), Disposable {
         super.setModel(null)
     }
 
+    override fun canImport(support: TransferHandler.TransferSupport): Boolean {
+        val dropLocation = support.dropLocation as? JTree.DropLocation ?: return false
+        val node = dropLocation.path.lastPathComponent as? SimpleTreeNode<*> ?: return false
+        if (node == model.getRoot()) return false
+
+        // 不能移动到 Team 之上
+        if (dropLocation.childIndex != -1 && accountManager.hasTeamFeature()) {
+            if (dropLocation.childIndex < accountManager.getTeams().size) {
+                return false
+            }
+        }
+
+        println(node)
+
+        return node !is TeamTreeNode
+    }
+
+    override fun canCreateTransferable(c: JComponent): Boolean {
+        val nodes = getSelectionSimpleTreeNodes(false)
+        return nodes.none { it is TeamTreeNode || it.id == "0" }
+    }
 
     override fun showContextmenu(evt: MouseEvent) {
         if (!contextmenu) return
@@ -186,6 +209,7 @@ class NewHostTree : SimpleTree(), Disposable {
         val fullNodes = getSelectionSimpleTreeNodes(true)
         val lastNodeParent = lastNode.parent ?: model.root
         val lastHost = lastNode.host
+        val hasTeamNode = nodes.any { it is TeamTreeNode }
 
         val popupMenu = FlatPopupMenu()
         val newMenu = JMenu(I18n.getString("termora.welcome.contextmenu.new"))
@@ -250,8 +274,8 @@ class NewHostTree : SimpleTree(), Disposable {
                     ownerId = lastNode.host.ownerId,
                     ownerType = lastNode.host.ownerType,
                     name = I18n.getString("termora.welcome.contextmenu.new.folder.name"),
-                    sort = System.currentTimeMillis(),
-                    parentId = lastHost.id
+                    sort = lastNode.folderCount.toLong(),
+                    parentId = lastNode.id,
                 )
                 hostManager.addHost(host)
                 val node = model.root.findChild(host.id) ?: return
@@ -341,13 +365,13 @@ class NewHostTree : SimpleTree(), Disposable {
         })
         refresh.addActionListener { refreshNode(lastNode) }
 
-        newMenu.isEnabled = lastHost.isFolder
-        remove.isEnabled = getSelectionSimpleTreeNodes().none { it == model.root }
+        newMenu.isEnabled = lastNode.isFolder
+        remove.isEnabled = getSelectionSimpleTreeNodes().none { it.id == "0" } && hasTeamNode.not()
         copy.isEnabled = remove.isEnabled
         rename.isEnabled = remove.isEnabled
-        property.isEnabled = lastHost.isFolder.not()
-        refresh.isEnabled = lastHost.isFolder
-        importMenu.isEnabled = lastHost.isFolder
+        property.isEnabled = lastNode.isFolder.not() && hasTeamNode.not()
+        refresh.isEnabled = lastNode.isFolder
+        importMenu.isEnabled = lastNode.isFolder
 
         // 如果选中了 SSH 服务器，那么才启用
         openWithSFTP.isEnabled = fullNodes.map { it.host }.any { it.protocol == SSHProtocolProvider.PROTOCOL }
@@ -425,12 +449,12 @@ class NewHostTree : SimpleTree(), Disposable {
 
     private fun openHosts(evt: EventObject, openInNewWindow: Boolean) {
         assertEventDispatchThread()
-        val nodes = getSelectionSimpleTreeNodes(true).map { it.host }.filter { it.isFolder.not() }
+        val nodes = getSelectionSimpleTreeNodes(true).filter { it.isFolder.not() }
         if (nodes.isEmpty()) return
         val source = if (openInNewWindow)
             TermoraFrameManager.getInstance().createWindow().apply { isVisible = true }
         else evt.source
-        nodes.forEach { openHostAction.actionPerformed(OpenHostActionEvent(source, it, evt)) }
+        nodes.map { it.host }.forEach { openHostAction.actionPerformed(OpenHostActionEvent(source, it, evt)) }
     }
 
     private fun openWithSFTP(evt: EventObject) {
@@ -902,7 +926,7 @@ class NewHostTree : SimpleTree(), Disposable {
             .use { it.records }
         // 把现有目录提取出来，避免重复创建
         val nodes = folderNode.clone(setOf("Folder"))
-            .childrenNode().filter { it.host.isFolder }
+            .childrenNode().filter { it.isFolder }
             .toMutableList()
 
         for (record in records) {
@@ -931,7 +955,7 @@ class NewHostTree : SimpleTree(), Disposable {
                             parentId = p?.host?.id ?: StringUtils.EMPTY
                         )
                     )
-                    val cp = folders.find { it.host.isFolder && it.host.name == name }
+                    val cp = folders.find { it.isFolder && it.host.name == name }
                     if (cp != null) {
                         p = cp
                         continue

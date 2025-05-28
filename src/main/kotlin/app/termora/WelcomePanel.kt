@@ -205,6 +205,7 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
 
 
         filterableHostTreeModel.addFilter {
+            if (it !is HostTreeNode) return@addFilter false
             val text = searchTextField.text
             val host = it.host
             text.isBlank() || host.name.contains(text, true)

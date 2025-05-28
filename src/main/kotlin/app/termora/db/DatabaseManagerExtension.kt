@@ -8,11 +8,11 @@ import javax.swing.SwingUtilities
 interface DatabaseManagerExtension : Extension {
 
     companion object {
-        fun fireDataChanged(id: String, type: String, action: Action) {
+        fun fireDataChanged(id: String, type: String, action: Action, source: Source = Source.User) {
             if (SwingUtilities.isEventDispatchThread()) {
                 for (extension in ExtensionManager.getInstance().getExtensions(DatabaseManagerExtension::class.java)) {
                     try {
-                        extension.onDataChanged(id, type, action)
+                        extension.onDataChanged(id, type, action, source)
                     } catch (e: Exception) {
                         if (log.isErrorEnabled) {
                             log.error(e.message, e)
@@ -20,7 +20,7 @@ interface DatabaseManagerExtension : Extension {
                     }
                 }
             } else {
-                SwingUtilities.invokeLater { fireDataChanged(id, type, action) }
+                SwingUtilities.invokeLater { fireDataChanged(id, type, action, source) }
             }
         }
     }
@@ -29,6 +29,11 @@ interface DatabaseManagerExtension : Extension {
         Changed,
         Added,
         Removed
+    }
+
+    enum class Source {
+        User,
+        Sync,
     }
 
     /**
@@ -41,5 +46,5 @@ interface DatabaseManagerExtension : Extension {
      *
      * @param type 为空时表示删除
      */
-    fun onDataChanged(id: String, type: String, action: Action) {}
+    fun onDataChanged(id: String, type: String, action: Action, source: Source = Source.User) {}
 }

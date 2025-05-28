@@ -37,6 +37,7 @@ object Icons {
     val text by lazy { DynamicIcon("icons/text.svg", "icons/text_dark.svg") }
     val errorIntroduction by lazy { DynamicIcon("icons/errorIntroduction.svg", "icons/errorIntroduction_dark.svg") }
     val error by lazy { DynamicIcon("icons/error.svg", "icons/error_dark.svg") }
+    val cwmUsers by lazy { DynamicIcon("icons/cwmUsers.svg", "icons/cwmUsers_dark.svg") }
     val warningIntroduction by lazy { DynamicIcon("icons/warningIntroduction.svg", "icons/warningIntroduction_dark.svg") }
     val networkPolicy by lazy { DynamicIcon("icons/networkPolicy.svg", "icons/networkPolicy_dark.svg") }
     val clusterRole by lazy { DynamicIcon("icons/clusterRole.svg", "icons/clusterRole_dark.svg") }

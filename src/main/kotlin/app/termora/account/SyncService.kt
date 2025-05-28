@@ -66,21 +66,16 @@ abstract class SyncService {
         }
 
         // 触发更改
-        DatabaseManagerExtension.fireDataChanged(id, DataType.Host.name, DatabaseManagerExtension.Action.Changed)
+        DatabaseManagerExtension.fireDataChanged(
+            id, DataType.Host.name,
+            DatabaseManagerExtension.Action.Changed,
+            DatabaseManagerExtension.Source.Sync
+        )
     }
 
 
     protected fun getUnsyncedData(): List<Data> {
-        val list = mutableListOf<Data>()
-        databaseLock.withLock {
-            transaction(database) {
-                val rows = DataEntity.selectAll().where { (DataEntity.synced eq false) }.toList()
-                for (row in rows) {
-                    list.add(row.toData())
-                }
-            }
-        }
-        return list
+        return databaseManager.unsyncedData()
     }
 
     protected fun encryptData(id: String, data: String): String {
