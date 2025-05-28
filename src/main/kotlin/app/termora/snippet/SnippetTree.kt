@@ -69,7 +69,7 @@ class SnippetTree : SimpleTree() {
         }
 
         rename.addActionListener { startEditingAtPath(TreePath(model.getPathToRoot(lastNode))) }
-        refresh.addActionListener { refreshNode(lastNode) }
+        refresh.addActionListener { model.reload(lastNode) }
         expandAll.addActionListener {
             for (node in getSelectionSimpleTreeNodes(true)) {
                 expandPath(TreePath(model.getPathToRoot(node)))
@@ -133,7 +133,7 @@ class SnippetTree : SimpleTree() {
         model.nodeStructureChanged(n)
     }
 
-    override fun rebase(node: SimpleTreeNode<*>, parent: SimpleTreeNode<*>) {
+    override fun rebase(node: SimpleTreeNode<*>, parent: SimpleTreeNode<*>, index: Int) {
         val nNode = node as? SnippetTreeNode ?: return
         val nParent = parent as? SnippetTreeNode ?: return
         nNode.data = nNode.data.copy(parentId = nParent.data.id, updateDate = System.currentTimeMillis())

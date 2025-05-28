@@ -35,6 +35,8 @@ import java.util.function.Function
 import javax.swing.*
 import javax.swing.event.PopupMenuEvent
 import javax.swing.event.PopupMenuListener
+import javax.swing.event.TreeModelEvent
+import javax.swing.event.TreeModelListener
 import javax.swing.filechooser.FileNameExtensionFilter
 import javax.swing.tree.TreePath
 import javax.swing.tree.TreeSelectionModel
@@ -49,7 +51,6 @@ class NewHostTree : SimpleTree(), Disposable {
         private val CSV_HEADERS = arrayOf("Folders", "Label", "Hostname", "Port", "Username", "Protocol")
     }
 
-    private val hostManager get() = HostManager.getInstance()
     private val properties get() = DatabaseManager.getInstance().properties
     private val owner get() = SwingUtilities.getWindowAncestor(this)
     private val openHostAction get() = ActionManager.getInstance().getAction(OpenHostAction.OPEN_HOST)
@@ -181,18 +182,7 @@ class NewHostTree : SimpleTree(), Disposable {
     override fun canImport(support: TransferHandler.TransferSupport): Boolean {
         val dropLocation = support.dropLocation as? JTree.DropLocation ?: return false
         val node = dropLocation.path.lastPathComponent as? SimpleTreeNode<*> ?: return false
-        if (node == model.getRoot()) return false
-
-        // 不能移动到 Team 之上
-        if (dropLocation.childIndex != -1 && accountManager.hasTeamFeature()) {
-            if (dropLocation.childIndex < accountManager.getTeams().size) {
-                return false
-            }
-        }
-
-        println(node)
-
-        return node !is TeamTreeNode
+        return node != model.getRoot()
     }
 
     override fun canCreateTransferable(c: JComponent): Boolean {
@@ -277,8 +267,8 @@ class NewHostTree : SimpleTree(), Disposable {
                     sort = lastNode.folderCount.toLong(),
                     parentId = lastNode.id,
                 )
-                hostManager.addHost(host)
-                val node = model.root.findChild(host.id) ?: return
+                val node = HostTreeNode(host)
+                model.insertNodeInto(node, lastNode, lastNode.folderCount)
                 selectionPath = TreePath(model.getPathToRoot(node))
                 startEditingAtPath(selectionPath)
             }
@@ -295,11 +285,7 @@ class NewHostTree : SimpleTree(), Disposable {
                     ) == JOptionPane.YES_OPTION
                 ) {
                     for (c in nodes) {
-                        // 先删除子孙
-                        for (child in c.getAllChildren()) {
-                            hostManager.removeHost(child.host.id)
-                        }
-                        hostManager.removeHost(c.host.id)
+                        model.removeNodeFromParent(c)
                     }
                 }
             }
@@ -308,19 +294,10 @@ class NewHostTree : SimpleTree(), Disposable {
             for (c in nodes) {
                 val p = c.parent ?: continue
                 val newNode = copyNode(c, p.host.id)
-
                 // 先入 Model
                 model.insertNodeInto(newNode, p, lastNodeParent.getIndex(c) + 1)
-
-                // 最后再落库
-                hostManager.addHost(newNode.host)
-                for (node in newNode.getAllChildren()) {
-                    hostManager.addHost(node.host)
-                }
-
                 // 开启编辑
                 selectionPath = TreePath(model.getPathToRoot(newNode))
-
             }
         }
         rename.addActionListener { startEditingAtPath(TreePath(model.getPathToRoot(lastNode))) }
@@ -347,7 +324,6 @@ class NewHostTree : SimpleTree(), Disposable {
 
                 val newNode = HostTreeNode(host)
                 model.insertNodeInto(newNode, lastNode, lastNode.childCount)
-                hostManager.addHost(host)
                 selectionPath = TreePath(model.getPathToRoot(newNode))
             }
         })
@@ -359,11 +335,10 @@ class NewHostTree : SimpleTree(), Disposable {
                 dialog.isVisible = true
                 val host = dialog.host ?: return
                 lastNode.host = host
-                hostManager.addHost(host)
                 model.nodeStructureChanged(lastNode)
             }
         })
-        refresh.addActionListener { refreshNode(lastNode) }
+        refresh.addActionListener { model.reload(lastNode) }
 
         newMenu.isEnabled = lastNode.isFolder
         remove.isEnabled = getSelectionSimpleTreeNodes().none { it.id == "0" } && hasTeamNode.not()
@@ -399,14 +374,36 @@ class NewHostTree : SimpleTree(), Disposable {
         val lastNode = node as? HostTreeNode ?: return
         lastNode.host = lastNode.host.copy(name = text)
         model.nodeStructureChanged(lastNode)
-        hostManager.addHost(lastNode.host)
     }
 
-    override fun rebase(node: SimpleTreeNode<*>, parent: SimpleTreeNode<*>) {
-        val nNode = node as? HostTreeNode ?: return
-        val nParent = parent as? HostTreeNode ?: return
-        nNode.data = nNode.data.copy(parentId = nParent.id)
-        hostManager.addHost(nNode.host)
+    override fun createTreeModelListener(): TreeModelListener {
+        return object : XTreeModelHandler() {
+            override fun treeStructureChanged(e: TreeModelEvent) {
+                SwingUtilities.updateComponentTreeUI(tree)
+            }
+        }
+    }
+
+    override fun rebase(node: SimpleTreeNode<*>, parent: SimpleTreeNode<*>, index: Int) {
+        if (parent !is HostTreeNode || node !is HostTreeNode) return
+        // 从原来的父移除
+        model.removeNodeFromParent(node)
+
+        node.data = node.data.copy(
+            id = randomUUID(),
+            parentId = parent.id,
+            ownerId = parent.host.ownerId,
+            ownerType = parent.host.ownerType,
+        )
+
+        model.insertNodeInto(node, parent, index)
+
+        // 子也需要变基
+        for ((idx, e) in node.childrenNode().withIndex()) {
+            rebase(e, node, idx)
+        }
+
+
     }
 
 
@@ -433,7 +430,10 @@ class NewHostTree : SimpleTree(), Disposable {
         if (host.isFolder) {
             for (child in node.children()) {
                 if (child is HostTreeNode) {
-                    newNode.add(copyNode(child, newHost.id, idGenerator, level + 1))
+                    model.insertNodeInto(
+                        copyNode(child, newHost.id, idGenerator, level + 1),
+                        newNode, node.getIndex(child)
+                    )
                 }
             }
         }
@@ -618,8 +618,9 @@ class NewHostTree : SimpleTree(), Disposable {
         if (nodes.isEmpty()) return
 
         for (node in nodes) {
-            hostManager.addHost(node.host)
-            node.getAllChildren().forEach { hostManager.addHost(it.host) }
+//            model.insertNodeInto()
+//            hostManager.addHost(node.host)
+//       TODO     node.getAllChildren().forEach { hostManager.addHost(it.host) }
         }
 
         // 重新加载

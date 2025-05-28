@@ -20,7 +20,6 @@ import java.awt.Dimension
 import java.awt.KeyboardFocusManager
 import java.awt.event.*
 import javax.swing.*
-import javax.swing.event.DocumentEvent
 import kotlin.math.max
 
 class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()), Disposable, TerminalTab,
@@ -35,9 +34,9 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
     private val dataProviderSupport = DataProviderSupport()
     private val hostTreeModel = hostTree.model as NewHostTreeModel
     private var lastFocused: Component? = null
-    private val filterableHostTreeModel = FilterableHostTreeModel(hostTree) {
-        searchTextField.text.isBlank()
-    }
+//    private val filterableHostTreeModel = FilterableHostTreeModel(hostTree) {
+//        searchTextField.text.isBlank()
+//    }
 
     init {
         initView()
@@ -143,7 +142,7 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
         panel.add(scrollPane, BorderLayout.CENTER)
         panel.border = BorderFactory.createEmptyBorder(10, 0, 0, 0)
 
-        hostTree.model = filterableHostTreeModel
+//        hostTree.model = filterableHostTreeModel
         TreeUtils.loadExpansionState(
             hostTree,
             properties.getString("Welcome.HostTree.state", StringUtils.EMPTY)
@@ -204,7 +203,7 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
         })
 
 
-        filterableHostTreeModel.addFilter {
+        /*filterableHostTreeModel.addFilter {
             if (it !is HostTreeNode) return@addFilter false
             val text = searchTextField.text
             val host = it.host
@@ -221,7 +220,7 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
                     hostTree.expandAll()
                 }
             }
-        })
+        })*/
 
         searchTextField.addKeyListener(object : KeyAdapter() {
             private val event = ActionEvent(hostTree, ActionEvent.ACTION_PERFORMED, StringUtils.EMPTY)

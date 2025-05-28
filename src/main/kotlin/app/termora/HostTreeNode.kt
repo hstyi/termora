@@ -1,5 +1,6 @@
 package app.termora
 
+import app.termora.account.AccountManager
 import app.termora.protocol.ProtocolProvider
 import com.formdev.flatlaf.icons.FlatTreeClosedIcon
 import com.formdev.flatlaf.icons.FlatTreeOpenIcon
@@ -7,6 +8,8 @@ import javax.swing.Icon
 import javax.swing.tree.TreeNode
 
 open class HostTreeNode(host: Host) : SimpleTreeNode<Host>(host) {
+
+    private val accountManager get() = AccountManager.getInstance()
 
     var host: Host
         get() = data
@@ -43,6 +46,12 @@ open class HostTreeNode(host: Host) : SimpleTreeNode<Host>(host) {
     }
 
     override fun getIcon(selected: Boolean, expanded: Boolean, hasFocus: Boolean): Icon {
+        if (host.id.isBlank() || host.id == "0") {
+            if (accountManager.hasTeamFeature()) {
+                return if (selected && hasFocus) Icons.user.dark else Icons.user
+            }
+        }
+
         if (host.isFolder) return if (expanded) FlatTreeOpenIcon() else FlatTreeClosedIcon()
         val icon = ProtocolProvider.valueOf(host.protocol)?.getIcon() ?: Icons.terminal
         return if (selected && hasFocus) icon.dark else icon

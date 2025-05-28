@@ -205,43 +205,29 @@ open class SimpleTree : JXTree() {
                 val nodes = (support.transferable.getTransferData(MoveNodeTransferable.dataFlavor) as? List<*>)
                     ?.filterIsInstance<SimpleTreeNode<*>>() ?: return false
 
-                // 展开的 node
-                val expanded = mutableSetOf(node.id)
-                for (e in nodes) {
-                    e.getAllChildren().filter { isExpanded(TreePath(model.getPathToRoot(it))) }
-                        .map { it }.forEach { expanded.add(it.id) }
-                }
-
                 // 转移
                 for (e in nodes) {
-                    model.removeNodeFromParent(e)
-                    rebase(e, node)
 
-                    if (dropLocation.childIndex == -1) {
+                    val index = if (dropLocation.childIndex == -1) {
                         if (e.isFolder) {
-                            model.insertNodeInto(e, node, node.folderCount)
+                            node.folderCount
                         } else {
-                            model.insertNodeInto(e, node, node.childCount)
+                            node.childCount
                         }
                     } else {
                         if (e.isFolder) {
-                            model.insertNodeInto(e, node, min(node.folderCount, dropLocation.childIndex))
+                            min(node.folderCount, dropLocation.childIndex)
                         } else {
-                            model.insertNodeInto(e, node, min(node.childCount, dropLocation.childIndex))
+                            min(node.childCount, dropLocation.childIndex)
                         }
                     }
 
+                    rebase(e, node, min(index, node.childCount))
                     selectionPath = TreePath(model.getPathToRoot(e))
                 }
 
                 // 先展开最顶级的
                 expandPath(TreePath(model.getPathToRoot(node)))
-
-                for (child in node.getAllChildren()) {
-                    if (expanded.contains(child.id)) {
-                        expandPath(TreePath(model.getPathToRoot(child)))
-                    }
-                }
 
                 return true
             }
@@ -288,17 +274,6 @@ open class SimpleTree : JXTree() {
 
     protected open fun onRenamed(node: SimpleTreeNode<*>, text: String) {}
 
-    open fun refreshNode(node: SimpleTreeNode<*> = model.root) {
-        val state = TreeUtils.saveExpansionState(tree)
-        val rows = selectionRows
-
-        model.reload(node)
-
-        TreeUtils.loadExpansionState(tree, state)
-
-        super.setSelectionRows(rows)
-    }
-
     /**
      * 包含孙子
      */
@@ -324,7 +299,7 @@ open class SimpleTree : JXTree() {
         return getLastSelectedPathNode() != model.root
     }
 
-    protected open fun rebase(node: SimpleTreeNode<*>, parent: SimpleTreeNode<*>) {
+    protected open fun rebase(node: SimpleTreeNode<*>, parent: SimpleTreeNode<*>, index: Int) {
 
     }
 

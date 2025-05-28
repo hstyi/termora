@@ -111,11 +111,11 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
     }
 
     override fun insertNodeInto(newChild: MutableTreeNode, parent: MutableTreeNode, index: Int) {
-        var idx = index
-        if (parent == getRoot() && index == 0 && accountManager.hasTeamFeature()) {
-            idx = accountManager.getTeams().size
+        super.insertNodeInto(newChild, parent, index)
+
+        if (newChild is HostTreeNode) {
+            hostManager.addHost(newChild.host)
         }
-        super.insertNodeInto(newChild, parent, idx)
 
         // 重置所有排序
         if (parent is HostTreeNode) {
@@ -126,6 +126,23 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
                 hostManager.addHost(c.host)
             }
         }
+    }
+
+    override fun nodeStructureChanged(node: TreeNode?) {
+        if (node is HostTreeNode) {
+            hostManager.addHost(node.host)
+        }
+        super.nodeStructureChanged(node)
+    }
+
+    override fun removeNodeFromParent(node: MutableTreeNode?) {
+        if (node is SimpleTreeNode<*>) {
+            for (e in node.getAllChildren()) {
+                hostManager.removeHost(e.id)
+            }
+            hostManager.removeHost(node.id)
+        }
+        super.removeNodeFromParent(node)
     }
 
     private fun registerDynamicExtensions() {
@@ -155,7 +172,7 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
             source: DatabaseManagerExtension.Source
         ) {
 
-            if (source == DatabaseManagerExtension.Source.Sync) return
+            if (source != DatabaseManagerExtension.Source.Sync) return
             if (type.isNotBlank() && type != DataType.Host.name) return
             if (action == DatabaseManagerExtension.Action.Changed) return
 
@@ -180,15 +197,13 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
 
     private inner class MyPullServiceExtension : PullServiceExtension {
         override fun onPullFinished(count: Int) {
-            if (count != 0)
-                reload(getRoot())
+            if (count != 0) reload(getRoot())
         }
     }
 
     private inner class MyAccountAccountExtension : AccountExtension {
         override fun onAccountChanged(oldAccount: Account, newAccount: Account) {
-            if (oldAccount.id != newAccount.id)
-                reload(getRoot())
+            if (oldAccount.id != newAccount.id) reload(getRoot())
         }
     }
 
