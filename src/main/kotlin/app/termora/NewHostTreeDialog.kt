@@ -40,7 +40,7 @@ class NewHostTreeDialog(
 
 
         init()
-        setLocationRelativeTo(null)
+        setLocationRelativeTo(owner)
 
     }
 

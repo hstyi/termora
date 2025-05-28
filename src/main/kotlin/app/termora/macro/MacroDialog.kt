@@ -39,7 +39,7 @@ class MacroDialog(owner: Window) : DialogWrapper(owner) {
         initEvents()
 
         init()
-        setLocationRelativeTo(null)
+        setLocationRelativeTo(owner)
     }
 
     private fun initView() {
