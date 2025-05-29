@@ -42,7 +42,7 @@ class NewHostTreeDialog(
         Disposer.register(disposable, tree)
 
         init()
-        setLocationRelativeTo(null)
+        setLocationRelativeTo(owner)
 
     }
 

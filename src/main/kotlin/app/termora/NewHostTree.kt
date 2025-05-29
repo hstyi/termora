@@ -940,8 +940,9 @@ class NewHostTree : SimpleTree(), Disposable {
             val hostname = map["Hostname"] ?: StringUtils.EMPTY
             val port = map["Port"]?.toIntOrNull() ?: 22
             val username = map["Username"] ?: StringUtils.EMPTY
-            val protocol = map["Protocol"] ?: SSHProtocolProvider.PROTOCOL
-            if (!StringUtils.equalsIgnoreCase(protocol, SSHProtocolProvider.PROTOCOL)) continue
+            val protocol = map["Protocol"] ?: "SSH"
+            // 仅支持 SSH、RDP 协议
+            if (StringUtils.equalsAnyIgnoreCase(protocol, "SSH", "RDP").not()) continue
             if (StringUtils.isAllBlank(hostname, label)) continue
 
             var p: HostTreeNode? = null
@@ -976,7 +977,7 @@ class NewHostTree : SimpleTree(), Disposable {
                     host = hostname,
                     port = port,
                     username = username,
-                    protocol = SSHProtocolProvider.PROTOCOL,
+                    protocol = protocol,
                     parentId = p?.host?.id ?: StringUtils.EMPTY,
                 )
             )
