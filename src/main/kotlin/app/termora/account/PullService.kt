@@ -16,6 +16,7 @@ import okhttp3.Request
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.concurrent.withLock
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -188,6 +189,10 @@ class PullService private constructor() : SyncService(), Disposable, Application
 
 
     private fun pull(id: String, ownerId: String, ownerType: String): PullResult {
+        return syncLock.withLock { doPull(id, ownerId, ownerType) }
+    }
+
+    private fun doPull(id: String, ownerId: String, ownerType: String): PullResult {
         val request = Request.Builder()
             .url("${accountManager.getServer()}/v1/data/${id}?ownerId=${ownerId}&ownerType=${ownerType}")
             .get()
