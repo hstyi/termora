@@ -119,8 +119,14 @@ class PullService private constructor() : SyncService(), Disposable, Application
                 }
                 if (data == null || data.version != e.version || e.deleted != data.deleted) {
                     if (log.isInfoEnabled) {
-                        log.info("数据: {}, 本地版本: {}, 云端版本: {} 触发同步", e.objectId, data?.version, e.version)
+                        log.info(
+                            "数据: {}, 本地版本: {}, 云端版本: {} 触发同步",
+                            e.objectId,
+                            data?.version ?: "不存在",
+                            e.version
+                        )
                     }
+
                     try {
                         if (pull(e.objectId) == PullResult.Changed) {
                             count++
@@ -130,6 +136,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
                             log.error(e.message, e)
                         }
                     }
+
                 } else if (log.isDebugEnabled) {
                     log.debug("数据: {} 本地版本与云端版本一致", e.objectId)
                 }

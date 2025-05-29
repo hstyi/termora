@@ -86,6 +86,11 @@ class DatabaseManager private constructor() : Disposable {
         // 负责清理或转移数据，如果从本地用户切换到云端用户，那么把本地用户的数据复制到云端用户下，然后本地用户数据清除
         DynamicExtensionHandler.getInstance().register(AccountExtension::class.java, AccountDataTransferExtension())
             .let { Disposer.register(this, it) }
+
+
+        // 用户团队变更
+        DynamicExtensionHandler.getInstance().register(AccountExtension::class.java, AccountTeamChangedExtension())
+            .let { Disposer.register(this, it) }
     }
 
     /**
@@ -400,6 +405,40 @@ class DatabaseManager private constructor() : Disposable {
 
         override fun ordered(): Long {
             return 0
+        }
+
+    }
+
+    private inner class AccountTeamChangedExtension : AccountExtension {
+
+        override fun onAccountChanged(oldAccount: Account, newAccount: Account) {
+            if (oldAccount.isLocally && newAccount.isLocally) {
+                return
+            }
+
+            if (oldAccount.id == newAccount.id) {
+                return
+            }
+
+            for (team in oldAccount.teams) {
+                // 如果被踢出团队，那么移除该团队的所有资产
+                if (newAccount.teams.none { it.id == team.id }) {
+                    lock.withLock {
+                        transaction(database) {
+                            DataEntity.deleteWhere {
+                                DataEntity.ownerId.eq(team.id) and (DataEntity.ownerType.eq(
+                                    OwnerType.Team.name
+                                ))
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+
+        override fun ordered(): Long {
+            return -1
         }
 
     }

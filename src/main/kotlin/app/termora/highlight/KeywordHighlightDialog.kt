@@ -39,7 +39,7 @@ class KeywordHighlightDialog(owner: Window) : DialogWrapper(owner) {
 
 
         tabbed.addTab(
-            I18n.getString("termora.settings.sync.range.keys"),
+            I18n.getString("termora.highlight.my-keyword"),
             Icons.user,
             KeywordHighlightPanel(
                 AccountOwner(
