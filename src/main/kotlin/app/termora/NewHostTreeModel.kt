@@ -170,7 +170,6 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
     }
 
     private inner class MyDatabaseManagerExtension : DatabaseManagerExtension {
-
         override fun onDataChanged(
             id: String,
             type: String,
@@ -178,10 +177,9 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
             source: DatabaseManagerExtension.Source
         ) {
 
-            if (source != DatabaseManagerExtension.Source.Sync) return
-            if (id.isBlank()) return
+            if (id.isBlank() || source != DatabaseManagerExtension.Source.Sync) return
             if (type.isNotBlank() && type != DataType.Host.name) return
-            if (action == DatabaseManagerExtension.Action.Changed) return
+
             if (action == DatabaseManagerExtension.Action.Added) {
                 val host = hostManager.getHost(id) ?: return
                 for (node in getRoot().getAllChildren()) {
@@ -202,6 +200,13 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
                     if (node.id == id) {
                         removeNodeFromParent(node)
                         return
+                    }
+                }
+            } else if (action == DatabaseManagerExtension.Action.Changed) {
+                for (node in getRoot().getAllChildren()) {
+                    if (node.id == id) {
+                        reload(node.parent ?: break)
+                        break
                     }
                 }
             }
