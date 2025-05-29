@@ -351,7 +351,7 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
 
         private fun loginSuccess(
             server: String,
-            ticket: String,
+            systemSalt: String,
             password: String,
             refreshToken: String,
             accessToken: String
@@ -374,16 +374,16 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
                 throw IllegalStateException()
             }
 
-            val salt = PBKDF2.hash("termora".toByteArray(), email.toCharArray(), 450000, 128)
+            val salt = "${systemSalt}:${email}".toByteArray()
             val privateKeyEncoded = Base64.decodeBase64(privateKeyBase64)
             val secretKeyEncrypted = Base64.decodeBase64(secretKeyBase64)
             val publicKeyEncoded = Base64.decodeBase64(publicKeyBase64)
 
             // 解密RSA私钥
             // @formatter:off
-            val privateKeySecureKey = PBKDF2.hash(salt, "key:$email:$password".toCharArray(), 450000, 128)
-            val privateKeySecureKeyIv = PBKDF2.hash(salt, "iv:$email:$password".toCharArray(), 450000, 96)
-            val privateKey = RSA.generatePrivate(AES.GCM.decrypt(privateKeySecureKey, privateKeySecureKeyIv, privateKeyEncoded))
+            val privateKeySecureKey = PBKDF2.hash(salt, password.toCharArray(), 1024, 256)
+            val privateKeySecureKeyIv = PBKDF2.hash(salt, password.toCharArray(), 1024, 128)
+            val privateKey = RSA.generatePrivate(AES.CBC.decrypt(privateKeySecureKey, privateKeySecureKeyIv, privateKeyEncoded))
             // @formatter:on
 
             // 解密用户私钥
@@ -454,19 +454,20 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
 
             try {
                 val params = parseQuery(uri.query)
-                val password = params["password"]
+                val passwordBase64 = params["password"]
                 val ticket = params["ticket"]
+                val systemSalt = params["salt"] ?: StringUtils.EMPTY
                 val refreshToken = params["refreshToken"]
                 val accessToken = params["accessToken"]
-                if (password.isNullOrBlank() || ticket.isNullOrBlank() || refreshToken.isNullOrBlank() || accessToken.isNullOrBlank()) return
+                if (passwordBase64.isNullOrBlank() || ticket.isNullOrBlank() || refreshToken.isNullOrBlank() || accessToken.isNullOrBlank()) return
                 if (ticket != this.ticket) return
-                val realPassword = String(RSA.decrypt(keypair.private, Hex.decodeHex(password)))
+                val password = String(RSA.decrypt(keypair.private, Hex.decodeHex(passwordBase64)))
 
                 // 登录成功回调
                 coroutineScope.launch {
                     try {
 
-                        loginSuccess(server, ticket, realPassword, refreshToken, accessToken)
+                        loginSuccess(server, systemSalt, password, refreshToken, accessToken)
 
                         // 没有错误那么就回跳
                         withContext(Dispatchers.Swing) {

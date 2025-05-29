@@ -4,6 +4,7 @@ import app.termora.*
 import app.termora.Application.ohMyJson
 import app.termora.db.Data
 import app.termora.db.DatabaseManagerExtension
+import app.termora.plugin.DispatchThread
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -197,6 +198,10 @@ class PushService private constructor() : SyncService(), Disposable, Application
         source: DatabaseManagerExtension.Source
     ) {
         if (source == DatabaseManagerExtension.Source.User) trigger()
+    }
+
+    override fun getDispatchThread(): DispatchThread {
+        return DispatchThread.BGT
     }
 
     fun trigger() {

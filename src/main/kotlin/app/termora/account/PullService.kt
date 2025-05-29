@@ -90,6 +90,10 @@ class PullService private constructor() : SyncService(), Disposable, Application
 
     private fun doPullChanges(): Int {
 
+        if (log.isInfoEnabled) {
+            log.info("即将从云端拉取变更")
+        }
+
         val since = accountProperties.nextSynchronizationSince
         var after = StringUtils.EMPTY
         var nextSince = since
@@ -113,7 +117,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
                 } else if (data != null && e.deleted && data.deleted) { // 如果云端与本地都已经删除，那么不需要处理
                     continue
                 }
-                if (data == null || data.version != e.version) {
+                if (data == null || data.version != e.version || e.deleted != data.deleted) {
                     if (log.isInfoEnabled) {
                         log.info("数据: {}, 本地版本: {}, 云端版本: {} 触发同步", e.objectId, data?.version, e.version)
                     }
@@ -138,6 +142,10 @@ class PullService private constructor() : SyncService(), Disposable, Application
 
         accountProperties.nextSynchronizationSince = nextSince
         accountProperties.lastSynchronizationOn = System.currentTimeMillis()
+
+        if (log.isInfoEnabled) {
+            log.info("从云端拉取变更结束，变更条数: {}", count)
+        }
 
         return count
 

@@ -47,4 +47,5 @@ interface DatabaseManagerExtension : Extension {
      * @param type 为空时表示删除
      */
     fun onDataChanged(id: String, type: String, action: Action, source: Source = Source.User) {}
+
 }

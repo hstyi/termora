@@ -1,5 +1,6 @@
 package app.termora
 
+import app.termora.plugin.DispatchThread
 import app.termora.plugin.Extension
 
 interface ApplicationRunnerExtension : Extension {
@@ -9,4 +10,6 @@ interface ApplicationRunnerExtension : Extension {
      * 插件可以在这里初始化自己的数据
      */
     fun ready()
+
+    override fun getDispatchThread() = DispatchThread.BGT
 }

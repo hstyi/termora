@@ -27,7 +27,7 @@ import java.net.URLClassLoader
 import java.util.jar.Attributes
 import java.util.jar.Manifest
 
-class PluginManager private constructor() {
+internal class PluginManager private constructor() {
     companion object {
         private val log = LoggerFactory.getLogger(PluginManager::class.java)
         private const val PLUGIN_ENTRY = "TO-Plugin-Entry"

@@ -172,7 +172,6 @@ class NewHostTree : SimpleTree(), Disposable {
                 }
             }
         })
-
     }
 
     override fun dispose() {

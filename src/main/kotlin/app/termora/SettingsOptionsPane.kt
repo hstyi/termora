@@ -51,7 +51,7 @@ import javax.swing.event.PopupMenuListener
 class SettingsOptionsPane : OptionsPane(), Disposable {
     private val owner get() = SwingUtilities.getWindowAncestor(this@SettingsOptionsPane)
     private val database get() = DatabaseManager.getInstance()
-
+    private val extensionManager get() = ExtensionManager.getInstance()
 
     companion object {
         private val log = LoggerFactory.getLogger(SettingsOptionsPane::class.java)
@@ -92,12 +92,13 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
 
     init {
 
-        val extensions = ExtensionManager.getInstance().getExtensions(SettingsOptionExtension::class.java)
+        val extensions = extensionManager.getExtensions(SettingsOptionExtension::class.java)
 
         // account
         for (extension in extensions) {
-            if (extension is AccountSettingsOptionExtension) {
+            if (extensionManager.isExtension(extension, AccountSettingsOptionExtension::class)) {
                 addOption(extension.createSettingsOption())
+                break
             }
         }
 
@@ -107,7 +108,7 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
         addOption(SFTPOption())
 
         for (extension in extensions) {
-            if (extension is AccountSettingsOptionExtension) continue
+            if (extensionManager.isExtension(extension, AccountSettingsOptionExtension::class)) continue
             addOption(extension.createSettingsOption())
         }
 
