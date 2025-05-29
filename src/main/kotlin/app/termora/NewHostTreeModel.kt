@@ -3,8 +3,8 @@ package app.termora
 import app.termora.account.Account
 import app.termora.account.AccountExtension
 import app.termora.account.AccountManager
+import app.termora.account.ServerSignedExtension
 import app.termora.db.DataType
-import app.termora.db.DatabaseManager
 import app.termora.db.DatabaseManagerExtension
 import app.termora.db.OwnerType
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
@@ -29,7 +29,6 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
     }
 
 
-    private val Host.isRoot get() = this.parentId == "0" || this.parentId.isBlank()
     private val hostManager get() = HostManager.getInstance()
     private val accountManager get() = AccountManager.getInstance()
 
@@ -161,10 +160,16 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
             .register(AccountExtension::class.java, MyAccountAccountExtension())
             .let { Disposer.register(this, it) }
 
+        // 服务器签名发生变更
+        DynamicExtensionHandler.getInstance()
+            .register(ServerSignedExtension::class.java, object : ServerSignedExtension {
+                override fun onSignedChanged(oldSigned: Boolean, newSigned: Boolean) {
+                    reload(getRoot())
+                }
+            }).let { Disposer.register(this, it) }
     }
 
     private inner class MyDatabaseManagerExtension : DatabaseManagerExtension {
-        private val databaseManager get() = DatabaseManager.getInstance()
 
         override fun onDataChanged(
             id: String,
@@ -187,6 +192,8 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
                             if (host.isFolder) node.folderCount else node.childCount,
                             false
                         )
+                        // 因为有可能子项先落库，文件夹后落库，所以这里刷新一下
+                        if (node.isFolder) reload(node)
                         return
                     }
                 }

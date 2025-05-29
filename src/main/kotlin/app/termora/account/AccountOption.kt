@@ -6,6 +6,7 @@ import app.termora.OptionsPane.Companion.formMargin
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.db.DatabaseManager
+import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import com.formdev.flatlaf.extras.components.FlatLabel
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
@@ -67,7 +68,15 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
     }
 
 
-    private fun initEvents() {}
+    private fun initEvents() {
+        // 服务器签名发生变更
+        DynamicExtensionHandler.getInstance()
+            .register(ServerSignedExtension::class.java, object : ServerSignedExtension {
+                override fun onSignedChanged(oldSigned: Boolean, newSigned: Boolean) {
+                    refreshUserInfoPanel()
+                }
+            }).let { Disposer.register(this, it) }
+    }
 
     private fun getCenterComponent(): JComponent {
         val layout = FormLayout(

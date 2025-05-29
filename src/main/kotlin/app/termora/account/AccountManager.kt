@@ -31,6 +31,7 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     private var account = locally()
     private val accountProperties get() = AccountProperties.getInstance()
 
+    fun getAccount() = account
     fun getAccountId() = account.id
     fun getServer() = account.server
     fun getEmail() = account.email
