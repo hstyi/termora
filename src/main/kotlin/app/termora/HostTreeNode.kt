@@ -46,10 +46,9 @@ open class HostTreeNode(host: Host) : SimpleTreeNode<Host>(host) {
     }
 
     override fun getIcon(selected: Boolean, expanded: Boolean, hasFocus: Boolean): Icon {
-        if (host.id.isBlank() || host.id == "0") {
-            if (accountManager.hasTeamFeature()) {
-                return if (selected && hasFocus) Icons.user.dark else Icons.user
-            }
+        // user root
+        if (id == "0" || id.isBlank()) {
+            return if (selected && hasFocus) Icons.user.dark else Icons.user
         }
 
         if (host.isFolder) return if (expanded) FlatTreeOpenIcon() else FlatTreeClosedIcon()

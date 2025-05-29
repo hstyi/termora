@@ -1,6 +1,7 @@
 package app.termora.keymgr
 
 import app.termora.*
+import app.termora.account.AccountOwner
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.nv.FileChooser
@@ -10,7 +11,6 @@ import com.formdev.flatlaf.extras.components.FlatTable
 import com.formdev.flatlaf.extras.components.FlatTextArea
 import com.formdev.flatlaf.icons.FlatFileViewFileIcon
 import com.formdev.flatlaf.ui.FlatTextBorder
-import com.formdev.flatlaf.util.SystemInfo
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import org.apache.commons.codec.binary.Base64
@@ -39,10 +39,11 @@ import javax.swing.*
 import javax.swing.border.EmptyBorder
 import kotlin.io.path.writeText
 
-class KeyManagerPanel : JPanel(BorderLayout()) {
+class KeyManagerPanel(private val accountOwner: AccountOwner) : JPanel(BorderLayout()) {
     val keyPairTable = FlatTable()
     val keyPairTableModel = KeyPairTableModel()
 
+    private val keyManager get() = KeyManager.getInstance()
     private val generateBtn = JButton(I18n.getString("termora.keymgr.generate"))
     private val importBtn = JButton(I18n.getString("termora.keymgr.import"))
     private val exportBtn = JButton(I18n.getString("termora.keymgr.export"))
@@ -70,8 +71,8 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
         keyPairTable.model = keyPairTableModel
         keyPairTable.fillsViewportHeight = true
 
-        KeyManager.getInstance().getOhKeyPairs().forEach {
-            keyPairTableModel.addRow(arrayOf(it))
+        for (pair in keyManager.getOhKeyPairs(accountOwner.id)) {
+            keyPairTableModel.addRow(arrayOf(pair))
         }
 
         val formMargin = "4dlu"
@@ -95,7 +96,7 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
                 .add(deleteBtn).xy(1, rows).apply { rows += step }
                 .add(sshCopyIdBtn).xy(1, rows).apply { rows += step }
                 .build(), BorderLayout.EAST)
-        border = BorderFactory.createEmptyBorder(if (SystemInfo.isWindows || SystemInfo.isLinux) 6 else 0, 12, 12, 12)
+        border = BorderFactory.createEmptyBorder(12, 12, 12, 12)
 
     }
 
@@ -107,7 +108,7 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
             dialog.isVisible = true
             if (dialog.ohKeyPair != OhKeyPair.empty) {
                 val keyPair = dialog.ohKeyPair
-                KeyManager.getInstance().addOhKeyPair(keyPair)
+                keyManager.addOhKeyPair(keyPair, accountOwner)
                 keyPairTableModel.addRow(arrayOf(keyPair))
             }
         }
@@ -134,7 +135,7 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
             val dialog = ImportKeyDialog(SwingUtilities.getWindowAncestor(this))
             dialog.isVisible = true
             if (dialog.ohKeyPair != OhKeyPair.empty) {
-                KeyManager.getInstance().addOhKeyPair(dialog.ohKeyPair)
+                keyManager.addOhKeyPair(dialog.ohKeyPair, accountOwner)
                 keyPairTableModel.addRow(arrayOf(dialog.ohKeyPair))
             }
         }
@@ -155,7 +156,7 @@ class KeyManagerPanel : JPanel(BorderLayout()) {
                 ohKeyPair = dialog.ohKeyPair
 
                 if (ohKeyPair != OhKeyPair.empty) {
-                    KeyManager.getInstance().addOhKeyPair(ohKeyPair)
+                    keyManager.addOhKeyPair(ohKeyPair, accountOwner)
                     keyPairTableModel.setValueAt(ohKeyPair, row, 0)
                     keyPairTableModel.fireTableRowsUpdated(row, row)
                 }

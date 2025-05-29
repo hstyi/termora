@@ -73,7 +73,8 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
 
     fun hasTeamFeature(): Boolean {
         if (accountProperties.signed.not()) return false
-        return setOf(SubscriptionPlan.Team, SubscriptionPlan.Enterprise).contains(getSubscription().plan)
+        val plan = getSubscription().plan
+        return SubscriptionPlan.Team == plan || SubscriptionPlan.Enterprise == plan
     }
 
 
