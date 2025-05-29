@@ -4,11 +4,11 @@ import app.termora.Application.ohMyJson
 import app.termora.ApplicationScope
 import app.termora.DeleteDataManager
 import app.termora.TerminalPanelFactory
-import app.termora.account.AccountManager
+import app.termora.account.AccountOwner
 import app.termora.db.Data
 import app.termora.db.DataType
 import app.termora.db.DatabaseManager
-import app.termora.db.OwnerType
+import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 
 class KeywordHighlightManager private constructor() {
@@ -23,24 +23,21 @@ class KeywordHighlightManager private constructor() {
     }
 
     private val database get() = DatabaseManager.getInstance()
-    private val keywordHighlights = mutableMapOf<String, KeywordHighlight>()
 
 
-    fun addKeywordHighlight(keywordHighlight: KeywordHighlight) {
+    fun addKeywordHighlight(keywordHighlight: KeywordHighlight, accountOwner: AccountOwner) {
 
-        val accountId = AccountManager.getInstance().getAccountId()
 
-        database.save(
+        database.saveAndIncrementVersion(
             Data(
                 id = keywordHighlight.id,
-                ownerId = accountId,
-                ownerType = OwnerType.User.name,
+                ownerId = accountOwner.id,
+                ownerType = accountOwner.type.name,
                 type = DataType.KeywordHighlight.name,
                 data = ohMyJson.encodeToString(keywordHighlight),
             )
         )
 
-        keywordHighlights[keywordHighlight.id] = keywordHighlight
         TerminalPanelFactory.getInstance().repaintAll()
 
         if (log.isDebugEnabled) {
@@ -49,7 +46,6 @@ class KeywordHighlightManager private constructor() {
     }
 
     fun removeKeywordHighlight(id: String) {
-        keywordHighlights.remove(id)
         database.delete(id, DataType.KeywordHighlight.name)
         TerminalPanelFactory.getInstance().repaintAll()
         DeleteDataManager.getInstance().removeKeywordHighlight(id)
@@ -60,14 +56,11 @@ class KeywordHighlightManager private constructor() {
     }
 
     fun getKeywordHighlights(): List<KeywordHighlight> {
-        if (keywordHighlights.isEmpty()) {
-            database.data<KeywordHighlight>(DataType.KeywordHighlight)
-                .forEach { keywordHighlights[it.id] = it }
-        }
-        return keywordHighlights.values.sortedBy { it.sort }
+        return getKeywordHighlights(StringUtils.EMPTY)
     }
 
-    fun getKeywordHighlight(id: String): KeywordHighlight? {
-        return keywordHighlights[id]
+    fun getKeywordHighlights(ownerId: String): List<KeywordHighlight> {
+        return database.data<KeywordHighlight>(DataType.KeywordHighlight, ownerId).sortedBy { it.sort }
     }
+
 }
