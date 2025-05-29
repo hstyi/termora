@@ -94,7 +94,8 @@ class PushService private constructor() : SyncService(), Disposable, Application
     }
 
     private fun delete(data: Data) {
-        val request = Request.Builder().url("${accountManager.getServer()}/v1/data/${data.id}")
+        val request = Request.Builder()
+            .url("${accountManager.getServer()}/v1/data/${data.id}?ownerId=${data.ownerId}&ownerType=${data.ownerType}")
             .delete()
             .build()
 
@@ -144,8 +145,7 @@ class PushService private constructor() : SyncService(), Disposable, Application
                     log.warn("数据: {} 推送时版本冲突，触发拉取", data.id)
                 }
             }
-            // 通知拉取
-            PullService.getInstance().trigger(data.id)
+            PullService.getInstance().trigger()
             return
         }
 

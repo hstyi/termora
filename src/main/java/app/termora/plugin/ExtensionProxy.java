@@ -11,8 +11,8 @@ import java.lang.reflect.Proxy;
 record ExtensionProxy(Extension extension) implements InvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(ExtensionProxy.class);
 
-    public Extension getProxyedExtension() {
-        return (Extension) Proxy.newProxyInstance(extension.getClass().getClassLoader(), extension.getClass().getInterfaces(), this);
+    public Object getProxyExtension() {
+        return Proxy.newProxyInstance(extension.getClass().getClassLoader(), extension.getClass().getInterfaces(), this);
     }
 
     @Override

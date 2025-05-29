@@ -3,6 +3,7 @@ package app.termora.plugin.internal.extension
 import app.termora.ApplicationScope
 import app.termora.Disposable
 import app.termora.plugin.Extension
+import app.termora.plugin.ExtensionManager
 import org.apache.commons.lang3.ArrayUtils
 
 internal class DynamicExtensionHandler private constructor() {
@@ -14,6 +15,7 @@ internal class DynamicExtensionHandler private constructor() {
         }
     }
 
+    private val extensionManager get() = ExtensionManager.getInstance()
     private var extensions = emptyArray<Any>()
 
     fun <T : Extension> register(clazz: Class<T>, extension: T): Disposable {
@@ -35,8 +37,10 @@ internal class DynamicExtensionHandler private constructor() {
             for (i in 0 until extensions.size) {
                 if (extensions[i] == clazz) {
                     val extension = extensions[i + 1]
-                    if (clazz.isInstance(extension)) {
-                        list.add(clazz.cast(extension))
+                    if (extension is Extension) {
+                        if (extensionManager.isExtension(extension, clazz.kotlin)) {
+                            list.add(clazz.cast(extension))
+                        }
                     }
                 }
             }

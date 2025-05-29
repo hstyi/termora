@@ -30,7 +30,12 @@ class ExtensionManager private constructor() {
 
             for (extension in plugin.getExtensions(clazz)) {
                 if (clazz.isInstance(extension)) {
-                    extensions.add(clazz.cast(proxyExtension(extension)))
+                    // 只有在 EDT 上派发的才会做校验
+                    if (extension.getDispatchThread() == DispatchThread.EDT) {
+                        extensions.add(clazz.cast(ExtensionProxy(extension).proxyExtension))
+                    } else {
+                        extensions.add(clazz.cast(extension))
+                    }
                 }
             }
 
@@ -52,10 +57,5 @@ class ExtensionManager private constructor() {
         }
 
         return false
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun <T : Extension> proxyExtension(extension: T): T {
-        return ExtensionProxy(extension).proxyedExtension as T
     }
 }

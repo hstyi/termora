@@ -1,6 +1,12 @@
 package app.termora.highlight
 
 import app.termora.ApplicationScope
+import app.termora.Disposable
+import app.termora.Disposer
+import app.termora.assertEventDispatchThread
+import app.termora.db.DataType
+import app.termora.db.DatabaseManagerExtension
+import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import app.termora.terminal.*
 import app.termora.terminal.panel.TerminalDisplay
 import app.termora.terminal.panel.TerminalPaintListener
@@ -10,7 +16,7 @@ import java.awt.Graphics
 import kotlin.math.min
 import kotlin.random.Random
 
-class KeywordHighlightPaintListener private constructor() : TerminalPaintListener {
+class KeywordHighlightPaintListener private constructor() : TerminalPaintListener, Disposable {
 
     companion object {
         fun getInstance(): KeywordHighlightPaintListener {
@@ -23,6 +29,34 @@ class KeywordHighlightPaintListener private constructor() : TerminalPaintListene
     }
 
     private val keywordHighlightManager get() = KeywordHighlightManager.getInstance()
+    private val keywordHighlights = mutableListOf<KeywordHighlight>()
+
+    init {
+        // 数据变更时刷新
+        DynamicExtensionHandler.getInstance().register(DatabaseManagerExtension::class.java, object :
+            DatabaseManagerExtension {
+            override fun onDataChanged(
+                id: String,
+                type: String,
+                action: DatabaseManagerExtension.Action,
+                source: DatabaseManagerExtension.Source
+            ) {
+                if (type == DataType.KeywordHighlight.name || (id.isBlank() && type.isBlank())) {
+                    reload()
+                }
+            }
+        }).let { Disposer.register(this, it) }
+
+        // 立即刷新
+        reload()
+    }
+
+    private fun reload() {
+        assertEventDispatchThread()
+        keywordHighlights.clear()
+        keywordHighlights.addAll(keywordHighlightManager.getKeywordHighlights())
+    }
+
 
     override fun before(
         offset: Int,
@@ -32,7 +66,7 @@ class KeywordHighlightPaintListener private constructor() : TerminalPaintListene
         terminalDisplay: TerminalDisplay,
         terminal: Terminal
     ) {
-        for (highlight in keywordHighlightManager.getKeywordHighlights()) {
+        for (highlight in keywordHighlights) {
             if (!highlight.enabled) {
                 continue
             }

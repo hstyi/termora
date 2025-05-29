@@ -16,7 +16,6 @@ import okhttp3.Request
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.concurrent.withLock
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -46,52 +45,59 @@ class PullService private constructor() : SyncService(), Disposable, Application
         }))
     }
 
-    /**
-     * 多次通知只会生效一次 也就是最后一次
-     */
-    private val channel = Channel<String>(Channel.UNLIMITED)
-    private val pullChannel = Channel<Unit>(Channel.CONFLATED)
+    private val channel = Channel<Unit>(Channel.CONFLATED)
     private val accountProperties get() = AccountProperties.getInstance()
     private val pulling = AtomicBoolean(false)
-    val isPulling get() = pulling.get()
+    private var lastChangeHash = StringUtils.EMPTY
 
-    private suspend fun schedule() {
+    private fun pullChanges() {
+        if (isFreePlan) return
+        var hash = StringUtils.EMPTY
+
         try {
-            // 同步
-            synchronize(channel.receiveCatching().getOrNull() ?: return)
+            hash = getChangeHash()
+            if (hash.isBlank()) return
+
+            if (hash == lastChangeHash) {
+                if (log.isDebugEnabled) {
+                    log.debug("没有数据变动")
+                }
+                return
+            }
+
+        } catch (e: Exception) {
+            if (log.isDebugEnabled) {
+                log.debug(e.message, e)
+            }
+        }
+
+        if (pulling.compareAndSet(false, true).not()) {
+            return
+        }
+
+        var count = 0
+        try {
+            PullServiceExtension.firePullStarted()
+            count = doPullChanges()
         } catch (e: Exception) {
             if (log.isErrorEnabled) {
                 log.error(e.message, e)
             }
         }
-    }
 
-    private fun synchronize(id: String) {
-        syncLock.withLock { pull(id) }
-    }
-
-
-    private fun pullChanges() {
-        if (isFreePlan.not() && pulling.compareAndSet(false, true)) {
-            var count = 0
-            try {
-                PullServiceExtension.firePullStarted()
-                count = doPullChanges()
-            } catch (e: Exception) {
-                if (log.isErrorEnabled) {
-                    log.error(e.message, e)
-                }
-            } finally {
-                pulling.set(false)
-                PullServiceExtension.firePullFinished(count)
-            }
+        if (hash.isNotBlank()) {
+            lastChangeHash = hash
         }
+
+        pulling.set(false)
+
+        PullServiceExtension.firePullFinished(count)
     }
 
     private fun doPullChanges(): Int {
 
-        if (log.isInfoEnabled) {
-            log.info("即将从云端拉取变更")
+        if (log.isDebugEnabled) {
+            log.debug("即将从云端拉取变更")
         }
 
         val since = accountProperties.nextSynchronizationSince
@@ -110,35 +116,8 @@ class PullService private constructor() : SyncService(), Disposable, Application
             if (response.changes.isEmpty()) break
 
             for (e in response.changes) {
-                val data = getData(e.objectId)
-                // 如果本地不存在，并且云端已经删除，那么不需要处理
-                if (data == null && e.deleted) {
-                    continue
-                } else if (data != null && e.deleted && data.deleted) { // 如果云端与本地都已经删除，那么不需要处理
-                    continue
-                }
-                if (data == null || data.version != e.version || e.deleted != data.deleted) {
-                    if (log.isInfoEnabled) {
-                        log.info(
-                            "数据: {}, 本地版本: {}, 云端版本: {} 触发同步",
-                            e.objectId,
-                            data?.version ?: "不存在",
-                            e.version
-                        )
-                    }
-
-                    try {
-                        if (pull(e.objectId) == PullResult.Changed) {
-                            count++
-                        }
-                    } catch (e: Exception) {
-                        if (log.isErrorEnabled) {
-                            log.error(e.message, e)
-                        }
-                    }
-
-                } else if (log.isDebugEnabled) {
-                    log.debug("数据: {} 本地版本与云端版本一致", e.objectId)
+                if (tryPull(e)) {
+                    count++
                 }
             }
 
@@ -150,23 +129,73 @@ class PullService private constructor() : SyncService(), Disposable, Application
         accountProperties.nextSynchronizationSince = nextSince
         accountProperties.lastSynchronizationOn = System.currentTimeMillis()
 
-        if (log.isInfoEnabled) {
-            log.info("从云端拉取变更结束，变更条数: {}", count)
+        if (log.isDebugEnabled) {
+            log.debug("从云端拉取变更结束，变更条数: {}", count)
         }
 
         return count
 
     }
 
+    private fun tryPull(e: DataChange): Boolean {
+        val data = getData(e.objectId)
+        // 如果本地不存在，并且云端已经删除，那么不需要处理
+        if (data == null && e.deleted) {
+            return false
+        }
 
-    private fun pull(id: String): PullResult {
-        val request = Request.Builder().url("${accountManager.getServer()}/v1/data/${id}")
+        // 如果云端与本地都已经删除，那么不需要处理
+        if (data != null && e.deleted && data.deleted) {
+            return false
+        }
+
+        if (data == null || data.version != e.version || e.deleted != data.deleted) {
+            if (log.isDebugEnabled) {
+                log.debug(
+                    "数据: {}, 本地版本: {}, 云端版本: {} 触发同步",
+                    e.objectId,
+                    data?.version ?: "不存在",
+                    e.version
+                )
+            }
+
+            try {
+                if (pull(e.objectId, e.ownerId, e.ownerType) == PullResult.Changed) {
+                    return true
+                }
+            } catch (e: Exception) {
+                if (log.isErrorEnabled) {
+                    log.error(e.message, e)
+                }
+            }
+
+        } else if (log.isDebugEnabled) {
+            log.debug("数据: {} 本地版本与云端版本一致", e.objectId)
+        }
+
+        return false
+    }
+
+    private fun getChangeHash(): String {
+        val request = Request.Builder()
+            .head()
+            .url("${accountManager.getServer()}/v1/data/changes")
+            .build()
+        val response = AccountHttp.client.newCall(request).execute().apply { close() }
+        if (response.isSuccessful.not()) throw ResponseException(response.code, response)
+        return response.header("X-Hash") ?: StringUtils.EMPTY
+    }
+
+
+    private fun pull(id: String, ownerId: String, ownerType: String): PullResult {
+        val request = Request.Builder()
+            .url("${accountManager.getServer()}/v1/data/${id}?ownerId=${ownerId}&ownerType=${ownerType}")
             .get()
             .build()
         val response = AccountHttp.client.newCall(request).execute()
 
-        if (log.isInfoEnabled) {
-            log.info("拉取数据: {} 成功, 响应码: {}", id, response.code)
+        if (log.isDebugEnabled) {
+            log.debug("拉取数据: {} 成功, 响应码: {}", id, response.code)
         }
 
         // 云端数据不存在直接返回
@@ -216,14 +245,14 @@ class PullService private constructor() : SyncService(), Disposable, Application
         if (row == null) {
             // 云端已经删除，那么忽略
             if (deleted) {
-                if (log.isInfoEnabled) {
-                    log.info("数据: {}, 类型: {} 云端已经删除，本地也不存在", id, type)
+                if (log.isDebugEnabled) {
+                    log.debug("数据: {}, 类型: {} 云端已经删除，本地也不存在", id, type)
                 }
                 return PullResult.Nothing
             }
 
-            if (log.isInfoEnabled) {
-                log.info("数据: {}, 类型: {} 从云端拉取成功，即将保存到本地", id, type)
+            if (log.isDebugEnabled) {
+                log.debug("数据: {}, 类型: {} 从云端拉取成功，即将保存到本地", id, type)
             }
 
             // 保存到本地
@@ -243,16 +272,16 @@ class PullService private constructor() : SyncService(), Disposable, Application
             )
 
         } else if (deleted && row.deleted.not()) { // 如果本地存在，云端已经删除，那么本地删除
-            if (log.isInfoEnabled) {
-                log.info("数据: {}, 类型: {} 云端已经删除，本地即将删除", id, type)
+            if (log.isDebugEnabled) {
+                log.debug("数据: {}, 类型: {} 云端已经删除，本地即将删除", id, type)
             }
             databaseManager.delete(
                 id, type,
                 DatabaseManagerExtension.Source.Sync
             )
         } else if (row.version > version) { // 如果本地版本大于云端版本，那么忽略，因为需要推送到云端
-            if (log.isInfoEnabled) {
-                log.info(
+            if (log.isDebugEnabled) {
+                log.debug(
                     "数据: {}, 类型: {}, 本地版本: {}, 云端版本: {}, 本地版本高于云端版本，即将将本地数据推送至云端",
                     id,
                     type,
@@ -266,8 +295,8 @@ class PullService private constructor() : SyncService(), Disposable, Application
             }
         } else if (row.version < version) { // 本地版本小于云端版本，那么立即修改
 
-            if (log.isInfoEnabled) {
-                log.info(
+            if (log.isDebugEnabled) {
+                log.debug(
                     "数据: {}, 类型: {}, 本地版本: {}, 云端版本: {}, 本地版本小于云端版本，即将保存到本地",
                     id,
                     type,
@@ -298,19 +327,12 @@ class PullService private constructor() : SyncService(), Disposable, Application
         return PullResult.Changed
     }
 
-    fun trigger(id: String) {
-        channel.trySend(id).isSuccess
-    }
-
     fun trigger() {
-        pullChannel.trySend(Unit).isSuccess
+        channel.trySend(Unit).isSuccess
     }
 
 
     override fun ready() {
-        // 同步
-        swingCoroutineScope.launch(Dispatchers.IO) { while (isActive) schedule() }
-
         // 定时同步
         swingCoroutineScope.launch(Dispatchers.IO) {
             // 等一会儿再同步
@@ -321,11 +343,11 @@ class PullService private constructor() : SyncService(), Disposable, Application
                 // 拉取变动的
                 pullChanges()
 
-                // 30秒拉取一次变动
-                val result = withTimeoutOrNull(30.seconds) { pullChannel.receiveCatching() }
-                if (result != null && result.isFailure) {
-                    break
-                }
+                // N 秒拉一次
+                val result = withTimeoutOrNull(Random.nextInt(3, 5).seconds) {
+                    channel.receiveCatching()
+                } ?: continue
+                if (result.isFailure) break
 
             }
         }
@@ -333,7 +355,6 @@ class PullService private constructor() : SyncService(), Disposable, Application
         Disposer.register(this, object : Disposable {
             override fun dispose() {
                 channel.close()
-                pullChannel.close()
             }
         })
     }
@@ -347,14 +368,16 @@ class PullService private constructor() : SyncService(), Disposable, Application
     private data class DataChangesResponse(
         val after: String,
         val since: Long,
-        val changes: List<DataChanges>
+        val changes: List<DataChange>
     )
 
     @Serializable
-    private data class DataChanges(
+    private data class DataChange(
         val objectId: String,
         val version: Long,
         val deleted: Boolean,
+        val ownerId: String,
+        val ownerType: String,
     )
 
 

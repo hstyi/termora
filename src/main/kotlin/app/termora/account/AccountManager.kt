@@ -40,15 +40,14 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     fun getSecretKey() = account.secretKey
     fun getPublicKey() = account.publicKey
     fun getPrivateKey() = account.privateKey
-    fun isSigned() = isFreePlan().not() && AccountProperties.getInstance().signed
+    fun isSigned() = isFreePlan().not() && accountProperties.signed
     fun isLocally() = account.isLocally
     fun getLastSynchronizationOn() = accountProperties.lastSynchronizationOn
     fun getAccessToken() = account.accessToken
     fun getRefreshToken() = account.refreshToken
 
     fun isFreePlan(): Boolean {
-        val subscription = getSubscription()
-        return isLocally() || subscription.plan == SubscriptionPlan.Free
+        return isLocally() || getSubscription().plan == SubscriptionPlan.Free
     }
 
     fun getSubscription(): Subscription {
