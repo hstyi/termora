@@ -228,10 +228,9 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
         return if (unread) Icons.terminalUnread else Icons.terminal
     }
 
-    override fun willBeClose(): Boolean {
+    override fun beforeClose() {
         // 保存窗口状态
         terminalPanel.storeVisualWindows(host.id)
-        return super.willBeClose()
     }
 
     private inner class MySessionListener : SessionListener, Disposable {
