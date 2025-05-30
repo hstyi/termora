@@ -55,6 +55,10 @@ Source: "{#MySourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdir
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
+[InstallDelete]
+Type: files; Name: "{app}\app\*.jar"
+Type: filesandordirs; Name: "{app}\runtime\*"
+
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall; Check: ShouldPromptStart
 Filename: "{app}\{#MyAppExeName}"; Flags: nowait runhidden; Check: ShouldAutoStart
