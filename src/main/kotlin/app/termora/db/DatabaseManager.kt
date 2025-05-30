@@ -670,6 +670,11 @@ class DatabaseManager private constructor() : Disposable {
         var backgroundRunning by BooleanPropertyDelegate(false)
 
         /**
+         * 关闭 Tab 前询问
+         */
+        var confirmTabClose by BooleanPropertyDelegate(false)
+
+        /**
          * 背景图片的地址
          */
         var backgroundImage by StringPropertyDelegate(StringUtils.EMPTY)

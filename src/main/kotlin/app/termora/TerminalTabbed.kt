@@ -2,6 +2,7 @@ package app.termora
 
 
 import app.termora.actions.*
+import app.termora.db.DatabaseManager
 import app.termora.findeverywhere.BasicFilterFindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereResult
@@ -34,7 +35,7 @@ class TerminalTabbed(
     private val toolbar = termoraToolBar.getJToolBar()
     private val actionManager = ActionManager.getInstance()
     private val dataProviderSupport = DataProviderSupport()
-    private val appearance get() = Database.getDatabase().appearance
+    private val appearance get() = DatabaseManager.getInstance().appearance
     private val titleProperty = randomUUID()
     private val iconListener = PropertyChangeListener { e ->
         val source = e.source

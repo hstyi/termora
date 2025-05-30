@@ -53,7 +53,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
 
     private fun pullChanges() {
         if (isFreePlan) return
-        var hash = StringUtils.EMPTY
+        val hash: String
 
         try {
             hash = getChangeHash()
@@ -70,6 +70,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
             if (log.isDebugEnabled) {
                 log.debug(e.message, e)
             }
+            return
         }
 
         if (pulling.compareAndSet(false, true).not()) {
