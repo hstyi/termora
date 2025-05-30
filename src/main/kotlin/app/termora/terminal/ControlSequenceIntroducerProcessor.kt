@@ -360,8 +360,9 @@ class ControlSequenceIntroducerProcessor(terminal: Terminal, reader: TerminalRea
                 }
             }
 
-            // TODO Send Device Attributes (Primary DA).
+            // Send Device Attributes (Primary DA).
             'c' -> {
+                sendDeviceAttributes()
             }
 
             // CSI Ps M  Delete Ps Line(s) (default = 1) (DL).
@@ -502,6 +503,22 @@ class ControlSequenceIntroducerProcessor(terminal: Terminal, reader: TerminalRea
             val bytes = "${ControlCharacters.ESC}[0n".toByteArray(writer.getCharset())
             writer.write(TerminalWriter.WriteRequest.fromBytes(bytes))
         }
+
+    }
+
+    private fun sendDeviceAttributes() {
+
+        assertEventDispatchThread()
+
+        if (!terminalModel.hasData(DataKey.TerminalWriter)) {
+            return
+        }
+
+        val writer = terminalModel.getData(DataKey.TerminalWriter)
+
+        // VT102_RESPONSE
+        val bytes = "${ControlCharacters.ESC}[?6c".toByteArray(writer.getCharset())
+        writer.write(TerminalWriter.WriteRequest.fromBytes(bytes))
 
     }
 
