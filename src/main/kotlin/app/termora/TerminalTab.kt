@@ -1,5 +1,6 @@
 package app.termora
 
+import app.termora.Database.Appearance
 import app.termora.actions.DataProvider
 import java.beans.PropertyChangeListener
 import javax.swing.Icon
@@ -44,9 +45,14 @@ interface TerminalTab : Disposable, DataProvider {
     fun canClose(): Boolean = true
 
     /**
-     * 返回 true 表示可以关闭
+     * 返回 true 表示可以关闭，只有当 [Appearance.confirmTabClose] 为 false 时才会调用
      */
     fun willBeClose(): Boolean = true
+
+    /**
+     * 即将关闭，已经无法挽回
+     */
+    fun beforeClose() {}
 
     /**
      * 是否可以克隆

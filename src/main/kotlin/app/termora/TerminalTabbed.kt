@@ -32,6 +32,7 @@ class TerminalTabbed(
     private val actionManager = ActionManager.getInstance()
     private val dataProviderSupport = DataProviderSupport()
     private val titleProperty = UUID.randomUUID().toSimpleString()
+    private val appearance get() = Database.getDatabase().appearance
     private val iconListener = PropertyChangeListener { e ->
         val source = e.source
         if (e.propertyName == "icon" && source is TerminalTab) {
@@ -153,8 +154,29 @@ class TerminalTabbed(
         if (tabbedPane.isTabClosable(index)) {
             val tab = tabs[index]
 
+            // 询问是否可以关闭
             if (disposable) {
-                if (!tab.willBeClose()) {
+                // 如果开启了关闭确认，那么直接询问用户
+                if (appearance.confirmTabClose) {
+                    if (OptionPane.showConfirmDialog(
+                            windowScope.window,
+                            I18n.getString("termora.tabbed.tab.close-prompt"),
+                            messageType = JOptionPane.QUESTION_MESSAGE,
+                            optionType = JOptionPane.OK_CANCEL_OPTION
+                        ) != JOptionPane.OK_OPTION
+                    ) {
+                        return
+                    }
+                } else if (!tab.willBeClose()) { // 如果没有开启则询问用户
+                    return
+                }
+            }
+
+            // 通知即将关闭
+            if (disposable) {
+                try {
+                    tab.beforeClose()
+                } catch (_: Exception) {
                     return
                 }
             }
