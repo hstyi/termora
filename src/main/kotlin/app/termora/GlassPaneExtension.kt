@@ -2,6 +2,7 @@ package app.termora
 
 import app.termora.plugin.Extension
 import java.awt.Graphics2D
+import javax.swing.JComponent
 
 /**
  * 玻璃面板扩展
@@ -13,6 +14,6 @@ interface GlassPaneExtension : Extension {
      *
      * @return true：渲染了背景，false：没有渲染背景
      */
-    fun paint(backageImage: String, g2d: Graphics2D): Boolean
+    fun paint(backageImage: String, c: JComponent, g2d: Graphics2D): Boolean
 
 }

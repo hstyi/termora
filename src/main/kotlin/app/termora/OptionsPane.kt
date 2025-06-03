@@ -11,6 +11,7 @@ open class OptionsPane : JPanel(BorderLayout()) {
         val formMargin = "7dlu"
     }
 
+    private val options = mutableListOf<Option>()
     protected val tabListModel = DefaultListModel<Option>()
     protected val tabList = object : JList<Option>(tabListModel) {
         override fun getBackground(): Color {
@@ -105,8 +106,14 @@ open class OptionsPane : JPanel(BorderLayout()) {
                 throw UnsupportedOperationException("Title already exists")
             }
         }
+
+        options.add(option)
         contentPanel.add(option.getJComponent(), option.getTitle())
-        tabListModel.addElement(option)
+
+        tabListModel.clear()
+        for (e in OptionSorter.sortOptions(options)) {
+            tabListModel.addElement(e)
+        }
 
         if (tabList.selectedIndex < 0) {
             tabList.selectedIndex = 0
@@ -138,11 +145,88 @@ open class OptionsPane : JPanel(BorderLayout()) {
         }
     }
 
+
     interface Option {
         fun getIcon(isSelected: Boolean): Icon
         fun getTitle(): String
         fun getJComponent(): JComponent
-
+        fun getIdentifier(): String = javaClass.name
+        fun getAnchor(): Anchor = Anchor.Null
         fun onSelected() {}
+    }
+
+
+    sealed class Anchor {
+        object Null : Anchor()
+        object First : Anchor()
+        object Last : Anchor()
+        data class Before(val target: String) : Anchor()
+        data class After(val target: String) : Anchor()
+    }
+
+    private object OptionSorter {
+
+
+        fun sortOptions(options: List<Option>): List<Option> {
+            val firsts = options.filter { it.getAnchor() is Anchor.First }
+            val lasts = options.filter { it.getAnchor() is Anchor.Last }
+            val nulls = options.filter { it.getAnchor() is Anchor.Null }
+            val pendingOptions = mutableListOf<Option>()
+
+            val result = mutableListOf<Option>()
+            result.addAll(firsts)
+            result.addAll(nulls)
+            result.addAll(lasts)
+
+            // 首次排序
+            sort(options, pendingOptions, result)
+
+            // 对于没有找到对应依赖关系，则在最近的一个 Last 前面
+            if (pendingOptions.isNotEmpty()) {
+                for (i in 0 until result.size) {
+                    if (result[i].getAnchor() is Anchor.Last || i == result.size - 1) {
+                        for (n in 0 until pendingOptions.size) {
+                            result.add(i + n, pendingOptions[n])
+                        }
+                        break
+                    }
+                }
+            }
+
+
+            return result
+        }
+
+        private fun sort(
+            options: List<Option>,
+            pendingOptions: MutableList<Option>,
+            result: MutableList<Option>
+        ) {
+            for (option in options.filter { it.getAnchor() is Anchor.Before || it.getAnchor() is Anchor.After }) {
+                val anchor = option.getAnchor()
+                if (anchor is Anchor.Before) {
+                    val index = findIndex(anchor.target, result)
+                    if (index == -1) {
+                        pendingOptions.add(option)
+                        continue
+                    } else {
+                        result.add(index, option)
+                    }
+                } else if (anchor is Anchor.After) {
+                    val index = findIndex(anchor.target, result)
+                    if (index == -1) {
+                        pendingOptions.add(option)
+                        continue
+                    } else {
+                        result.add(index + 1, option)
+                    }
+                }
+            }
+        }
+
+        private fun findIndex(identifier: String, list: List<Option>): Int {
+            return list.indexOfFirst { it.getIdentifier() == identifier }
+        }
+
     }
 }

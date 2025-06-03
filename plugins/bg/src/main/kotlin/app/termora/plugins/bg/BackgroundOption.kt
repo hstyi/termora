@@ -99,7 +99,7 @@ class BackgroundOption : JPanel(BorderLayout()), OptionsPane.Option {
     }
 
     override fun getIcon(isSelected: Boolean): Icon {
-        return Icons.image
+        return Icons.imageGray
     }
 
     override fun getTitle(): String {
@@ -130,5 +130,7 @@ class BackgroundOption : JPanel(BorderLayout()), OptionsPane.Option {
         return builder.build()
     }
 
-
+    override fun getAnchor(): OptionsPane.Anchor {
+        return OptionsPane.Anchor.After("Plugin")
+    }
 }

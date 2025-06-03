@@ -1,6 +1,5 @@
 package app.termora
 
-import app.termora.account.AccountSettingsOptionExtension
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProviders
@@ -14,7 +13,6 @@ import app.termora.terminal.DataKey
 import app.termora.terminal.panel.FloatingToolbarPanel
 import app.termora.terminal.panel.TerminalPanel
 import com.formdev.flatlaf.FlatClientProperties
-import com.formdev.flatlaf.extras.components.FlatButton
 import com.formdev.flatlaf.extras.components.FlatComboBox
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.extras.components.FlatToolBar
@@ -24,11 +22,8 @@ import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import com.jthemedetecor.OsThemeDetector
 import com.sun.jna.LastErrorException
-import org.apache.commons.io.FileUtils
-import org.apache.commons.io.FilenameUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
-import org.apache.commons.lang3.exception.ExceptionUtils
 import org.slf4j.LoggerFactory
 import java.awt.BorderLayout
 import java.awt.Component
@@ -37,9 +32,7 @@ import java.awt.Toolkit
 import java.awt.event.ActionEvent
 import java.awt.event.ItemEvent
 import java.awt.event.ItemListener
-import java.io.File
 import java.net.URI
-import java.nio.file.StandardCopyOption
 import java.util.*
 import javax.swing.*
 import javax.swing.JSpinner.NumberEditor
@@ -93,26 +86,22 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
     init {
 
         val extensions = extensionManager.getExtensions(SettingsOptionExtension::class.java)
+        val options = mutableListOf<Option>()
 
-        // account
-        for (extension in extensions) {
-            if (extensionManager.isExtension(extension, AccountSettingsOptionExtension::class)) {
-                addOption(extension.createSettingsOption())
-                break
-            }
-        }
-
-        addOption(AppearanceOption())
-        addOption(TerminalOption())
-        addOption(KeyShortcutsOption())
-        addOption(SFTPOption())
+        options.add(AppearanceOption())
+        options.add(TerminalOption())
+        options.add(KeyShortcutsOption())
+        options.add(SFTPOption())
+        options.add(AboutOption())
 
         for (extension in extensions) {
-            if (extensionManager.isExtension(extension, AccountSettingsOptionExtension::class)) continue
-            addOption(extension.createSettingsOption())
+            options.add(extension.createSettingsOption())
         }
 
-        addOption(AboutOption())
+        for (option in options) {
+            addOption(option)
+        }
+
         setContentBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8))
     }
 
@@ -132,11 +121,8 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
         val followSystemCheckBox = JCheckBox(I18n.getString("termora.settings.appearance.follow-system"))
         val preferredThemeBtn = JButton(Icons.settings)
         val opacitySpinner = NumberSpinner(100, 0, 100)
-        val backgroundImageTextField = OutlineTextField()
 
         private val appearance get() = database.appearance
-        private val backgroundButton = JButton(Icons.folder)
-        private val backgroundClearButton = FlatButton()
 
 
         init {
@@ -147,20 +133,6 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
         private fun initView() {
 
             backgroundComBoBox.isEnabled = SystemInfo.isWindows || SystemInfo.isMacOS
-            backgroundImageTextField.isEditable = false
-            backgroundImageTextField.trailingComponent = backgroundButton
-            backgroundImageTextField.text = FilenameUtils.getName(appearance.backgroundImage)
-            backgroundImageTextField.document.addDocumentListener(object : DocumentAdaptor() {
-                override fun changedUpdate(e: DocumentEvent) {
-                    backgroundClearButton.isEnabled = backgroundImageTextField.text.isNotBlank()
-                }
-            })
-
-            backgroundClearButton.isFocusable = false
-            backgroundClearButton.isEnabled = backgroundImageTextField.text.isNotBlank()
-            backgroundClearButton.icon = Icons.delete
-            backgroundClearButton.buttonType = FlatButton.ButtonType.toolBarButton
-
 
             opacitySpinner.isEnabled = SystemInfo.isMacOS || SystemInfo.isWindows
             opacitySpinner.model = object : SpinnerNumberModel(appearance.opacity, 0.1, 1.0, 0.1) {
@@ -266,45 +238,6 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
 
             preferredThemeBtn.addActionListener { showPreferredThemeContextmenu() }
 
-            backgroundButton.addActionListener {
-                val chooser = FileChooser()
-                chooser.osxAllowedFileTypes = listOf("png", "jpg", "jpeg")
-                chooser.allowsMultiSelection = false
-                chooser.win32Filters.add(Pair("Image files", listOf("png", "jpg", "jpeg")))
-                chooser.fileSelectionMode = JFileChooser.FILES_ONLY
-                chooser.showOpenDialog(owner).thenAccept {
-                    if (it.isNotEmpty()) {
-                        onSelectedBackgroundImage(it.first())
-                    }
-                }
-            }
-
-            backgroundClearButton.addActionListener {
-                BackgroundManager.getInstance().clearBackgroundImage()
-                backgroundImageTextField.text = StringUtils.EMPTY
-            }
-        }
-
-        private fun onSelectedBackgroundImage(file: File) {
-            try {
-                val destFile = FileUtils.getFile(Application.getBaseDataDir(), "background", file.name)
-                FileUtils.forceMkdirParent(destFile)
-                FileUtils.deleteQuietly(destFile)
-                FileUtils.copyFile(file, destFile, StandardCopyOption.REPLACE_EXISTING)
-                backgroundImageTextField.text = destFile.name
-                BackgroundManager.getInstance().setBackgroundImage(destFile)
-            } catch (e: Exception) {
-                if (log.isErrorEnabled) {
-                    log.error(e.message, e)
-                }
-                SwingUtilities.invokeLater {
-                    OptionPane.showMessageDialog(
-                        owner,
-                        ExceptionUtils.getRootCauseMessage(e),
-                        messageType = JOptionPane.ERROR_MESSAGE
-                    )
-                }
-            }
         }
 
         override fun getIcon(isSelected: Boolean): Icon {
@@ -313,6 +246,10 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
 
         override fun getTitle(): String {
             return I18n.getString("termora.settings.appearance")
+        }
+
+        override fun getIdentifier(): String {
+            return "Appearance"
         }
 
         override fun getJComponent(): JComponent {
@@ -373,7 +310,7 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
         private fun getFormPanel(): JPanel {
             val layout = FormLayout(
                 "left:pref, $formMargin, default:grow, $formMargin, default, default:grow",
-                "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
+                "pref, $formMargin, pref, $formMargin, pref, $formMargin, pref, $formMargin, pref"
             )
             val box = FlatToolBar()
             box.add(followSystemCheckBox)
@@ -382,7 +319,7 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
 
             var rows = 1
             val step = 2
-            val builder = FormBuilder.create().layout(layout)
+            val builder = FormBuilder.create().layout(layout).debug(true)
                 .add("${I18n.getString("termora.settings.appearance.theme")}:").xy(1, rows)
                 .add(themeComboBox).xy(3, rows)
                 .add(box).xy(5, rows).apply { rows += step }
@@ -395,13 +332,6 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
                 })).xy(5, rows).apply { rows += step }
 
 
-            val bgClearBox = Box.createHorizontalBox()
-            bgClearBox.add(backgroundClearButton)
-            builder.add("${I18n.getString("termora.settings.appearance.background-image")}:").xy(1, rows)
-                .add(backgroundImageTextField).xy(3, rows)
-                .add(bgClearBox).xy(5, rows)
-                .apply { rows += step }
-
             builder.add("${I18n.getString("termora.settings.appearance.opacity")}:").xy(1, rows)
                 .add(opacitySpinner).xy(3, rows).apply { rows += step }
 
@@ -412,7 +342,7 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
             confirmTabCloseBox.add(JLabel("${I18n.getString("termora.settings.appearance.confirm-tab-close")}:"))
             confirmTabCloseBox.add(Box.createHorizontalStrut(8))
             confirmTabCloseBox.add(confirmTabCloseComBoBox)
-            builder.add(confirmTabCloseBox).xyw(1, rows,3).apply { rows += step }
+            builder.add(confirmTabCloseBox).xyw(1, rows, 3).apply { rows += step }
 
             return builder.build()
         }
@@ -903,6 +833,13 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
             return this
         }
 
+        override fun getAnchor(): Anchor {
+            return Anchor.Last
+        }
+
+        override fun getIdentifier(): String {
+            return "About"
+        }
     }
 
     private inner class KeyShortcutsOption : JPanel(BorderLayout()), Option {
@@ -933,6 +870,7 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
         override fun getJComponent(): JComponent {
             return this
         }
+
 
     }
 

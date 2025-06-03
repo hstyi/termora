@@ -91,6 +91,8 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
         if (response.code == 401) {
             logout()
             throw ResponseException(response.code, response)
+        } else if (response.isSuccessful.not()) {
+            throw ResponseException(response.code, response)
         }
 
         val text = response.use { response.body.use { it?.string() } }

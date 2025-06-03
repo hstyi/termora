@@ -228,4 +228,11 @@ class PluginOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable, Acc
         }
     }
 
+    override fun getIdentifier(): String {
+        return "Plugin"
+    }
+
+    override fun getAnchor(): OptionsPane.Anchor {
+        return OptionsPane.Anchor.Before("About")
+    }
 }

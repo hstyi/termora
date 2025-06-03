@@ -1,5 +1,7 @@
-package app.termora
+package app.termora.plugins.bg
 
+import app.termora.ApplicationScope
+import app.termora.TermoraFrameManager
 import app.termora.db.DatabaseManager
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
@@ -13,7 +15,7 @@ class BackgroundManager private constructor() {
     companion object {
         private val log = LoggerFactory.getLogger(BackgroundManager::class.java)
         fun getInstance(): BackgroundManager {
-            return ApplicationScope.forApplicationScope().getOrCreate(BackgroundManager::class) { BackgroundManager() }
+            return ApplicationScope.Companion.forApplicationScope().getOrCreate(BackgroundManager::class) { BackgroundManager() }
         }
     }
 
@@ -29,7 +31,7 @@ class BackgroundManager private constructor() {
                 appearance.backgroundImage = file.absolutePath
 
                 SwingUtilities.invokeLater {
-                    for (window in TermoraFrameManager.getInstance().getWindows()) {
+                    for (window in TermoraFrameManager.Companion.getInstance().getWindows()) {
                         SwingUtilities.updateComponentTreeUI(window)
                     }
                 }
@@ -80,7 +82,7 @@ class BackgroundManager private constructor() {
             imageFilepath = StringUtils.EMPTY
             appearance.backgroundImage = StringUtils.EMPTY
             SwingUtilities.invokeLater {
-                for (window in TermoraFrameManager.getInstance().getWindows()) {
+                for (window in TermoraFrameManager.Companion.getInstance().getWindows()) {
                     SwingUtilities.updateComponentTreeUI(window)
                 }
             }

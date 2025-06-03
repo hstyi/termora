@@ -66,9 +66,6 @@ class ApplicationRunner {
         swingCoroutineScope.launch(Dispatchers.IO) {
             ActionManager.getInstance()
             KeymapManager.getInstance()
-
-            // async init
-            BackgroundManager.getInstance().getBackgroundImage()
         }
 
         // 设置 LAF

@@ -521,5 +521,12 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
         }
     }
 
+    override fun getAnchor(): OptionsPane.Anchor {
+        return OptionsPane.Anchor.First
+    }
+
+    override fun getIdentifier(): String {
+        return "Account"
+    }
 
 }

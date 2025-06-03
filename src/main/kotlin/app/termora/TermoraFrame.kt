@@ -9,7 +9,6 @@ import app.termora.plugin.ExtensionManager
 import app.termora.sftp.SFTPTab
 import app.termora.terminal.DataKey
 import com.formdev.flatlaf.FlatClientProperties
-import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.ui.FlatRootPaneUI
 import com.formdev.flatlaf.ui.FlatTitlePane
 import com.formdev.flatlaf.util.SystemInfo
@@ -273,19 +272,11 @@ class TermoraFrame : JFrame(), DataProvider {
                 .getExtensions(GlassPaneExtension::class.java)
             if (extensions.isNotEmpty()) {
                 for (extension in extensions) {
-                    if (extension.paint(background, g2d)) {
+                    if (extension.paint(background, this, g2d)) {
                         return
                     }
                 }
             }
-
-            val img = BackgroundManager.getInstance().getBackgroundImage() ?: return
-            g2d.composite = AlphaComposite.getInstance(
-                AlphaComposite.SRC_OVER,
-                if (FlatLaf.isLafDark()) 0.2f else 0.1f
-            )
-            g2d.drawImage(img, 0, 0, width, height, null)
-            g2d.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
         }
 
     }
