@@ -22,6 +22,10 @@ import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import com.jthemedetecor.OsThemeDetector
 import com.sun.jna.LastErrorException
+import com.sun.jna.Native
+import com.sun.jna.platform.win32.Shell32
+import com.sun.jna.platform.win32.ShlObj
+import com.sun.jna.platform.win32.WinDef
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
 import org.slf4j.LoggerFactory
@@ -47,7 +51,6 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
     private val extensionManager get() = ExtensionManager.getInstance()
 
     companion object {
-        private val log = LoggerFactory.getLogger(SettingsOptionsPane::class.java)
         private val localShells by lazy { loadShells() }
 
         private fun loadShells(): List<String> {
@@ -621,6 +624,7 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
         private val sftpCommandField = OutlineTextField(255)
         private val defaultDirectoryField = OutlineTextField(255)
         private val browseDirectoryBtn = JButton(Icons.folder)
+        private val browseEditCommandBtn = JButton(Icons.folder)
         private val pinTabComboBox = YesOrNoComboBox()
         private val preserveModificationTimeComboBox = YesOrNoComboBox()
         private val sftp get() = database.sftp
@@ -692,6 +696,41 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
                     }
                 }
             })
+
+            browseEditCommandBtn.addActionListener(object : AbstractAction() {
+                override fun actionPerformed(e: ActionEvent) {
+                    val chooser = FileChooser()
+                    chooser.allowsMultiSelection = false
+                    chooser.fileSelectionMode = JFileChooser.FILES_ONLY
+
+                    if (SystemInfo.isMacOS) {
+                        chooser.defaultDirectory = "/Applications"
+                    } else {
+                        if (SystemInfo.isWindows) {
+                            val pszPath = CharArray(WinDef.MAX_PATH)
+                            Shell32.INSTANCE.SHGetFolderPath(
+                                null,
+                                ShlObj.CSIDL_DESKTOPDIRECTORY, null, ShlObj.SHGFP_TYPE_CURRENT,
+                                pszPath
+                            )
+                            chooser.defaultDirectory = Native.toString(pszPath)
+                        } else {
+                            chooser.defaultDirectory = SystemUtils.USER_HOME
+                        }
+                    }
+
+                    chooser.showOpenDialog(owner).thenAccept { files ->
+                        if (files.isNotEmpty()) {
+                            val file = files.first()
+                            if (SystemInfo.isMacOS) {
+                                editCommandField.text = "open -a ${file.absolutePath} {0}"
+                            } else {
+                                editCommandField.text = "${file.absolutePath} {0}"
+                            }
+                        }
+                    }
+                }
+            })
         }
 
 
@@ -707,6 +746,8 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
             } else {
                 sftpCommandField.placeholderText = "sftp"
             }
+
+            editCommandField.trailingComponent = browseEditCommandBtn
 
             defaultDirectoryField.placeholderText = SystemUtils.USER_HOME
             defaultDirectoryField.trailingComponent = browseDirectoryBtn
