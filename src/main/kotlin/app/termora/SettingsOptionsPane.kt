@@ -33,6 +33,10 @@ import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import com.jthemedetecor.OsThemeDetector
 import com.sun.jna.LastErrorException
+import com.sun.jna.Native
+import com.sun.jna.platform.win32.Shell32
+import com.sun.jna.platform.win32.ShlObj
+import com.sun.jna.platform.win32.WinDef
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
@@ -416,7 +420,7 @@ class SettingsOptionsPane : OptionsPane() {
             confirmTabCloseBox.add(JLabel("${I18n.getString("termora.settings.appearance.confirm-tab-close")}:"))
             confirmTabCloseBox.add(Box.createHorizontalStrut(8))
             confirmTabCloseBox.add(confirmTabCloseComBoBox)
-            builder.add(confirmTabCloseBox).xyw(1, rows,3).apply { rows += step }
+            builder.add(confirmTabCloseBox).xyw(1, rows, 3).apply { rows += step }
 
             return builder.build()
         }
@@ -1502,6 +1506,7 @@ class SettingsOptionsPane : OptionsPane() {
         private val sftpCommandField = OutlineTextField(255)
         private val defaultDirectoryField = OutlineTextField(255)
         private val browseDirectoryBtn = JButton(Icons.folder)
+        private val browseEditCommandBtn = JButton(Icons.folder)
         private val pinTabComboBox = YesOrNoComboBox()
         private val preserveModificationTimeComboBox = YesOrNoComboBox()
         private val sftp get() = database.sftp
@@ -1573,6 +1578,41 @@ class SettingsOptionsPane : OptionsPane() {
                     }
                 }
             })
+
+            browseEditCommandBtn.addActionListener(object : AbstractAction() {
+                override fun actionPerformed(e: ActionEvent) {
+                    val chooser = FileChooser()
+                    chooser.allowsMultiSelection = false
+                    chooser.fileSelectionMode = JFileChooser.FILES_ONLY
+
+                    if (SystemInfo.isMacOS) {
+                        chooser.defaultDirectory = "/Applications"
+                    } else {
+                        if (SystemInfo.isWindows) {
+                            val pszPath = CharArray(WinDef.MAX_PATH)
+                            Shell32.INSTANCE.SHGetFolderPath(
+                                null,
+                                ShlObj.CSIDL_DESKTOPDIRECTORY, null, ShlObj.SHGFP_TYPE_CURRENT,
+                                pszPath
+                            )
+                            chooser.defaultDirectory = Native.toString(pszPath)
+                        } else {
+                            chooser.defaultDirectory = SystemUtils.USER_HOME
+                        }
+                    }
+
+                    chooser.showOpenDialog(owner).thenAccept { files ->
+                        if (files.isNotEmpty()) {
+                            val file = files.first()
+                            if (SystemInfo.isMacOS) {
+                                editCommandField.text = "open -a ${file.absolutePath} {0}"
+                            } else {
+                                editCommandField.text = "${file.absolutePath} {0}"
+                            }
+                        }
+                    }
+                }
+            })
         }
 
 
@@ -1588,6 +1628,8 @@ class SettingsOptionsPane : OptionsPane() {
             } else {
                 sftpCommandField.placeholderText = "sftp"
             }
+
+            editCommandField.trailingComponent = browseEditCommandBtn
 
             defaultDirectoryField.placeholderText = SystemUtils.USER_HOME
             defaultDirectoryField.trailingComponent = browseDirectoryBtn
