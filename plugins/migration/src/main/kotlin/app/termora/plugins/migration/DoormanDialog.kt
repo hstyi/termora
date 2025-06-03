@@ -223,7 +223,7 @@ class DoormanDialog(owner: Window?) : DialogWrapper(owner) {
             )
 
             val builder = FormBuilder.create().padding("0, $formMargin, $formMargin, $formMargin")
-                .layout(layout).debug(true)
+                .layout(layout).debug(false)
             val iterator = textFields.iterator()
             for (i in 1..5 step 2) {
                 for (j in 1..7 step 2) {

@@ -28,7 +28,6 @@ import com.sun.jna.platform.win32.ShlObj
 import com.sun.jna.platform.win32.WinDef
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
-import org.slf4j.LoggerFactory
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Dimension
@@ -322,7 +321,7 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
 
             var rows = 1
             val step = 2
-            val builder = FormBuilder.create().layout(layout).debug(true)
+            val builder = FormBuilder.create().layout(layout).debug(false)
                 .add("${I18n.getString("termora.settings.appearance.theme")}:").xy(1, rows)
                 .add(themeComboBox).xy(3, rows)
                 .add(box).xy(5, rows).apply { rows += step }
@@ -826,7 +825,7 @@ class SettingsOptionsPane : OptionsPane(), Disposable {
             val branch = if (Application.isUnknownVersion()) "main" else Application.getVersion()
 
             return FormBuilder.create().padding("$formMargin, $formMargin, $formMargin, $formMargin")
-                .layout(layout).debug(true)
+                .layout(layout).debug(false)
                 .add(I18n.getString("termora.settings.about.termora", Application.getVersion()))
                 .xyw(1, rows, 3, "center, fill").apply { rows += step }
                 .add("${I18n.getString("termora.settings.about.author")}:").xy(1, rows)
