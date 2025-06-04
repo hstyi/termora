@@ -75,7 +75,7 @@ class DatabaseManager private constructor() : Disposable {
         // 注册动态扩展
         registerDynamicExtensions()
 
-        for (extension in ExtensionManager.getInstance().getExtensions(DatabaseManagerExtension::class.java)) {
+        for (extension in ExtensionManager.getInstance().getExtensions(DatabaseReadyExtension::class.java)) {
             extension.ready(this)
         }
 
@@ -214,14 +214,14 @@ class DatabaseManager private constructor() : Disposable {
             }
 
             // 触发更改
-            DatabaseManagerExtension.fireDataChanged(data.id, data.type, DatabaseManagerExtension.Action.Changed)
+            DatabaseChangedExtension.fireDataChanged(data.id, data.type, DatabaseChangedExtension.Action.Changed)
         } else {
             save(data)
         }
     }
 
-    fun save(data: Data, source: DatabaseManagerExtension.Source = DatabaseManagerExtension.Source.User) {
-        var action = DatabaseManagerExtension.Action.Changed
+    fun save(data: Data, source: DatabaseChangedExtension.Source = DatabaseChangedExtension.Source.User) {
+        var action = DatabaseChangedExtension.Action.Changed
         lock.withLock {
             transaction(database) {
                 val exists = DataEntity.selectAll()
@@ -235,7 +235,7 @@ class DatabaseManager private constructor() : Disposable {
                         it[DataEntity.synced] = data.synced
                         it[DataEntity.deleted] = data.deleted
                     }
-                    action = DatabaseManagerExtension.Action.Changed
+                    action = DatabaseChangedExtension.Action.Changed
                 } else {
                     DataEntity.insert {
                         it[DataEntity.id] = data.id
@@ -247,19 +247,19 @@ class DatabaseManager private constructor() : Disposable {
                         it[DataEntity.deleted] = data.deleted
                         it[DataEntity.version] = data.version
                     }
-                    action = DatabaseManagerExtension.Action.Added
+                    action = DatabaseChangedExtension.Action.Added
                 }
             }
         }
 
         // 触发更改
-        DatabaseManagerExtension.fireDataChanged(data.id, data.type, action, source)
+        DatabaseChangedExtension.fireDataChanged(data.id, data.type, action, source)
     }
 
     fun delete(
         id: String,
         type: String,
-        source: DatabaseManagerExtension.Source = DatabaseManagerExtension.Source.User
+        source: DatabaseChangedExtension.Source = DatabaseChangedExtension.Source.User
     ) {
 
         lock.withLock {
@@ -274,7 +274,7 @@ class DatabaseManager private constructor() : Disposable {
         }
 
         // 触发更改
-        DatabaseManagerExtension.fireDataChanged(id, type, DatabaseManagerExtension.Action.Removed, source)
+        DatabaseChangedExtension.fireDataChanged(id, type, DatabaseChangedExtension.Action.Removed, source)
     }
 
     fun getSettings(): Map<String, String> {
@@ -356,10 +356,10 @@ class DatabaseManager private constructor() : Disposable {
                                 DataEntity.ownerId.eq(team.id) and (DataEntity.ownerType.eq(OwnerType.Team.name))
                             }
                         }
-                        DatabaseManagerExtension.fireDataChanged(
+                        DatabaseChangedExtension.fireDataChanged(
                             StringUtils.EMPTY,
                             StringUtils.EMPTY,
-                            DatabaseManagerExtension.Action.Removed
+                            DatabaseChangedExtension.Action.Removed
                         )
                     }
                 }

@@ -5,7 +5,7 @@ import app.termora.account.AccountExtension
 import app.termora.account.AccountManager
 import app.termora.account.ServerSignedExtension
 import app.termora.db.DataType
-import app.termora.db.DatabaseManagerExtension
+import app.termora.db.DatabaseChangedExtension
 import app.termora.db.OwnerType
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import javax.swing.tree.MutableTreeNode
@@ -152,7 +152,7 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
     private fun registerDynamicExtensions() {
         // 底层数据变动刷新
         DynamicExtensionHandler.getInstance()
-            .register(DatabaseManagerExtension::class.java, MyDatabaseManagerExtension())
+            .register(DatabaseChangedExtension::class.java, MyDatabaseChangedExtension())
             .let { Disposer.register(this, it) }
 
         // 用户信息变更
@@ -169,18 +169,18 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
             }).let { Disposer.register(this, it) }
     }
 
-    private inner class MyDatabaseManagerExtension : DatabaseManagerExtension {
+    private inner class MyDatabaseChangedExtension : DatabaseChangedExtension {
         override fun onDataChanged(
             id: String,
             type: String,
-            action: DatabaseManagerExtension.Action,
-            source: DatabaseManagerExtension.Source
+            action: DatabaseChangedExtension.Action,
+            source: DatabaseChangedExtension.Source
         ) {
 
-            if (id.isBlank() || source != DatabaseManagerExtension.Source.Sync) return
+            if (id.isBlank() || source != DatabaseChangedExtension.Source.Sync) return
             if (type.isNotBlank() && type != DataType.Host.name) return
 
-            if (action == DatabaseManagerExtension.Action.Added) {
+            if (action == DatabaseChangedExtension.Action.Added) {
                 val host = hostManager.getHost(id) ?: return
                 for (node in getRoot().getAllChildren()) {
                     if (node.id == host.parentId) {
@@ -195,14 +195,14 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
                         return
                     }
                 }
-            } else if (action == DatabaseManagerExtension.Action.Removed) {
+            } else if (action == DatabaseChangedExtension.Action.Removed) {
                 for (node in getRoot().getAllChildren()) {
                     if (node.id == id) {
                         removeNodeFromParent(node)
                         return
                     }
                 }
-            } else if (action == DatabaseManagerExtension.Action.Changed) {
+            } else if (action == DatabaseChangedExtension.Action.Changed) {
                 for (node in getRoot().getAllChildren()) {
                     if (node.id == id) {
                         reload(node.parent ?: break)

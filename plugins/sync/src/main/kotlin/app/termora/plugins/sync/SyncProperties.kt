@@ -2,7 +2,6 @@ package app.termora.plugins.sync
 
 import app.termora.ApplicationScope
 import app.termora.db.DatabaseManager
-import app.termora.sync.SyncType
 import org.apache.commons.lang3.StringUtils
 
 /**

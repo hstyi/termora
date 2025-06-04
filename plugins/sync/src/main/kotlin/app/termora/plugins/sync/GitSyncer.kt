@@ -1,4 +1,4 @@
-package app.termora.sync
+package app.termora.plugins.sync
 
 import app.termora.Application.ohMyJson
 import app.termora.DeletedData

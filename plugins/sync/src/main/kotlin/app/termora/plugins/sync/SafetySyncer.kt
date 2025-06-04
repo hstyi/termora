@@ -1,4 +1,4 @@
-package app.termora.sync
+package app.termora.plugins.sync
 
 import app.termora.*
 import app.termora.AES.CBC.aesCBCDecrypt
@@ -6,6 +6,9 @@ import app.termora.AES.CBC.aesCBCEncrypt
 import app.termora.AES.decodeBase64
 import app.termora.AES.encodeBase64String
 import app.termora.Application.ohMyJson
+import app.termora.account.AccountManager
+import app.termora.account.AccountOwner
+import app.termora.db.OwnerType
 import app.termora.highlight.KeywordHighlight
 import app.termora.highlight.KeywordHighlightManager
 import app.termora.keymap.Keymap
@@ -35,6 +38,13 @@ abstract class SafetySyncer : Syncer {
     protected val keymapManager get() = KeymapManager.getInstance()
     protected val snippetManager get() = SnippetManager.getInstance()
     protected val deleteDataManager get() = DeleteDataManager.getInstance()
+    protected val accountManager get() = AccountManager.getInstance()
+    protected val accountOwner
+        get() = AccountOwner(
+            id = accountManager.getAccountId(),
+            name = accountManager.getEmail(),
+            type = OwnerType.User
+        )
 
     protected fun decodeHosts(text: String, deletedData: List<DeletedData>, config: SyncConfig) {
         // aes key
@@ -235,7 +245,7 @@ abstract class SafetySyncer : Syncer {
                     length = encryptedKey.length,
                     sort = encryptedKey.sort
                 )
-                SwingUtilities.invokeLater { keyManager.addOhKeyPair(keyPair) }
+                SwingUtilities.invokeLater { keyManager.addOhKeyPair(keyPair, accountOwner) }
             } catch (e: Exception) {
                 if (log.isWarnEnabled) {
                     log.warn("Decode key: ${encryptedKey.id} failed. error: {}", e.message, e)
@@ -296,7 +306,7 @@ abstract class SafetySyncer : Syncer {
                     e.copy(
                         keyword = e.keyword.decodeBase64().aesCBCDecrypt(key, iv).decodeToString(),
                         description = e.description.decodeBase64().aesCBCDecrypt(key, iv).decodeToString(),
-                    )
+                    ), accountOwner
                 )
             } catch (ex: Exception) {
                 if (log.isWarnEnabled) {

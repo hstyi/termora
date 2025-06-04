@@ -26,7 +26,7 @@ tasks.register<Copy>("copy-dependencies") {
     from(configurations.getByName("runtimeClasspath").filterNot {
         it.name.startsWith("kotlin-stdlib") || it.name.startsWith("annotations")
     })
-    into("${layout.buildDirectory.get().asFile.absolutePath}/distributions/${project.name}")
+    into("${rootProject.layout.buildDirectory.get().asFile.absolutePath}/plugins/${project.name}")
 }
 
 tasks.named("build") {

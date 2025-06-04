@@ -3,7 +3,10 @@ package app.termora.plugins.sync
 import app.termora.*
 import app.termora.AES.encodeBase64String
 import app.termora.Application.ohMyJson
+import app.termora.account.AccountManager
+import app.termora.account.AccountOwner
 import app.termora.db.DatabaseManager
+import app.termora.db.OwnerType
 import app.termora.highlight.KeywordHighlight
 import app.termora.highlight.KeywordHighlightManager
 import app.termora.keymap.Keymap
@@ -15,7 +18,6 @@ import app.termora.macro.MacroManager
 import app.termora.nv.FileChooser
 import app.termora.snippet.Snippet
 import app.termora.snippet.SnippetManager
-import app.termora.sync.*
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatComboBox
 import com.jgoodies.forms.builder.FormBuilder
@@ -58,6 +60,13 @@ class CloudSyncOption : JPanel(BorderLayout()), OptionsPane.Option {
     private val keywordHighlightManager get() = KeywordHighlightManager.getInstance()
     private val keyManager get() = KeyManager.getInstance()
     private val formMargin = "7dlu"
+    private val accountManager get() = AccountManager.getInstance()
+    private val accountOwner
+        get() = AccountOwner(
+            id = accountManager.getAccountId(),
+            name = accountManager.getEmail(),
+            type = OwnerType.User
+        )
 
     val typeComboBox = FlatComboBox<SyncType>()
     val tokenTextField = OutlinePasswordField(255)
@@ -204,13 +213,6 @@ class CloudSyncOption : JPanel(BorderLayout()), OptionsPane.Option {
         }
 
         withContext(Dispatchers.Swing) {
-            if (hostsCheckBox.isSelected) {
-                for (window in TermoraFrameManager.getInstance().getWindows()) {
-                    visit(window.rootPane) {
-                        if (it is NewHostTree) it.refreshNode()
-                    }
-                }
-            }
             OptionPane.showMessageDialog(owner, message = I18n.getString("termora.settings.sync.done"))
         }
     }
@@ -419,7 +421,7 @@ class CloudSyncOption : JPanel(BorderLayout()), OptionsPane.Option {
             if (keyPairs is JsonArray) {
                 ohMyJson.runCatching { decodeFromJsonElement<List<OhKeyPair>>(keyPairs.jsonArray) }.onSuccess {
                     for (keyPair in it) {
-                        keyManager.addOhKeyPair(keyPair)
+                        keyManager.addOhKeyPair(keyPair, accountOwner)
                     }
                 }
             }
@@ -431,7 +433,7 @@ class CloudSyncOption : JPanel(BorderLayout()), OptionsPane.Option {
                 ohMyJson.runCatching { decodeFromJsonElement<List<KeywordHighlight>>(keywordHighlights.jsonArray) }
                     .onSuccess {
                         for (keyPair in it) {
-                            keywordHighlightManager.addKeywordHighlight(keyPair)
+                            keywordHighlightManager.addKeywordHighlight(keyPair, accountOwner)
                         }
                     }
             }
@@ -611,7 +613,7 @@ class CloudSyncOption : JPanel(BorderLayout()), OptionsPane.Option {
         val syncConfig = getSyncConfig()
 
         // sync
-        val syncResult = kotlin.runCatching {
+        val syncResult = runCatching {
             val syncer = SyncManager.getInstance()
             if (push) {
                 syncer.push(syncConfig)

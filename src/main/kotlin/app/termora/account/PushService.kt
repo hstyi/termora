@@ -3,7 +3,7 @@ package app.termora.account
 import app.termora.*
 import app.termora.Application.ohMyJson
 import app.termora.db.Data
-import app.termora.db.DatabaseManagerExtension
+import app.termora.db.DatabaseChangedExtension
 import app.termora.plugin.DispatchThread
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import kotlinx.coroutines.Dispatchers
@@ -29,7 +29,7 @@ import kotlin.time.Duration.Companion.seconds
  */
 @Suppress("LoggingSimilarMessage", "DuplicatedCode")
 class PushService private constructor() : SyncService(), Disposable, ApplicationRunnerExtension,
-    DatabaseManagerExtension {
+    DatabaseChangedExtension {
 
     companion object {
         private val log = LoggerFactory.getLogger(PushService::class.java)
@@ -194,10 +194,10 @@ class PushService private constructor() : SyncService(), Disposable, Application
     override fun onDataChanged(
         id: String,
         type: String,
-        action: DatabaseManagerExtension.Action,
-        source: DatabaseManagerExtension.Source
+        action: DatabaseChangedExtension.Action,
+        source: DatabaseChangedExtension.Source
     ) {
-        if (source == DatabaseManagerExtension.Source.User) trigger()
+        if (source == DatabaseChangedExtension.Source.User) trigger()
     }
 
     override fun getDispatchThread(): DispatchThread {

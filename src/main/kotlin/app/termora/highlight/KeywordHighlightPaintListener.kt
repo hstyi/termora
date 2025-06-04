@@ -5,7 +5,7 @@ import app.termora.Disposable
 import app.termora.Disposer
 import app.termora.assertEventDispatchThread
 import app.termora.db.DataType
-import app.termora.db.DatabaseManagerExtension
+import app.termora.db.DatabaseChangedExtension
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import app.termora.terminal.*
 import app.termora.terminal.panel.TerminalDisplay
@@ -33,13 +33,13 @@ class KeywordHighlightPaintListener private constructor() : TerminalPaintListene
 
     init {
         // 数据变更时刷新
-        DynamicExtensionHandler.getInstance().register(DatabaseManagerExtension::class.java, object :
-            DatabaseManagerExtension {
+        DynamicExtensionHandler.getInstance().register(DatabaseChangedExtension::class.java, object :
+            DatabaseChangedExtension {
             override fun onDataChanged(
                 id: String,
                 type: String,
-                action: DatabaseManagerExtension.Action,
-                source: DatabaseManagerExtension.Source
+                action: DatabaseChangedExtension.Action,
+                source: DatabaseChangedExtension.Source
             ) {
                 if (type == DataType.KeywordHighlight.name || (id.isBlank() && type.isBlank())) {
                     reload()

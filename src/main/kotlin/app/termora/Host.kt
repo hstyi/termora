@@ -296,11 +296,18 @@ data class Host(
     val ownerId: String = "0",
 
     /**
+     * 创建者
+     */
+    val creatorId: String = "0",
+
+    /**
      * 所属者类型，默认是：用户
      */
     val ownerType: String = StringUtils.EMPTY,
-
-    ) {
+    val deleted: Boolean = false,
+    var createDate: Long = 0L,
+    var updateDate: Long = 0L,
+) {
 
     val isFolder get() = StringUtils.equalsIgnoreCase(protocol, "Folder")
 

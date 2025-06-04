@@ -1,4 +1,4 @@
-package app.termora.sync
+package app.termora.plugins.sync
 
 enum class SyncType {
     GitLab,

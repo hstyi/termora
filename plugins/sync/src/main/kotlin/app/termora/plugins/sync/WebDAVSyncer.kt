@@ -1,9 +1,8 @@
-package app.termora.sync
+package app.termora.plugins.sync
 
 import app.termora.Application.ohMyJson
 import app.termora.ApplicationScope
 import app.termora.DeletedData
-import app.termora.PBKDF2
 import app.termora.ResponseException
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject

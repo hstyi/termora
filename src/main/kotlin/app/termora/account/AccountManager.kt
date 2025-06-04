@@ -53,9 +53,10 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     fun getSubscription(): Subscription {
 
         if (isLocally().not()) {
-            val enterprises = account.subscriptions.filter { it.plan == SubscriptionPlan.Enterprise }
-            val teams = account.subscriptions.filter { it.plan == SubscriptionPlan.Team }
-            val pros = account.subscriptions.filter { it.plan == SubscriptionPlan.Pro }
+            val subscriptions = getSubscriptions()
+            val enterprises = getSubscriptions().filter { it.plan == SubscriptionPlan.Enterprise }
+            val teams = subscriptions.filter { it.plan == SubscriptionPlan.Team }
+            val pros = subscriptions.filter { it.plan == SubscriptionPlan.Pro }
             val now = System.currentTimeMillis()
 
             if (enterprises.any { it.endAt > now }) {

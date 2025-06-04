@@ -3,7 +3,7 @@ package app.termora.account
 import app.termora.*
 import app.termora.Application.ohMyJson
 import app.termora.db.Data
-import app.termora.db.DatabaseManagerExtension
+import app.termora.db.DatabaseChangedExtension
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -279,7 +279,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
                     synced = true,
                     deleted = false
                 ),
-                DatabaseManagerExtension.Source.Sync
+                DatabaseChangedExtension.Source.Sync
             )
 
         } else if (deleted && row.deleted.not()) { // 如果本地存在，云端已经删除，那么本地删除
@@ -288,7 +288,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
             }
             databaseManager.delete(
                 id, type,
-                DatabaseManagerExtension.Source.Sync
+                DatabaseChangedExtension.Source.Sync
             )
         } else if (row.version > version) { // 如果本地版本大于云端版本，那么忽略，因为需要推送到云端
             if (log.isDebugEnabled) {
@@ -329,7 +329,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
                     synced = true,
                     deleted = false
                 ),
-                DatabaseManagerExtension.Source.Sync
+                DatabaseChangedExtension.Source.Sync
             )
         } else {
             return PullResult.Nothing

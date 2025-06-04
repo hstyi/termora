@@ -4,7 +4,6 @@ import com.fasterxml.uuid.Generators
 import org.apache.commons.codec.binary.Base64
 import org.apache.commons.lang3.RandomUtils
 import org.apache.commons.lang3.StringUtils
-import org.slf4j.LoggerFactory
 import java.security.*
 import java.security.spec.MGF1ParameterSpec
 import java.security.spec.PKCS8EncodedKeySpec
@@ -12,7 +11,6 @@ import java.security.spec.X509EncodedKeySpec
 import javax.crypto.Cipher
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.*
-import kotlin.time.measureTime
 
 private val jug = Generators.timeBasedEpochRandomGenerator(SecureRandom.getInstanceStrong())
 
@@ -120,26 +118,6 @@ object AES {
 object PBKDF2 {
 
     private const val ALGORITHM = "PBKDF2WithHmacSHA512"
-    private val log = LoggerFactory.getLogger(PBKDF2::class.java)
-
-    @Deprecated("")
-    fun generateSecret(
-        password: CharArray,
-        salt: ByteArray,
-        iterationCount: Int = 150000,
-        keyLength: Int = 256
-    ): ByteArray {
-        val bytes: ByteArray
-        val time = measureTime {
-            bytes = SecretKeyFactory.getInstance(ALGORITHM)
-                .generateSecret(PBEKeySpec(password, salt, iterationCount, keyLength))
-                .encoded
-        }
-        if (log.isDebugEnabled) {
-            log.debug("Secret generated $time")
-        }
-        return bytes
-    }
 
     fun hash(slat: ByteArray, password: CharArray, iterationCount: Int, keyLength: Int): ByteArray {
         val spec = PBEKeySpec(password, slat, iterationCount, keyLength)

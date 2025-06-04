@@ -1,7 +1,6 @@
 package app.termora.plugins.bg
 
 import app.termora.*
-import app.termora.GlassPaneExtension
 import app.termora.plugin.Extension
 import app.termora.plugin.ExtensionSupport
 import app.termora.plugin.Plugin
@@ -10,7 +9,7 @@ class BGPlugin : Plugin {
     private val support = ExtensionSupport()
 
     init {
-        support.addExtension(GlassPaneExtension::class.java) { GlassPaneExtension.instance }
+        support.addExtension(GlassPaneExtension::class.java) { BGGlassPaneExtension.instance }
         support.addExtension(SettingsOptionExtension::class.java) { BackgroundSettingsOptionExtension.instance }
         support.addExtension(ApplicationRunnerExtension::class.java) { BackgroundApplicationRunnerExtension.instance }
     }

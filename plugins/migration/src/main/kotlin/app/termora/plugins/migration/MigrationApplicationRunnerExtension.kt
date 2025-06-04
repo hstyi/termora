@@ -1,11 +1,15 @@
 package app.termora.plugins.migration
 
 import app.termora.*
-import app.termora.Application.ohMyJson
 import app.termora.account.AccountManager
-import app.termora.db.DataType
+import app.termora.account.AccountOwner
 import app.termora.db.DatabaseManager
 import app.termora.db.OwnerType
+import app.termora.highlight.KeywordHighlightManager
+import app.termora.keymap.KeymapManager
+import app.termora.keymgr.KeyManager
+import app.termora.macro.MacroManager
+import app.termora.snippet.SnippetManager
 import org.apache.commons.io.FileUtils
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -92,49 +96,42 @@ class MigrationApplicationRunnerExtension private constructor() : ApplicationRun
         val accountManager = AccountManager.getInstance()
         val databaseManager = DatabaseManager.getInstance()
         val ownerId = accountManager.getAccountId()
+        val hostManager = HostManager.getInstance()
+        val snippetManager = SnippetManager.getInstance()
+        val macroManager = MacroManager.getInstance()
+        val keymapManager = KeymapManager.getInstance()
+        val keyManager = KeyManager.getInstance()
+        val highlightManager = KeywordHighlightManager.getInstance()
+        val accountOwner = AccountOwner(
+            id = accountManager.getAccountId(),
+            name = accountManager.getEmail(),
+            type = OwnerType.User
+        )
 
         for (host in database.getHosts()) {
             if (host.deleted) continue
-            databaseManager.save(
-                ownerId, OwnerType.User, host.id,
-                DataType.Host, ohMyJson.encodeToString(host)
-            )
+            hostManager.addHost(host.copy(ownerId = accountManager.getAccountId(), ownerType = OwnerType.User.name))
         }
 
         for (snippet in database.getSnippets()) {
             if (snippet.deleted) continue
-            databaseManager.save(
-                ownerId, OwnerType.User, snippet.id,
-                DataType.Snippet, ohMyJson.encodeToString(snippet)
-            )
+            snippetManager.addSnippet(snippet)
         }
 
         for (macro in database.getMacros()) {
-            databaseManager.save(
-                ownerId, OwnerType.User, macro.id,
-                DataType.Macro, ohMyJson.encodeToString(macro)
-            )
+            macroManager.addMacro(macro)
         }
 
         for (keymap in database.getKeymaps()) {
-            databaseManager.save(
-                ownerId, OwnerType.User, keymap.id,
-                DataType.Keymap, keymap.toJSON()
-            )
+            keymapManager.addKeymap(keymap)
         }
 
         for (keypair in database.getKeyPairs()) {
-            databaseManager.save(
-                ownerId, OwnerType.User, keypair.id,
-                DataType.KeyPair, ohMyJson.encodeToString(keypair)
-            )
+            keyManager.addOhKeyPair(keypair, accountOwner)
         }
 
         for (e in database.getKeywordHighlights()) {
-            databaseManager.save(
-                ownerId, OwnerType.User, e.id,
-                DataType.KeywordHighlight, ohMyJson.encodeToString(e)
-            )
+            highlightManager.addKeywordHighlight(e, accountOwner)
         }
 
         val list = listOf(

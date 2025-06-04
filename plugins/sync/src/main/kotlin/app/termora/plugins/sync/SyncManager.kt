@@ -1,8 +1,7 @@
-package app.termora.sync
+package app.termora.plugins.sync
 
 import app.termora.ApplicationScope
 import app.termora.Disposable
-import app.termora.plugins.sync.SyncProperties
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 import kotlin.random.Random

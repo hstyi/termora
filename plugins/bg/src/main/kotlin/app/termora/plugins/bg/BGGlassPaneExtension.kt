@@ -6,9 +6,9 @@ import java.awt.AlphaComposite
 import java.awt.Graphics2D
 import javax.swing.JComponent
 
-class GlassPaneExtension private constructor() : GlassPaneExtension {
+class BGGlassPaneExtension private constructor() : GlassPaneExtension {
     companion object {
-        val instance by lazy { GlassPaneExtension() }
+        val instance by lazy { BGGlassPaneExtension() }
     }
 
     override fun paint(
