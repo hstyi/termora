@@ -74,6 +74,7 @@ object Icons {
     val azure by lazy { DynamicIcon("icons/azure.svg", "icons/azure_dark.svg") }
     val revert by lazy { DynamicIcon("icons/revert.svg", "icons/revert_dark.svg") }
     val edit by lazy { DynamicIcon("icons/edit.svg", "icons/edit_dark.svg") }
+    val editFolder by lazy { DynamicIcon("icons/editFolder.svg", "icons/editFolder_dark.svg") }
     val microsoft by lazy { DynamicIcon("icons/microsoft.svg", "icons/microsoft_dark.svg") }
     val microsoftWindows by lazy { DynamicIcon("icons/microsoftWindows.svg", "icons/microsoftWindows_dark.svg") }
     val tencent by lazy { DynamicIcon("icons/tencent.svg") }

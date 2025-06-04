@@ -17,11 +17,11 @@ class EditorPlugin : Plugin {
     }
 
     override fun getIcon(): DynamicIcon {
-        return Icons.edit
+        return Icons.editFolder
     }
 
     override fun getName(): String {
-        return "File Editor"
+        return "SFTP File Editor"
     }
 
     override fun getDescription(): String {
