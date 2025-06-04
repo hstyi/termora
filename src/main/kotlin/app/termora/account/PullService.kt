@@ -39,6 +39,11 @@ class PullService private constructor() : SyncService(), Disposable, Application
         Disposer.register(this, DynamicExtensionHandler.getInstance().register(AccountExtension::class.java, object :
             AccountExtension {
             override fun onAccountChanged(oldAccount: Account, newAccount: Account) {
+                // 账号变更后重制hash
+                if (oldAccount.id != newAccount.id && newAccount.isLocally.not()) {
+                    lastChangeHash = StringUtils.EMPTY
+                }
+
                 if (oldAccount.isLocally && newAccount.isLocally.not()) {
                     trigger()
                 }
