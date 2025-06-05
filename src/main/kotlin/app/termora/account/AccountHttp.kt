@@ -14,15 +14,21 @@ import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import okio.withLock
 import org.apache.commons.codec.binary.Base64
+import org.apache.commons.io.IOUtils
+import org.apache.commons.lang3.SystemUtils
 import org.apache.commons.lang3.time.DateUtils
 import org.apache.commons.net.util.SubnetUtils
 import org.slf4j.LoggerFactory
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.locks.ReentrantLock
 import javax.swing.SwingUtilities
 
 object AccountHttp {
     private val log = LoggerFactory.getLogger(AccountHttp::class.java)
     val client = Application.httpClient.newBuilder()
+        .addInterceptor(UserAgentInterceptor())
         .addInterceptor(SignatureInterceptor())
         .addInterceptor(AccessTokenInterceptor())
         .build()
@@ -145,7 +151,25 @@ object AccountHttp {
         }
     }
 
+    private class UserAgentInterceptor : Interceptor {
+        override fun intercept(chain: Interceptor.Chain): Response {
+            val builder = chain.request().newBuilder()
+            if (chain.request().header("User-Agent") == null) {
+                builder.header(
+                    "User-Agent",
+                    "${Application.getName()}/${Application.getVersion()}; ${SystemUtils.OS_NAME}/${SystemUtils.OS_VERSION}(${SystemUtils.OS_ARCH}); ${SystemUtils.JAVA_VM_NAME}/${SystemUtils.JAVA_VERSION}"
+                )
+            }
+            return chain.proceed(builder.build())
+        }
+
+    }
+
     private class AccessTokenInterceptor : Interceptor {
+        private val lock = ReentrantLock()
+        private val condition = lock.newCondition()
+        private val isRefreshing = AtomicBoolean(false)
+
         override fun intercept(chain: Interceptor.Chain): Response {
             val builder = chain.request().newBuilder()
             val accountManager = AccountManager.getInstance()
@@ -158,29 +182,36 @@ object AccountHttp {
 
             val response = chain.proceed(builder.build())
             if (response.code == 401) {
-                val refreshToken = accountManager.getRefreshToken()
-                if (refreshToken.isBlank()) {
-                    accountManager.logout()
-                    return response
-                }
+                IOUtils.closeQuietly(response)
 
-                synchronized(client) {
-                    val refreshToken = accountManager.getRefreshToken()
-                    if (refreshToken.isBlank()) {
-                        return response
-                    }
-
+                if (isRefreshing.compareAndSet(false, true)) {
                     try {
                         // 刷新 token
                         accountManager.refreshToken()
-                        // 重新请求
-                        return chain.proceed(builder.build())
-                    } catch (e: Exception) {
-                        if (log.isErrorEnabled) {
-                            log.error(e.message, e)
+                    } finally {
+                        lock.withLock {
+                            isRefreshing.set(false)
+                            condition.signalAll()
                         }
                     }
+                } else {
+                    lock.lock()
+                    try {
+                        condition.await()
+                    } finally {
+                        lock.unlock()
+                    }
                 }
+
+                // 拿到新 token 后重新发请求
+                val newAccessToken = accountManager.getAccessToken()
+                val newRequest = builder
+                    .removeHeader("Authorization")
+                    .header("Authorization", "Bearer $newAccessToken")
+                    .build()
+
+                return chain.proceed(newRequest)
+
             }
 
             return response
