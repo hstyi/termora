@@ -13,11 +13,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
+import org.apache.commons.lang3.RegExUtils
 import org.apache.commons.lang3.StringUtils
 import org.eclipse.jgit.internal.transport.sshd.agent.connector.PageantConnector
 import org.eclipse.jgit.internal.transport.sshd.agent.connector.UnixDomainSocketConnector
 import org.eclipse.jgit.internal.transport.sshd.agent.connector.WinPipeConnector
 import java.awt.*
+import java.awt.datatransfer.DataFlavor
 import java.awt.event.*
 import java.nio.charset.Charset
 import javax.swing.*
@@ -221,7 +223,24 @@ open class HostOptionsPane : OptionsPane() {
         val nameTextField = OutlineTextField(128)
         val protocolTypeComboBox = FlatComboBox<Protocol>()
         val usernameTextField = OutlineTextField(128)
-        val hostTextField = OutlineTextField(255)
+        val hostTextField = object : OutlineTextField(255) {
+            override fun paste() {
+                if (!toolkit.systemClipboard.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
+                    return
+                }
+
+                var text = toolkit.systemClipboard.getData(DataFlavor.stringFlavor)?.toString() ?: return
+                if (text.isBlank()) {
+                    return
+                }
+
+                // 移除所有不可见字符
+                text = RegExUtils.replaceAll(text, "[\\p{C}\\s]", StringUtils.EMPTY)
+
+                // text
+                replaceSelection(text)
+            }
+        }
         private val passwordPanel = JPanel(BorderLayout())
         private val chooseKeyBtn = JButton(Icons.greyKey)
         val passwordTextField = OutlinePasswordField(255)
