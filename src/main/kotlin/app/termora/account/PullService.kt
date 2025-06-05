@@ -355,7 +355,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
                 pullChanges()
 
                 // N 秒拉一次
-                val result = withTimeoutOrNull(Random.nextInt(3, 5).seconds) {
+                val result = withTimeoutOrNull(Random.nextInt(5, 15).seconds) {
                     channel.receiveCatching()
                 } ?: continue
                 if (result.isFailure) break
