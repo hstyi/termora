@@ -16,6 +16,7 @@ import app.termora.db.OwnerType
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import javax.swing.tree.MutableTreeNode
 import javax.swing.tree.TreeNode
+import kotlin.math.min
 
 
 class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
@@ -30,7 +31,8 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
 
     companion object {
         fun getInstance(): NewHostTreeModel {
-            return ApplicationScope.Companion.forApplicationScope().getOrCreate(NewHostTreeModel::class) { NewHostTreeModel() }
+            return ApplicationScope.Companion.forApplicationScope()
+                .getOrCreate(NewHostTreeModel::class) { NewHostTreeModel() }
         }
     }
 
@@ -119,7 +121,7 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
     }
 
     private fun insertNodeInto(newChild: MutableTreeNode, parent: MutableTreeNode, index: Int, flush: Boolean) {
-        super.insertNodeInto(newChild, parent, index)
+        super.insertNodeInto(newChild, parent, min(index, parent.childCount))
 
         if (flush.not()) return
 

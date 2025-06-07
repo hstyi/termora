@@ -1,8 +1,8 @@
 package app.termora
 
-import app.termora.Application.ohMyJson
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
+import app.termora.protocol.ProtocolHostPanel
 import app.termora.protocol.ProtocolHostPanelExtension
 import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.formdev.flatlaf.extras.components.FlatToolBar
@@ -18,8 +18,8 @@ class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : Dialo
 
     private val cardLayout = CardLayout()
     private val cardPanel = JPanel(cardLayout)
-    private var currentCard: LazyPanel? = null
     private val buttonGroup = mutableListOf<JToggleButton>()
+    private var currentCard: ProtocolHostPanel? = null
     var host: Host? = null
         private set
 
@@ -55,13 +55,13 @@ class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : Dialo
         toolbar.add(Box.createHorizontalGlue())
 
         val extensions = ProtocolHostPanelExtension.extensions
-        for (extension in extensions) {
+        for ((index, extension) in extensions.withIndex()) {
             val protocol = extension.getProtocolProvider().getProtocol()
             val icon = FlatSVGIcon(
                 extension.getProtocolProvider().getIcon().name,
                 22, 22, extension.javaClass.classLoader
             )
-            val lazyPanel = LazyPanel(extension)
+            val hostPanel = extension.createProtocolHostPanel()
             val button = JToggleButton(protocol, icon).apply { buttonGroup.add(this) }
             button.setVerticalTextPosition(SwingConstants.BOTTOM)
             button.setHorizontalTextPosition(SwingConstants.CENTER)
@@ -69,9 +69,9 @@ class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : Dialo
                 FlatButtonBorder(),
                 BorderFactory.createEmptyBorder(0, 4, 0, 4)
             )
-            button.addActionListener { show(protocol, lazyPanel, button) }
+            button.addActionListener { show(protocol, hostPanel, button) }
 
-            cardPanel.add(lazyPanel, protocol)
+            cardPanel.add(hostPanel, protocol)
 
             toolbar.add(button)
 
@@ -80,12 +80,13 @@ class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : Dialo
             }
 
             if (editHost == null) {
-                if (extension == extensions.first()) {
-                    show(protocol, lazyPanel, button)
+                if (index == 0) {
+                    show(protocol, hostPanel, button)
                 }
             } else {
                 if (StringUtils.equalsIgnoreCase(editHost.protocol, protocol)) {
-                    show(protocol, lazyPanel, button)
+                    show(protocol, hostPanel, button)
+                    currentCard?.setHost(editHost)
                 }
             }
 
@@ -107,9 +108,7 @@ class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : Dialo
         return panel
     }
 
-    private fun show(name: String, card: LazyPanel, button: JToggleButton) {
-        card.load()
-
+    private fun show(name: String, card: ProtocolHostPanel, button: JToggleButton) {
         currentCard?.onBeforeHidden()
         card.onBeforeShown()
         cardLayout.show(cardPanel, name)
@@ -134,44 +133,28 @@ class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : Dialo
         }
     }
 
-    private inner class LazyPanel(private val extension: ProtocolHostPanelExtension) : JPanel(BorderLayout()) {
-        private var isLoaded = false
-        val panel by lazy { extension.createProtocolHostPanel() }
-
-        fun load() {
-            if (isLoaded) return
-            isLoaded = true
-            if (editHost != null) panel.setHost(editHost)
-            add(panel, BorderLayout.CENTER)
-        }
-
-
-        fun onBeforeHidden() {
-            if (isLoaded) panel.onBeforeHidden()
-        }
-
-        fun onBeforeShown() {
-            if (isLoaded) panel.onBeforeShown()
-        }
-
-        fun onShown() {
-            if (isLoaded) panel.onShown()
-        }
-
-        fun onHidden() {
-            if (isLoaded) panel.onHidden()
-        }
-    }
-
     override fun doOKAction() {
-        val card = currentCard ?: return
-        val panel = card.panel
+        val panel = currentCard ?: return
         if (panel.validateFields().not()) return
         var host = panel.getHost()
 
-        if (editHost != null) host = host.copy(id = editHost.id)
+        if (editHost != null) {
+            host = editHost.copy(
+                name = host.name,
+                protocol = host.protocol,
+                host = host.host,
+                port = host.port,
+                username = host.username,
+                authentication = host.authentication,
+                proxy = host.proxy,
+                remark = host.remark,
+                options = host.options,
+                tunnelings = host.tunnelings,
+            )
+        }
+
         this.host = host
-        println(ohMyJson.encodeToString(host))
+
         super.doOKAction()
     }
 
