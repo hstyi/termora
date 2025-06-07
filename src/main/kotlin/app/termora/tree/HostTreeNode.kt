@@ -11,8 +11,6 @@ import javax.swing.tree.TreeNode
 
 open class HostTreeNode(host: Host) : SimpleTreeNode<Host>(host) {
 
-    private val accountManager get() = AccountManager.getInstance()
-
     var host: Host
         get() = data
         set(value) = setUserObject(value)

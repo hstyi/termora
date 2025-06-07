@@ -14,7 +14,7 @@ class MarkerSimpleTreeCellAnnotation(
 ) : SimpleTreeCellAnnotation {
 
     override fun getWidth(c: JComponent): Int {
-        return stringWidth(c) + 4
+        return stringWidth(c) + if (background == null) 0 else 4
     }
 
     fun stringWidth(c: JComponent): Int {
@@ -34,7 +34,7 @@ class MarkerSimpleTreeCellAnnotation(
         g.font = g.font.deriveFont(g.font.size2D - fontSize)
         val fm = c.getFontMetrics(g.font)
 
-        g.drawString(text, (width - fm.stringWidth(text)) / 2 + 2, (c.height - fm.height) / 2 + fm.ascent)
+        g.drawString(text, (width - fm.stringWidth(text)) / 2, (c.height - fm.height) / 2 + fm.ascent)
 
     }
 }

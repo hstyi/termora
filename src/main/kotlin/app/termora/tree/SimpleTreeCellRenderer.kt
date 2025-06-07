@@ -46,7 +46,9 @@ class SimpleTreeCellRenderer : DefaultTreeCellRenderer() {
         if (g is Graphics2D) {
             g.save()
             setupAntialiasing(g)
+
             var offset = width - annotations.sumOf { it.getWidth(this) + SimpleTreeCellAnnotation.SPACE }
+
             for (annotation in annotations) {
                 g.save()
                 g.translate(offset, 0)
@@ -54,6 +56,7 @@ class SimpleTreeCellRenderer : DefaultTreeCellRenderer() {
                 g.restore()
                 offset += annotation.getWidth(this) + SimpleTreeCellAnnotation.SPACE
             }
+
             g.restore()
         }
     }

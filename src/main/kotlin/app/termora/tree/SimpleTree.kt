@@ -344,7 +344,8 @@ open class SimpleTree : JXTree() {
                             model.isLeaf(value), row, tree.hasFocus()
                         )
                         if (c is JComponent) {
-                            for (annotation in renderer.getAnnotations()) {
+                            val annotations = renderer.getAnnotations()
+                            for (annotation in annotations) {
                                 dimensions.width += annotation.getWidth(c) + SimpleTreeCellAnnotation.SPACE
                             }
                         }
