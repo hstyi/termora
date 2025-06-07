@@ -4,6 +4,7 @@ import app.termora.Application.ohMyJson
 import app.termora.account.AccountManager
 import app.termora.actions.OpenHostAction
 import app.termora.db.DatabaseManager
+import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import app.termora.plugin.internal.rdp.RDPProtocolProvider
 import app.termora.plugin.internal.sftppty.SFTPPtyProtocolProvider
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
@@ -27,6 +28,7 @@ import org.jdesktop.swingx.tree.DefaultXTreeCellRenderer
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Element
 import org.w3c.dom.NodeList
+import java.awt.Color
 import java.awt.Component
 import java.awt.event.*
 import java.io.*
@@ -135,6 +137,7 @@ class NewHostTree : SimpleTree(), Disposable {
             }
         })
 
+//        setCellRenderer(SimpleTreeCellRenderer())
     }
 
     private fun initEvents() {
@@ -172,6 +175,27 @@ class NewHostTree : SimpleTree(), Disposable {
                 }
             }
         })
+
+        DynamicExtensionHandler.getInstance()
+            .register(SimpleTreeCellRendererExtension::class.java, object : SimpleTreeCellRendererExtension {
+                override fun createAnnotations(
+                    tree: JTree,
+                    value: Any?,
+                    sel: Boolean,
+                    expanded: Boolean,
+                    leaf: Boolean,
+                    row: Int,
+                    hasFocus: Boolean
+                ): List<SimpleTreeCellAnnotation> {
+                    val foreground = DynamicColor("textHighlightText")
+                    return listOf(
+                        MarkerSimpleTreeCellAnnotation("Test", foreground, Color.red),
+                        MarkerSimpleTreeCellAnnotation("2Test", foreground, Color.blue),
+                        MarkerSimpleTreeCellAnnotation("中国", foreground, Color.darkGray),
+                        MarkerSimpleTreeCellAnnotation("🇯🇵日本", foreground, Color.darkGray),
+                    )
+                }
+            })
     }
 
     override fun dispose() {

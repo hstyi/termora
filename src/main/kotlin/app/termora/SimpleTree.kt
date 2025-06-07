@@ -1,9 +1,11 @@
 package app.termora
 
+import com.formdev.flatlaf.ui.FlatTreeUI
 import org.jdesktop.swingx.JXTree
 import org.jdesktop.swingx.tree.DefaultXTreeCellRenderer
 import java.awt.Component
 import java.awt.Dimension
+import java.awt.Rectangle
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.Transferable
 import java.awt.datatransfer.UnsupportedFlavorException
@@ -13,14 +15,18 @@ import java.util.*
 import javax.swing.*
 import javax.swing.event.CellEditorListener
 import javax.swing.event.ChangeEvent
+import javax.swing.plaf.TreeUI
+import javax.swing.tree.AbstractLayoutCache
 import javax.swing.tree.TreePath
 import kotlin.math.min
+
 
 open class SimpleTree : JXTree() {
 
     protected open val model get() = super.getModel() as SimpleTreeModel<*>
     private val editor = OutlineTextField(64)
     protected val tree get() = this
+    private val myUI = FlatTreeUI()
 
     init {
         initViews()
@@ -30,6 +36,7 @@ open class SimpleTree : JXTree() {
 
     private fun initViews() {
 
+        setUI(myUI)
 
         // renderer
         setCellRenderer(object : DefaultXTreeCellRenderer() {
@@ -323,6 +330,48 @@ open class SimpleTree : JXTree() {
                 return nodes
             }
             throw UnsupportedFlavorException(flavor)
+        }
+
+    }
+
+    override fun setUI(ui: TreeUI) {
+        super.setUI(myUI)
+    }
+
+    override fun updateUI() {
+        super.setUI(myUI)
+        super.updateUI()
+    }
+
+    private inner class MyTreeUI : FlatTreeUI() {
+
+        override fun createNodeDimensions(): AbstractLayoutCache.NodeDimensions? {
+            return object : NodeDimensionsHandler() {
+                override fun getNodeDimensions(
+                    value: Any?, row: Int, depth: Int, expanded: Boolean,
+                    size: Rectangle?
+                ): Rectangle {
+                    val dimensions = super.getNodeDimensions(
+                        value, row,
+                        depth, expanded, size
+                    )
+
+                    val renderer = wrappedCellRenderer
+                    if (renderer is SimpleTreeCellRenderer) {
+                        val c = renderer.getTreeCellRendererComponent(
+                            tree, value, tree.isRowSelected(row), expanded,
+                            model.isLeaf(value), row, tree.hasFocus()
+                        )
+                        if (c is JComponent) {
+                            for (annotation in renderer.getAnnotations()) {
+                                dimensions.width += annotation.getWidth(c) + SimpleTreeCellAnnotation.SPACE
+                            }
+                        }
+                    }
+
+                    return dimensions
+                }
+            }
         }
 
     }
