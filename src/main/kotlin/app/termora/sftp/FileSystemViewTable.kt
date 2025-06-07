@@ -3,7 +3,7 @@ package app.termora.sftp
 import app.termora.*
 import app.termora.actions.AnActionEvent
 import app.termora.actions.SettingsAction
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.sftp.FileSystemViewTable.AskTransfer.Action
 import app.termora.vfs2.VFSWalker
 import app.termora.vfs2.sftp.MySftpFileObject

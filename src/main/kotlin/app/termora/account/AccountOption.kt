@@ -5,7 +5,7 @@ import app.termora.Application.ohMyJson
 import app.termora.OptionsPane.Companion.formMargin
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import com.formdev.flatlaf.extras.components.FlatLabel
 import com.jgoodies.forms.builder.FormBuilder

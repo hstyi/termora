@@ -2,9 +2,9 @@ package app.termora.sftp
 
 import app.termora.*
 import app.termora.actions.DataProvider
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.protocol.FileObjectHandler
-import app.termora.protocol.FileObjectRequester
+import app.termora.protocol.FileObjectRequest
 import app.termora.protocol.TransferProtocolProvider
 import app.termora.terminal.DataKey
 import app.termora.tree.NewHostTree
@@ -119,7 +119,7 @@ class SFTPFileSystemViewPanel(
 
         try {
             val owner = SwingUtilities.getWindowAncestor(that)
-            val requester = FileObjectRequester(host = thisHost, owner = owner)
+            val requester = FileObjectRequest(host = thisHost, owner = owner)
             provider.getRootFileObject(requester)
             val handler = provider.getRootFileObject(requester).apply { handler = this }
             file = handler.file

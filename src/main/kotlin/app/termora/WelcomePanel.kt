@@ -2,14 +2,13 @@ package app.termora
 
 
 import app.termora.actions.*
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereResult
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
 import app.termora.terminal.DataKey
 import app.termora.tree.NewHostTree
 import app.termora.tree.NewHostTreeModel
-import app.termora.tree.TreeUtils
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.FlatSVGIcon
@@ -146,10 +145,8 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
         panel.border = BorderFactory.createEmptyBorder(10, 0, 0, 0)
 
 //        hostTree.model = filterableHostTreeModel
-        TreeUtils.loadExpansionState(
-            hostTree,
-            properties.getString("Welcome.HostTree.state", StringUtils.EMPTY)
-        )
+        hostTree.name = "WelcomeHostTree"
+        hostTree.restoreExpansions()
 
         return panel
     }
@@ -297,7 +294,6 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
 
     override fun dispose() {
         properties.putString("WelcomeFullContent", fullContent.toString())
-        properties.putString("Welcome.HostTree.state", TreeUtils.saveExpansionState(hostTree))
     }
 
     private inner class HostFindEverywhereResult(val host: Host) : FindEverywhereResult {

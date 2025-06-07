@@ -3,7 +3,7 @@ package app.termora.plugins.obs
 import app.termora.DynamicIcon
 import app.termora.Icons
 import app.termora.protocol.FileObjectHandler
-import app.termora.protocol.FileObjectRequester
+import app.termora.protocol.FileObjectRequest
 import app.termora.protocol.TransferProtocolProvider
 import org.apache.commons.vfs2.provider.FileProvider
 
@@ -26,7 +26,7 @@ class OBSProtocolProvider private constructor() : TransferProtocolProvider {
         return OBSFileProvider.instance
     }
 
-    override fun getRootFileObject(requester: FileObjectRequester): FileObjectHandler {
+    override fun getRootFileObject(requester: FileObjectRequest): FileObjectHandler {
         TODO("Not yet implemented")
     }
 

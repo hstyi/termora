@@ -5,10 +5,10 @@ import app.termora.ApplicationScope
 import app.termora.DeleteDataManager
 import app.termora.account.AccountManager
 import app.termora.assertEventDispatchThread
-import app.termora.db.Data
-import app.termora.db.DataType
-import app.termora.db.DatabaseManager
-import app.termora.db.OwnerType
+import app.termora.database.Data
+import app.termora.database.DataType
+import app.termora.database.DatabaseManager
+import app.termora.database.OwnerType
 
 
 class SnippetManager private constructor() {

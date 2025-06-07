@@ -4,7 +4,7 @@ import app.termora.*
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviderSupport
 import app.termora.findeverywhere.FindEverywhereProvider
-import app.termora.protocol.FileObjectRequester
+import app.termora.protocol.FileObjectRequest
 import app.termora.protocol.TransferProtocolProvider
 import app.termora.sftp.internal.local.LocalTransferProtocolProvider
 import app.termora.terminal.DataKey
@@ -13,9 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import okio.withLock
-import org.apache.commons.lang3.SystemUtils
 import org.apache.commons.vfs2.FileObject
-import org.apache.commons.vfs2.VFS
 import java.awt.BorderLayout
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
@@ -95,7 +93,7 @@ class SFTPPanel : JPanel(BorderLayout()), DataProvider, Disposable {
             FileSystemViewPanel(
                 localHost,
                 TransferProtocolProvider.valueOf(LocalTransferProtocolProvider.PROTOCOL)!!
-                    .getRootFileObject(FileObjectRequester(localHost)).file,
+                    .getRootFileObject(FileObjectRequest(localHost)).file,
                 transportManager,
                 coroutineScope
             )

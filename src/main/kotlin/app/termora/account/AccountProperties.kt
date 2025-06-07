@@ -1,7 +1,7 @@
 package app.termora.account
 
 import app.termora.ApplicationScope
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import org.apache.commons.lang3.StringUtils
 
 /**

@@ -5,7 +5,7 @@ import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviders
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.plugin.internal.ssh.SSHTerminalTab
 import app.termora.snippet.SnippetAction
 import app.termora.snippet.SnippetTreeDialog

@@ -1,6 +1,6 @@
 package app.termora
 
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.macro.MacroPtyConnector
 import app.termora.terminal.PtyConnector
 import app.termora.terminal.PtyConnectorDelegate

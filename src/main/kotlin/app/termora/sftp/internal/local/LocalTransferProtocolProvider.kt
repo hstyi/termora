@@ -1,8 +1,8 @@
 package app.termora.sftp.internal.local
 
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.protocol.FileObjectHandler
-import app.termora.protocol.FileObjectRequester
+import app.termora.protocol.FileObjectRequest
 import app.termora.protocol.TransferProtocolProvider
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
@@ -22,7 +22,7 @@ internal class LocalTransferProtocolProvider : TransferProtocolProvider {
         return localFileProvider
     }
 
-    override fun getRootFileObject(requester: FileObjectRequester): FileObjectHandler {
+    override fun getRootFileObject(requester: FileObjectRequest): FileObjectHandler {
         var defaultDirectory = sftp.defaultDirectory
         if (StringUtils.isBlank(defaultDirectory)) {
             defaultDirectory = SystemUtils.USER_HOME

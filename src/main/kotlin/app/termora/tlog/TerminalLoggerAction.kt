@@ -3,7 +3,7 @@ package app.termora.tlog
 import app.termora.*
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.nv.FileChooser
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.util.SystemInfo

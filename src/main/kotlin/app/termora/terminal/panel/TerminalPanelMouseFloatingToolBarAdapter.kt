@@ -1,6 +1,6 @@
 package app.termora.terminal.panel
 
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import java.awt.Rectangle
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent

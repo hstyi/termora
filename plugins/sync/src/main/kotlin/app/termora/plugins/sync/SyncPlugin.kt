@@ -4,7 +4,7 @@ import app.termora.DynamicIcon
 import app.termora.I18n
 import app.termora.Icons
 import app.termora.SettingsOptionExtension
-import app.termora.db.DatabaseChangedExtension
+import app.termora.database.DatabaseChangedExtension
 import app.termora.plugin.Extension
 import app.termora.plugin.ExtensionSupport
 import app.termora.plugin.Plugin

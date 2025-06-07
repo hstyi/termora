@@ -5,7 +5,7 @@ import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProviders
 import app.termora.actions.TabReconnectAction
 import app.termora.addons.zmodem.ZModemPtyConnectorAdaptor
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.keymap.KeyShortcut
 import app.termora.keymap.KeymapManager
 import app.termora.terminal.ControlCharacters

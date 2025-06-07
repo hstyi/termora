@@ -1,7 +1,7 @@
 package app.termora.actions
 
 import app.termora.I18n
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import kotlin.math.max
 
 class TerminalZoomOutAction : TerminalZoomAction() {

@@ -5,7 +5,7 @@ import app.termora.DynamicColor
 import app.termora.I18n
 import app.termora.Icons
 import app.termora.assertEventDispatchThread
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.ui.FlatUIUtils

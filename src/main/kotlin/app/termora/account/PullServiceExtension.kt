@@ -1,6 +1,6 @@
 package app.termora.account
 
-import app.termora.db.DatabaseManager.Companion.log
+import app.termora.database.DatabaseManager.Companion.log
 import app.termora.plugin.Extension
 import app.termora.plugin.ExtensionManager
 import javax.swing.SwingUtilities

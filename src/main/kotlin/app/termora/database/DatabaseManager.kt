@@ -1,11 +1,11 @@
-package app.termora.db
+package app.termora.database
 
 import app.termora.*
 import app.termora.Application.ohMyJson
 import app.termora.account.Account
 import app.termora.account.AccountExtension
 import app.termora.account.AccountManager
-import app.termora.db.Data.Companion.toData
+import app.termora.database.Data.Companion.toData
 import app.termora.plugin.ExtensionManager
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import app.termora.terminal.CursorStyle
@@ -195,7 +195,10 @@ class DatabaseManager private constructor() : Disposable {
     /**
      * 存在则获取本地版本 +1 然后修改，synced 会改成 false ，不存在则新增
      */
-    fun saveAndIncrementVersion(data: Data) {
+    fun saveAndIncrementVersion(
+        data: Data,
+        source: DatabaseChangedExtension.Source = DatabaseChangedExtension.Source.User
+    ) {
         val oldData = data(data.id)
         if (oldData != null) {
             // 已经删除的数据，将不处理
@@ -214,7 +217,12 @@ class DatabaseManager private constructor() : Disposable {
             }
 
             // 触发更改
-            DatabaseChangedExtension.fireDataChanged(data.id, data.type, DatabaseChangedExtension.Action.Changed)
+            DatabaseChangedExtension.fireDataChanged(
+                data.id,
+                data.type,
+                DatabaseChangedExtension.Action.Changed,
+                source
+            )
         } else {
             save(data)
         }

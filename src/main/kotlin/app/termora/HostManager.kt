@@ -1,9 +1,10 @@
 package app.termora
 
 import app.termora.Application.ohMyJson
-import app.termora.db.Data
-import app.termora.db.DataType
-import app.termora.db.DatabaseManager
+import app.termora.database.Data
+import app.termora.database.DataType
+import app.termora.database.DatabaseChangedExtension
+import app.termora.database.DatabaseManager
 
 
 class HostManager private constructor() : Disposable {
@@ -18,7 +19,7 @@ class HostManager private constructor() : Disposable {
     /**
      * 修改缓存并存入数据库
      */
-    fun addHost(host: Host) {
+    fun addHost(host: Host, source: DatabaseChangedExtension.Source = DatabaseChangedExtension.Source.User) {
         assertEventDispatchThread()
         if (host.ownerType.isBlank()) {
             throw IllegalArgumentException("Owner type cannot be null")
@@ -30,7 +31,8 @@ class HostManager private constructor() : Disposable {
                 ownerType = host.ownerType,
                 type = DataType.Host.name,
                 data = ohMyJson.encodeToString(host),
-            )
+            ),
+            source
         )
 
     }

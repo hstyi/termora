@@ -1,10 +1,14 @@
-package app.termora.highlight
+package app.termora.tag
 
-import app.termora.*
+import app.termora.DialogWrapper
+import app.termora.Disposer
+import app.termora.DynamicColor
+import app.termora.Icons
 import app.termora.account.AccountManager
 import app.termora.account.AccountOwner
 import app.termora.database.OwnerType
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
+import org.apache.commons.lang3.StringUtils
 import java.awt.Dimension
 import java.awt.Window
 import javax.swing.BorderFactory
@@ -13,13 +17,13 @@ import javax.swing.JTabbedPane
 import javax.swing.UIManager
 
 @Suppress("DuplicatedCode")
-class KeywordHighlightDialog(owner: Window) : DialogWrapper(owner) {
+class TagDialog(owner: Window, private val accountOwnerId: String = StringUtils.EMPTY) : DialogWrapper(owner) {
 
 
     init {
         size = Dimension(UIManager.getInt("Dialog.width"), UIManager.getInt("Dialog.height"))
         isModal = true
-        title = I18n.getString("termora.highlight")
+        title = "标签"
 
         init()
         setLocationRelativeTo(null)
@@ -39,9 +43,9 @@ class KeywordHighlightDialog(owner: Window) : DialogWrapper(owner) {
 
 
         tabbed.addTab(
-            I18n.getString("termora.highlight.my-keyword"),
+            "我的标签",
             Icons.user,
-            KeywordHighlightPanel(
+            TagPanel(
                 AccountOwner(
                     accountManager.getAccountId(),
                     accountManager.getEmail(),
@@ -54,14 +58,20 @@ class KeywordHighlightDialog(owner: Window) : DialogWrapper(owner) {
             tabbed.addTab(
                 team.name,
                 Icons.cwmUsers,
-                KeywordHighlightPanel(
+                TagPanel(
                     AccountOwner(
                         team.id,
                         team.name,
                         OwnerType.Team
                     )
                 ).apply { Disposer.register(disposable, this) })
+
+            if (accountOwnerId == team.id) {
+                tabbed.selectedIndex = tabbed.tabCount - 1
+            }
         }
+
+
 
 
         return tabbed

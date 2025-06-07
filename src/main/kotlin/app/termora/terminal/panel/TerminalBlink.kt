@@ -2,7 +2,7 @@ package app.termora.terminal.panel
 
 import app.termora.ApplicationScope
 import app.termora.Disposable
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.terminal.*
 import kotlinx.coroutines.*
 import java.util.concurrent.atomic.AtomicBoolean

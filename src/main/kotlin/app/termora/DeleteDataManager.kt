@@ -1,6 +1,6 @@
 package app.termora
 
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 
 /**
  * 仅标记

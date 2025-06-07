@@ -87,6 +87,9 @@ data class SerialComm(
     val flowControl: SerialCommFlowControl = SerialCommFlowControl.None,
 )
 
+@Serializable
+data class HostTag(val text: String)
+
 
 @Serializable
 data class Options(
@@ -130,6 +133,12 @@ data class Options(
      * X11 Server,Format: host.port. default: localhost:0
      */
     val x11Forwarding: String = StringUtils.EMPTY,
+
+    /**
+     * 标签 [app.termora.tag.Tag.id]
+     */
+    val tags: List<String> = emptyList(),
+
     /**
      * 扩展，如果要使用此
      */

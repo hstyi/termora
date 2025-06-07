@@ -1,6 +1,6 @@
 package app.termora
 
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Window

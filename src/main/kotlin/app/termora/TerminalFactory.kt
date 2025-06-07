@@ -1,6 +1,6 @@
 package app.termora
 
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.terminal.*
 import app.termora.terminal.panel.TerminalPanel
 import app.termora.tlog.TerminalLoggerDataListener

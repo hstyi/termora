@@ -5,9 +5,9 @@ import app.termora.ApplicationScope
 import app.termora.DeleteDataManager
 import app.termora.TerminalPanelFactory
 import app.termora.account.AccountOwner
-import app.termora.db.Data
-import app.termora.db.DataType
-import app.termora.db.DatabaseManager
+import app.termora.database.Data
+import app.termora.database.DataType
+import app.termora.database.DatabaseManager
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 

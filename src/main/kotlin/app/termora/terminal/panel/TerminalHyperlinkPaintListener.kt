@@ -2,7 +2,7 @@ package app.termora.terminal.panel
 
 import app.termora.Application
 import app.termora.ApplicationScope
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.terminal.*
 import java.awt.Graphics
 import java.net.URI

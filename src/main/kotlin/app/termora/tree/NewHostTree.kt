@@ -2,12 +2,14 @@ package app.termora.tree
 
 import app.termora.*
 import app.termora.Application.ohMyJson
-import app.termora.account.AccountManager
 import app.termora.actions.OpenHostAction
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.plugin.internal.sftppty.SFTPPtyProtocolProvider
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
 import app.termora.sftp.SFTPActionEvent
+import app.termora.tag.TagDialog
+import app.termora.tag.TagManager
+import app.termora.tag.TagSimpleTreeCellRendererExtension
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
@@ -48,8 +50,10 @@ class NewHostTree : SimpleTree(), Disposable {
         private val CSV_HEADERS = arrayOf("Folders", "Label", "Hostname", "Port", "Username", "Protocol")
 
         init {
-            // init
+            // 基本信息
             ShowMoreInfoSimpleTreeCellRendererExtension.getInstance()
+            // 标签
+            TagSimpleTreeCellRendererExtension.getInstance()
         }
     }
 
@@ -62,7 +66,6 @@ class NewHostTree : SimpleTree(), Disposable {
         set(value) = properties.putString("HostTree.showMoreInfo", value.toString())
     private var isPopupMenu = false
     override val model = NewHostTreeModel.getInstance()
-    private val accountManager get() = AccountManager.getInstance()
 
     /**
      * 是否允许显示右键菜单
@@ -127,7 +130,20 @@ class NewHostTree : SimpleTree(), Disposable {
 
     }
 
+    fun restoreExpansions() {
+        val name = super.getName()
+        if (name.isNullOrBlank()) {
+            return
+        }
+        val state = properties.getString("${name}.state") ?: return
+        TreeUtils.loadExpansionState(this, state)
+    }
+
     override fun dispose() {
+        val name = super.getName()
+        if (name.isNullOrBlank().not()) {
+            properties.putString("${name}.state", TreeUtils.saveExpansionState(this))
+        }
         super.setModel(null)
     }
 
@@ -147,6 +163,8 @@ class NewHostTree : SimpleTree(), Disposable {
         val lastNode = lastSelectedPathComponent
         if (lastNode !is HostTreeNode) return
 
+
+        val tags = TagManager.getInstance().getTags(lastNode.host.ownerId)
         val nodes = getSelectionSimpleTreeNodes()
         val fullNodes = getSelectionSimpleTreeNodes(true)
         val lastNodeParent = lastNode.parent ?: model.root
@@ -186,6 +204,7 @@ class NewHostTree : SimpleTree(), Disposable {
         popupMenu.add(importMenu)
         popupMenu.add(newMenu)
         popupMenu.addSeparator()
+        val tagsMenu = popupMenu.add(JMenu("标签")) as JMenu
         val showMoreInfo = JCheckBoxMenuItem(I18n.getString("termora.welcome.contextmenu.show-more-info"))
         showMoreInfo.isSelected = isShowMoreInfo
         showMoreInfo.addActionListener {
@@ -305,9 +324,36 @@ class NewHostTree : SimpleTree(), Disposable {
         openWithSFTPCommand.isEnabled = openWithSFTP.isEnabled
         openWith.isEnabled = openWith.menuComponents.any { it is JMenuItem && it.isEnabled }
 
+
+        for (tag in tags) {
+            val menu = tagsMenu.add(JMenuItem(tag.text, ColorIcon(color = ColorHash.hash(tag.id))))
+            menu.isEnabled = remove.isEnabled
+            menu.addActionListener {
+                val tags = lastHost.options.tags.toMutableList()
+                if (tags.contains(tag.id)) {
+                    tags.removeAll { it == tag.id }
+                } else {
+                    tags.add(tag.id)
+                }
+                lastNode.host = lastHost.copy(options = lastHost.options.copy(tags = tags))
+                model.nodeStructureChanged(lastNode)
+            }
+        }
+
+        if (tags.isNotEmpty()) {
+            tagsMenu.addSeparator()
+        }
+
+        tagsMenu.add("管理标签").addActionListener {
+            val dialog = TagDialog(owner,lastHost.ownerId)
+            dialog.setLocationRelativeTo(owner)
+            dialog.isVisible = true
+        }
+
         popupMenu.addPopupMenuListener(object : PopupMenuListener {
             override fun popupMenuWillBecomeVisible(e: PopupMenuEvent) {
                 isPopupMenu = true
+                SwingUtilities.updateComponentTreeUI(popupMenu)
             }
 
             override fun popupMenuWillBecomeInvisible(e: PopupMenuEvent) {

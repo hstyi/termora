@@ -3,8 +3,8 @@ package app.termora.plugins.migration
 import app.termora.*
 import app.termora.account.AccountManager
 import app.termora.account.AccountOwner
-import app.termora.db.DatabaseManager
-import app.termora.db.OwnerType
+import app.termora.database.DatabaseManager
+import app.termora.database.OwnerType
 import app.termora.highlight.KeywordHighlightManager
 import app.termora.keymap.KeymapManager
 import app.termora.keymgr.KeyManager

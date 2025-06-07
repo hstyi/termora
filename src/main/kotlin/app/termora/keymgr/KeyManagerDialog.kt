@@ -6,7 +6,7 @@ import app.termora.I18n
 import app.termora.Icons
 import app.termora.account.AccountManager
 import app.termora.account.AccountOwner
-import app.termora.db.OwnerType
+import app.termora.database.OwnerType
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
 import java.awt.Dimension
 import java.awt.Window

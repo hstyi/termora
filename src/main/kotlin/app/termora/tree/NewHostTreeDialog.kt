@@ -6,7 +6,7 @@ import app.termora.Disposer
 import app.termora.DynamicColor
 import app.termora.Host
 import app.termora.I18n
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import org.apache.commons.lang3.StringUtils
 import java.awt.Dimension
 import java.awt.Window

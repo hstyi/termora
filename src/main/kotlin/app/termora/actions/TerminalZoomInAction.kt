@@ -1,7 +1,7 @@
 package app.termora.actions
 
 import app.termora.I18n
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 
 class TerminalZoomInAction : TerminalZoomAction() {
     companion object {

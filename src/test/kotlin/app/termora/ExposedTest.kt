@@ -1,9 +1,9 @@
 package app.termora
 
-import app.termora.db.DataEntity
-import app.termora.db.DataType
-import app.termora.db.OwnerType
-import app.termora.db.SettingEntity
+import app.termora.database.DataEntity
+import app.termora.database.DataType
+import app.termora.database.OwnerType
+import app.termora.database.SettingEntity
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.insert

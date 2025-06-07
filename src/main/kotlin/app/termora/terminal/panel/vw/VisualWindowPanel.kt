@@ -1,7 +1,7 @@
 package app.termora.terminal.panel.vw
 
 import app.termora.*
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import com.formdev.flatlaf.extras.components.FlatToolBar
 import com.formdev.flatlaf.util.SystemInfo
 import java.awt.*

@@ -8,11 +8,10 @@ import app.termora.TerminalTab
 import app.termora.WindowScope
 import app.termora.actions.DataProvider
 import app.termora.protocol.GenericProtocolProvider
-import app.termora.protocol.ProtocolTestRequester
+import app.termora.protocol.ProtocolTestRequest
 import app.termora.protocol.ProtocolTester
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.session.ClientSession
-import java.awt.Window
 
 internal class SSHProtocolProvider private constructor() : GenericProtocolProvider, ProtocolTester {
     companion object {
@@ -32,11 +31,11 @@ internal class SSHProtocolProvider private constructor() : GenericProtocolProvid
         return Icons.ssh
     }
 
-    override fun canTestConnection(requester: ProtocolTestRequester): Boolean {
+    override fun canTestConnection(requester: ProtocolTestRequest): Boolean {
         return true
     }
 
-    override fun testConnection(requester: ProtocolTestRequester) {
+    override fun testConnection(requester: ProtocolTestRequest) {
         var client: SshClient? = null
         var session: ClientSession? = null
         val owner = requester.owner

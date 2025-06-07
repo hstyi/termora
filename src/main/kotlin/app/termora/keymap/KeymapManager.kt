@@ -6,10 +6,10 @@ import app.termora.Disposable
 import app.termora.SwingUtils
 import app.termora.account.AccountManager
 import app.termora.actions.AnActionEvent
-import app.termora.db.Data
-import app.termora.db.DataType
-import app.termora.db.DatabaseManager
-import app.termora.db.OwnerType
+import app.termora.database.Data
+import app.termora.database.DataType
+import app.termora.database.DatabaseManager
+import app.termora.database.OwnerType
 import com.formdev.flatlaf.util.SystemInfo
 import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.action.ActionManager

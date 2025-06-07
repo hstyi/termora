@@ -2,7 +2,7 @@ package app.termora.plugins.bg
 
 import app.termora.ApplicationScope
 import app.termora.TermoraFrameManager
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import java.awt.image.BufferedImage

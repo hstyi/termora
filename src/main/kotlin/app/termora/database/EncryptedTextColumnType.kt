@@ -1,4 +1,4 @@
-package app.termora.db
+package app.termora.database
 
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ColumnWithTransform

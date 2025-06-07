@@ -4,8 +4,8 @@ import app.termora.ApplicationScope
 import app.termora.Disposable
 import app.termora.Disposer
 import app.termora.assertEventDispatchThread
-import app.termora.db.DataType
-import app.termora.db.DatabaseChangedExtension
+import app.termora.database.DataType
+import app.termora.database.DatabaseChangedExtension
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import app.termora.terminal.*
 import app.termora.terminal.panel.TerminalDisplay

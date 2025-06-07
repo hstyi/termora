@@ -1,6 +1,6 @@
 package app.termora
 
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.FlatAnimatedLafChange
 import com.jthemedetecor.OsThemeDetector

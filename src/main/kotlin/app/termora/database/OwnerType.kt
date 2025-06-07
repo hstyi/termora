@@ -1,4 +1,4 @@
-package app.termora.db
+package app.termora.database
 
 enum class OwnerType {
         User,

@@ -39,7 +39,7 @@ interface TransferProtocolProvider : ProtocolProvider {
     /**
      * 获取根文件
      */
-    fun getRootFileObject(requester: FileObjectRequester): FileObjectHandler
+    fun getRootFileObject(requester: FileObjectRequest): FileObjectHandler
 
     override fun isTransfer(): Boolean {
         return true

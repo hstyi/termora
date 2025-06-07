@@ -4,7 +4,7 @@ import app.termora.ApplicationScope
 import app.termora.Disposable
 import app.termora.Disposer
 import app.termora.DynamicColor
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import app.termora.plugin.internal.rdp.RDPProtocolProvider
 import app.termora.plugin.internal.serial.SerialProtocolProvider

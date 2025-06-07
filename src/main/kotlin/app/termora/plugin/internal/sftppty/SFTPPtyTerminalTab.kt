@@ -1,7 +1,7 @@
 package app.termora.plugin.internal.sftppty
 
 import app.termora.*
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.keymgr.KeyManager
 import app.termora.keymgr.OhKeyPairKeyPairProvider
 import app.termora.terminal.*

@@ -2,7 +2,7 @@ package app.termora
 
 
 import app.termora.actions.*
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.findeverywhere.BasicFilterFindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereResult

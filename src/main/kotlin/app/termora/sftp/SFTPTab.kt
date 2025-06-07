@@ -1,7 +1,7 @@
 package app.termora.sftp
 
 import app.termora.*
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.terminal.DataKey
 import java.beans.PropertyChangeListener
 import javax.swing.Icon

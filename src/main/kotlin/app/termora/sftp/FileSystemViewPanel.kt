@@ -2,7 +2,7 @@ package app.termora.sftp
 
 import app.termora.*
 import app.termora.actions.DataProvider
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.terminal.DataKey
 import app.termora.vfs2.sftp.MySftpFileSystem
 import com.formdev.flatlaf.extras.components.FlatToolBar

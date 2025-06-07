@@ -1,4 +1,4 @@
-package app.termora.db
+package app.termora.database
 
 import app.termora.LocalSecret
 import app.termora.randomUUID

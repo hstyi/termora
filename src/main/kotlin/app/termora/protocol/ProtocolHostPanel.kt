@@ -51,6 +51,11 @@ abstract class ProtocolHostPanel : JPanel(BorderLayout()) {
      * 显示之后
      */
     open fun onShown() {
-        lastFocusOwner?.requestFocusInWindow()
+        val owner = lastFocusOwner
+        if (owner == null) {
+            requestFocusInWindow()
+        } else {
+            owner.requestFocusInWindow()
+        }
     }
 }

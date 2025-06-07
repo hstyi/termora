@@ -1,4 +1,4 @@
-package app.termora.db
+package app.termora.database
 
 import app.termora.randomUUID
 import org.jetbrains.exposed.v1.core.ResultRow

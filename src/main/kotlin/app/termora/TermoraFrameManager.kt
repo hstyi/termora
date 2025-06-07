@@ -1,6 +1,6 @@
 package app.termora
 
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.nv.osx.NativeMacLibrary
 import app.termora.plugin.ExtensionManager
 import com.formdev.flatlaf.ui.FlatNativeWindowsLibrary

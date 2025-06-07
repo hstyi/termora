@@ -8,7 +8,7 @@ import app.termora.AES.encodeBase64String
 import app.termora.Application.ohMyJson
 import app.termora.account.AccountManager
 import app.termora.account.AccountOwner
-import app.termora.db.OwnerType
+import app.termora.database.OwnerType
 import app.termora.highlight.KeywordHighlight
 import app.termora.highlight.KeywordHighlightManager
 import app.termora.keymap.Keymap

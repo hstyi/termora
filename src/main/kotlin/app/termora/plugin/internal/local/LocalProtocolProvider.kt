@@ -3,9 +3,8 @@ package app.termora.plugin.internal.local
 import app.termora.*
 import app.termora.actions.DataProvider
 import app.termora.protocol.GenericProtocolProvider
-import app.termora.protocol.ProtocolTestRequester
+import app.termora.protocol.ProtocolTestRequest
 import app.termora.protocol.ProtocolTester
-import java.awt.Window
 
 internal class LocalProtocolProvider private constructor() : GenericProtocolProvider, ProtocolTester {
     companion object {
@@ -21,7 +20,7 @@ internal class LocalProtocolProvider private constructor() : GenericProtocolProv
         return Icons.powershell
     }
 
-    override fun canTestConnection(requester: ProtocolTestRequester): Boolean {
+    override fun canTestConnection(requester: ProtocolTestRequest): Boolean {
         return true
     }
 

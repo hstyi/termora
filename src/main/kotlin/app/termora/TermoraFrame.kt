@@ -4,7 +4,7 @@ package app.termora
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviderSupport
 import app.termora.actions.DataProviders
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.plugin.ExtensionManager
 import app.termora.sftp.SFTPTab
 import app.termora.terminal.DataKey

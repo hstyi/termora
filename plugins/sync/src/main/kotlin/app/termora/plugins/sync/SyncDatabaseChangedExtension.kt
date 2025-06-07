@@ -1,6 +1,6 @@
 package app.termora.plugins.sync
 
-import app.termora.db.DatabaseChangedExtension
+import app.termora.database.DatabaseChangedExtension
 
 class SyncDatabaseChangedExtension : DatabaseChangedExtension {
     companion object {

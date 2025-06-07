@@ -1,6 +1,6 @@
 package app.termora.sftp
 
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext

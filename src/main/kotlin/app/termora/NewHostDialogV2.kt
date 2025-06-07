@@ -4,10 +4,18 @@ import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.protocol.ProtocolHostPanel
 import app.termora.protocol.ProtocolHostPanelExtension
+import app.termora.protocol.ProtocolProvider
+import app.termora.protocol.ProtocolTestRequest
+import app.termora.protocol.ProtocolTester
 import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.formdev.flatlaf.extras.components.FlatToolBar
 import com.formdev.flatlaf.ui.FlatButtonBorder
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.swing.Swing
+import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.exception.ExceptionUtils
 import java.awt.BorderLayout
 import java.awt.CardLayout
 import java.awt.Dimension
@@ -129,7 +137,47 @@ class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : Dialo
         return object : AnAction(I18n.getString("termora.new-host.test-connection")) {
             override fun actionPerformed(evt: AnActionEvent) {
 
+                val panel = currentCard ?: return
+                if (panel.validateFields().not()) return
+                val host = panel.getHost()
+                val provider = ProtocolProvider.valueOf(host.protocol) ?: return
+                if (provider !is ProtocolTester) return
+
+                putValue(NAME, "${I18n.getString("termora.new-host.test-connection")}...")
+                isEnabled = false
+
+                swingCoroutineScope.launch(Dispatchers.IO) {
+                    // 因为测试连接的时候从数据库读取会导致失效，所以这里生成随机ID
+                    testConnection(provider, host)
+                    withContext(Dispatchers.Swing) {
+                        putValue(NAME, I18n.getString("termora.new-host.test-connection"))
+                        isEnabled = true
+                    }
+                }
             }
+        }
+    }
+
+    private suspend fun testConnection(tester: ProtocolTester, host: Host) {
+        try {
+            val request = ProtocolTestRequest(host = host, owner = this)
+            if (tester.canTestConnection(request))
+                tester.testConnection(request)
+        } catch (e: Exception) {
+            withContext(Dispatchers.Swing) {
+                OptionPane.showMessageDialog(
+                    owner, ExceptionUtils.getMessage(e),
+                    messageType = JOptionPane.ERROR_MESSAGE
+                )
+            }
+            return
+        }
+
+        withContext(Dispatchers.Swing) {
+            OptionPane.showMessageDialog(
+                owner,
+                I18n.getString("termora.new-host.test-connection-successful")
+            )
         }
     }
 

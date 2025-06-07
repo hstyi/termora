@@ -1,7 +1,7 @@
 package app.termora
 
 import app.termora.actions.ActionManager
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.keymap.KeymapManager
 import app.termora.plugin.ExtensionManager
 import app.termora.plugin.PluginManager

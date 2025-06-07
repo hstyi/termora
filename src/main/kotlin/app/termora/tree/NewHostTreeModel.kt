@@ -10,9 +10,9 @@ import app.termora.account.Account
 import app.termora.account.AccountExtension
 import app.termora.account.AccountManager
 import app.termora.account.ServerSignedExtension
-import app.termora.db.DataType
-import app.termora.db.DatabaseChangedExtension
-import app.termora.db.OwnerType
+import app.termora.database.DataType
+import app.termora.database.DatabaseChangedExtension
+import app.termora.database.OwnerType
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import javax.swing.tree.MutableTreeNode
 import javax.swing.tree.TreeNode

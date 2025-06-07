@@ -2,7 +2,7 @@ package app.termora.terminal.panel
 
 import app.termora.DynamicColor
 import app.termora.assertEventDispatchThread
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.swingCoroutineScope
 import app.termora.terminal.*
 import kotlinx.coroutines.Dispatchers

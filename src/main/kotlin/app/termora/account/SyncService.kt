@@ -1,8 +1,8 @@
 package app.termora.account
 
 import app.termora.AES
-import app.termora.db.*
-import app.termora.db.Data.Companion.toData
+import app.termora.database.*
+import app.termora.database.Data.Companion.toData
 import org.apache.commons.codec.binary.Base64
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.lang3.ObjectUtils

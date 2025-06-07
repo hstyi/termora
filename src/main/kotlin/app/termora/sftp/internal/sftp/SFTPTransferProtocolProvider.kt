@@ -1,7 +1,7 @@
 package app.termora.sftp.internal.sftp
 
 import app.termora.SshClients
-import app.termora.protocol.FileObjectRequester
+import app.termora.protocol.FileObjectRequest
 import app.termora.protocol.TransferProtocolProvider
 import app.termora.vfs2.sftp.MySftpFileProvider
 import app.termora.vfs2.sftp.MySftpFileSystemConfigBuilder
@@ -26,7 +26,7 @@ internal class SFTPTransferProtocolProvider : TransferProtocolProvider {
         return MySftpFileProvider.instance
     }
 
-    override fun getRootFileObject(requester: FileObjectRequester): SFTPFileObjectHandler {
+    override fun getRootFileObject(requester: FileObjectRequest): SFTPFileObjectHandler {
         var client: SshClient? = null
         var session: ClientSession? = null
         try {

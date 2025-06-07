@@ -3,7 +3,7 @@ package app.termora.snippet
 import app.termora.DialogWrapper
 import app.termora.Disposer
 import app.termora.I18n
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import java.awt.Dimension
 import java.awt.Window
 import javax.swing.JComponent

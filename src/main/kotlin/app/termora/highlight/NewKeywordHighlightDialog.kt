@@ -4,7 +4,7 @@ import app.termora.DialogWrapper
 import app.termora.DynamicColor
 import app.termora.I18n
 import app.termora.Icons
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.terminal.ColorPalette
 import app.termora.terminal.TerminalColor
 import com.formdev.flatlaf.FlatClientProperties

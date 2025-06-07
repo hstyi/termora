@@ -2,8 +2,8 @@ package app.termora.account
 
 import app.termora.*
 import app.termora.Application.ohMyJson
-import app.termora.db.Data
-import app.termora.db.DatabaseChangedExtension
+import app.termora.database.Data
+import app.termora.database.DatabaseChangedExtension
 import app.termora.plugin.DispatchThread
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import kotlinx.coroutines.Dispatchers

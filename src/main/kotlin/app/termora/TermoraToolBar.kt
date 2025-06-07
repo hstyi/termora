@@ -2,7 +2,7 @@ package app.termora
 
 import app.termora.Application.ohMyJson
 import app.termora.actions.*
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import app.termora.findeverywhere.FindEverywhereAction
 import app.termora.snippet.SnippetAction
 import com.formdev.flatlaf.FlatClientProperties

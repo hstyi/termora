@@ -1,7 +1,7 @@
 package app.termora
 
 import app.termora.Application.ohMyJson
-import app.termora.db.DatabaseManager
+import app.termora.database.DatabaseManager
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import org.apache.commons.lang3.StringUtils

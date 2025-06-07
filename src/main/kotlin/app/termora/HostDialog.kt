@@ -3,7 +3,7 @@ package app.termora
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.protocol.ProtocolProvider
-import app.termora.protocol.ProtocolTestRequester
+import app.termora.protocol.ProtocolTestRequest
 import app.termora.protocol.ProtocolTester
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -79,7 +79,7 @@ class HostDialog(owner: Window, host: Host? = null) : DialogWrapper(owner) {
 
         if (provider !is ProtocolTester) return
 
-        val requester = ProtocolTestRequester(host, owner)
+        val requester = ProtocolTestRequest(host, owner)
         if (provider.canTestConnection(requester).not()) return
 
         try {
