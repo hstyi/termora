@@ -331,8 +331,10 @@ class NewHostTree : SimpleTree(), Disposable {
 
 
         for (tag in tags) {
-            val menu = tagsMenu.add(JMenuItem(tag.text, ColorIcon(color = ColorHash.hash(tag.id))))
+            val menu = tagsMenu.add(JMenuItem(tag.text))
             menu.isEnabled = remove.isEnabled
+            menu.isSelected = lastHost.options.tags.contains(tag.id)
+            menu.icon = CheckBoxMenuItemColorIcon(ColorIcon(color = ColorHash.hash(tag.id)), menu.isSelected)
             menu.addActionListener {
                 val tags = lastHost.options.tags.toMutableList()
                 if (tags.contains(tag.id)) {
@@ -358,7 +360,6 @@ class NewHostTree : SimpleTree(), Disposable {
         popupMenu.addPopupMenuListener(object : PopupMenuListener {
             override fun popupMenuWillBecomeVisible(e: PopupMenuEvent) {
                 isPopupMenu = true
-                SwingUtilities.updateComponentTreeUI(popupMenu)
             }
 
             override fun popupMenuWillBecomeInvisible(e: PopupMenuEvent) {
