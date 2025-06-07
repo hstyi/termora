@@ -92,7 +92,7 @@ class ApplicationRunner {
         }
 
         // 启动主窗口
-        startMainFrame()
+        SwingUtilities.invokeLater { startMainFrame() }
 
     }
 

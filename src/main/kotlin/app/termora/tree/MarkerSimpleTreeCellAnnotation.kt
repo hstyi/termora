@@ -6,6 +6,10 @@ import javax.swing.JComponent
 
 class MarkerSimpleTreeCellAnnotation(
     val text: String,
+    /**
+     * 原来的大小 -N
+     */
+    val fontSize: Float = 0f,
     val foreground: Color? = null, val background: Color? = null,
 ) : SimpleTreeCellAnnotation {
 
@@ -19,7 +23,7 @@ class MarkerSimpleTreeCellAnnotation(
 
     override fun paint(c: JComponent, g: Graphics2D) {
         val width = getWidth(c)
-        g.font = g.font.deriveFont(g.font.size2D - 2f)
+
 
         if (background != null) {
             g.color = background
@@ -27,9 +31,10 @@ class MarkerSimpleTreeCellAnnotation(
         }
 
         g.color = foreground ?: c.foreground
-        val fm = c.getFontMetrics(c.font)
+        g.font = g.font.deriveFont(g.font.size2D - fontSize)
+        val fm = c.getFontMetrics(g.font)
 
-        g.drawString(text, (width - fm.stringWidth(text)) / 2 + 2, fm.height)
+        g.drawString(text, (width - fm.stringWidth(text)) / 2 + 2, (c.height - fm.height) / 2 + fm.ascent)
 
     }
 }
