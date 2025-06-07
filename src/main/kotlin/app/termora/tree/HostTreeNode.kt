@@ -1,5 +1,7 @@
-package app.termora
+package app.termora.tree
 
+import app.termora.Host
+import app.termora.Icons
 import app.termora.account.AccountManager
 import app.termora.protocol.ProtocolProvider
 import com.formdev.flatlaf.icons.FlatTreeClosedIcon

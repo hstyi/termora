@@ -1,9 +1,8 @@
-package app.termora
+package app.termora.tree
 
+import app.termora.OutlineTextField
 import com.formdev.flatlaf.ui.FlatTreeUI
 import org.jdesktop.swingx.JXTree
-import org.jdesktop.swingx.tree.DefaultXTreeCellRenderer
-import java.awt.Component
 import java.awt.Dimension
 import java.awt.Rectangle
 import java.awt.datatransfer.DataFlavor
@@ -26,7 +25,6 @@ open class SimpleTree : JXTree() {
     protected open val model get() = super.getModel() as SimpleTreeModel<*>
     private val editor = OutlineTextField(64)
     protected val tree get() = this
-    private val myUI = FlatTreeUI()
 
     init {
         initViews()
@@ -36,25 +34,8 @@ open class SimpleTree : JXTree() {
 
     private fun initViews() {
 
-        setUI(myUI)
-
         // renderer
-        setCellRenderer(object : DefaultXTreeCellRenderer() {
-            override fun getTreeCellRendererComponent(
-                tree: JTree,
-                value: Any,
-                sel: Boolean,
-                expanded: Boolean,
-                leaf: Boolean,
-                row: Int,
-                hasFocus: Boolean
-            ): Component {
-                val node = value as SimpleTreeNode<*>
-                val c = super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus)
-                icon = node.getIcon(sel, expanded, tree.hasFocus())
-                return c
-            }
-        })
+        setCellRenderer(SimpleTreeCellRenderer())
 
         // rename
         setCellEditor(object : DefaultCellEditor(editor) {
@@ -335,11 +316,11 @@ open class SimpleTree : JXTree() {
     }
 
     override fun setUI(ui: TreeUI) {
-        super.setUI(myUI)
+        if (ui is MyTreeUI) super.setUI(ui)
     }
 
     override fun updateUI() {
-        super.setUI(myUI)
+        super.setUI(MyTreeUI())
         super.updateUI()
     }
 

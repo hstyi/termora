@@ -1,5 +1,11 @@
-package app.termora
+package app.termora.tree
 
+import app.termora.ApplicationScope
+import app.termora.Disposable
+import app.termora.Disposer
+import app.termora.Host
+import app.termora.HostManager
+import app.termora.I18n
 import app.termora.account.Account
 import app.termora.account.AccountExtension
 import app.termora.account.AccountManager
@@ -24,12 +30,12 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
 
     companion object {
         fun getInstance(): NewHostTreeModel {
-            return ApplicationScope.forApplicationScope().getOrCreate(NewHostTreeModel::class) { NewHostTreeModel() }
+            return ApplicationScope.Companion.forApplicationScope().getOrCreate(NewHostTreeModel::class) { NewHostTreeModel() }
         }
     }
 
 
-    private val hostManager get() = HostManager.getInstance()
+    private val hostManager get() = HostManager.Companion.getInstance()
     private val accountManager get() = AccountManager.getInstance()
 
 

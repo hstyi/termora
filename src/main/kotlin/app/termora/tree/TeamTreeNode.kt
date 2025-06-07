@@ -1,5 +1,7 @@
-package app.termora
+package app.termora.tree
 
+import app.termora.Host
+import app.termora.Icons
 import app.termora.account.Team
 import app.termora.db.OwnerType
 import javax.swing.Icon

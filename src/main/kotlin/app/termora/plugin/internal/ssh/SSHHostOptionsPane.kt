@@ -4,6 +4,8 @@ import app.termora.*
 import app.termora.keymgr.KeyManager
 import app.termora.keymgr.KeyManagerDialog
 import app.termora.plugin.internal.BasicProxyOption
+import app.termora.tree.HostTreeNode
+import app.termora.tree.NewHostTreeDialog
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatComboBox
 import com.formdev.flatlaf.ui.FlatTextBorder

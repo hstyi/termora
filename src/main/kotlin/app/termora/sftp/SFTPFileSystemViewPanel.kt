@@ -7,6 +7,8 @@ import app.termora.protocol.FileObjectHandler
 import app.termora.protocol.FileObjectRequester
 import app.termora.protocol.TransferProtocolProvider
 import app.termora.terminal.DataKey
+import app.termora.tree.NewHostTree
+import app.termora.tree.TreeUtils
 import com.formdev.flatlaf.icons.FlatOptionPaneErrorIcon
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout

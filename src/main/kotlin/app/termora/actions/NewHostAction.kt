@@ -1,6 +1,9 @@
 package app.termora.actions
 
 import app.termora.*
+import app.termora.tree.FilterableHostTreeModel
+import app.termora.tree.HostTreeNode
+import app.termora.tree.NewHostTreeModel
 import javax.swing.tree.TreePath
 
 class NewHostAction : AnAction() {

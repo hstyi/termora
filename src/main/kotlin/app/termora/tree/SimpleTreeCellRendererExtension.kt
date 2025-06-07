@@ -1,4 +1,4 @@
-package app.termora
+package app.termora.tree
 
 import app.termora.plugin.Extension
 import javax.swing.JTree

@@ -2,6 +2,7 @@ package app.termora.snippet
 
 import app.termora.*
 import app.termora.db.DatabaseManager
+import app.termora.tree.TreeUtils
 import org.apache.commons.lang3.StringUtils
 import java.awt.Dimension
 import java.awt.Window

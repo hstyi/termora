@@ -1,7 +1,8 @@
-package app.termora
+package app.termora.tree
 
 import javax.swing.Icon
 import javax.swing.tree.DefaultMutableTreeNode
+import kotlin.collections.iterator
 
 abstract class SimpleTreeNode<T>(data: T) : DefaultMutableTreeNode(data) {
     @Suppress("UNCHECKED_CAST")

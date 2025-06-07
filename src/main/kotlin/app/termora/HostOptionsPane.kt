@@ -5,6 +5,8 @@ import app.termora.keymgr.KeyManagerDialog
 import app.termora.plugin.internal.serial.SerialProtocolProvider
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
 import app.termora.protocol.ProtocolProvider
+import app.termora.tree.HostTreeNode
+import app.termora.tree.NewHostTreeDialog
 import com.fazecast.jSerialComm.SerialPort
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatComboBox

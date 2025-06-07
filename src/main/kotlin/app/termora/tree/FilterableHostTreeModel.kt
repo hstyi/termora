@@ -1,4 +1,4 @@
-package app.termora
+package app.termora.tree
 
 import org.apache.commons.lang3.ArrayUtils
 import java.util.function.Function
@@ -10,6 +10,7 @@ import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.TreeModel
 import javax.swing.tree.TreeNode
 import javax.swing.tree.TreePath
+import kotlin.collections.iterator
 
 class FilterableHostTreeModel(
     private val tree: JTree,

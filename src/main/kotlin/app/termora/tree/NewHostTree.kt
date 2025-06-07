@@ -1,13 +1,22 @@
-package app.termora
+package app.termora.tree
 
 import app.termora.Application.ohMyJson
+import app.termora.Disposable
+import app.termora.DynamicColor
+import app.termora.Host
+import app.termora.I18n
+import app.termora.NewHostDialogV2
+import app.termora.OpenHostActionEvent
+import app.termora.OptionPane
+import app.termora.TermoraFrameManager
 import app.termora.account.AccountManager
 import app.termora.actions.OpenHostAction
+import app.termora.assertEventDispatchThread
 import app.termora.db.DatabaseManager
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
-import app.termora.plugin.internal.rdp.RDPProtocolProvider
 import app.termora.plugin.internal.sftppty.SFTPPtyProtocolProvider
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
+import app.termora.randomUUID
 import app.termora.sftp.SFTPActionEvent
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import kotlinx.serialization.Serializable
@@ -24,16 +33,13 @@ import org.apache.sshd.client.config.hosts.HostConfigEntry
 import org.ini4j.Ini
 import org.ini4j.Reg
 import org.jdesktop.swingx.action.ActionManager
-import org.jdesktop.swingx.tree.DefaultXTreeCellRenderer
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Element
 import org.w3c.dom.NodeList
 import java.awt.Color
-import java.awt.Component
 import java.awt.event.*
 import java.io.*
 import java.util.*
-import java.util.function.Function
 import javax.swing.*
 import javax.swing.event.PopupMenuEvent
 import javax.swing.event.PopupMenuListener
@@ -45,6 +51,7 @@ import javax.swing.tree.TreeSelectionModel
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.xpath.XPathConstants
 import javax.xml.xpath.XPathFactory
+import kotlin.collections.iterator
 
 class NewHostTree : SimpleTree(), Disposable {
 
@@ -88,7 +95,7 @@ class NewHostTree : SimpleTree(), Disposable {
         dropMode = DropMode.ON_OR_INSERT
         selectionModel.selectionMode = TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION
 
-        // renderer
+       /* // renderer
         setCellRenderer(object : DefaultXTreeCellRenderer() {
             override fun getTreeCellRendererComponent(
                 tree: JTree,
@@ -136,7 +143,7 @@ class NewHostTree : SimpleTree(), Disposable {
                 return c
             }
         })
-
+*/
 //        setCellRenderer(SimpleTreeCellRenderer())
     }
 
@@ -203,7 +210,7 @@ class NewHostTree : SimpleTree(), Disposable {
     }
 
     override fun canImport(support: TransferHandler.TransferSupport): Boolean {
-        val dropLocation = support.dropLocation as? JTree.DropLocation ?: return false
+        val dropLocation = support.dropLocation as? DropLocation ?: return false
         val node = dropLocation.path.lastPathComponent as? SimpleTreeNode<*> ?: return false
         return node != model.getRoot()
     }
@@ -475,7 +482,7 @@ class NewHostTree : SimpleTree(), Disposable {
         val nodes = getSelectionSimpleTreeNodes(true).filter { it.isFolder.not() }
         if (nodes.isEmpty()) return
         val source = if (openInNewWindow)
-            TermoraFrameManager.getInstance().createWindow().apply { isVisible = true }
+            TermoraFrameManager.Companion.getInstance().createWindow().apply { isVisible = true }
         else evt.source
         nodes.map { it.host }.forEach { openHostAction.actionPerformed(OpenHostActionEvent(source, it, evt)) }
     }

@@ -7,6 +7,9 @@ import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereResult
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
 import app.termora.terminal.DataKey
+import app.termora.tree.NewHostTree
+import app.termora.tree.NewHostTreeModel
+import app.termora.tree.TreeUtils
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.FlatSVGIcon

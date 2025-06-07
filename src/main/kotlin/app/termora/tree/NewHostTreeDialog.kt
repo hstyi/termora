@@ -1,5 +1,11 @@
-package app.termora
+package app.termora.tree
 
+import app.termora.DialogWrapper
+import app.termora.Disposable
+import app.termora.Disposer
+import app.termora.DynamicColor
+import app.termora.Host
+import app.termora.I18n
 import app.termora.db.DatabaseManager
 import org.apache.commons.lang3.StringUtils
 import java.awt.Dimension
@@ -56,7 +62,7 @@ class NewHostTreeDialog(
     override fun createCenterPanel(): JComponent {
         val scrollPane = JScrollPane(tree)
         scrollPane.border = BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(1, 0, 0, 0, DynamicColor.BorderColor),
+            BorderFactory.createMatteBorder(1, 0, 0, 0, DynamicColor.Companion.BorderColor),
             BorderFactory.createEmptyBorder(4, 6, 4, 6)
         )
 

@@ -3,7 +3,7 @@ package app.termora.snippet
 import app.termora.Disposable
 import app.termora.DocumentAdaptor
 import app.termora.DynamicColor
-import app.termora.TreeUtils
+import app.termora.tree.TreeUtils
 import app.termora.db.DatabaseManager
 import com.formdev.flatlaf.extras.components.FlatTextArea
 import com.formdev.flatlaf.ui.FlatRoundBorder

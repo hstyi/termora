@@ -1,4 +1,4 @@
-package app.termora
+package app.termora.tree
 
 import java.awt.Color
 import java.awt.Graphics2D

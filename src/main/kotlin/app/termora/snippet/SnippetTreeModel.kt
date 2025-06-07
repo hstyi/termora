@@ -1,7 +1,7 @@
 package app.termora.snippet
 
 import app.termora.I18n
-import app.termora.SimpleTreeModel
+import app.termora.tree.SimpleTreeModel
 import javax.swing.tree.MutableTreeNode
 import javax.swing.tree.TreeNode
 

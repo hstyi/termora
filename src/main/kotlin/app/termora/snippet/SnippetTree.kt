@@ -2,8 +2,8 @@ package app.termora.snippet
 
 import app.termora.I18n
 import app.termora.OptionPane
-import app.termora.SimpleTree
-import app.termora.SimpleTreeNode
+import app.termora.tree.SimpleTree
+import app.termora.tree.SimpleTreeNode
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import com.formdev.flatlaf.extras.components.FlatPopupMenu

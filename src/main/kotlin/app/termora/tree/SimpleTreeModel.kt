@@ -1,4 +1,4 @@
-package app.termora
+package app.termora.tree
 
 import javax.swing.tree.DefaultTreeModel
 
