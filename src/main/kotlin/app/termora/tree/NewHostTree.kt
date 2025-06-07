@@ -209,7 +209,12 @@ class NewHostTree : SimpleTree(), Disposable {
         showMoreInfo.isSelected = isShowMoreInfo
         showMoreInfo.addActionListener {
             isShowMoreInfo = !isShowMoreInfo
-            SwingUtilities.updateComponentTreeUI(tree)
+            // reload all tree
+            for (frame in TermoraFrameManager.getInstance().getWindows()) {
+                for (tree in SwingUtils.getDescendantsOfClass(NewHostTree::class.java, frame)) {
+                    SwingUtilities.updateComponentTreeUI(tree)
+                }
+            }
         }
         popupMenu.add(showMoreInfo)
         val property = popupMenu.add(I18n.getString("termora.welcome.contextmenu.property"))
@@ -345,7 +350,7 @@ class NewHostTree : SimpleTree(), Disposable {
         }
 
         tagsMenu.add("管理标签").addActionListener {
-            val dialog = TagDialog(owner,lastHost.ownerId)
+            val dialog = TagDialog(owner, lastHost.ownerId)
             dialog.setLocationRelativeTo(owner)
             dialog.isVisible = true
         }
