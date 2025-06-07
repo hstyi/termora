@@ -87,57 +87,6 @@ class NewHostTree : SimpleTree(), Disposable {
         isRootVisible = false
         dropMode = DropMode.ON_OR_INSERT
         selectionModel.selectionMode = TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION
-
-        /* // renderer
-         setCellRenderer(object : DefaultXTreeCellRenderer() {
-             override fun getTreeCellRendererComponent(
-                 tree: JTree,
-                 value: Any,
-                 sel: Boolean,
-                 expanded: Boolean,
-                 leaf: Boolean,
-                 row: Int,
-                 hasFocus: Boolean
-             ): Component {
-                 val node = value as SimpleTreeNode<*>
-                 var text = value.toString()
-                 // 是否显示更多信息
-                 if (isShowMoreInfo) {
-                     val color = if (sel) {
-                         if (tree.hasFocus() || isPopupMenu) {
-                             UIManager.getColor("textHighlightText")
-                         } else {
-                             this.foreground
-                         }
-                     } else {
-                         UIManager.getColor("textInactiveText")
-                     }
-
-                     val fontTag = Function<String, String> {
-                         """<font color=rgb(${color.red},${color.green},${color.blue})>${it}</font>"""
-                     }
-
-                     if (node.isFolder) {
-                         text = "<html>${node}${fontTag.apply(" (${node.getAllChildren().size})")}</html>"
-                     } else if (node is HostTreeNode) {
-                         val host = node.host
-                         // @formatter:off
-                         if (host.protocol == SSHProtocolProvider.PROTOCOL || host.protocol == RDPProtocolProvider.PROTOCOL) {
-                             text = "<html>${host.name}&nbsp;&nbsp;&nbsp;&nbsp;${fontTag.apply("${host.username}@${host.host}")}</html>"
-                         } else if (host.protocol == "Serial") {
-                             text = "<html>${host.name}&nbsp;&nbsp;&nbsp;&nbsp;${fontTag.apply(host.options.serialComm.port)}</html>"
-                         }
-                         // @formatter:on
-                     }
-                 }
-
-                 val c = super.getTreeCellRendererComponent(tree, text, sel, expanded, leaf, row, hasFocus)
-                 icon = node.getIcon(sel, expanded, tree.hasFocus() || isPopupMenu)
-                 return c
-             }
-         })
- */
-//        setCellRenderer(SimpleTreeCellRenderer())
     }
 
     private fun initEvents() {

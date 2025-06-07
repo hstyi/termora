@@ -66,11 +66,13 @@ abstract class SyncService {
         }
 
         // 触发更改
-        DatabaseChangedExtension.fireDataChanged(
-            id, DataType.Host.name,
-            DatabaseChangedExtension.Action.Changed,
-            DatabaseChangedExtension.Source.Sync
-        )
+        if (this is PullService) {
+            DatabaseChangedExtension.fireDataChanged(
+                id, DataType.Host.name,
+                DatabaseChangedExtension.Action.Changed,
+                DatabaseChangedExtension.Source.Sync
+            )
+        }
     }
 
 

@@ -20,6 +20,9 @@ class HostManager private constructor() : Disposable {
      */
     fun addHost(host: Host) {
         assertEventDispatchThread()
+        if (host.ownerType.isBlank()) {
+            throw IllegalArgumentException("Owner type cannot be null")
+        }
         databaseManager.saveAndIncrementVersion(
             Data(
                 id = host.id,
