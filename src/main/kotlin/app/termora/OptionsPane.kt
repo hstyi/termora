@@ -20,6 +20,7 @@ open class OptionsPane : JPanel(BorderLayout()) {
     }
     private val cardLayout = CardLayout()
     private val contentPanel = JPanel(cardLayout)
+    private val loadedComponents = mutableMapOf<String, JComponent>()
 
     init {
         initView()
@@ -115,13 +116,14 @@ open class OptionsPane : JPanel(BorderLayout()) {
             tabListModel.addElement(e)
         }
 
-        if (tabList.selectedIndex < 0) {
-            tabList.selectedIndex = 0
-        }
     }
 
     fun removeOption(option: Option) {
-        contentPanel.remove(option.getJComponent())
+        val title = option.getTitle()
+        loadedComponents[title]?.let {
+            contentPanel.remove(it)
+            loadedComponents.remove(title)
+        }
         tabListModel.removeElement(option)
     }
 
@@ -132,7 +134,17 @@ open class OptionsPane : JPanel(BorderLayout()) {
     private fun initEvents() {
         tabList.addListSelectionListener {
             if (tabList.selectedIndex >= 0) {
-                cardLayout.show(contentPanel, tabListModel.get(tabList.selectedIndex).getTitle())
+                val option = tabListModel.get(tabList.selectedIndex)
+                val title = option.getTitle()
+
+                if (!loadedComponents.containsKey(title)) {
+                    val component = option.getJComponent()
+                    loadedComponents[title] = component
+                    contentPanel.add(component, title)
+                    SwingUtilities.updateComponentTreeUI(component)
+                }
+
+                cardLayout.show(contentPanel, title)
             }
         }
 
