@@ -52,7 +52,7 @@ class TagManager private constructor() {
     }
 
     fun getTags(ownerId: String = StringUtils.EMPTY): List<Tag> {
-        return databaseManager.data<Tag>(DataType.Tag, ownerId)
+        return databaseManager.data<Tag>(DataType.Tag, ownerId).sortedBy { it.createDate }
     }
 
 

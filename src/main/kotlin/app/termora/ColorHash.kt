@@ -1,6 +1,5 @@
 package app.termora
 
-import com.formdev.flatlaf.FlatLaf
 import org.apache.commons.codec.digest.MurmurHash3
 import java.awt.Color
 
@@ -13,10 +12,6 @@ object ColorHash {
         val b = hash and 0xFF
 
         val color = Color(r, g, b)
-
-        if (FlatLaf.isLafDark()) {
-            return color.brighter()
-        }
 
         return color.darker()
     }
