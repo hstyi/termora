@@ -116,8 +116,8 @@ class ApplicationRunner {
                     // 设置 Dock
                     setupMacOSDock()
                 } catch (e: Exception) {
-                    if (log.isErrorEnabled) {
-                        log.error(e.message, e)
+                    if (log.isWarnEnabled) {
+                        log.warn(e.message, e)
                     }
                 }
 
