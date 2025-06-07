@@ -3,6 +3,7 @@ package app.termora.tag
 import app.termora.DialogWrapper
 import app.termora.Disposer
 import app.termora.DynamicColor
+import app.termora.I18n
 import app.termora.Icons
 import app.termora.account.AccountManager
 import app.termora.account.AccountOwner
@@ -23,7 +24,7 @@ class TagDialog(owner: Window, private val accountOwnerId: String = StringUtils.
     init {
         size = Dimension(UIManager.getInt("Dialog.width"), UIManager.getInt("Dialog.height"))
         isModal = true
-        title = "标签"
+        title = I18n.getString("termora.tag")
 
         init()
         setLocationRelativeTo(null)
@@ -43,7 +44,7 @@ class TagDialog(owner: Window, private val accountOwnerId: String = StringUtils.
 
 
         tabbed.addTab(
-            "我的标签",
+            I18n.getString("termora.tag.my-tags"),
             Icons.user,
             TagPanel(
                 AccountOwner(

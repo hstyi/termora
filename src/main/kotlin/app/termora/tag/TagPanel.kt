@@ -58,7 +58,10 @@ class TagPanel(accountOwner: AccountOwner) : JPanel(BorderLayout()), Disposable 
     private fun initEvents() {
 
         addBtn.addActionListener {
-            val text = OptionPane.showInputDialog(owner, placeholder = "请输入标签名称")
+            val text = OptionPane.showInputDialog(
+                owner,
+                title = I18n.getString("termora.tag"),
+            )
             if (text.isNullOrBlank().not()) {
                 model.addElement(Tag(id = randomUUID(), text = text))
             }
@@ -68,7 +71,10 @@ class TagPanel(accountOwner: AccountOwner) : JPanel(BorderLayout()), Disposable 
             val index = list.selectedIndex
             if (index >= 0) {
                 val tag = model.getElementAt(index)
-                val text = OptionPane.showInputDialog(owner, value = tag.text, placeholder = "请输入标签名称")
+                val text = OptionPane.showInputDialog(
+                    owner, value = tag.text,
+                    title = I18n.getString("termora.tag"),
+                )
                 if (text.isNullOrBlank().not()) {
                     model.setElementAt(tag.copy(text = text, updateDate = System.currentTimeMillis()), index)
                 }
@@ -125,11 +131,4 @@ class TagPanel(accountOwner: AccountOwner) : JPanel(BorderLayout()), Disposable 
         return panel
     }
 
-
-    /*  private inner class NewTagDialog(owner: Window) : DialogWrapper(owner){
-          override fun createCenterPanel(): JComponent {
-
-          }
-
-      }*/
 }

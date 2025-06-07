@@ -204,7 +204,7 @@ class NewHostTree : SimpleTree(), Disposable {
         popupMenu.add(importMenu)
         popupMenu.add(newMenu)
         popupMenu.addSeparator()
-        val tagsMenu = popupMenu.add(JMenu("标签")) as JMenu
+        val tagsMenu = popupMenu.add(JMenu(I18n.getString("termora.tag"))) as JMenu
         val showMoreInfo = JCheckBoxMenuItem(I18n.getString("termora.welcome.contextmenu.show-more-info"))
         showMoreInfo.isSelected = isShowMoreInfo
         showMoreInfo.addActionListener {
@@ -332,12 +332,15 @@ class NewHostTree : SimpleTree(), Disposable {
 
         for (tag in tags) {
             val menu = tagsMenu.add(JMenuItem(tag.text))
+            val isSelected = lastHost.options.tags.contains(tag.id)
             menu.isEnabled = remove.isEnabled
-            menu.isSelected = lastHost.options.tags.contains(tag.id)
-            menu.icon = CheckBoxMenuItemColorIcon(ColorIcon(color = ColorHash.hash(tag.id)), menu.isSelected)
+            menu.isSelected = isSelected
+            if (menu.isEnabled) {
+                menu.icon = CheckBoxMenuItemColorIcon(ColorIcon(color = ColorHash.hash(tag.id)), isSelected)
+            }
             menu.addActionListener {
                 val tags = lastHost.options.tags.toMutableList()
-                if (tags.contains(tag.id)) {
+                if (isSelected) {
                     tags.removeAll { it == tag.id }
                 } else {
                     tags.add(tag.id)
@@ -351,7 +354,7 @@ class NewHostTree : SimpleTree(), Disposable {
             tagsMenu.addSeparator()
         }
 
-        tagsMenu.add("管理标签").addActionListener {
+        tagsMenu.add(I18n.getString("termora.tag.manage-tags")).addActionListener {
             val dialog = TagDialog(owner, lastHost.ownerId)
             dialog.setLocationRelativeTo(owner)
             dialog.isVisible = true
