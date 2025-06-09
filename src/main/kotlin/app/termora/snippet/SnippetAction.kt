@@ -18,6 +18,16 @@ class SnippetAction private constructor() : AnAction(I18n.getString("termora.sni
         }
 
         const val SNIPPET = "SnippetAction"
+
+        // \r \n \t \a \e \b
+        private val SpecialChars = mutableMapOf(
+            'r' to '\r',
+            'n' to '\n',
+            't' to '\t',
+            'a' to ControlCharacters.BEL,
+            'e' to ControlCharacters.ESC,
+            'b' to ControlCharacters.BS
+        )
     }
 
     override fun actionPerformed(evt: AnActionEvent) {
@@ -27,31 +37,39 @@ class SnippetAction private constructor() : AnAction(I18n.getString("termora.sni
 
     fun runSnippet(snippet: Snippet, writer: TerminalWriter) {
         if (snippet.type != SnippetType.Snippet) return
-        val map = mapOf(
-            "\n" to ControlCharacters.LF,
-            "\r" to ControlCharacters.CR,
-            "\t" to ControlCharacters.TAB,
-            "\b" to ControlCharacters.BS,
-            "\\a" to ControlCharacters.BEL,
-            "\\e" to ControlCharacters.ESC,
-        )
-        val chars = snippet.snippet.toCharArray()
+        writer.write(TerminalWriter.WriteRequest.fromBytes(unescape(snippet.snippet).toByteArray(writer.getCharset())))
+    }
+
+    private fun unescape(text: String): String {
+        val chars = text.toCharArray()
+        val sb = StringBuilder()
         for (i in chars.indices) {
             val c = chars[i]
-            if (i == 0) continue
-            if (c != '\n') continue
-            if (chars[i - 1] != '\\') continue
-            // 每一行的最后一个 \ 比较特殊，先转成 null 然后再去 unescapeJava
-            chars[i - 1] = Char.Null
+
+            // 不是特殊字符不处理
+            if (SpecialChars.containsKey(c).not()) {
+                sb.append(c)
+                continue
+            }
+
+            // 特殊字符前面不是 `\` 不处理
+            if (chars.getOrNull(i - 1) != '\\') {
+                sb.append(c)
+                continue
+            }
+
+            // 如果构成的字符串是：\\r 就会生成 \r 字符串，并非转译成：CR
+            if (chars.getOrNull(i - 2) == '\\') {
+                sb.deleteCharAt(sb.length - 1)
+                sb.append(c)
+                continue
+            }
+
+            // 命中条件之后，那么 sb 最后一个字符肯定是 \
+            sb.deleteCharAt(sb.length - 1)
+            sb.append(SpecialChars.getValue(c))
         }
 
-        var text = chars.joinToString(StringUtils.EMPTY)
-        text = StringEscapeUtils.unescapeJava(text)
-        for (e in map.entries) {
-            text = text.replace(e.key, e.value.toString())
-        }
-        text = text.replace(Char.Null, '\\')
-
-        writer.write(TerminalWriter.WriteRequest.fromBytes(text.toByteArray(writer.getCharset())))
+        return sb.toString()
     }
 }
