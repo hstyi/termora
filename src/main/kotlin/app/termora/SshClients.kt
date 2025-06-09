@@ -265,9 +265,14 @@ object SshClients {
         } catch (e: Exception) {
             if (e !is SshException || e.disconnectCode != SshConstants.SSH2_DISCONNECT_NO_MORE_AUTH_METHODS_AVAILABLE) throw e
             val owner = client.properties["owner"] as Window? ?: throw e
-            val authentication = ask(host, entry, owner) ?: throw e
-            if (authentication.type == AuthenticationType.No) throw e
-            return doOpenSession(host.copy(authentication = authentication), client)
+            val askUserInfo = ask(host, entry, owner) ?: throw e
+            if (askUserInfo.authentication.type == AuthenticationType.No) throw e
+            return doOpenSession(
+                host.copy(
+                    authentication = askUserInfo.authentication,
+                    username = askUserInfo.username
+                ), client
+            )
         }
 
         session.setAttribute(HOST_KEY, host)
@@ -414,12 +419,18 @@ object SshClients {
         return sshClient
     }
 
-    private fun ask(host: Host, entry: HostConfigEntry, owner: Window): Authentication? {
-        val ref = AtomicReference<Authentication>(null)
+
+    private data class AskUserInfo(val username: String, val authentication: Authentication)
+
+    private fun ask(host: Host, entry: HostConfigEntry, owner: Window): AskUserInfo? {
+        val ref = AtomicReference<AskUserInfo>(null)
+
         SwingUtilities.invokeAndWait {
             val dialog = RequestAuthenticationDialog(owner, host)
             dialog.setLocationRelativeTo(owner)
-            val authentication = dialog.getAuthentication().apply { ref.set(this) }
+            val authentication = dialog.getAuthentication()
+            ref.set(AskUserInfo(dialog.getUsername(), authentication))
+
             // save
             if (dialog.isRemembered()) {
                 // fix https://github.com/TermoraDev/termora/issues/609
