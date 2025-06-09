@@ -1,8 +1,5 @@
-<p align="center">
-    <img src="https://avatars.githubusercontent.com/u/191319894" width=138/>
-</p>
-
 <h1 align="center">Termora</h1>  
+
 <p align="center"> <strong>Termora</strong> 是一个终端模拟器和 SSH 客户端，支持 Windows，macOS 和 Linux。</p>
 
 <div align="center">

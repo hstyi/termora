@@ -2,11 +2,8 @@
     <a href="./README.zh_CN.md">🇨🇳 简体中文</a>
 </p>
 
-<p align="center">
-    <img src="https://avatars.githubusercontent.com/u/191319894" width=138/>
-</p>
-
 <h1 align="center">Termora</h1>  
+
 <p align="center"> <strong>Termora</strong> is a terminal emulator and SSH client for Windows, macOS and Linux.</p>
 
 <div align="center">
