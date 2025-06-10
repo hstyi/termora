@@ -38,7 +38,7 @@ class TermoraFrame : JFrame(), DataProvider {
     private val id = UUID.randomUUID().toString()
     private val windowScope = ApplicationScope.forWindowScope(this)
     private val tabbedPane = MyTabbedPane()
-    private val toolbar = TermoraToolBar(windowScope, this, tabbedPane)
+    private val toolbar = TermoraToolBar(windowScope, this)
     private val terminalTabbed = TerminalTabbed(windowScope, toolbar, tabbedPane)
     private val dataProviderSupport = DataProviderSupport()
     private val welcomePanel = WelcomePanel(windowScope)

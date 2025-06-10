@@ -423,13 +423,10 @@ class TerminalTabbed(
             val popupMenu = FlatPopupMenu()
             popupMenu.add(I18n.getString("termora.toolbar.customize-toolbar")).addActionListener {
                 val owner = SwingUtilities.getWindowAncestor(this@TerminalTabbed)
-                val dialog = CustomizeToolBarDialog(
-                    owner,
-                    termoraToolBar
-                )
+                val dialog = CustomizeToolBarDialog(owner, windowScope, termoraToolBar)
                 dialog.setLocationRelativeTo(owner)
                 if (dialog.open()) {
-                    termoraToolBar.rebuild()
+                    TermoraToolBar.rebuild()
                 }
             }
             popupMenu.show(event.component, event.x, event.y)

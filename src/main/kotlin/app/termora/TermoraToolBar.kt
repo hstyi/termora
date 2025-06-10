@@ -5,7 +5,6 @@ import app.termora.actions.*
 import app.termora.findeverywhere.FindEverywhereAction
 import app.termora.snippet.SnippetAction
 import com.formdev.flatlaf.FlatClientProperties
-import com.formdev.flatlaf.extras.components.FlatTabbedPane
 import com.formdev.flatlaf.util.SystemInfo
 import kotlinx.serialization.Serializable
 import org.apache.commons.lang3.StringUtils
@@ -26,10 +25,21 @@ data class ToolBarAction(
 class TermoraToolBar(
     private val windowScope: WindowScope,
     private val frame: TermoraFrame,
-    private val tabbedPane: FlatTabbedPane
 ) {
+
+    companion object {
+        fun rebuild() {
+            for (frame in TermoraFrameManager.getInstance().getWindows()) {
+                val toolbars = SwingUtils.getDescendantsOfClass(MyToolBar::class.java, frame)
+                for (toolbar in toolbars) {
+                    toolbar.rebuild()
+                }
+            }
+        }
+    }
+
     private val properties by lazy { Database.getDatabase().properties }
-    private val toolbar by lazy { MyToolBar().apply { rebuild(this) } }
+    private val toolbar by lazy { MyToolBar().apply { rebuild() } }
 
 
     fun getJToolBar(): JToolBar {
@@ -87,63 +97,6 @@ class TermoraToolBar(
         return storageActions
     }
 
-    fun rebuild() {
-        rebuild(this.toolbar)
-    }
-
-    private fun rebuild(toolbar: JToolBar) {
-        val actionManager = ActionManager.getInstance()
-        val actionContainerFactory = ActionContainerFactory(actionManager)
-
-        toolbar.removeAll()
-
-        toolbar.add(actionContainerFactory.createButton(object : AnAction(StringUtils.EMPTY, Icons.add) {
-            override fun actionPerformed(evt: AnActionEvent) {
-                actionManager.getAction(FindEverywhereAction.FIND_EVERYWHERE)?.actionPerformed(evt)
-            }
-
-            override fun isEnabled(): Boolean {
-                return actionManager.getAction(FindEverywhereAction.FIND_EVERYWHERE)?.isEnabled ?: false
-            }
-        }))
-
-        toolbar.add(Box.createHorizontalGlue())
-
-        if (SystemInfo.isLinux || SystemInfo.isWindows) {
-            toolbar.add(Box.createHorizontalStrut(16))
-        }
-
-
-        // update btn
-        val updateBtn = actionContainerFactory.createButton(actionManager.getAction(Actions.APP_UPDATE))
-        updateBtn.isVisible = updateBtn.isEnabled
-        updateBtn.addChangeListener { updateBtn.isVisible = updateBtn.isEnabled }
-        toolbar.add(updateBtn)
-
-
-        // 获取显示的Action，如果不是 false 那么就是显示出来
-        for (action in getActions()) {
-            if (action.visible) {
-                val ac = actionManager.getAction(action.id)
-                if (ac == null) {
-                    if (action.id == MultipleAction.MULTIPLE) {
-                        toolbar.add(actionContainerFactory.createButton(MultipleAction.getInstance(windowScope)))
-                    }
-                } else {
-                    toolbar.add(actionContainerFactory.createButton(ac))
-                }
-            }
-        }
-
-
-        if (toolbar is MyToolBar) {
-            toolbar.adjust()
-        }
-
-        toolbar.revalidate()
-        toolbar.repaint()
-    }
-
     private inner class MyToolBar : JToolBar() {
         init {
             // 监听窗口大小变动，然后修改边距避开控制按钮
@@ -178,6 +131,61 @@ class TermoraToolBar(
                     toolbar.add(spacing)
                 }
             }
+        }
+
+
+        fun rebuild() {
+            val toolbar: JToolBar = this
+            val actionManager = ActionManager.getInstance()
+            val actionContainerFactory = ActionContainerFactory(actionManager)
+
+            toolbar.removeAll()
+
+            toolbar.add(actionContainerFactory.createButton(object : AnAction(StringUtils.EMPTY, Icons.add) {
+                override fun actionPerformed(evt: AnActionEvent) {
+                    actionManager.getAction(FindEverywhereAction.FIND_EVERYWHERE)?.actionPerformed(evt)
+                }
+
+                override fun isEnabled(): Boolean {
+                    return actionManager.getAction(FindEverywhereAction.FIND_EVERYWHERE)?.isEnabled ?: false
+                }
+            }))
+
+            toolbar.add(Box.createHorizontalGlue())
+
+            if (SystemInfo.isLinux || SystemInfo.isWindows) {
+                toolbar.add(Box.createHorizontalStrut(16))
+            }
+
+
+            // update btn
+            val updateBtn = actionContainerFactory.createButton(actionManager.getAction(Actions.APP_UPDATE))
+            updateBtn.isVisible = updateBtn.isEnabled
+            updateBtn.addChangeListener { updateBtn.isVisible = updateBtn.isEnabled }
+            toolbar.add(updateBtn)
+
+
+            // 获取显示的Action，如果不是 false 那么就是显示出来
+            for (action in getActions()) {
+                if (action.visible) {
+                    val ac = actionManager.getAction(action.id)
+                    if (ac == null) {
+                        if (action.id == MultipleAction.MULTIPLE) {
+                            toolbar.add(actionContainerFactory.createButton(MultipleAction.getInstance(windowScope)))
+                        }
+                    } else {
+                        toolbar.add(actionContainerFactory.createButton(ac))
+                    }
+                }
+            }
+
+
+            if (toolbar is MyToolBar) {
+                toolbar.adjust()
+            }
+
+            toolbar.revalidate()
+            toolbar.repaint()
         }
     }
 }

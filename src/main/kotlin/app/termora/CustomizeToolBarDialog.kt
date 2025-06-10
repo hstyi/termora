@@ -1,10 +1,9 @@
 package app.termora
 
 import app.termora.Application.ohMyJson
-
+import app.termora.actions.MultipleAction
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
-import kotlinx.serialization.encodeToString
 import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.action.ActionManager
 import java.awt.Component
@@ -20,6 +19,7 @@ import kotlin.math.min
 
 class CustomizeToolBarDialog(
     owner: Window,
+    private val windowScope: WindowScope,
     private val toolbar: TermoraToolBar
 ) : DialogWrapper(owner) {
 
@@ -147,9 +147,7 @@ class CustomizeToolBarDialog(
             leftList.model.removeAllElements()
             rightList.model.removeAllElements()
             for (action in toolbar.getAllActions()) {
-                actionManager.getAction(action.id)?.let {
-                    rightList.model.addElement(ActionHolder(action.id, it))
-                }
+                getActionHolder(action.id)?.let { rightList.model.addElement(it) }
             }
         }
 
@@ -259,19 +257,27 @@ class CustomizeToolBarDialog(
             override fun windowOpened(e: WindowEvent) {
                 removeWindowListener(this)
 
-
                 for (action in toolbar.getActions()) {
                     if (action.visible) {
-                        actionManager.getAction(action.id)
-                            ?.let { rightList.model.addElement(ActionHolder(action.id, it)) }
+                        getActionHolder(action.id)?.let { rightList.model.addElement(it) }
                     } else {
-                        actionManager.getAction(action.id)
-                            ?.let { leftList.model.addElement(ActionHolder(action.id, it)) }
+                        getActionHolder(action.id)?.let { leftList.model.addElement(it) }
                     }
                 }
 
             }
         })
+    }
+
+    private fun getActionHolder(actionId: String): ActionHolder? {
+        var action = actionManager.getAction(actionId)
+        if (action == null) {
+            if (actionId == MultipleAction.MULTIPLE) {
+                action = MultipleAction.getInstance(windowScope)
+            }
+        }
+        if (action == null) return null
+        return ActionHolder(actionId, action)
     }
 
     private fun resetMoveButtons() {
