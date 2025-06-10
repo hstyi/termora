@@ -14,7 +14,10 @@ jobs:
         run: |
           curl -L -o wix314.exe https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314.exe
           .\wix314.exe /quiet /norestart
-          echo "PATH=C:\Program Files (x86)\WiX Toolset v3.14\bin;$env:PATH" >> $env:GITHUB_ENV
+          echo "C:\Program Files (x86)\WiX Toolset v3.14\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Verify WiX
+        run: candle.exe -?
 
       - name: Install zip
         run: |
