@@ -10,6 +10,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Download WiX 3.14
+        run: |
+          curl -L -o wix314.exe https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314.exe
+          .\wix314.exe /quiet /norestart
+          echo "C:\Program Files (x86)\WiX Toolset v3.14\bin" | Out-File -Append $env:GITHUB_PATH
+
       - name: Install zip
         run: |
           $system32 = [System.Environment]::GetEnvironmentVariable("WINDIR") + "\System32"
