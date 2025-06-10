@@ -10,11 +10,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download WiX 3.14
-        run: |
-          curl -L -o wix314.exe https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314.exe
-          .\wix314.exe /quiet /silent /norestart
-          echo "PATH=C:\Program Files (x86)\WiX Toolset v3.14\bin;$env:PATH" >> $env:GITHUB_ENV
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.1
+
+      - name: Install WiX
+        run: dotnet tool install --global wix
 
       - name: Verify WiX
         run: candle.exe -?
