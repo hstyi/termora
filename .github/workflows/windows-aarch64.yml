@@ -14,7 +14,7 @@ jobs:
         run: |
           curl -L -o wix314.exe https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314.exe
           .\wix314.exe /quiet /norestart
-          echo "C:\Program Files (x86)\WiX Toolset v3.14\bin" | Out-File -Append $env:GITHUB_PATH
+          echo "C:\Program Files (x86)\WiX Toolset v3.14\bin" >> $env:GITHUB_ENV
 
       - name: Install zip
         run: |
