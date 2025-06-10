@@ -13,7 +13,7 @@ jobs:
       - name: Download WiX 3.14
         run: |
           curl -L -o wix314.exe https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314.exe
-          .\wix314.exe /quiet /norestart
+          .\wix314.exe /quiet /silent /norestart
           echo "C:\Program Files (x86)\WiX Toolset v3.14\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Verify WiX
