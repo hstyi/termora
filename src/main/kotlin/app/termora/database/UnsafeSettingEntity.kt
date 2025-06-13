@@ -4,17 +4,11 @@ import app.termora.randomUUID
 import org.apache.commons.lang3.StringUtils
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.crypt.Algorithms
 
-internal object SettingEntity : Table() {
+internal object UnsafeSettingEntity : Table() {
     val id: Column<String> = char("id", length = 32).clientDefault { randomUUID() }
     val name: Column<String> = varchar("name", length = 128).index()
-    val value: Column<String> = encryptedText(
-        "value", Algorithms.AES_256_PBE_GCM(
-            DatabaseSecret.getInstance().password,
-            DatabaseSecret.getInstance().salt
-        )
-    )
+    val value: Column<String> = text("value")
 
     /**
      * 备用字段1-3
@@ -25,5 +19,5 @@ internal object SettingEntity : Table() {
 
     override val primaryKey: PrimaryKey get() = PrimaryKey(id)
     override val tableName: String
-        get() = "tb_setting"
+        get() = "tb_unsafe_setting"
 }

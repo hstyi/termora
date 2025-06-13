@@ -16,12 +16,13 @@ import org.jdesktop.swingx.JXHyperlink
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.Window
-import java.awt.event.ItemEvent
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import java.net.URI
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.*
+import javax.swing.event.ListDataEvent
+import javax.swing.event.ListDataListener
 import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -33,6 +34,10 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
     private val cancelAction = super.createCancelAction()
     private val cancelButton = super.createJButtonForAction(cancelAction)
     private val isLoggingIn = AtomicBoolean(false)
+    private val singaporeServer =
+        Server(I18n.getString("termora.settings.account.server-singapore"), "https://account.termora.app")
+    private val chinaServer =
+        Server(I18n.getString("termora.settings.account.server-china"), "https://account.termora.cn")
 
     init {
         isModal = true
@@ -63,16 +68,12 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
         val step = 2
 
 
-        val singaporeServer =
-            Server(I18n.getString("termora.settings.account.server-singapore"), "https://account.termora.app")
-        val chinaServer = Server(I18n.getString("termora.settings.account.server-china"), "https://account.termora.cn")
-
         if (Application.isUnknownVersion()) {
             serverComboBox.addItem(Server("Localhost", "http://127.0.0.1:8080"))
         }
 
-        serverComboBox.addItem(singaporeServer)
-        serverComboBox.addItem(chinaServer)
+//        serverComboBox.addItem(singaporeServer)
+//        serverComboBox.addItem(chinaServer)
 
         val properties = DatabaseManager.getInstance().properties
         val servers = (runCatching {
@@ -117,7 +118,7 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
         val dialog = this
         val newAction = object : AnAction(I18n.getString("termora.welcome.contextmenu.new")) {
             override fun actionPerformed(evt: AnActionEvent) {
-                if (serverComboBox.selectedItem == singaporeServer || serverComboBox.selectedItem == chinaServer) {
+                if (serverComboBox.itemCount < 1 || serverComboBox.selectedItem == singaporeServer || serverComboBox.selectedItem == chinaServer) {
                     val c = NewServerDialog(dialog)
                     c.isVisible = true
                     val server = c.server ?: return
@@ -142,17 +143,34 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
                 }
             }
         }
-        val newServer = JXHyperlink(newAction)
-        newServer.isFocusable = false
-        serverComboBox.addItemListener {
-            if (it.stateChange == ItemEvent.SELECTED) {
-                if (serverComboBox.selectedItem == singaporeServer || serverComboBox.selectedItem == chinaServer) {
-                    newAction.name = I18n.getString("termora.welcome.contextmenu.new")
-                } else {
-                    newAction.name = I18n.getString("termora.remove")
-                }
+
+
+        fun refreshButton() {
+            if (serverComboBox.selectedItem == singaporeServer || serverComboBox.selectedItem == chinaServer || serverComboBox.itemCount < 1) {
+                newAction.name = I18n.getString("termora.welcome.contextmenu.new")
+            } else {
+                newAction.name = I18n.getString("termora.remove")
             }
         }
+
+        val newServer = JXHyperlink(newAction)
+        newServer.isFocusable = false
+        serverComboBox.addItemListener { refreshButton() }
+
+        serverComboBox.model.addListDataListener(object : ListDataListener {
+            override fun intervalAdded(e: ListDataEvent?) {
+                refreshButton()
+            }
+
+            override fun intervalRemoved(e: ListDataEvent?) {
+                refreshButton()
+            }
+
+            override fun contentsChanged(e: ListDataEvent?) {
+                refreshButton()
+            }
+
+        })
 
 
         return FormBuilder.create().layout(layout).debug(false).padding("0dlu, $FORM_MARGIN, 0dlu, $FORM_MARGIN")
@@ -165,6 +183,7 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
             .add(passwordField).xy(3, rows).apply { rows += step }
             .build()
     }
+
 
     override fun createOkAction(): AbstractAction {
         return okAction
@@ -250,7 +269,12 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
     override fun doOKAction() {
         if (isLoggingIn.get()) return
 
-        val server = serverComboBox.selectedItem as? Server ?: return
+        val server = serverComboBox.selectedItem as? Server
+        if (server == null) {
+            serverComboBox.outline = FlatClientProperties.OUTLINE_ERROR
+            serverComboBox.requestFocusInWindow()
+            return
+        }
 
         if (usernameTextField.text.isBlank()) {
             usernameTextField.outline = FlatClientProperties.OUTLINE_ERROR
