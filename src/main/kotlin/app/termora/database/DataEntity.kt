@@ -1,13 +1,12 @@
 package app.termora.database
 
-import app.termora.LocalSecret
 import app.termora.randomUUID
 import org.apache.commons.lang3.StringUtils
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.crypt.Algorithms
 
-object DataEntity : Table() {
+internal object DataEntity : Table() {
     val id: Column<String> = char("id", length = 32).clientDefault { randomUUID() }
 
     /**
@@ -45,8 +44,8 @@ object DataEntity : Table() {
      */
     val data: Column<String> = encryptedText(
         "data", Algorithms.AES_256_PBE_GCM(
-            LocalSecret.getInstance().password,
-            LocalSecret.getInstance().salt
+            DatabaseSecret.getInstance().password,
+            DatabaseSecret.getInstance().salt
         )
     )
 

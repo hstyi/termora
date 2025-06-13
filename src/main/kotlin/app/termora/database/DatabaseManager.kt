@@ -27,6 +27,10 @@ import kotlin.reflect.KProperty
 
 class DatabaseManager private constructor() : Disposable {
     companion object {
+
+        private const val DB_PASSWORD = "DB_PASSWORD"
+        private const val DB_SALT = "DB_SALT"
+
         val log = LoggerFactory.getLogger(DatabaseManager::class.java)!!
         fun getInstance(): DatabaseManager {
             return ApplicationScope.forApplicationScope()
@@ -41,6 +45,15 @@ class DatabaseManager private constructor() : Disposable {
     val terminal by lazy { Terminal(this) }
     val appearance by lazy { Appearance(this) }
     val sftp by lazy { SFTP(this) }
+
+
+    @Volatile
+    internal var dbPassword = StringUtils.EMPTY
+        private set
+
+    @Volatile
+    internal var dbSalt = StringUtils.EMPTY
+        private set
 
     private val map = Collections.synchronizedMap<String, String?>(mutableMapOf())
     private val accountManager get() = AccountManager.getInstance()
@@ -58,6 +71,14 @@ class DatabaseManager private constructor() : Disposable {
             "jdbc:sqlite:${databaseFile.absolutePath}",
             driver = "org.sqlite.JDBC", user = "sa"
         )
+
+        // 没有加密的表优先创建
+        if (isExists.not()) {
+            transaction(database) { SchemaUtils.create(UnsafeSettingEntity) }
+        }
+
+        // 获取密钥信息
+        transaction(database) { DatabaseSecret.getInstance(database) }
 
         // 设置数据库版本号，便于后续升级
         if (isExists.not()) {
