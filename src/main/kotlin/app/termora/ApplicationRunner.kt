@@ -345,7 +345,27 @@ class ApplicationRunner {
                     .event(getAnalyticsUserID(), "launch", properties)
                 val delivery = ClientDelivery()
                 delivery.addMessage(message)
-                MixpanelAPI().deliver(delivery, true)
+                val endpoints = listOf(
+                    "https://api-eu.mixpanel.com",
+                    "https://api-in.mixpanel.com",
+                    "https://api.mixpanel.com",
+                    "http://api.mixpanel.com",
+                )
+                for (endpoint in endpoints) {
+                    try {
+                        MixpanelAPI(
+                            "$endpoint/track",
+                            "$endpoint/engage",
+                            "$endpoint/groups"
+                        ).deliver(delivery, true)
+                        break
+                    } catch (e: Exception) {
+                        if (log.isErrorEnabled) {
+                            log.error(e.message, e)
+                        }
+                        continue
+                    }
+                }
             } catch (e: Exception) {
                 if (log.isErrorEnabled) {
                     log.error(e.message, e)
