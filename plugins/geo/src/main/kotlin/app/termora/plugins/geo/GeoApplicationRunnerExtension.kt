@@ -76,7 +76,7 @@ class GeoApplicationRunnerExtension private constructor() : ApplicationRunnerExt
 
 
     private fun downloadGeoLite2(dbFile: File) {
-        val url = "https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-Country.mmdb"
+        val url = "https://git.io/GeoLite2-Country.mmdb"
         val response = httpClient.newCall(
             Request.Builder().get().url(url)
                 .build()
