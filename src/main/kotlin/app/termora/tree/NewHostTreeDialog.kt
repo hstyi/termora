@@ -7,16 +7,19 @@ import java.awt.Dimension
 import java.awt.Window
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
-import java.util.function.Function
 import javax.swing.*
 
 class NewHostTreeDialog(
     owner: Window,
+    filter: Filter = object : Filter {
+        override fun filter(node: Any): Boolean {
+            return true
+        }
+    }
 ) : DialogWrapper(owner) {
     var hosts = emptyList<Host>()
     var allowMulti = true
 
-    private var filter: Function<HostTreeNode, Boolean> = Function<HostTreeNode, Boolean> { true }
     private val tree = NewHostTree()
 
     init {
@@ -29,6 +32,12 @@ class NewHostTreeDialog(
         tree.contextmenu = false
         tree.doubleClickConnection = false
         tree.dragEnabled = false
+        tree.showsRootHandles = true
+
+        val model = FilterableTreeModel(tree)
+        model.addFilter(filter)
+        tree.model = model
+
 
         tree.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent) {
@@ -41,17 +50,11 @@ class NewHostTreeDialog(
         })
 
         Disposer.register(disposable, tree)
+        Disposer.register(tree, model)
 
         init()
         setLocationRelativeTo(owner)
 
-    }
-
-    fun setFilter(filter: Function<SimpleTreeNode<*>, Boolean>) {
-        tree.model = FilterableHostTreeModel(tree) { false }.apply {
-            addFilter(filter)
-            refresh()
-        }
     }
 
     override fun createCenterPanel(): JComponent {
@@ -72,7 +75,6 @@ class NewHostTreeDialog(
 
     override fun doOKAction() {
         hosts = tree.getSelectionSimpleTreeNodes(true)
-            .filter { filter.apply(it) }
             .map { it.host }
 
         if (hosts.isEmpty()) return

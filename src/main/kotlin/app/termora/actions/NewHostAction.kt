@@ -1,7 +1,6 @@
 package app.termora.actions
 
 import app.termora.NewHostDialogV2
-import app.termora.tree.FilterableHostTreeModel
 import app.termora.tree.HostTreeNode
 import app.termora.tree.NewHostTreeModel
 import javax.swing.tree.TreePath
@@ -39,8 +38,7 @@ class NewHostAction : AnAction() {
         )
 
         val newNode = HostTreeNode(host)
-        val model = if (tree.model is FilterableHostTreeModel) (tree.model as FilterableHostTreeModel).getModel()
-        else tree.model
+        val model = tree.model
 
         if (model is NewHostTreeModel) {
             model.insertNodeInto(newNode, lastNode, lastNode.childCount)

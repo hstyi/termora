@@ -47,7 +47,7 @@ class ShowMoreInfoSimpleTreeCellRendererExtension private constructor() : Simple
         var text = StringUtils.EMPTY
 
         if (node.isFolder) {
-            text = "(${node.getAllChildren().size})"
+            text = "(${getChildrenCount(tree, node)})"
         } else if (node is HostTreeNode) {
             val host = node.host
             if (host.protocol == SSHProtocolProvider.PROTOCOL || host.protocol == RDPProtocolProvider.PROTOCOL) {
@@ -62,6 +62,27 @@ class ShowMoreInfoSimpleTreeCellRendererExtension private constructor() : Simple
         }
 
         return listOf(MyMarkerSimpleTreeCellAnnotation(text))
+    }
+
+    private fun getChildrenCount(tree: JTree, node: SimpleTreeNode<*>): Int {
+        if (tree is NewHostTree) {
+            val model = tree.getSuperModel()
+            var count = 0
+
+            val queue = ArrayDeque<Any>()
+            queue.add(node)
+            while (queue.isNotEmpty()) {
+                val e = queue.removeFirst()
+                val childrenCount = model.getChildCount(e)
+                for (i in 0 until childrenCount) {
+                    queue.addLast(model.getChild(e, i))
+                }
+                count++
+            }
+
+            return count - 1
+        }
+        return node.getAllChildren().size
     }
 
     /**

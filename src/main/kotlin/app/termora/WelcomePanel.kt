@@ -7,13 +7,11 @@ import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereResult
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
 import app.termora.terminal.DataKey
-import app.termora.tree.NewHostTree
-import app.termora.tree.NewHostTreeModel
+import app.termora.tree.*
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.formdev.flatlaf.extras.components.FlatButton
-import com.formdev.flatlaf.extras.components.FlatTextField
 import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.action.ActionManager
 import java.awt.BorderLayout
@@ -26,19 +24,18 @@ import kotlin.math.max
 
 class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()), Disposable, TerminalTab,
     DataProvider {
+
     private val properties get() = DatabaseManager.getInstance().properties
     private val rootPanel = JPanel(BorderLayout())
-    private val searchTextField = FlatTextField()
     private val hostTree = NewHostTree()
     private val bannerPanel = BannerPanel()
     private val toggle = FlatButton()
     private var fullContent = properties.getString("WelcomeFullContent", "false").toBoolean()
     private val dataProviderSupport = DataProviderSupport()
     private val hostTreeModel = hostTree.model as NewHostTreeModel
+    private val filterableTreeModel = FilterableTreeModel(hostTree).apply { expand = true }
     private var lastFocused: Component? = null
-//    private val filterableHostTreeModel = FilterableHostTreeModel(hostTree) {
-//        searchTextField.text.isBlank()
-//    }
+    private val searchTextField = filterableTreeModel.filterableTextField
 
     init {
         initView()
@@ -144,7 +141,7 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
         panel.add(scrollPane, BorderLayout.CENTER)
         panel.border = BorderFactory.createEmptyBorder(10, 0, 0, 0)
 
-//        hostTree.model = filterableHostTreeModel
+        hostTree.model = filterableTreeModel
         hostTree.name = "WelcomeHostTree"
         hostTree.restoreExpansions()
 
@@ -155,6 +152,7 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
     private fun initEvents() {
 
         Disposer.register(this, hostTree)
+        Disposer.register(hostTree, filterableTreeModel)
 
         addComponentListener(object : ComponentAdapter() {
             override fun componentShown(e: ComponentEvent) {
@@ -171,6 +169,18 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
             override fun componentResized(e: ComponentEvent) {
                 perform()
             }
+        })
+
+        filterableTreeModel.addFilter(object : Filter {
+            override fun filter(node: Any): Boolean {
+                val text = searchTextField.text
+                if (text.isBlank()) return true
+                if (node !is HostTreeNode) return false
+                if (node is TeamTreeNode || node.id == "0") return true
+                return node.host.name.contains(text) || node.host.host.contains(text)
+                        || node.host.username.contains(text)
+            }
+
         })
 
 
@@ -201,26 +211,6 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
                 return Integer.MIN_VALUE + 2
             }
         })
-
-
-        /*filterableHostTreeModel.addFilter {
-            if (it !is HostTreeNode) return@addFilter false
-            val text = searchTextField.text
-            val host = it.host
-            text.isBlank() || host.name.contains(text, true)
-                    || host.host.contains(text, true)
-                    || host.username.contains(text, true)
-        }
-
-        searchTextField.document.addDocumentListener(object : DocumentAdaptor() {
-            override fun changedUpdate(e: DocumentEvent) {
-                val text = searchTextField.text
-                filterableHostTreeModel.refresh()
-                if (text.isNotBlank()) {
-                    hostTree.expandAll()
-                }
-            }
-        })*/
 
         searchTextField.addKeyListener(object : KeyAdapter() {
             private val event = ActionEvent(hostTree, ActionEvent.ACTION_PERFORMED, StringUtils.EMPTY)
