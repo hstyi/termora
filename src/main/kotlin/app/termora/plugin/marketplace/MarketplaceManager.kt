@@ -2,6 +2,7 @@ package app.termora.plugin.marketplace
 
 import app.termora.*
 import app.termora.plugin.PluginDescription
+import app.termora.plugin.internal.plugin.PluginRepositoryManager
 import app.termora.plugin.internal.plugin.PluginSVGIcon
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -18,6 +19,8 @@ import org.slf4j.LoggerFactory
 import org.xml.sax.InputSource
 import java.io.StringReader
 import java.util.*
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
@@ -88,6 +91,55 @@ internal class MarketplaceManager private constructor() {
     private fun doGetPlugins(): List<MarketplacePlugin> {
         val version = Semver.parse(Application.getVersion())
             ?: return emptyList()
+
+        val repositories = PluginRepositoryManager.getInstance().getRepositories().toMutableSet()
+        repositories.add("https://github.com/TermoraDev/termora-marketplace/releases/latest/download/plugins.xml")
+
+        val plugins = mutableListOf<MarketplacePlugin>()
+        val executorService = Executors.newVirtualThreadPerTaskExecutor()
+        val futures = repositories
+            .map { url -> executorService.submit<List<MarketplacePlugin>> { getPlugins(url, version) } }
+        for (future in futures) {
+            try {
+                plugins.addAll(future.get(1, TimeUnit.MINUTES))
+            } catch (e: Exception) {
+                if (log.isWarnEnabled) {
+                    log.warn(e.message, e)
+                }
+                continue
+            }
+        }
+
+        if (plugins.isEmpty()) {
+            return emptyList()
+        }
+
+        val matchedPlugins = mutableListOf<MarketplacePlugin>()
+
+        // 获取到合适的插件
+        for (e in plugins) {
+            for (plugin in e.versions) {
+                if (version.satisfies(plugin.since).not()) continue
+                if (plugin.until.isNotBlank())
+                    if (version.satisfies(plugin.until).not()) continue
+                matchedPlugins.add(e.copy(versions = mutableListOf(plugin)))
+                break
+            }
+        }
+
+        // 因为可能有多个插件仓库，所以要去重
+        val map = matchedPlugins.groupBy { it.id }
+        matchedPlugins.clear()
+        for (entry in map) {
+            matchedPlugins.add(entry.value.maxBy { it.versions.first().version })
+        }
+
+        return matchedPlugins.sortedBy { it.name.length }
+    }
+
+
+    private fun getPlugins(url: String, version: Semver): List<MarketplacePlugin> {
+
         val language = I18n.containsLanguage(Locale.getDefault()) ?: "en_US"
         val request = Request.Builder()
             .get()
@@ -95,7 +147,7 @@ internal class MarketplaceManager private constructor() {
             .header("X-Language", language)
             .header("X-OS", SystemUtils.OS_NAME)
             .header("X-Arch", SystemUtils.OS_ARCH)
-            .url("https://github.com/TermoraDev/termora-marketplace/releases/latest/download/plugins.xml")
+            .url(url)
             .build()
         val response = Application.httpClient.newCall(request).execute()
         if (response.isSuccessful.not()) {
@@ -180,24 +232,7 @@ internal class MarketplaceManager private constructor() {
             )
         }
 
-        if (plugins.isEmpty()) {
-            return emptyList()
-        }
-
-        val matchedPlugins = mutableListOf<MarketplacePlugin>()
-
-        // 获取到合适的插件
-        for (e in plugins) {
-            for (plugin in e.versions) {
-                if (version.satisfies(plugin.since).not()) continue
-                if (plugin.until.isNotBlank())
-                    if (version.satisfies(plugin.until).not()) continue
-                matchedPlugins.add(e.copy(versions = mutableListOf(plugin)))
-                break
-            }
-        }
-
-        return matchedPlugins.sortedBy { it.name.length }
+        return plugins
     }
 
 

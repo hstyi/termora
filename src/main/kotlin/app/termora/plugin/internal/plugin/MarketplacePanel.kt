@@ -14,6 +14,7 @@ import org.jdesktop.swingx.JXHyperlink
 import java.awt.BorderLayout
 import java.awt.CardLayout
 import java.awt.event.ActionEvent
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.*
 
 
@@ -27,6 +28,7 @@ class MarketplacePanel : JPanel(BorderLayout()), Disposable {
     private val busyLabel = JXBusyLabel()
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val failedLabel = JLabel()
+    private val isLoading = AtomicBoolean(false)
 
     private val marketplaceManager get() = MarketplaceManager.getInstance()
 
@@ -90,39 +92,42 @@ class MarketplacePanel : JPanel(BorderLayout()), Disposable {
         reload()
     }
 
-    private fun reload() {
-        coroutineScope.launch {
-            withContext(Dispatchers.Swing) {
-                cardLayout.show(cardPanel, PanelState.Loading.name)
-            }
-
-            // 获取插件
-            try {
-                val loadedPlugins = PluginManager.getInstance().getLoadedPluginDescriptor()
-                val plugins = marketplaceManager.getPlugins()
-                    .filterNot { e -> loadedPlugins.any { it.id == e.id && it.version >= e.versions.first().version } }
-
+    fun reload() {
+        if (isLoading.compareAndSet(false, true)) {
+            coroutineScope.launch {
                 withContext(Dispatchers.Swing) {
-                    if (plugins.isNotEmpty()) {
-                        pluginsPanel.removeAll()
-                        for (plugin in plugins) {
-                            pluginsPanel.add(createMarketplacePluginPanel(plugin))
-                            pluginsPanel.add(JToolBar.Separator())
+                    cardLayout.show(cardPanel, PanelState.Loading.name)
+                }
+
+                // 获取插件
+                try {
+                    val loadedPlugins = PluginManager.getInstance().getLoadedPluginDescriptor()
+                    val plugins = marketplaceManager.getPlugins()
+                        .filterNot { e -> loadedPlugins.any { it.id == e.id && it.version >= e.versions.first().version } }
+
+                    withContext(Dispatchers.Swing) {
+                        if (plugins.isNotEmpty()) {
+                            pluginsPanel.removeAll()
+                            for (plugin in plugins) {
+                                pluginsPanel.add(createMarketplacePluginPanel(plugin))
+                                pluginsPanel.add(JToolBar.Separator())
+                            }
+                            pluginsPanel.add(createRetry())
+                            cardLayout.show(cardPanel, PanelState.Plugins.name)
+                        } else {
+                            failedLabel.text = "No plugins found"
+                            cardLayout.show(cardPanel, PanelState.FetchFailed.name)
                         }
-                        pluginsPanel.add(createRetry())
-                        cardLayout.show(cardPanel, PanelState.Plugins.name)
-                    } else {
-                        failedLabel.text = "No plugins found"
+                    }
+                } catch (_: Exception) {
+                    withContext(Dispatchers.Swing) {
+                        failedLabel.text = "Failed to fetch the plugins"
                         cardLayout.show(cardPanel, PanelState.FetchFailed.name)
                     }
-                }
-            } catch (_: Exception) {
-                withContext(Dispatchers.Swing) {
-                    failedLabel.text = "Failed to fetch the plugins"
-                    cardLayout.show(cardPanel, PanelState.FetchFailed.name)
+                } finally {
+                    isLoading.set(true)
                 }
             }
-
         }
     }
 
