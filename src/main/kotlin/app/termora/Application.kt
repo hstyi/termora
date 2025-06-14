@@ -128,7 +128,7 @@ object Application {
     }
 
     fun getUserAgent(): String {
-        return "${getName()}/${getVersion()}; ${SystemUtils.OS_NAME}/${SystemUtils.OS_VERSION}(${SystemUtils.OS_ARCH}); ${SystemUtils.JAVA_VM_NAME}/${SystemUtils.JAVA_VERSION}"
+        return "${getName()}/${getVersion()}(${Locale.getDefault()}); ${SystemUtils.OS_NAME}/${SystemUtils.OS_VERSION}(${SystemUtils.OS_ARCH}); ${SystemUtils.JAVA_VM_NAME}/${SystemUtils.JAVA_VERSION}"
     }
 
     /**
