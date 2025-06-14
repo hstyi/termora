@@ -10,6 +10,7 @@ import app.termora.plugin.PluginManager
 import app.termora.plugin.PluginOrigin
 import app.termora.plugin.PluginXmlParser
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
+import app.termora.plugin.marketplace.MarketplaceManager
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
 import com.formdev.flatlaf.extras.components.FlatToolBar
@@ -95,6 +96,19 @@ class PluginOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable, Acc
 
     private fun showContextMenu() {
         val popupMenu = FlatPopupMenu()
+
+        val managePluginRepositoryMenu =
+            popupMenu.add(I18n.getString("termora.settings.plugin.manage-plugin-repository"))
+        managePluginRepositoryMenu.addActionListener {
+            val dialog = PluginRepositoryDialog(owner)
+            dialog.isVisible = true
+            if (dialog.changed) {
+                MarketplaceManager.getInstance().clear()
+                marketplacePanel.reload()
+            }
+        }
+        popupMenu.addSeparator()
+
         val installPluginFromDiskMenu = popupMenu.add(I18n.getString("termora.settings.plugin.install-from-disk"))
         installPluginFromDiskMenu.addActionListener {
             val chooser = FileChooser()
@@ -104,6 +118,7 @@ class PluginOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable, Acc
             chooser.fileSelectionMode = JFileChooser.FILES_ONLY
             chooser.showOpenDialog(owner).thenAccept { if (it.isNotEmpty()) installPluginFromDisk(it.first()) }
         }
+
         popupMenu.show(settingsButton, 0, settingsButton.height)
     }
 
