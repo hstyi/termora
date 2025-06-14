@@ -10,8 +10,7 @@ import app.termora.protocol.FileObjectHandler
 import app.termora.protocol.FileObjectRequest
 import app.termora.protocol.TransferProtocolProvider
 import app.termora.terminal.DataKey
-import app.termora.tree.NewHostTree
-import app.termora.tree.TreeUtils
+import app.termora.tree.*
 import com.formdev.flatlaf.icons.FlatOptionPaneErrorIcon
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
@@ -275,11 +274,24 @@ class SFTPFileSystemViewPanel(
         private fun initView() {
             tree.contextmenu = false
             tree.dragEnabled = false
+            tree.isRootVisible = false
             tree.doubleClickConnection = false
+            tree.showsRootHandles = true
 
             val scrollPane = JScrollPane(tree)
             scrollPane.border = BorderFactory.createEmptyBorder(4, 4, 4, 4)
             add(scrollPane, BorderLayout.CENTER)
+
+            val filterableTreeModel = FilterableTreeModel(tree)
+            filterableTreeModel.addFilter(object : Filter {
+                override fun filter(node: Any): Boolean {
+                    if (node !is HostTreeNode) return false
+                    return TransferProtocolProvider.valueOf(node.host.protocol) != null
+                }
+            })
+            filterableTreeModel.filter()
+            tree.model = filterableTreeModel
+            Disposer.register(tree, filterableTreeModel)
 
             TreeUtils.loadExpansionState(tree, properties.getString("SFTPTabbed.Tree.state", StringUtils.EMPTY))
         }
@@ -310,9 +322,6 @@ class SFTPFileSystemViewPanel(
             })
         }
 
-        override fun dispose() {
-            properties.putString("SFTPTabbed.Tree.state", TreeUtils.saveExpansionState(tree))
-        }
     }
 
     @Suppress("UNCHECKED_CAST")

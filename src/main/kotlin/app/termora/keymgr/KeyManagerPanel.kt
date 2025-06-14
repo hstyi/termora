@@ -6,6 +6,7 @@ import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.nv.FileChooser
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
+import app.termora.tree.Filter
 import app.termora.tree.HostTreeNode
 import app.termora.tree.NewHostTreeDialog
 import com.formdev.flatlaf.extras.components.FlatComboBox
@@ -214,8 +215,11 @@ class KeyManagerPanel(private val accountOwner: AccountOwner) : JPanel(BorderLay
         }
 
         val owner = SwingUtilities.getWindowAncestor(this) ?: return
-        val hostTreeDialog = NewHostTreeDialog(owner)
-        hostTreeDialog.setFilter { it is HostTreeNode && it.host.protocol == SSHProtocolProvider.PROTOCOL }
+        val hostTreeDialog = NewHostTreeDialog(owner, filter = object : Filter {
+            override fun filter(node: Any): Boolean {
+                return node is HostTreeNode && node.host.protocol == SSHProtocolProvider.PROTOCOL
+            }
+        })
         hostTreeDialog.setTreeName("KeyManagerPanel.SSHCopyIdTree")
         hostTreeDialog.isVisible = true
         val hosts = hostTreeDialog.hosts

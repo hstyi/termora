@@ -4,6 +4,7 @@ import app.termora.*
 import app.termora.keymgr.KeyManager
 import app.termora.keymgr.KeyManagerDialog
 import app.termora.plugin.internal.BasicProxyOption
+import app.termora.tree.Filter
 import app.termora.tree.HostTreeNode
 import app.termora.tree.NewHostTreeDialog
 import com.formdev.flatlaf.FlatClientProperties
@@ -978,8 +979,13 @@ open class SSHHostOptionsPane : OptionsPane() {
         private fun initEvents() {
             addBtn.addActionListener(object : AbstractAction() {
                 override fun actionPerformed(e: ActionEvent?) {
-                    val dialog = NewHostTreeDialog(owner)
-                    dialog.setFilter { node -> node is HostTreeNode && jumpHosts.none { it.id == node.host.id } && filter.invoke(node.host) }
+                    val dialog = NewHostTreeDialog(owner, object : Filter {
+                        override fun filter(node: Any): Boolean {
+                            return node is HostTreeNode && jumpHosts.none { it.id == node.host.id } && filter.invoke(
+                                node.host
+                            )
+                        }
+                    })
                     dialog.setTreeName("HostOptionsPane.JumpHostsOption.Tree")
                     dialog.setLocationRelativeTo(owner)
                     dialog.isVisible = true

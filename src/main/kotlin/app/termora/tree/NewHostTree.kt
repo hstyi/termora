@@ -39,6 +39,7 @@ import javax.swing.event.PopupMenuListener
 import javax.swing.event.TreeModelEvent
 import javax.swing.event.TreeModelListener
 import javax.swing.filechooser.FileNameExtensionFilter
+import javax.swing.tree.TreeModel
 import javax.swing.tree.TreePath
 import javax.swing.tree.TreeSelectionModel
 import javax.xml.parsers.DocumentBuilderFactory
@@ -88,6 +89,9 @@ class NewHostTree : SimpleTree(), Disposable {
         initEvents()
     }
 
+    fun getSuperModel(): TreeModel {
+        return super.getModel()
+    }
 
     private fun initViews() {
         super.setModel(model)
@@ -390,6 +394,7 @@ class NewHostTree : SimpleTree(), Disposable {
             override fun treeStructureChanged(e: TreeModelEvent) {
                 SwingUtilities.updateComponentTreeUI(tree)
             }
+
         }
     }
 
