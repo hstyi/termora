@@ -118,6 +118,10 @@ kotlin-stdlib
 Apache License 2.0
 https://github.com/JetBrains/kotlin/blob/master/license/LICENSE.txt
 
+kotlin-reflect
+Apache License 2.0
+https://github.com/JetBrains/kotlin/blob/master/license/LICENSE.txt
+
 kotlin-stdlib-jdk7
 Apache License 2.0
 https://github.com/JetBrains/kotlin/blob/master/license/LICENSE.txt
