@@ -5,7 +5,6 @@ import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProviders
 import app.termora.database.DatabaseManager
 import app.termora.keymap.KeymapPanel
-import app.termora.nv.FileChooser
 import app.termora.plugin.ExtensionManager
 import app.termora.sftp.SFTPTab
 import app.termora.terminal.CursorStyle

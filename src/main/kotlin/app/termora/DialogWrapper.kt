@@ -2,7 +2,6 @@ package app.termora
 
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
-import app.termora.nv.osx.NativeMacLibrary
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.util.SystemInfo
 import com.jetbrains.JBR

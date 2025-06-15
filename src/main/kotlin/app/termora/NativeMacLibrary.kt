@@ -1,4 +1,4 @@
-package app.termora.nv.osx
+package app.termora
 
 import de.jangassen.jfa.foundation.Foundation
 import de.jangassen.jfa.foundation.ID
