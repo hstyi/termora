@@ -4,7 +4,6 @@ import app.termora.*
 import app.termora.account.Account
 import app.termora.account.AccountExtension
 import app.termora.account.AccountManager
-import app.termora.nv.FileChooser
 import app.termora.plugin.PluginDescriptor
 import app.termora.plugin.PluginManager
 import app.termora.plugin.PluginOrigin

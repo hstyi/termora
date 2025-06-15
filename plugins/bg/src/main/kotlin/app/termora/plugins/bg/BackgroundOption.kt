@@ -2,10 +2,7 @@ package app.termora.plugins.bg
 
 import app.termora.*
 import app.termora.OptionsPane.Companion.FORM_MARGIN
-import app.termora.database.DatabaseManager
-import app.termora.nv.FileChooser
 import com.formdev.flatlaf.extras.components.FlatButton
-import com.formdev.flatlaf.extras.components.FlatTextPane
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import org.apache.commons.io.FileUtils

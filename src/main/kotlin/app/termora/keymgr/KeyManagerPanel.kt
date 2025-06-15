@@ -4,7 +4,6 @@ import app.termora.*
 import app.termora.account.AccountOwner
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
-import app.termora.nv.FileChooser
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
 import app.termora.tree.Filter
 import app.termora.tree.HostTreeNode
