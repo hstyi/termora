@@ -125,7 +125,7 @@ class MarketplacePanel : JPanel(BorderLayout()), Disposable {
                         cardLayout.show(cardPanel, PanelState.FetchFailed.name)
                     }
                 } finally {
-                    isLoading.set(true)
+                    isLoading.set(false)
                 }
             }
         }

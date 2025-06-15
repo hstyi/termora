@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory
 import org.xml.sax.InputSource
 import java.io.StringReader
 import java.util.*
+import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -97,11 +98,14 @@ internal class MarketplaceManager private constructor() {
 
         val plugins = mutableListOf<MarketplacePlugin>()
         val executorService = Executors.newVirtualThreadPerTaskExecutor()
-        val futures = repositories
-            .map { url -> executorService.submit<List<MarketplacePlugin>> { getPlugins(url, version) } }
+        val futures = executorService
+            .invokeAll(repositories.map { Callable { getPlugins(it, version) } }, 30, TimeUnit.SECONDS)
+
         for (future in futures) {
             try {
-                plugins.addAll(future.get(1, TimeUnit.MINUTES))
+                if (future.isDone) {
+                    plugins.addAll(future.get())
+                }
             } catch (e: Exception) {
                 if (log.isWarnEnabled) {
                     log.warn(e.message, e)
@@ -109,6 +113,8 @@ internal class MarketplaceManager private constructor() {
                 continue
             }
         }
+
+        executorService.shutdown()
 
         if (plugins.isEmpty()) {
             return emptyList()
