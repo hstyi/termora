@@ -3,6 +3,7 @@ package app.termora.macro
 import app.termora.Actions
 import app.termora.ApplicationScope
 import app.termora.I18n
+import app.termora.Scope
 import app.termora.actions.AnAction
 import app.termora.findeverywhere.ActionFindEverywhereResult
 import app.termora.findeverywhere.FindEverywhereProvider
@@ -16,7 +17,7 @@ import kotlin.math.min
 class MacroFindEverywhereProvider : FindEverywhereProvider {
     private val macroManager get() = MacroManager.getInstance()
 
-    override fun find(pattern: String): List<FindEverywhereResult> {
+    override fun find(pattern: String, scope: Scope): List<FindEverywhereResult> {
         val macroAction = ActionManager.getInstance().getAction(Actions.MACRO) ?: return emptyList()
         if (macroAction !is MacroAction) return emptyList()
 

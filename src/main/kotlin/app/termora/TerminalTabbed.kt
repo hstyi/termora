@@ -6,7 +6,9 @@ import app.termora.database.DatabaseChangedExtension
 import app.termora.database.DatabaseManager
 import app.termora.findeverywhere.BasicFilterFindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereProvider
+import app.termora.findeverywhere.FindEverywhereProviderExtension
 import app.termora.findeverywhere.FindEverywhereResult
+import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import app.termora.plugin.internal.sftppty.SFTPPtyProtocolProvider
 import app.termora.plugin.internal.sftppty.SFTPPtyTerminalTab
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
@@ -71,6 +73,8 @@ class TerminalTabbed(
 
 
     private fun initEvents() {
+        Disposer.register(this, customizeToolBarAWTEventListener)
+
         // 关闭 tab
         tabbedPane.setTabCloseCallback { _, i -> removeTabAt(i, true) }
 
@@ -119,36 +123,43 @@ class TerminalTabbed(
             }
         })
 
+
         // 注册全局搜索
-        FindEverywhereProvider.getFindEverywhereProviders(windowScope)
-            .add(BasicFilterFindEverywhereProvider(object : FindEverywhereProvider {
-                override fun find(pattern: String): List<FindEverywhereResult> {
-                    val results = mutableListOf<FindEverywhereResult>()
-                    for (i in 0 until tabbedPane.tabCount) {
-                        val c = tabbedPane.getComponentAt(i)
-                        if (c is JComponent && c.getClientProperty(FindEverywhereProvider.SKIP_FIND_EVERYWHERE) != null) {
-                            continue
-                        }
-                        results.add(
-                            SwitchFindEverywhereResult(
-                                tabbedPane.getTitleAt(i),
-                                tabbedPane.getIconAt(i),
-                                tabbedPane.getComponentAt(i)
+        DynamicExtensionHandler.getInstance()
+            .register(FindEverywhereProviderExtension::class.java, object : FindEverywhereProviderExtension {
+                val provider = BasicFilterFindEverywhereProvider(object : FindEverywhereProvider {
+                    override fun find(pattern: String, scope: Scope): List<FindEverywhereResult> {
+                        if (scope != windowScope) return emptyList()
+                        val results = mutableListOf<FindEverywhereResult>()
+                        for (i in 0 until tabbedPane.tabCount) {
+                            val c = tabbedPane.getComponentAt(i)
+                            if (c is JComponent && c.getClientProperty(FindEverywhereProvider.SKIP_FIND_EVERYWHERE) != null) {
+                                continue
+                            }
+                            results.add(
+                                SwitchFindEverywhereResult(
+                                    tabbedPane.getTitleAt(i),
+                                    tabbedPane.getIconAt(i),
+                                    tabbedPane.getComponentAt(i)
+                                )
                             )
-                        )
+                        }
+                        return results
                     }
-                    return results
-                }
 
-                override fun group(): String {
-                    return I18n.getString("termora.find-everywhere.groups.opened-hosts")
-                }
+                    override fun group(): String {
+                        return I18n.getString("termora.find-everywhere.groups.opened-hosts")
+                    }
 
-                override fun order(): Int {
-                    return Integer.MIN_VALUE + 1
-                }
-            }))
+                    override fun order(): Int {
+                        return Integer.MIN_VALUE + 1
+                    }
+                })
 
+                override fun getFindEverywhereProvider(): FindEverywhereProvider {
+                    return provider
+                }
+            }).let { Disposer.register(this, it) }
 
         // 监听全局事件
         toolkit.addAWTEventListener(customizeToolBarAWTEventListener, AWTEvent.MOUSE_EVENT_MASK)
@@ -411,10 +422,6 @@ class TerminalTabbed(
      * 对着 ToolBar 右键
      */
     private inner class CustomizeToolBarAWTEventListener : AWTEventListener, Disposable {
-        init {
-            Disposer.register(this@TerminalTabbed, this)
-        }
-
         override fun eventDispatched(event: AWTEvent) {
             if (event !is MouseEvent || event.id != MouseEvent.MOUSE_CLICKED || !SwingUtilities.isRightMouseButton(event)) return
             // 如果 ToolBar 没有显示

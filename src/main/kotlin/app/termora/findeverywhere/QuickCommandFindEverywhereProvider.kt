@@ -3,6 +3,7 @@ package app.termora.findeverywhere
 import app.termora.Actions
 import app.termora.I18n
 import app.termora.Icons
+import app.termora.Scope
 import app.termora.actions.NewHostAction
 import app.termora.actions.OpenLocalTerminalAction
 import app.termora.snippet.SnippetAction
@@ -13,7 +14,7 @@ import javax.swing.Icon
 class QuickCommandFindEverywhereProvider : FindEverywhereProvider {
     private val actionManager get() = ActionManager.getInstance()
 
-    override fun find(pattern: String): List<FindEverywhereResult> {
+    override fun find(pattern: String, scope: Scope): List<FindEverywhereResult> {
         val list = mutableListOf<FindEverywhereResult>()
         actionManager.let { list.add(CreateHostFindEverywhereResult()) }
 

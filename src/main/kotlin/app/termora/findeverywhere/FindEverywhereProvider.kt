@@ -1,6 +1,7 @@
 package app.termora.findeverywhere
 
 import app.termora.Scope
+import app.termora.plugin.ExtensionManager
 
 interface FindEverywhereProvider {
 
@@ -8,21 +9,16 @@ interface FindEverywhereProvider {
 
         const val SKIP_FIND_EVERYWHERE = "SKIP_FIND_EVERYWHERE"
 
-        @Suppress("UNCHECKED_CAST")
-        fun getFindEverywhereProviders(scope: Scope): MutableList<FindEverywhereProvider> {
-            var list = scope.getAnyOrNull("FindEverywhereProviders")
-            if (list == null) {
-                list = mutableListOf<FindEverywhereProvider>()
-                scope.putAny("FindEverywhereProviders", list)
-            }
-            return list as MutableList<FindEverywhereProvider>
+        fun getFindEverywhereProviders(): List<FindEverywhereProvider> {
+            return ExtensionManager.getInstance().getExtensions(FindEverywhereProviderExtension::class.java)
+                .map { it.getFindEverywhereProvider() }
         }
     }
 
     /**
      * 搜索
      */
-    fun find(pattern: String): List<FindEverywhereResult>
+    fun find(pattern: String, scope: Scope): List<FindEverywhereResult>
 
     /**
      * 如果返回非空，表示单独分组

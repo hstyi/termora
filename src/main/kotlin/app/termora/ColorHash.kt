@@ -2,7 +2,6 @@ package app.termora
 
 import org.apache.commons.codec.digest.MurmurHash3
 import java.awt.Color
-import kotlin.math.absoluteValue
 
 object ColorHash {
     fun hash(text: String): Color {

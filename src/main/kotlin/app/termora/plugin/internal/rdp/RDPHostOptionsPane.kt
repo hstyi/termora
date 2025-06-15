@@ -11,7 +11,6 @@ import org.apache.commons.lang3.StringUtils
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.KeyboardFocusManager
-import java.awt.SystemColor.desktop
 import java.awt.Window
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent

@@ -2,6 +2,7 @@ package app.termora.findeverywhere
 
 import app.termora.Actions
 import app.termora.I18n
+import app.termora.Scope
 import app.termora.WindowScope
 import app.termora.actions.MultipleAction
 
@@ -14,7 +15,8 @@ class QuickActionsFindEverywhereProvider(private val windowScope: WindowScope) :
         MultipleAction.MULTIPLE,
     )
 
-    override fun find(pattern: String): List<FindEverywhereResult> {
+    override fun find(pattern: String, scope: Scope): List<FindEverywhereResult> {
+        if (scope != windowScope) return emptyList()
         val actionManager = ActionManager.getInstance()
         val results = ArrayList<FindEverywhereResult>()
         for (action in actions) {
