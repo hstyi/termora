@@ -9,6 +9,7 @@ import com.formdev.flatlaf.util.FontUtils
 import com.formdev.flatlaf.util.SystemInfo
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
+import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.sshd.client.ClientBuilder
@@ -231,12 +232,20 @@ object SshClients {
 
         // ssh-agent
         if (host.authentication.type == AuthenticationType.SSHAgent) {
-            if (host.authentication.password.isNotBlank())
-                entry.setProperty(IDENTITY_AGENT, host.authentication.password)
-            else if (SystemInfo.isWindows)
-                entry.setProperty(IDENTITY_AGENT, PageantConnector.DESCRIPTOR.identityAgent)
-            else
-                entry.setProperty(IDENTITY_AGENT, UnixDomainSocketConnector.DESCRIPTOR.identityAgent)
+            if (SystemInfo.isMacOS) {
+                val file = FileUtils.getFile(Application.getBaseDataDir(), "config", "ssh_auth_sock.sock")
+                if (file.exists() && file.isFile) {
+                    entry.setProperty(IDENTITY_AGENT, file.absolutePath)
+                }
+            }
+            if (entry.getProperty(IDENTITY_AGENT).isNullOrBlank()) {
+                if (host.authentication.password.isNotBlank())
+                    entry.setProperty(IDENTITY_AGENT, host.authentication.password)
+                else if (SystemInfo.isWindows)
+                    entry.setProperty(IDENTITY_AGENT, PageantConnector.DESCRIPTOR.identityAgent)
+                else
+                    entry.setProperty(IDENTITY_AGENT, UnixDomainSocketConnector.DESCRIPTOR.identityAgent)
+            }
         }
 
         val session = client.connect(entry).verify(timeout).session
