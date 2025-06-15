@@ -233,8 +233,8 @@ object SshClients {
         // ssh-agent
         if (host.authentication.type == AuthenticationType.SSHAgent) {
             if (SystemInfo.isMacOS) {
-                val file = FileUtils.getFile(Application.getBaseDataDir(), "config", "ssh_auth_sock.sock")
-                if (file.exists() && file.isFile) {
+                val file = FileUtils.getFile(Application.getBaseDataDir(), "config", "ssh-agent.sock")
+                if (file.exists()) {
                     entry.setProperty(IDENTITY_AGENT, file.absolutePath)
                 }
             }
