@@ -4,7 +4,9 @@ package app.termora
 import app.termora.actions.*
 import app.termora.database.DatabaseManager
 import app.termora.findeverywhere.FindEverywhereProvider
+import app.termora.findeverywhere.FindEverywhereProviderExtension
 import app.termora.findeverywhere.FindEverywhereResult
+import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
 import app.termora.terminal.DataKey
 import app.termora.tree.*
@@ -183,35 +185,6 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
 
         })
 
-
-        FindEverywhereProvider.getFindEverywhereProviders(windowScope).add(object : FindEverywhereProvider {
-            override fun find(pattern: String): List<FindEverywhereResult> {
-                var filter = hostTreeModel.root.getAllChildren()
-                    .map { it.host }
-                    .filter { it.isFolder.not() }
-
-                if (pattern.isNotBlank()) {
-                    filter = filter.filter {
-                        if (it.protocol == SSHProtocolProvider.PROTOCOL) {
-                            it.name.contains(pattern, true) || it.host.contains(pattern, true)
-                        } else {
-                            it.name.contains(pattern, true)
-                        }
-                    }
-                }
-
-                return filter.map { HostFindEverywhereResult(it) }
-            }
-
-            override fun group(): String {
-                return I18n.getString("termora.find-everywhere.groups.open-new-hosts")
-            }
-
-            override fun order(): Int {
-                return Integer.MIN_VALUE + 2
-            }
-        })
-
         searchTextField.addKeyListener(object : KeyAdapter() {
             private val event = ActionEvent(hostTree, ActionEvent.ACTION_PERFORMED, StringUtils.EMPTY)
             private val openHostAction get() = ActionManager.getInstance().getAction(OpenHostAction.OPEN_HOST)
@@ -231,6 +204,45 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
                 }
             }
         })
+
+        DynamicExtensionHandler.getInstance()
+            .register(FindEverywhereProviderExtension::class.java, object : FindEverywhereProviderExtension {
+                private val provider = object : FindEverywhereProvider {
+                    override fun find(pattern: String, scope: Scope): List<FindEverywhereResult> {
+                        if (scope != windowScope) return emptyList()
+
+                        var filter = hostTreeModel.root.getAllChildren()
+                            .map { it.host }
+                            .filter { it.isFolder.not() }
+
+                        if (pattern.isNotBlank()) {
+                            filter = filter.filter {
+                                if (it.protocol == SSHProtocolProvider.PROTOCOL) {
+                                    it.name.contains(pattern, true) || it.host.contains(pattern, true)
+                                } else {
+                                    it.name.contains(pattern, true)
+                                }
+                            }
+                        }
+
+                        return filter.map { HostFindEverywhereResult(it) }
+                    }
+
+                    override fun group(): String {
+                        return I18n.getString("termora.find-everywhere.groups.open-new-hosts")
+                    }
+
+                    override fun order(): Int {
+                        return Integer.MIN_VALUE + 2
+                    }
+                }
+
+                override fun getFindEverywhereProvider(): FindEverywhereProvider {
+                    return provider
+                }
+
+            }).let { Disposer.register(this, it) }
+
     }
 
     private fun perform() {

@@ -1,11 +1,12 @@
 package app.termora.findeverywhere
 
 import app.termora.I18n
+import app.termora.Scope
 
 class SettingsFindEverywhereProvider : FindEverywhereProvider {
 
 
-    override fun find(pattern: String): List<FindEverywhereResult> {
+    override fun find(pattern: String, scope: Scope): List<FindEverywhereResult> {
         return emptyList()
     }
 

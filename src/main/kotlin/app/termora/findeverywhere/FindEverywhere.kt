@@ -17,7 +17,7 @@ import javax.swing.*
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
-class FindEverywhere(owner: Window, windowScope: WindowScope) : DialogWrapper(owner) {
+class FindEverywhere(owner: Window, private val windowScope: WindowScope) : DialogWrapper(owner) {
     private val searchTextField = FlatTextField()
     private val model = DefaultListModel<FindEverywhereResult>()
     private val resultList = FindEverywhereXList(model)
@@ -82,7 +82,7 @@ class FindEverywhere(owner: Window, windowScope: WindowScope) : DialogWrapper(ow
         val map = linkedMapOf<String, MutableList<FindEverywhereResult>>()
 
         for (provider in providers) {
-            val results = provider.find(text)
+            val results = provider.find(text, windowScope)
             if (results.isEmpty()) {
                 continue
             }

@@ -47,7 +47,7 @@ class FindEverywhereAction : AnAction(StringUtils.EMPTY, Icons.find) {
         }
 
         val dialog = FindEverywhere(owner, scope)
-        for (provider in FindEverywhereProvider.getFindEverywhereProviders(scope)) {
+        for (provider in FindEverywhereProvider.getFindEverywhereProviders()) {
             dialog.registerProvider(provider)
         }
         dialog.setLocationRelativeTo(owner)

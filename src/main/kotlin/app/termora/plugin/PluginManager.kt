@@ -28,7 +28,6 @@ import java.io.File
 import java.net.URL
 import java.net.URLClassLoader
 import java.util.*
-import kotlin.math.cos
 
 internal class PluginManager private constructor() {
     companion object {
