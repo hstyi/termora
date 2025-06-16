@@ -466,7 +466,7 @@ class NewHostTree : SimpleTree(), Disposable {
         val nodes = getSelectionSimpleTreeNodes(true).filter { it.isFolder.not() }
         if (nodes.isEmpty()) return
         val source = if (openInNewWindow)
-            TermoraFrameManager.Companion.getInstance().createWindow().apply { isVisible = true }
+            TermoraFrameManager.getInstance().createWindow().apply { isVisible = true }
         else evt.source
         nodes.map { it.host }.forEach { openHostAction.actionPerformed(OpenHostActionEvent(source, it, evt)) }
     }

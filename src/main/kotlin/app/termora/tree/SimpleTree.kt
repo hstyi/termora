@@ -271,12 +271,19 @@ open class SimpleTree : JXTree() {
         val nodes = mutableListOf<SimpleTreeNode<*>>()
         val parents = paths.mapNotNull { it.lastPathComponent }
             .filterIsInstance<SimpleTreeNode<*>>().toMutableList()
+        val model = super.getModel()
 
         if (include) {
             while (parents.isNotEmpty()) {
                 val node = parents.removeFirst()
                 nodes.add(node)
-                parents.addAll(node.children().toList().filterIsInstance<SimpleTreeNode<*>>())
+                val count = model.getChildCount(node)
+                for (i in 0 until count) {
+                    val child = model.getChild(node, i)
+                    if (child is SimpleTreeNode<*>) {
+                        parents.add(child)
+                    }
+                }
             }
         }
 
