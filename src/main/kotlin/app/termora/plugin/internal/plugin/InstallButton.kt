@@ -1,11 +1,14 @@
 package app.termora.plugin.internal.plugin
 
 import app.termora.DynamicColor
+import app.termora.setupAntialiasing
 import com.formdev.flatlaf.extras.components.FlatButton
 import com.formdev.flatlaf.ui.FlatButtonUI
 import java.awt.Color
 import java.awt.Graphics
+import java.awt.Graphics2D
 import javax.swing.JComponent
+import javax.swing.UIManager
 import kotlin.math.round
 
 open class InstallButton : FlatButton() {
@@ -15,6 +18,7 @@ open class InstallButton : FlatButton() {
             field = value
             repaint()
         }
+    var update = false
 
     private var paintingBackground = false
 
@@ -42,6 +46,18 @@ open class InstallButton : FlatButton() {
             return "${progress}%"
         }
         return super.getText()
+    }
+
+    override fun paint(g: Graphics?) {
+        super.paint(g)
+        if (g is Graphics2D) {
+            setupAntialiasing(g)
+            if (update && installing.not()) {
+                val size = 6
+                g.color = UIManager.getColor("Component.error.focusedBorderColor")
+                g.fillRoundRect(width - size - 4, 4, size, size, size, size)
+            }
+        }
     }
 
 
