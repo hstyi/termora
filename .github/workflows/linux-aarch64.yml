@@ -34,6 +34,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-gradle-
 
+      # test build
+      - run: |
+          ./gradlew build -x test --no-daemon
+
       # dist
       - run: |
           ./gradlew dist --no-daemon
