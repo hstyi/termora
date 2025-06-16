@@ -43,7 +43,7 @@ class TermoraFrameManager : Disposable {
 
     fun createWindow(): TermoraFrame {
         val frame = TermoraFrame().apply { registerCloseCallback(this) }
-        frame.title = if (SystemInfo.isLinux) null else Application.getName()
+        frame.title = Application.getName()
         frame.defaultCloseOperation = DO_NOTHING_ON_CLOSE
 
         val rectangle = getFrameRectangle() ?: FrameRectangle(-1, -1, 1280, 800, 0)
