@@ -514,7 +514,7 @@ class KeyManagerPanel(private val accountOwner: AccountOwner) : JPanel(BorderLay
             var rows = 1
             val step = 2
             return FormBuilder.create().layout(layout).padding("2dlu, $formMargin, $formMargin, $formMargin")
-                .add("File:").xy(1, rows)
+                .add("${I18n.getString("termora.file")}:").xy(1, rows)
                 .add(fileTextField).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.keymgr.table.type")}:").xy(1, rows)
                 .add(typeComboBox).xy(3, rows).apply { rows += step }
@@ -553,7 +553,7 @@ class KeyManagerPanel(private val accountOwner: AccountOwner) : JPanel(BorderLay
                         }
                     },
                     messageType = JOptionPane.PLAIN_MESSAGE,
-                    title = "Private Key",
+                    title = I18n.getString("termora.keymgr.private-key"),
                     optionType = JOptionPane.OK_CANCEL_OPTION
                 ) != JOptionPane.OK_OPTION
             ) {

@@ -1,11 +1,15 @@
 package app.termora.database
 
-enum class DataType {
+enum class DataType : IDataType {
     Host,
     Snippet,
     KeyPair,
     Tag,
     Macro,
     KeywordHighlight,
-    Keymap,
+    Keymap, ;
+
+    override fun dataType(): String {
+        return this.name
+    }
 }
