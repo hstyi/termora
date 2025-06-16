@@ -117,14 +117,14 @@ class DatabaseManager private constructor() : Disposable {
     /**
      * 返回本地所有用户的数据，调用者需要过滤具体用户
      */
-    inline fun <reified T> data(type: DataType): List<T> {
+    inline fun <reified T> data(type: IDataType): List<T> {
         return data(type, StringUtils.EMPTY)
     }
 
     /**
      * 返回本地所有用户的数据，调用者需要过滤具体用户
      */
-    inline fun <reified T> data(type: DataType, ownerId: String): List<T> {
+    inline fun <reified T> data(type: IDataType, ownerId: String): List<T> {
         val list = mutableListOf<T>()
         try {
             for (data in rawData(type, ownerId)) {
@@ -188,19 +188,19 @@ class DatabaseManager private constructor() : Disposable {
     /**
      * 不会返回已删除的数据
      */
-    fun rawData(type: DataType): List<Data> {
+    fun rawData(type: IDataType): List<Data> {
         return rawData(type, StringUtils.EMPTY)
     }
 
     /**
      * 不会返回已删除的数据
      */
-    fun rawData(type: DataType, ownerId: String): List<Data> {
+    fun rawData(type: IDataType, ownerId: String): List<Data> {
         val list = mutableListOf<Data>()
         lock.withLock {
             transaction(database) {
                 val query = DataEntity.selectAll()
-                    .where { (DataEntity.type eq type.name) and (DataEntity.deleted.eq(false)) }
+                    .where { (DataEntity.type eq type.dataType()) and (DataEntity.deleted.eq(false)) }
 
                 if (ownerId.isNotBlank()) {
                     query.andWhere { DataEntity.ownerId eq ownerId }
