@@ -3,6 +3,7 @@ package app.termora.plugin
 import app.termora.Application
 import app.termora.ApplicationScope
 import app.termora.account.AccountPlugin
+import app.termora.plugin.internal.badge.BadgePlugin
 import app.termora.plugin.internal.extension.DynamicExtensionPlugin
 import app.termora.plugin.internal.local.LocalInternalPlugin
 import app.termora.plugin.internal.plugin.PluginInternalPlugin
@@ -103,6 +104,8 @@ internal class PluginManager private constructor() {
         plugins.add(PluginDescriptor(PluginInternalPlugin(), origin = PluginOrigin.Internal, version = version))
         // account plugin
         plugins.add(PluginDescriptor(AccountPlugin(), origin = PluginOrigin.Internal, version = version))
+        // badge plugin
+        plugins.add(PluginDescriptor(BadgePlugin(), origin = PluginOrigin.Internal, version = version))
 
         // ssh plugin
         plugins.add(PluginDescriptor(SSHInternalPlugin(), origin = PluginOrigin.Internal, version = version))

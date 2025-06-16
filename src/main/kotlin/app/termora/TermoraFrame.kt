@@ -276,9 +276,10 @@ class TermoraFrame : JFrame(), DataProvider {
                 .getExtensions(GlassPaneExtension::class.java)
             if (extensions.isNotEmpty()) {
                 for (extension in extensions) {
-                    if (extension.paint(this, g2d)) {
-                        return
-                    }
+                    g2d.save()
+                    val painted = extension.paint(this, g2d)
+                    g2d.restore()
+                    if (painted) break
                 }
             }
         }

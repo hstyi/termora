@@ -38,7 +38,7 @@ class PluginPanel(val descriptor: PluginPluginDescriptor) : JPanel(), Disposable
     }
 
     private val restartButton = JButton(I18n.getString("termora.settings.restart.title"))
-    private val updateButton = InstallButton()
+    private val updateButton = InstallButton().apply { update = true }
     private val installButton = InstallButton()
     private val uninstallButton = JButton(I18n.getString("termora.settings.plugin.uninstall"))
 
