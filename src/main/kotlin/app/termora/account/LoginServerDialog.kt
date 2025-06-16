@@ -11,8 +11,13 @@ import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.Request
 import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.JXHyperlink
+import org.slf4j.LoggerFactory
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.Window
@@ -27,6 +32,10 @@ import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
 
 class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
+    companion object {
+        private val log = LoggerFactory.getLogger(LoginServerDialog::class.java)
+    }
+
     private val serverComboBox = OutlineComboBox<Server>()
     private val usernameTextField = OutlineTextField()
     private val passwordField = OutlinePasswordField()
@@ -144,6 +153,39 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
             }
         }
 
+        val registerAction = object : AnAction(I18n.getString("termora.settings.account.register")) {
+            override fun actionPerformed(evt: AnActionEvent) {
+                val server = serverComboBox.selectedItem as Server?
+                if (server == null) {
+                    serverComboBox.outline = FlatClientProperties.OUTLINE_ERROR
+                    serverComboBox.requestFocusInWindow()
+                    return
+                }
+
+                try {
+                    val text = AccountHttp.execute(
+                        AccountHttp.client, Request.Builder()
+                            .get().url("${server.server}/v1/client/system").build()
+                    )
+                    val json = runCatching { ohMyJson.decodeFromString<JsonObject>(text) }.getOrNull()
+                    val allowRegister = json?.get("register")?.jsonPrimitive?.boolean ?: false
+                    if (allowRegister.not()) {
+                        throw IllegalStateException(I18n.getString("termora.settings.account.not-support-register"))
+                    }
+                    Application.browse(URI.create("${server.server}/v1/client/redirect?to=register&from=${Application.getName()}"))
+                } catch (e: Exception) {
+                    if (log.isErrorEnabled) {
+                        log.error(e.message, e)
+                    }
+                    OptionPane.showMessageDialog(
+                        dialog,
+                        e.message ?: I18n.getString("termora.settings.account.not-support-register"),
+                        messageType = JOptionPane.ERROR_MESSAGE
+                    )
+                }
+            }
+        }
+
 
         fun refreshButton() {
             if (serverComboBox.selectedItem == singaporeServer || serverComboBox.selectedItem == chinaServer || serverComboBox.itemCount < 1) {
@@ -172,13 +214,17 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
 
         })
 
+        val registerLink = JXHyperlink(registerAction)
+        registerLink.isFocusable = false
+
 
         return FormBuilder.create().layout(layout).debug(false).padding("0dlu, $FORM_MARGIN, 0dlu, $FORM_MARGIN")
             .add("${I18n.getString("termora.settings.account.server")}:").xy(1, rows)
             .add(serverComboBox).xy(3, rows)
             .add(newServer).xy(5, rows).apply { rows += step }
             .add("${I18n.getString("termora.settings.account")}:").xy(1, rows)
-            .add(usernameTextField).xy(3, rows).apply { rows += step }
+            .add(usernameTextField).xy(3, rows)
+            .add(registerLink).xy(5, rows).apply { rows += step }
             .add("${I18n.getString("termora.new-host.general.password")}:").xy(1, rows)
             .add(passwordField).xy(3, rows).apply { rows += step }
             .build()
