@@ -2,6 +2,7 @@ package app.termora.plugins.sync
 
 import app.termora.ApplicationScope
 import app.termora.Disposable
+import app.termora.account.AccountManager
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 import kotlin.random.Random
@@ -21,6 +22,7 @@ class SyncManager private constructor() : Disposable {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var job: Job? = null
     private var disableTrigger = false
+    private val accountManager get() = AccountManager.getInstance()
 
 
     private fun trigger() {
@@ -37,6 +39,10 @@ class SyncManager private constructor() : Disposable {
         if (disableTrigger) return
 
         job?.cancel()
+
+        if (accountManager.isLocally().not()) {
+            return
+        }
 
         if (log.isInfoEnabled) {
             log.info("Automatic synchronisation is interrupted")
@@ -124,6 +130,10 @@ class SyncManager private constructor() : Disposable {
 
 
     fun pull(config: SyncConfig): GistResponse {
+        if (accountManager.isLocally().not()) {
+            throw IllegalStateException(SyncI18n.getString("termora.plugins.sync.disabled-sync"))
+        }
+
         synchronized(this) {
             disableTrigger = true
             try {
@@ -135,6 +145,10 @@ class SyncManager private constructor() : Disposable {
     }
 
     fun push(config: SyncConfig): GistResponse {
+        if (accountManager.isLocally().not()) {
+            throw IllegalStateException(SyncI18n.getString("termora.plugins.sync.disabled-sync"))
+        }
+
         synchronized(this) {
             try {
                 disableTrigger = true

@@ -2,7 +2,6 @@ package app.termora.snippet
 
 import app.termora.Application.ohMyJson
 import app.termora.ApplicationScope
-import app.termora.DeleteDataManager
 import app.termora.account.AccountManager
 import app.termora.assertEventDispatchThread
 import app.termora.database.Data
@@ -45,7 +44,6 @@ class SnippetManager private constructor() {
 
     fun removeSnippet(id: String) {
         database.delete(id, DataType.Snippet.name)
-        DeleteDataManager.getInstance().removeSnippet(id)
     }
 
     /**
