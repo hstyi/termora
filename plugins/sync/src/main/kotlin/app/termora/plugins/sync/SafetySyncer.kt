@@ -8,6 +8,7 @@ import app.termora.AES.encodeBase64String
 import app.termora.Application.ohMyJson
 import app.termora.account.AccountManager
 import app.termora.account.AccountOwner
+import app.termora.database.DatabaseChangedExtension
 import app.termora.database.OwnerType
 import app.termora.highlight.KeywordHighlight
 import app.termora.highlight.KeywordHighlightManager
@@ -19,6 +20,8 @@ import app.termora.macro.Macro
 import app.termora.macro.MacroManager
 import app.termora.snippet.Snippet
 import app.termora.snippet.SnippetManager
+import app.termora.tag.Tag
+import app.termora.tag.TagManager
 import kotlinx.serialization.json.JsonObject
 import org.apache.commons.lang3.ArrayUtils
 import org.slf4j.LoggerFactory
@@ -39,6 +42,7 @@ abstract class SafetySyncer : Syncer {
     protected val snippetManager get() = SnippetManager.getInstance()
     protected val deleteDataManager get() = DeleteDataManager.getInstance()
     protected val accountManager get() = AccountManager.getInstance()
+    protected val tagManager get() = TagManager.getInstance()
     protected val accountOwner
         get() = AccountOwner(
             id = accountManager.getAccountId(),
@@ -90,10 +94,11 @@ abstract class SafetySyncer : Syncer {
                     parentId = encryptedHost.parentId.decodeBase64().aesCBCDecrypt(key, iv).decodeToString(),
                     ownerId = encryptedHost.ownerId.decodeBase64().aesCBCDecrypt(key, iv).decodeToString(),
                     creatorId = encryptedHost.creatorId.decodeBase64().aesCBCDecrypt(key, iv).decodeToString(),
+                    ownerType = OwnerType.User.name,
                     createDate = encryptedHost.createDate,
                     updateDate = encryptedHost.updateDate,
                 )
-                SwingUtilities.invokeLater { hostManager.addHost(host) }
+                SwingUtilities.invokeLater { hostManager.addHost(host, DatabaseChangedExtension.Source.Sync) }
             } catch (e: Exception) {
                 if (log.isWarnEnabled) {
                     log.warn("Decode host: ${encryptedHost.id} failed. error: {}", e.message, e)
@@ -104,7 +109,6 @@ abstract class SafetySyncer : Syncer {
         SwingUtilities.invokeLater {
             deletedData.forEach {
                 hostManager.removeHost(it.id)
-                deleteDataManager.removeHost(it.id, it.deleteDate)
             }
         }
 
@@ -192,7 +196,6 @@ abstract class SafetySyncer : Syncer {
         SwingUtilities.invokeLater {
             deletedData.forEach {
                 snippetManager.removeSnippet(it.id)
-                deleteDataManager.removeSnippet(it.id, it.deleteDate)
             }
         }
 
@@ -256,7 +259,6 @@ abstract class SafetySyncer : Syncer {
         SwingUtilities.invokeLater {
             deletedData.forEach {
                 keyManager.removeOhKeyPair(it.id)
-                deleteDataManager.removeKeyPair(it.id, it.deleteDate)
             }
         }
 
@@ -318,7 +320,6 @@ abstract class SafetySyncer : Syncer {
         SwingUtilities.invokeLater {
             deletedData.forEach {
                 keywordHighlightManager.removeKeywordHighlight(it.id)
-                deleteDataManager.removeKeywordHighlight(it.id, it.deleteDate)
             }
         }
 
@@ -329,16 +330,74 @@ abstract class SafetySyncer : Syncer {
 
     protected fun encodeKeywordHighlights(key: ByteArray): String {
         val keywordHighlights = mutableListOf<KeywordHighlight>()
-        for (keywordHighlight in keywordHighlightManager.getKeywordHighlights()) {
-            // aes iv
-            val iv = getIv(keywordHighlight.id)
-            val encryptedKeyPair = keywordHighlight.copy(
-                keyword = keywordHighlight.keyword.aesCBCEncrypt(key, iv).encodeBase64String(),
-                description = keywordHighlight.description.aesCBCEncrypt(key, iv).encodeBase64String(),
-            )
-            keywordHighlights.add(encryptedKeyPair)
+        for (ownerId in accountManager.getOwnerIds()) {
+            for (keywordHighlight in keywordHighlightManager.getKeywordHighlights(ownerId)) {
+                // aes iv
+                val iv = getIv(keywordHighlight.id)
+                val encryptedKeyPair = keywordHighlight.copy(
+                    keyword = keywordHighlight.keyword.aesCBCEncrypt(key, iv).encodeBase64String(),
+                    description = keywordHighlight.description.aesCBCEncrypt(key, iv).encodeBase64String(),
+                )
+                keywordHighlights.add(encryptedKeyPair)
+            }
         }
         return ohMyJson.encodeToString(keywordHighlights)
+    }
+
+
+    protected fun decodeTags(text: String, deletedData: List<DeletedData>, config: SyncConfig) {
+        // aes key
+        val key = getKey(config)
+        val encryptedTags = runCatching { ohMyJson.decodeFromString<List<Tag>>(text) }.getOrNull() ?: emptyList()
+        val tags = accountManager.getOwnerIds().map { tagManager.getTags(it) }
+            .flatten().associateBy { it.id }
+
+        for (e in encryptedTags) {
+            val tag = tags[e.id]
+            if (tag != null) {
+                if (tag.updateDate >= e.updateDate) {
+                    continue
+                }
+            }
+
+            try {
+                // aes iv
+                val iv = getIv(e.id)
+
+                tagManager.addTag(
+                    e.copy(
+                        text = e.text.decodeBase64().aesCBCDecrypt(key, iv).decodeToString(),
+                    ), accountOwner
+                )
+            } catch (ex: Exception) {
+                if (log.isWarnEnabled) {
+                    log.warn("Decode Tag: ${e.id} failed. error: {}", ex.message, ex)
+                }
+            }
+        }
+
+        SwingUtilities.invokeLater {
+            deletedData.forEach {
+                tagManager.removeTag(it.id)
+            }
+        }
+
+        if (log.isDebugEnabled) {
+            log.debug("Decode Tag: {}", text)
+        }
+    }
+
+    protected fun encodeTags(key: ByteArray): String {
+        val tags = mutableListOf<Tag>()
+        for (ownerId in accountManager.getOwnerIds()) {
+            for (tag in tagManager.getTags(ownerId)) {
+                // aes iv
+                val iv = getIv(tag.id)
+                val encryptedKeyPair = tag.copy(text = tag.text.aesCBCEncrypt(key, iv).encodeBase64String())
+                tags.add(encryptedKeyPair)
+            }
+        }
+        return ohMyJson.encodeToString(tags)
     }
 
     protected fun decodeMacros(text: String, deletedData: List<DeletedData>, config: SyncConfig) {
@@ -373,7 +432,6 @@ abstract class SafetySyncer : Syncer {
         SwingUtilities.invokeLater {
             deletedData.forEach {
                 macroManager.removeMacro(it.id)
-                deleteDataManager.removeMacro(it.id, it.deleteDate)
             }
         }
 
@@ -413,7 +471,6 @@ abstract class SafetySyncer : Syncer {
         SwingUtilities.invokeLater {
             deletedData.forEach {
                 keymapManager.removeKeymap(it.id)
-                deleteDataManager.removeKeymap(it.id, it.deleteDate)
             }
         }
 

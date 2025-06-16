@@ -2,7 +2,6 @@ package app.termora.keymgr
 
 import app.termora.Application.ohMyJson
 import app.termora.ApplicationScope
-import app.termora.DeleteDataManager
 import app.termora.account.AccountOwner
 import app.termora.database.Data
 import app.termora.database.DataType
@@ -36,7 +35,6 @@ class KeyManager private constructor() {
 
     fun removeOhKeyPair(id: String) {
         databaseManager.delete(id, DataType.KeyPair.name)
-        DeleteDataManager.getInstance().removeKeyPair(id)
     }
 
     fun getOhKeyPairs(): List<OhKeyPair> {

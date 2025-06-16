@@ -2,7 +2,6 @@ package app.termora.highlight
 
 import app.termora.Application.ohMyJson
 import app.termora.ApplicationScope
-import app.termora.DeleteDataManager
 import app.termora.TerminalPanelFactory
 import app.termora.account.AccountOwner
 import app.termora.database.Data
@@ -48,7 +47,6 @@ class KeywordHighlightManager private constructor() {
     fun removeKeywordHighlight(id: String) {
         database.delete(id, DataType.KeywordHighlight.name)
         TerminalPanelFactory.getInstance().repaintAll()
-        DeleteDataManager.getInstance().removeKeywordHighlight(id)
 
         if (log.isDebugEnabled) {
             log.debug("Keyword highlighter removed. {}", id)

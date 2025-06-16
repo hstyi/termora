@@ -2,6 +2,7 @@ package app.termora.account
 
 import app.termora.*
 import app.termora.Application.ohMyJson
+import app.termora.database.OwnerType
 import app.termora.plugin.ExtensionManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -47,6 +48,10 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     fun getAccessToken() = account.accessToken
     fun getRefreshToken() = account.refreshToken
     fun getOwnerIds() = account.teams.map { it.id }.toMutableList().apply { add(getAccountId()) }.toSet()
+    fun getOwners() =
+        account.teams.map { AccountOwner(it.id, it.name, OwnerType.Team) }
+            .toMutableList().apply { AccountOwner(getAccountId(), getEmail(), OwnerType.User) }
+            .toSet()
 
     fun isFreePlan(): Boolean {
         return isLocally() || getSubscription().plan == SubscriptionPlan.Free

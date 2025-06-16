@@ -12,6 +12,7 @@ class SyncPlugin : Plugin {
     init {
         support.addExtension(SettingsOptionExtension::class.java) { SyncSettingsOptionExtension.instance }
         support.addExtension(DatabaseChangedExtension::class.java) { SyncDatabaseChangedExtension.instance }
+        support.addExtension(DatabaseChangedExtension::class.java) { DeleteDataManager.getInstance() }
     }
 
     override fun getAuthor(): String {

@@ -2,7 +2,6 @@ package app.termora.macro
 
 import app.termora.Application.ohMyJson
 import app.termora.ApplicationScope
-import app.termora.DeleteDataManager
 import app.termora.account.AccountManager
 import app.termora.database.Data
 import app.termora.database.DataType
@@ -50,7 +49,6 @@ class MacroManager private constructor() {
 
     fun removeMacro(id: String) {
         database.delete(id, DataType.Macro.name)
-        DeleteDataManager.getInstance().removeMacro(id)
 
         if (log.isDebugEnabled) {
             log.debug("Removed macro $id")

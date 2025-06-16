@@ -37,6 +37,9 @@ abstract class GitSyncer : SafetySyncer() {
 
         // decode hosts
         if (config.ranges.contains(SyncRange.Hosts)) {
+            gistResponse.gists.findLast { it.filename == "Tags" }?.let {
+                decodeTags(it.content, deletedData.filter { e -> e.type == "Tag" }, config)
+            }
             gistResponse.gists.findLast { it.filename == "Hosts" }?.let {
                 decodeHosts(it.content, deletedData.filter { e -> e.type == "Host" }, config)
             }
@@ -103,6 +106,12 @@ abstract class GitSyncer : SafetySyncer() {
                 log.debug("Push encryptedHosts: {}", hostsContent)
             }
             gistFiles.add(GistFile("Hosts", hostsContent))
+
+            val tagsContent = encodeHosts(key)
+            if (log.isDebugEnabled) {
+                log.debug("Push encryptedTags: {}", tagsContent)
+            }
+            gistFiles.add(GistFile("Tags", tagsContent))
         }
 
 

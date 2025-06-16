@@ -6,6 +6,6 @@ import kotlinx.serialization.Serializable
 data class Tag(
     val id: String,
     val text: String,
-    val createDate: Long = System.currentTimeMillis(),
-    val updateDate: Long = System.currentTimeMillis(),
+    val createDate: Long,
+    val updateDate: Long,
 )

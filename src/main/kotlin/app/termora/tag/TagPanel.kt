@@ -63,7 +63,14 @@ class TagPanel(accountOwner: AccountOwner) : JPanel(BorderLayout()), Disposable 
                 title = I18n.getString("termora.tag"),
             )
             if (text.isNullOrBlank().not()) {
-                model.addElement(Tag(id = randomUUID(), text = text))
+                model.addElement(
+                    Tag(
+                        id = randomUUID(),
+                        text = text,
+                        createDate = System.currentTimeMillis(),
+                        updateDate = System.currentTimeMillis(),
+                    )
+                )
             }
         }
 
