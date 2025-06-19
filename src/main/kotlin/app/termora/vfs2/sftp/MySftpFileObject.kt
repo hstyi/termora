@@ -1,6 +1,6 @@
 package app.termora.vfs2.sftp
 
-import app.termora.sftp.FileSystemViewTableModel
+import app.termora.fromSftpPermissions
 import org.apache.commons.vfs2.FileObject
 import org.apache.commons.vfs2.FileSystemException
 import org.apache.commons.vfs2.FileType
@@ -266,7 +266,7 @@ internal class MySftpFileObject(
     }
 
     private fun getPermissions(): Set<PosixFilePermission> {
-        return FileSystemViewTableModel.fromSftpPermissions(getAttributes()?.permissions ?: return setOf())
+        return fromSftpPermissions(getAttributes()?.permissions ?: return setOf())
     }
 
 

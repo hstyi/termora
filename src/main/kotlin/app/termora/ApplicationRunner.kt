@@ -206,11 +206,13 @@ class ApplicationRunner {
             }
         }
 
+        // init native icon
+        NativeIcons.folderIcon
+
         themeManager.change(theme, true)
 
 
-        if (Application.isUnknownVersion())
-            FlatInspector.install("ctrl shift alt X")
+            FlatInspector.install("ctrl shift X")
 
         UIManager.put(FlatClientProperties.FULL_WINDOW_CONTENT, true)
         UIManager.put(FlatClientProperties.USE_WINDOW_DECORATIONS, false)

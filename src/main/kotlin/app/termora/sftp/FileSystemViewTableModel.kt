@@ -3,6 +3,7 @@ package app.termora.sftp
 import app.termora.I18n
 import app.termora.NativeStringComparator
 import app.termora.formatBytes
+import app.termora.fromSftpPermissions
 import app.termora.vfs2.FileObjectDescriptor
 import app.termora.vfs2.sftp.MySftpFileObject
 import com.formdev.flatlaf.util.SystemInfo
@@ -36,41 +37,6 @@ class FileSystemViewTableModel : DefaultTableModel() {
 
         private val log = LoggerFactory.getLogger(FileSystemViewTableModel::class.java)
 
-        fun fromSftpPermissions(sftpPermissions: Int): Set<PosixFilePermission> {
-            val result = mutableSetOf<PosixFilePermission>()
-
-            // 将十进制权限转换为八进制字符串
-            val octalPermissions = sftpPermissions.toString(8)
-
-            // 仅取后三位权限部分
-            if (octalPermissions.length < 3) {
-                return result
-            }
-
-            val permissionBits = octalPermissions.takeLast(3)
-
-            // 解析每一部分的权限
-            val owner = permissionBits[0].digitToInt()
-            val group = permissionBits[1].digitToInt()
-            val others = permissionBits[2].digitToInt()
-
-            // 处理所有者权限
-            if ((owner and 4) != 0) result.add(PosixFilePermission.OWNER_READ)
-            if ((owner and 2) != 0) result.add(PosixFilePermission.OWNER_WRITE)
-            if ((owner and 1) != 0) result.add(PosixFilePermission.OWNER_EXECUTE)
-
-            // 处理组权限
-            if ((group and 4) != 0) result.add(PosixFilePermission.GROUP_READ)
-            if ((group and 2) != 0) result.add(PosixFilePermission.GROUP_WRITE)
-            if ((group and 1) != 0) result.add(PosixFilePermission.GROUP_EXECUTE)
-
-            // 处理其他用户权限
-            if ((others and 4) != 0) result.add(PosixFilePermission.OTHERS_READ)
-            if ((others and 2) != 0) result.add(PosixFilePermission.OTHERS_WRITE)
-            if ((others and 1) != 0) result.add(PosixFilePermission.OTHERS_EXECUTE)
-
-            return result
-        }
     }
 
     var hasParent: Boolean = false

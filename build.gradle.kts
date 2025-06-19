@@ -121,7 +121,8 @@ dependencies {
 application {
     val args = mutableListOf(
         "-Xmx2048m",
-        "-Drelease-date=${DateFormatUtils.format(Date(), "yyyy-MM-dd")}"
+        "-Drelease-date=${DateFormatUtils.format(Date(), "yyyy-MM-dd")}",
+        "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
     )
 
     if (os.isMacOsX) {
