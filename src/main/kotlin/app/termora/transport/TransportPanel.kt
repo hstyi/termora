@@ -38,7 +38,6 @@ import java.nio.file.Path
 import java.nio.file.attribute.*
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.function.Supplier
 import java.util.stream.Stream
 import javax.swing.*
 import javax.swing.event.PopupMenuEvent
@@ -59,8 +58,9 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class TransportPanel(
     private val coroutineScope: CoroutineScope,
+    private val transferManager: InternalTransferManager,
     host: Host,
-    private val support: Supplier<TransportSupport>,
+    val loader: TransportSupportLoader,
 ) : JPanel(BorderLayout()), DataProvider, Disposable, TransportNavigator {
     companion object {
         private val log = LoggerFactory.getLogger(TransportPanel::class.java)
@@ -84,7 +84,8 @@ class TransportPanel(
         }
     }
 
-    private val toolbar = FlatToolBar()
+    val toolbar = FlatToolBar()
+
     private val homeBtn = JButton(Icons.homeFolder)
     private val prevBtn = JButton(Icons.left)
     private val nextBtn = JButton(Icons.right)
@@ -98,7 +99,6 @@ class TransportPanel(
     private val table = JTable(model)
     private val sorter = TableRowSorter(table.model)
     private var hasParent = false
-
 
     private val enableManager get() = EnableManager.getInstance()
     private val showHiddenFilesKey = "termora.transport.host.${host.id}.show-hidden-files"
@@ -132,6 +132,7 @@ class TransportPanel(
     init {
         initView()
         initEvents()
+        initTableEvents()
     }
 
     private fun initView() {
@@ -144,7 +145,7 @@ class TransportPanel(
         toolbar.add(prevBtn)
         toolbar.add(homeBtn)
         toolbar.add(nextBtn)
-        toolbar.add(TransportNavigationPanel(support, this))
+        toolbar.add(TransportNavigationPanel(loader, this))
         toolbar.add(parentBtn)
         toolbar.add(eyeBtn)
         toolbar.add(refreshBtn)
@@ -248,48 +249,6 @@ class TransportPanel(
             }
         }))
 
-        table.tableHeader.addMouseListener(object : MouseAdapter() {
-            override fun mouseClicked(e: MouseEvent) {
-                if (SwingUtilities.isRightMouseButton(e)) {
-                    val column = table.tableHeader.columnAtPoint(e.point)
-                    if (column < 0) return
-                    sorter.sortKeys = null
-                }
-            }
-        })
-
-        table.addKeyListener(object : KeyAdapter() {
-            override fun keyPressed(e: KeyEvent) {
-                if (e.keyCode == KeyEvent.VK_ENTER) {
-                    enterSelectionFolder()
-                }
-            }
-        })
-
-        table.addMouseListener(object : MouseAdapter() {
-            override fun mouseClicked(e: MouseEvent) {
-                if (SwingUtilities.isLeftMouseButton(e) && e.clickCount % 2 == 0) {
-                    enterSelectionFolder()
-                } else if (SwingUtilities.isRightMouseButton(e)) {
-                    val r = table.rowAtPoint(e.point)
-                    if (r >= 0 && r < table.rowCount) {
-                        if (!table.isRowSelected(r)) {
-                            table.setRowSelectionInterval(r, r)
-                        }
-                    } else {
-                        table.clearSelection()
-                    }
-
-                    if (table.hasFocus().not()) {
-                        table.requestFocusInWindow()
-                    }
-
-                    val rows = table.selectedRows.map { sorter.convertRowIndexToModel(it) }.toTypedArray()
-                    if (rows.isEmpty()) return
-                    showContextmenu(rows, e)
-                }
-            }
-        })
 
         undoManager.addActionListener(object : AbstractAction() {
             override fun actionPerformed(e: ActionEvent) {
@@ -298,12 +257,15 @@ class TransportPanel(
             }
         })
 
+
+        // parent button
         addPropertyChangeListener("loading") { evt ->
             if (evt.newValue == false) {
                 parentBtn.isEnabled = hasParent
             }
         }
 
+        // loading ui
         addPropertyChangeListener("loading", object : PropertyChangeListener {
             private var job: Job? = null
             override fun propertyChange(evt: PropertyChangeEvent) {
@@ -379,6 +341,64 @@ class TransportPanel(
         reload()
     }
 
+    private fun initTableEvents() {
+
+        table.tableHeader.addMouseListener(object : MouseAdapter() {
+            override fun mouseClicked(e: MouseEvent) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    val column = table.tableHeader.columnAtPoint(e.point)
+                    if (column < 0) return
+                    sorter.sortKeys = null
+                }
+            }
+        })
+
+        table.addKeyListener(object : KeyAdapter() {
+            override fun keyPressed(e: KeyEvent) {
+                if (e.keyCode == KeyEvent.VK_ENTER) {
+                    enterSelectionFolder()
+                }
+            }
+        })
+
+        table.addMouseListener(object : MouseAdapter() {
+            override fun mouseClicked(e: MouseEvent) {
+                if (SwingUtilities.isLeftMouseButton(e) && e.clickCount % 2 == 0) {
+                    enterSelectionFolder()
+                } else if (SwingUtilities.isRightMouseButton(e)) {
+                    val r = table.rowAtPoint(e.point)
+                    if (r >= 0 && r < table.rowCount) {
+                        if (!table.isRowSelected(r)) {
+                            table.setRowSelectionInterval(r, r)
+                        }
+                    } else {
+                        table.clearSelection()
+                    }
+
+                    if (table.hasFocus().not()) {
+                        table.requestFocusInWindow()
+                    }
+
+                    val rows = table.selectedRows.map { sorter.convertRowIndexToModel(it) }.toTypedArray()
+                    if (rows.isEmpty()) return
+                    showContextmenu(rows, e)
+                }
+            }
+        })
+
+        table.actionMap.put("reload", object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent) {
+                reload()
+            }
+        })
+
+        val inputMap = table.getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)
+        if (SystemInfo.isMacOS.not()) {
+            inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), "reload")
+        }
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, toolkit.menuShortcutKeyMaskEx), "reload")
+    }
+
     /**
      * 不能在 EDT 线程调用
      */
@@ -386,7 +406,7 @@ class TransportPanel(
         if (SwingUtilities.isEventDispatchThread()) {
             throw WrongThreadException("AWT EventQueue")
         }
-        return support.get()
+        return loader.get()
     }
 
     private fun enterSelectionFolder() {
@@ -588,6 +608,7 @@ class TransportPanel(
 
     private fun showContextmenu(rows: Array<Int>, e: MouseEvent) {
         val files = rows.map { model.getPath(it) to model.getAttributes(it) }
+        val paths = files.map { it.first }
         val hasParent = rows.contains(0)
 
         val popupMenu = FlatPopupMenu()
@@ -684,7 +705,11 @@ class TransportPanel(
             }
         })
         refresh.addActionListener { }
-        transfer.addActionListener { }
+        transfer.addActionListener {
+            for (e in files) {
+                val future = transferManager.addTransfer(e.first, e.second.isDirectory)
+            }
+        }
 
         if (rows.isEmpty() || hasParent) {
             transfer.isEnabled = false
@@ -695,7 +720,7 @@ class TransportPanel(
             copyPath.isEnabled = false
             permission.isEnabled = false
         } else {
-            transfer.isEnabled = false
+            transfer.isEnabled = transferManager.canTransfer(paths)
         }
 
         popupMenu.addPopupMenuListener(object : PopupMenuListener {

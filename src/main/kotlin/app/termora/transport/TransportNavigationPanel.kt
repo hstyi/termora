@@ -288,6 +288,7 @@ class TransportNavigationPanel(
                 childrenWidth += (child.preferredSize.width + rightBtnWidth)
             } else {
                 i--
+                if (children.size < 2 || i < 0) break
                 val c = children.removeAt(1)
                 val path = c.getClientProperty("Path") as Path
                 moreChildren.add(path)

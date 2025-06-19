@@ -78,6 +78,14 @@ class TransportTableModel(private val coroutineScope: CoroutineScope) :
         return false
     }
 
+    override fun getColumnCount(): Int {
+        return COLUMN_COUNT
+    }
+
+    override fun getValueAt(node: Any?, column: Int): Any? {
+        return super.getValueAt(node, column)
+    }
+
     override fun addTransport(transport: Transport): Boolean {
         return lock.withLock {
             if (!transport.isRoot) {

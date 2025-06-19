@@ -1,27 +1,44 @@
 package app.termora.transport
 
-import app.termora.*
+import app.termora.Disposable
+import app.termora.Disposer
+import app.termora.DynamicColor
 import app.termora.actions.DataProvider
-import app.termora.plugin.internal.ssh.SSHProtocolProvider
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import org.apache.commons.lang3.SystemUtils
-import org.apache.sshd.sftp.client.SftpClientFactory
+import kotlinx.coroutines.*
+import org.apache.commons.lang3.StringUtils
+import org.slf4j.LoggerFactory
 import java.awt.BorderLayout
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
-import java.nio.file.FileSystems
-import java.util.function.Supplier
+import java.io.IOException
+import java.nio.file.FileVisitResult
+import java.nio.file.FileVisitor
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.attribute.BasicFileAttributes
+import java.util.concurrent.CompletableFuture
 import javax.swing.BorderFactory
 import javax.swing.JPanel
+import javax.swing.JScrollPane
 import javax.swing.JSplitPane
-import kotlin.io.path.absolutePathString
+import kotlin.io.path.name
+import kotlin.io.path.pathString
 
 
 class TransportViewer : JPanel(BorderLayout()), DataProvider, Disposable {
+    companion object {
+        private val log = LoggerFactory.getLogger(TransportViewer::class.java)
+    }
+
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val splitPane = JSplitPane()
+    private val transferManager = TransferTableModel(coroutineScope)
+    private val transferTable = TransferTable(coroutineScope, transferManager)
+    private val leftTransferManager = MyInternalTransferManager()
+    private val rightTransferManager = MyInternalTransferManager()
+    private val leftTabbed = TransportTabbed(coroutineScope, leftTransferManager)
+    private val rightTabbed = TransportTabbed(coroutineScope, rightTransferManager)
+    private val rootSplitPane = JSplitPane(JSplitPane.VERTICAL_SPLIT)
 
     init {
         initView()
@@ -29,57 +46,33 @@ class TransportViewer : JPanel(BorderLayout()), DataProvider, Disposable {
     }
 
     private fun initView() {
-        val host = Host(
-            name = "Test",
-            protocol = SSHProtocolProvider.PROTOCOL,
-            username = "myuser",
-            host = "127.0.0.1",
-            port = 2224,
-            authentication = Authentication.No.copy(
-                type = AuthenticationType.Password,
-                password = "123456"
-            )
-        )
+
+        leftTabbed.addLocalTab()
+        rightTabbed.addSelectionTab()
+
+        leftTransferManager.source = leftTabbed
+        leftTransferManager.target = rightTabbed
+
+        rightTransferManager.source = rightTabbed
+        rightTransferManager.target = leftTabbed
 
 
-        val leftPanel = TransportPanel(
-            coroutineScope,
-            host,
-            object : Supplier<TransportSupport> {
-                private val support by lazy {
-                    TransportSupport(FileSystems.getDefault(), SystemUtils.USER_HOME)
-                }
+        val scrollPane = JScrollPane(transferTable)
+        scrollPane.border = BorderFactory.createMatteBorder(1, 0, 0, 0, DynamicColor.BorderColor)
 
-                override fun get(): TransportSupport {
-                    return support
-                }
-            }
-        )
-
-        val rightPanel = TransportPanel(
-            coroutineScope,
-            host,
-            object : Supplier<TransportSupport> {
-                private val client by lazy {
-                    val client = SshClients.openClient(host)
-                    val session = SshClients.openSession(host, client)
-                    val fileSystem = SftpClientFactory.instance().createSftpFileSystem(session)
-                    TransportSupport(fileSystem, fileSystem.defaultDir.absolutePathString())
-                }
-
-                override fun get(): TransportSupport {
-                    return client
-                }
-            }
-        )
-
-        leftPanel.border = BorderFactory.createMatteBorder(0, 0, 0, 1, DynamicColor.BorderColor)
-        rightPanel.border = BorderFactory.createMatteBorder(0, 1, 0, 0, DynamicColor.BorderColor)
+        leftTabbed.border = BorderFactory.createMatteBorder(0, 0, 0, 1, DynamicColor.BorderColor)
+        rightTabbed.border = BorderFactory.createMatteBorder(0, 1, 0, 0, DynamicColor.BorderColor)
 
         splitPane.resizeWeight = 0.5
-        splitPane.leftComponent = leftPanel
-        splitPane.rightComponent = rightPanel
-        add(splitPane, BorderLayout.CENTER)
+        splitPane.leftComponent = leftTabbed
+        splitPane.rightComponent = rightTabbed
+        splitPane.border = BorderFactory.createMatteBorder(0, 0, 1, 0, DynamicColor.BorderColor)
+
+        rootSplitPane.resizeWeight = 0.7
+        rootSplitPane.topComponent = splitPane
+        rootSplitPane.bottomComponent = scrollPane
+
+        add(rootSplitPane, BorderLayout.CENTER)
     }
 
     private fun initEvents() {
@@ -89,6 +82,124 @@ class TransportViewer : JPanel(BorderLayout()), DataProvider, Disposable {
                 splitPane.setDividerLocation(splitPane.resizeWeight)
             }
         })
+
+        rootSplitPane.addComponentListener(object : ComponentAdapter() {
+            override fun componentResized(e: ComponentEvent) {
+                removeComponentListener(this)
+                rootSplitPane.setDividerLocation(rootSplitPane.resizeWeight)
+            }
+        })
+
+        Disposer.register(this, leftTabbed)
+        Disposer.register(this, rightTabbed)
     }
 
+    override fun dispose() {
+        coroutineScope.cancel()
+    }
+
+    private inner class MyInternalTransferManager() : InternalTransferManager {
+        lateinit var source: TransportTabbed
+        lateinit var target: TransportTabbed
+
+        override fun canTransfer(paths: List<Path>): Boolean {
+            return target.getSelectedTransportPanel()?.workdir != null
+        }
+
+        override fun addTransfer(path: Path, isDirectory: Boolean): CompletableFuture<Unit> {
+            val workdir = target.getSelectedTransportPanel()?.workdir
+                ?: throw IllegalStateException("Can't add transfer for $path")
+
+            val future = CompletableFuture<Unit>()
+            coroutineScope.launch(Dispatchers.IO) { doAddTransfer(workdir, path, isDirectory, future) }
+            return future
+        }
+
+
+        private fun doAddTransfer(workdir: Path, path: Path, isDirectory: Boolean, future: CompletableFuture<Unit>) {
+
+            if (isDirectory.not()) {
+                transferManager.addTransfer(createTransfer(path, workdir.resolve(path.name), false, StringUtils.EMPTY))
+                return
+            }
+
+            val queue = ArrayDeque<Transfer>()
+            val isCancelled = { future.isCancelled || future.isCompletedExceptionally }
+            val basedir = if (isDirectory) workdir.resolve(path.name) else workdir
+
+            Files.walkFileTree(path, object : FileVisitor<Path> {
+                override fun preVisitDirectory(
+                    dir: Path,
+                    attrs: BasicFileAttributes
+                ): FileVisitResult {
+                    val transfer = createTransfer(
+                        dir,
+                        basedir.resolve(path.relativize(dir).pathString),
+                        true,
+                        queue.lastOrNull()?.id() ?: StringUtils.EMPTY
+                    ).apply { queue.addLast(this) }
+                    transferManager.addTransfer(transfer)
+
+                    return if (isCancelled.invoke()) FileVisitResult.TERMINATE else FileVisitResult.CONTINUE
+                }
+
+                override fun visitFile(
+                    file: Path,
+                    attrs: BasicFileAttributes
+                ): FileVisitResult {
+                    if (queue.isEmpty()) return FileVisitResult.SKIP_SIBLINGS
+
+                    val transfer = createTransfer(
+                        file, basedir.resolve(path.relativize(file).pathString),
+                        false,
+                        queue.last().id()
+                    )
+
+                    transferManager.addTransfer(transfer)
+
+                    return if (isCancelled.invoke()) FileVisitResult.TERMINATE else FileVisitResult.CONTINUE
+                }
+
+                override fun visitFileFailed(
+                    file: Path?,
+                    exc: IOException
+                ): FileVisitResult {
+                    if (log.isErrorEnabled) {
+                        log.error(exc.message, exc)
+                        future.completeExceptionally(exc)
+                    }
+                    return FileVisitResult.TERMINATE
+                }
+
+                override fun postVisitDirectory(
+                    dir: Path?,
+                    exc: IOException?
+                ): FileVisitResult {
+                    val c = queue.removeLast() as DirectoryTransfer
+                    c.scanned()
+                    return if (isCancelled.invoke()) FileVisitResult.TERMINATE else FileVisitResult.CONTINUE
+                }
+
+            })
+
+            future.complete(Unit)
+        }
+
+        private fun createTransfer(source: Path, target: Path, isDirectory: Boolean, parentId: String): Transfer {
+            if (isDirectory) {
+                return DirectoryTransfer(
+                    parentId = parentId,
+                    source = source,
+                    target = target,
+                )
+            }
+            return FileTransfer(
+                parentId = parentId,
+                source = source,
+                target = target,
+                size = Files.size(source)
+            )
+        }
+
+    }
 }
