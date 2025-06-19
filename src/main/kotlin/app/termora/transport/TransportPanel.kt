@@ -706,9 +706,7 @@ class TransportPanel(
         })
         refresh.addActionListener { }
         transfer.addActionListener {
-            for (e in files) {
-                val future = transferManager.addTransfer(e.first, e.second.isDirectory)
-            }
+            val future = transferManager.addTransfer(files.map { it.first to it.second.isDirectory })
         }
 
         if (rows.isEmpty() || hasParent) {

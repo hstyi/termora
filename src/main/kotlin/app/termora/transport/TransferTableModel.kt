@@ -78,31 +78,28 @@ class TransferTableModel(private val coroutineScope: CoroutineScope) :
     }
 
     override fun addTransfer(transfer: Transfer) {
-        SwingUtilities.invokeAndWait {
-            val node = MyDefaultMutableTreeTableNode(transfer)
-            val parent = map[transfer.parentId()] ?: getRoot()
+        val node = MyDefaultMutableTreeTableNode(transfer)
+        val parent = map[transfer.parentId()] ?: getRoot()
 
-            // 文件夹比较特殊，因为可能存在扫描中
-            if (transfer.isDirectory().not()) {
-                computeFilesize(node, transfer.size(), 0, setOf(ComputeField.Filesize))
-            }
-
-            map[transfer.id()] = node
-            insertNodeInto(node, parent, parent.childCount)
-
-            lock.withLock { condition.signalAll() }
-
+        // 文件立即计算大小
+        if (transfer.isDirectory().not()) {
+            computeFilesize(node, transfer.size(), 0, setOf(ComputeField.Filesize))
         }
 
+        SwingUtilities.invokeAndWait {
+            map[transfer.id()] = node
+            insertNodeInto(node, parent, parent.childCount)
+        }
+
+        lock.withLock { condition.signalAll() }
 
     }
 
 
     override fun removeTransfer(id: String) {
-        SwingUtilities.invokeAndWait {
-            val node = map.remove(id)
-            if (node != null) removeNodeFromParent(node)
-        }
+        assertEventDispatchThread()
+        val node = map.remove(id)
+        if (node != null) removeNodeFromParent(node)
     }
 
     private fun computeFilesize(
@@ -226,19 +223,14 @@ class TransferTableModel(private val coroutineScope: CoroutineScope) :
         val transfer = node.transfer
         val isDirectory = transfer.isDirectory()
         val isFile = isDirectory.not()
-        var transferred = false
 
         try {
 
             var len = 0
+
             while (transfer.transfer().also { len = it } > 0) {
-                transferred = true
                 if (map.containsKey(transfer.id()).not()) {
-                    // 减去总大小
-                    computeFilesize(node, -node.filesize.get(), 0, setOf(ComputeField.Filesize))
-                    // 减去传输的大小
-                    computeFilesize(node, -node.totalBytesTransferred.get(), 0, setOf(ComputeField.Transferred))
-                    break
+                    throw IllegalStateException()
                 }
                 val c = len.toLong()
                 reporter.report(node, c, System.currentTimeMillis())
@@ -254,27 +246,29 @@ class TransferTableModel(private val coroutineScope: CoroutineScope) :
             }
 
         } catch (e: Exception) {
-            if (log.isErrorEnabled) {
-                log.error(e.message, e)
+            if (isFile) {
+                // 减去总大小
+                computeFilesize(node, -node.filesize.get(), 0, setOf(ComputeField.Filesize))
+                // 减去传输的大小
+                computeFilesize(node, -node.totalBytesTransferred.get(), 0, setOf(ComputeField.Transferred))
             }
             node.changeState(State.Failed)
             throw e
         } finally {
-            if (transferred && isFile && transfer is Closeable)
-                IOUtils.closeQuietly(transfer)
+            if (transfer is Closeable) IOUtils.closeQuietly(transfer)
         }
     }
 
     private fun removeCompleted(node: MyDefaultMutableTreeTableNode) {
-        assertEventDispatchThread()
 
         if (node == getRoot()) return
         if (node.transfer.isDirectory() && node.childCount > 0) return
         if (node.transfer.scanning()) return
         if (node.parent == null) return
 
-        removeNodeFromParent(node)
-        map.remove(node.transfer.id())
+        assertEventDispatchThread()
+
+        removeTransfer(node.transfer.id())
 
     }
 

@@ -106,12 +106,14 @@ class TransportViewer : JPanel(BorderLayout()), DataProvider, Disposable {
             return target.getSelectedTransportPanel()?.workdir != null
         }
 
-        override fun addTransfer(path: Path, isDirectory: Boolean): CompletableFuture<Unit> {
-            val workdir = target.getSelectedTransportPanel()?.workdir
-                ?: throw IllegalStateException("Can't add transfer for $path")
-
+        override fun addTransfer(paths: List<Pair<Path, Boolean>>): CompletableFuture<Unit> {
+            val workdir = target.getSelectedTransportPanel()?.workdir ?: throw IllegalStateException()
             val future = CompletableFuture<Unit>()
-            coroutineScope.launch(Dispatchers.IO) { doAddTransfer(workdir, path, isDirectory, future) }
+            coroutineScope.launch(Dispatchers.IO) {
+                for (pair in paths) {
+                    doAddTransfer(workdir, pair.first, pair.second, future)
+                }
+            }
             return future
         }
 

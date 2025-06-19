@@ -12,5 +12,5 @@ interface InternalTransferManager {
     /**
      * 添加任务，如果是文件夹会递归查询子然后传递
      */
-    fun addTransfer(path: Path, isDirectory: Boolean): CompletableFuture<Unit>
+    fun addTransfer(paths: List<Pair<Path, Boolean>>): CompletableFuture<Unit>
 }
