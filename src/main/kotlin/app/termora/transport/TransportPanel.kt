@@ -792,7 +792,18 @@ class TransportPanel(
     private fun mountFuture(future: CompletableFuture<*>) {
         if (disposed.get()) return
         futures.add(future)
-        future.whenComplete { _, _ -> futures.remove(future) }
+        future.whenComplete { _, e ->
+            if (disposed.get().not() && e is Exception) {
+                SwingUtilities.invokeLater {
+                    OptionPane.showMessageDialog(
+                        owner,
+                        ExceptionUtils.getRootCauseMessage(e),
+                        messageType = JOptionPane.ERROR_MESSAGE
+                    )
+                }
+            }
+            futures.remove(future)
+        }
     }
 
     private class MyModel() : DefaultTableModel() {

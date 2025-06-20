@@ -135,16 +135,19 @@ class TransferTableModel(private val coroutineScope: CoroutineScope) :
         while (stack.isNotEmpty()) {
             val (node, visitedChildren) = stack.removeLast()
             if (visitedChildren || node.childCount == 0) {
-                val isDone = node.state() == State.Done
+                val failed = node.state() != State.Done
+                val transfer = node.transfer
+
                 // 定义为失败
                 node.tryChangeState(State.Failed)
-
                 // 移除
                 map.remove(node.transfer.id())
                 removeNodeFromParent(node)
 
                 // 如果删除时还在传输，那么需要减去大小
-                if (isDone.not()) {
+                // 如果是传输任务，文件夹是不处理的，因为文件夹的大小来自文件
+                // 如果是删除任务，需要减去大小，删除任务的文件大小最小的：1
+                if ((failed && transfer.isDirectory().not()) || (failed && transfer is DeleteTransfer)) {
                     // 收集一次，确保数据实时
                     reporter.collect()
                     // 该文件已传输的大小
