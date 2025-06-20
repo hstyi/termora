@@ -15,7 +15,7 @@ class FileTransfer(parentId: String, source: Path, target: Path, private val siz
     private lateinit var input: InputStream
     private lateinit var output: OutputStream
 
-    override suspend fun transfer(bufferSize: Int): Int {
+    override suspend fun transfer(bufferSize: Int): Long {
         if (::input.isInitialized.not()) {
             input = source().inputStream(StandardOpenOption.READ)
         }
@@ -28,7 +28,7 @@ class FileTransfer(parentId: String, source: Path, target: Path, private val siz
         val len = input.read(buffer)
         if (len <= 0) return 0
         output.write(buffer, 0, len)
-        return len
+        return len.toLong()
     }
 
     override fun scanning(): Boolean {

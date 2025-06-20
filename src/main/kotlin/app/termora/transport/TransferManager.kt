@@ -6,7 +6,7 @@ interface TransferManager {
     /**
      * 添加传输任务
      */
-    fun addTransfer(transfer: Transfer)
+    fun addTransfer(transfer: Transfer): Boolean
 
     /**
      * 移除传输任务

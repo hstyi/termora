@@ -10,7 +10,7 @@ interface Transfer {
      * 每调用一次，传输一次
      *
      */
-    suspend fun transfer(bufferSize: Int = Util.DEFAULT_COPY_BUFFER_SIZE): Int
+    suspend fun transfer(bufferSize: Int = Util.DEFAULT_COPY_BUFFER_SIZE): Long
 
     /**
      * 源

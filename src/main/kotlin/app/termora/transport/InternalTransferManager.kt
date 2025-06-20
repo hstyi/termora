@@ -4,6 +4,11 @@ import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 
 interface InternalTransferManager {
+    enum class TransferMode {
+        Delete,
+        Transfer,
+    }
+
     /**
      * 是否允许传输，添加任务之前请调用
      */
@@ -12,5 +17,6 @@ interface InternalTransferManager {
     /**
      * 添加任务，如果是文件夹会递归查询子然后传递
      */
-    fun addTransfer(paths: List<Pair<Path, Boolean>>): CompletableFuture<Unit>
+    fun addTransfer(paths: List<Pair<Path, Boolean>>, mode: TransferMode): CompletableFuture<Unit>
+
 }

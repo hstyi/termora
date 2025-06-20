@@ -37,6 +37,9 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.*
 import java.util.*
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CopyOnWriteArraySet
+import java.util.concurrent.Future
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.stream.Stream
 import javax.swing.*
@@ -109,6 +112,9 @@ class TransportPanel(
     private val nextReloadCallbacks = mutableListOf<() -> Unit>()
     private val history = linkedSetOf<Path>()
     private val undoManager = MyUndoManager()
+
+    private val disposed = AtomicBoolean(false)
+    private val futures = CopyOnWriteArraySet<Future<*>>()
 
     private val fileSystem by lazy { getSupport().fileSystem }
     private val defaultPath by lazy { getSupport().path }
@@ -603,7 +609,11 @@ class TransportPanel(
     }
 
     override fun dispose() {
-        loadingPanel.busyLabel.isBusy = false
+        if (disposed.compareAndSet(false, true)) {
+            futures.forEach { it.cancel(true) }
+            futures.clear()
+            loadingPanel.busyLabel.isBusy = false
+        }
     }
 
     private fun showContextmenu(rows: Array<Int>, e: MouseEvent) {
@@ -683,10 +693,7 @@ class TransportPanel(
             override fun actionPerformed(e: ActionEvent) {
             }
         })
-        delete.addActionListener(object : AbstractAction() {
-            override fun actionPerformed(e: ActionEvent) {
-            }
-        })
+        delete.addActionListener(createTransferAction(files, InternalTransferManager.TransferMode.Delete))
         rmrf.addActionListener(object : AbstractAction() {
             override fun actionPerformed(e: ActionEvent) {
             }
@@ -705,9 +712,7 @@ class TransportPanel(
             }
         })
         refresh.addActionListener { }
-        transfer.addActionListener {
-            val future = transferManager.addTransfer(files.map { it.first to it.second.isDirectory })
-        }
+        transfer.addActionListener(createTransferAction(files, InternalTransferManager.TransferMode.Transfer))
 
         if (rows.isEmpty() || hasParent) {
             transfer.isEnabled = false
@@ -771,6 +776,24 @@ class TransportPanel(
         firePropertyChange("workdir", oldValue, destination)
     }
 
+    private fun createTransferAction(
+        files: List<Pair<Path, Attributes>>,
+        mode: InternalTransferManager.TransferMode
+    ): Action {
+        return object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent) {
+                val future = transferManager.addTransfer(files.map { it.first to it.second.isDirectory }, mode)
+                mountFuture(future)
+            }
+        }
+    }
+
+
+    private fun mountFuture(future: CompletableFuture<*>) {
+        if (disposed.get()) return
+        futures.add(future)
+        future.whenComplete { _, _ -> futures.remove(future) }
+    }
 
     private class MyModel() : DefaultTableModel() {
         companion object {

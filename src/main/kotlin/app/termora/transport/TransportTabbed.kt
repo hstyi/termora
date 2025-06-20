@@ -6,7 +6,6 @@ import app.termora.actions.AnActionEvent
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
 import kotlinx.coroutines.CoroutineScope
-import org.apache.commons.lang3.SystemUtils
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.nio.file.FileSystems
@@ -101,7 +100,7 @@ class TransportTabbed(
     }
 
     fun addLocalTab() {
-        val support = TransportSupport(FileSystems.getDefault(), SystemUtils.USER_HOME)
+        val support = TransportSupport(FileSystems.getDefault(), "/Users/huangxingguang/Downloads/")
         addTab(
             I18n.getString("termora.transport.local"),
             TransportPanel(

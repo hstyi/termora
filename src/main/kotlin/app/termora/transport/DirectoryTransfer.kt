@@ -4,13 +4,13 @@ import java.nio.file.Path
 import kotlin.io.path.createDirectories
 
 class DirectoryTransfer(parentId: String, source: Path, target: Path) :
-    AbstractTransfer(parentId, source, target, true) {
+    AbstractTransfer(parentId, source, target, true), TransferScanner {
 
 
     @Volatile
     private var scanned = false
 
-    override suspend fun transfer(bufferSize: Int): Int {
+    override suspend fun transfer(bufferSize: Int): Long {
         target().createDirectories()
         return 0
     }
@@ -23,7 +23,7 @@ class DirectoryTransfer(parentId: String, source: Path, target: Path) :
         return scanned.not()
     }
 
-    fun scanned() {
+    override fun scanned() {
         scanned = true
     }
 }
