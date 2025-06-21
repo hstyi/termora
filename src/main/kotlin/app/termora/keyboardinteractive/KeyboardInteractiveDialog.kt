@@ -12,6 +12,7 @@ import java.awt.Dimension
 import java.awt.Window
 import javax.swing.JComponent
 import javax.swing.text.JTextComponent
+import kotlin.math.max
 
 class KeyboardInteractiveDialog(
     owner: Window,
@@ -30,7 +31,8 @@ class KeyboardInteractiveDialog(
 
         init()
         pack()
-        size = Dimension(300, size.height)
+        size = Dimension(max(300, size.width), size.height)
+
         setLocationRelativeTo(null)
 
     }
