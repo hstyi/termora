@@ -414,6 +414,17 @@ class TransportPanel(
             }
         })
 
+        // https://github.com/TermoraDev/termora/issues/401
+        table.addMouseListener(object : MouseAdapter() {
+            override fun mouseClicked(e: MouseEvent) {
+                if (e.button == 4) {
+                    back()
+                } else if (e.button == 5) {
+                    forward()
+                }
+            }
+        })
+
         table.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent) {
                 if (SwingUtilities.isLeftMouseButton(e) && e.clickCount % 2 == 0) {
