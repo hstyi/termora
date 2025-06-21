@@ -3,7 +3,7 @@ package app.termora.plugins.s3
 import app.termora.Authentication
 import app.termora.AuthenticationType
 import app.termora.Host
-import app.termora.protocol.FileObjectRequest
+import app.termora.protocol.PathHandlerRequest
 import app.termora.vfs2.VFSWalker
 import io.minio.MakeBucketArgs
 import io.minio.MinioClient
@@ -66,7 +66,7 @@ class S3FileProviderTest {
             )
         }
 
-        val requester = FileObjectRequest(
+        val requester = PathHandlerRequest(
             host = Host(
                 name = "test",
                 protocol = S3ProtocolProvider.PROTOCOL,

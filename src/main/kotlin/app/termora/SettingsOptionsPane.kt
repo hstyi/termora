@@ -6,11 +6,11 @@ import app.termora.actions.DataProviders
 import app.termora.database.DatabaseManager
 import app.termora.keymap.KeymapPanel
 import app.termora.plugin.ExtensionManager
-import app.termora.sftp.SFTPTab
 import app.termora.terminal.CursorStyle
 import app.termora.terminal.DataKey
 import app.termora.terminal.panel.FloatingToolbarPanel
 import app.termora.terminal.panel.TerminalPanel
+import app.termora.transfer.TransportTerminalTab
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatComboBox
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
@@ -670,8 +670,8 @@ class SettingsOptionsPane : OptionsPane() {
                         val manager = evt.getData(DataProviders.TerminalTabbedManager) ?: continue
 
                         if (sftp.pinTab) {
-                            if (manager.getTerminalTabs().none { it is SFTPTab }) {
-                                manager.addTerminalTab(1, SFTPTab(), false)
+                            if (manager.getTerminalTabs().none { it is TransportTerminalTab }) {
+                                manager.addTerminalTab(1, TransportTerminalTab(), false)
                             }
                         }
 

@@ -11,9 +11,9 @@ import app.termora.plugin.internal.rdp.RDPInternalPlugin
 import app.termora.plugin.internal.serial.SerialInternalPlugin
 import app.termora.plugin.internal.sftppty.SFTPPtyInternalPlugin
 import app.termora.plugin.internal.ssh.SSHInternalPlugin
-import app.termora.sftp.internal.local.LocalPlugin
-import app.termora.sftp.internal.sftp.SFTPPlugin
 import app.termora.swingCoroutineScope
+import app.termora.transfer.internal.local.LocalPlugin
+import app.termora.transfer.internal.sftp.SFTPPlugin
 import com.formdev.flatlaf.util.SystemInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

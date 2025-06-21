@@ -5,8 +5,6 @@ import app.termora.database.DatabaseManager
 import app.termora.keymap.KeymapManager
 import app.termora.plugin.ExtensionManager
 import app.termora.plugin.PluginManager
-import app.termora.protocol.ProtocolProvider
-import app.termora.protocol.TransferProtocolProvider
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatSystemProperties
 import com.formdev.flatlaf.extras.FlatDesktop
@@ -22,9 +20,6 @@ import kotlinx.coroutines.launch
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.LocaleUtils
 import org.apache.commons.lang3.SystemUtils
-import org.apache.commons.vfs2.VFS
-import org.apache.commons.vfs2.cache.WeakRefFilesCache
-import org.apache.commons.vfs2.impl.DefaultFileSystemManager
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
 import java.awt.MenuItem
@@ -76,15 +71,6 @@ class ApplicationRunner {
 
         // 等待插件加载完成
         loadPluginThread.join()
-
-        // 初始化 VFS
-        val fileSystemManager = DefaultFileSystemManager()
-        for (provider in ProtocolProvider.providers.filterIsInstance<TransferProtocolProvider>()) {
-            fileSystemManager.addProvider(provider.getProtocol().lowercase(), provider.getFileProvider())
-        }
-        fileSystemManager.filesCache = WeakRefFilesCache()
-        fileSystemManager.init()
-        VFS.setManager(fileSystemManager)
 
         // 准备就绪
         for (extension in ExtensionManager.getInstance().getExtensions(ApplicationRunnerExtension::class.java)) {
@@ -206,11 +192,13 @@ class ApplicationRunner {
             }
         }
 
+        // init native icon
+        NativeIcons.folderIcon
+
         themeManager.change(theme, true)
 
 
-        if (Application.isUnknownVersion())
-            FlatInspector.install("ctrl shift alt X")
+        FlatInspector.install("ctrl shift X")
 
         UIManager.put(FlatClientProperties.FULL_WINDOW_CONTENT, true)
         UIManager.put(FlatClientProperties.USE_WINDOW_DECORATIONS, false)
@@ -218,7 +206,7 @@ class ApplicationRunner {
 
         UIManager.put("Component.arc", 5)
         UIManager.put("TextComponent.arc", UIManager.getInt("Component.arc"))
-        UIManager.put("Component.hideMnemonics", false)
+        UIManager.put("Component.hideMnemonics", true)
 
         UIManager.put("TitleBar.height", 36)
 

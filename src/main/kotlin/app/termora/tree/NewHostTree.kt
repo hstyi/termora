@@ -8,7 +8,6 @@ import app.termora.database.DatabaseManager
 import app.termora.plugin.ExtensionManager
 import app.termora.plugin.internal.sftppty.SFTPPtyProtocolProvider
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
-import app.termora.sftp.SFTPActionEvent
 import app.termora.tag.TagDialog
 import app.termora.tag.TagManager
 import app.termora.tag.TagSimpleTreeCellRendererExtension
@@ -477,7 +476,7 @@ class NewHostTree : SimpleTree(), Disposable {
         if (nodes.isEmpty()) return
 
         for (node in nodes) {
-            sftpAction.actionPerformed(SFTPActionEvent(this, node.id, evt))
+//            sftpAction.actionPerformed(SFTPActionEvent(this, node.id, evt))
         }
     }
 

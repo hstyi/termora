@@ -4,9 +4,7 @@ package app.termora
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviderSupport
 import app.termora.actions.DataProviders
-import app.termora.database.DatabaseManager
 import app.termora.plugin.ExtensionManager
-import app.termora.sftp.SFTPTab
 import app.termora.terminal.DataKey
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.ui.FlatRootPaneUI
@@ -23,7 +21,6 @@ import java.util.*
 import javax.imageio.ImageIO
 import javax.swing.JComponent
 import javax.swing.JFrame
-import javax.swing.SwingUtilities
 import javax.swing.SwingUtilities.isEventDispatchThread
 import javax.swing.UIManager
 
@@ -43,7 +40,6 @@ class TermoraFrame : JFrame(), DataProvider {
     private val terminalTabbed = TerminalTabbed(windowScope, toolbar, tabbedPane)
     private val dataProviderSupport = DataProviderSupport()
     private val welcomePanel = WelcomePanel(windowScope)
-    private val sftp get() = DatabaseManager.getInstance().sftp
     private var notifyListeners = emptyArray<NotifyListener>()
 
 
@@ -204,13 +200,6 @@ class TermoraFrame : JFrame(), DataProvider {
 
         minimumSize = Dimension(640, 400)
         terminalTabbed.addTerminalTab(welcomePanel)
-
-        // 下一次事件循环检测是否固定 SFTP
-        if (sftp.pinTab) {
-            SwingUtilities.invokeLater {
-                terminalTabbed.addTerminalTab(SFTPTab(), false)
-            }
-        }
 
         val glassPane = GlassPane()
         rootPane.glassPane = glassPane

@@ -6,9 +6,9 @@ import app.termora.findeverywhere.FindEverywhereAction
 import app.termora.highlight.KeywordHighlightAction
 import app.termora.keymgr.KeyManagerAction
 import app.termora.macro.MacroAction
-import app.termora.sftp.SFTPAction
 import app.termora.snippet.SnippetAction
 import app.termora.tlog.TerminalLoggerAction
+import app.termora.transfer.TransferAnAction
 import javax.swing.Action
 
 class ActionManager : org.jdesktop.swingx.action.ActionManager() {
@@ -32,7 +32,7 @@ class ActionManager : org.jdesktop.swingx.action.ActionManager() {
         addAction(Actions.APP_UPDATE, AppUpdateAction.getInstance())
         addAction(Actions.KEYWORD_HIGHLIGHT, KeywordHighlightAction())
         addAction(Actions.TERMINAL_LOGGER, TerminalLoggerAction())
-        addAction(Actions.SFTP, SFTPAction())
+        addAction(Actions.SFTP, TransferAnAction())
         addAction(SFTPCommandAction.SFTP_COMMAND, SFTPCommandAction())
         addAction(SnippetAction.SNIPPET, SnippetAction.getInstance())
         addAction(Actions.MACRO, MacroAction())

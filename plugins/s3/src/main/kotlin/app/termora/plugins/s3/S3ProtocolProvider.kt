@@ -2,8 +2,8 @@ package app.termora.plugins.s3
 
 import app.termora.DynamicIcon
 import app.termora.Icons
-import app.termora.protocol.FileObjectHandler
-import app.termora.protocol.FileObjectRequest
+import app.termora.protocol.PathHandler
+import app.termora.protocol.PathHandlerRequest
 import app.termora.protocol.TransferProtocolProvider
 import io.minio.MinioClient
 import org.apache.commons.lang3.StringUtils
@@ -30,7 +30,7 @@ class S3ProtocolProvider private constructor() : TransferProtocolProvider {
         return S3FileProvider.instance
     }
 
-    override fun getRootFileObject(requester: FileObjectRequest): FileObjectHandler {
+    override fun getRootFileObject(requester: PathHandlerRequest): PathHandler {
         val host = requester.host
         val builder = MinioClient.builder()
             .endpoint(host.host)
@@ -53,7 +53,7 @@ class S3ProtocolProvider private constructor() : TransferProtocolProvider {
             "s3://${StringUtils.defaultIfBlank(defaultPath, "/")}",
             options
         )
-        return FileObjectHandler(file)
+        return PathHandler(file)
     }
 
 }

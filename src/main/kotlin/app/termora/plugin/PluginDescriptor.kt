@@ -2,7 +2,7 @@ package app.termora.plugin
 
 import app.termora.I18n
 import app.termora.Icons
-import com.formdev.flatlaf.extras.FlatSVGIcon
+import app.termora.transfer.ScaleIcon
 import org.semver4j.Semver
 import java.io.File
 import java.util.*
@@ -18,7 +18,7 @@ open class PluginDescriptor(
     val path: File? = null,
 ) {
     companion object {
-        val defaultIcon: Icon = FlatSVGIcon(Icons.plugin.name, 32, 32)
+        val defaultIcon: Icon = ScaleIcon(Icons.plugin, 32)
     }
 
     val description: String get() = getBestDescription()
