@@ -38,6 +38,7 @@ object Icons {
     val errorIntroduction by lazy { DynamicIcon("icons/errorIntroduction.svg", "icons/errorIntroduction_dark.svg") }
     val error by lazy { DynamicIcon("icons/error.svg", "icons/error_dark.svg") }
     val cwmUsers by lazy { DynamicIcon("icons/cwmUsers.svg", "icons/cwmUsers_dark.svg") }
+    val cwmPermissions by lazy { DynamicIcon("icons/cwmPermissions.svg", "icons/cwmPermissions_dark.svg") }
     val warningIntroduction by lazy { DynamicIcon("icons/warningIntroduction.svg", "icons/warningIntroduction_dark.svg") }
     val networkPolicy by lazy { DynamicIcon("icons/networkPolicy.svg", "icons/networkPolicy_dark.svg") }
     val clusterRole by lazy { DynamicIcon("icons/clusterRole.svg", "icons/clusterRole_dark.svg") }
@@ -61,6 +62,7 @@ object Icons {
     val chevronDown by lazy { DynamicIcon("icons/chevronDownLarge.svg", "icons/chevronDownLarge_dark.svg") }
     val chevronRight by lazy { DynamicIcon("icons/chevronRight.svg", "icons/chevronRight_dark.svg") }
     val homeFolder by lazy { DynamicIcon("icons/homeFolder.svg", "icons/homeFolder_dark.svg") }
+    val playForward by lazy { DynamicIcon("icons/playForward.svg", "icons/playForward_dark.svg") }
     val openNewTab by lazy { DynamicIcon("icons/openNewTab.svg", "icons/openNewTab_dark.svg") }
     val import by lazy { DynamicIcon("icons/import.svg", "icons/import_dark.svg") }
     val export by lazy { DynamicIcon("icons/export.svg", "icons/export_dark.svg") }
@@ -142,5 +144,8 @@ object Icons {
     val forwardPorts by lazy { DynamicIcon("icons/forwardPorts.svg", "icons/forwardPorts_dark.svg") }
     val showWriteAccess by lazy { DynamicIcon("icons/showWriteAccess.svg", "icons/showWriteAccess_dark.svg") }
     val nvidia by lazy { DynamicIcon("icons/nvidia.svg", "icons/nvidia_dark.svg") }
-
+    val desktop_windows by lazy { DynamicIcon("icons/desktop_windows.svg", "icons/desktop_windows_dark.svg") }
+    val desktop_mac by lazy { DynamicIcon("icons/desktop_mac.svg", "icons/desktop_mac_dark.svg") }
+    val desktop by lazy { DynamicIcon("icons/desktop.svg", "icons/desktop_dark.svg") }
+    val moreHorizontal by lazy { DynamicIcon("icons/moreHorizontal.svg", "icons/moreHorizontal_dark.svg") }
 }

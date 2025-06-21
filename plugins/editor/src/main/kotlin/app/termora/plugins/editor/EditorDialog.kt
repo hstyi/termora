@@ -4,21 +4,22 @@ import app.termora.DialogWrapper
 import app.termora.Disposable
 import app.termora.Disposer
 import app.termora.OptionPane
-import app.termora.sftp.absolutePathString
-import org.apache.commons.vfs2.FileObject
 import java.awt.Dimension
 import java.awt.Window
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import java.io.File
+import java.nio.file.Path
 import javax.swing.JComponent
 import javax.swing.JOptionPane
 import javax.swing.UIManager
+import kotlin.io.path.absolutePathString
+import kotlin.io.path.name
 
 
-class EditorDialog(file: FileObject, owner: Window, myDisposable: Disposable) : DialogWrapper(null) {
+class EditorDialog(file: Path, owner: Window, myDisposable: Disposable) : DialogWrapper(null) {
 
-    private val filename = file.name.baseName
+    private val filename = file.name
     private val filepath = File(file.absolutePathString())
     private val editorPanel = EditorPanel(this, filepath)
 

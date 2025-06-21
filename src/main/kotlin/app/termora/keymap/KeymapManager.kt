@@ -134,7 +134,7 @@ class KeymapManager private constructor() : Disposable {
 
             if (component is JComponent) {
                 // 如果这个键已经被组件注册了，那么忽略
-                if (component.getConditionForKeyStroke(keyStroke) != JComponent.UNDEFINED_CONDITION) {
+                if (getConditionForKeyStroke(component, keyStroke) != JComponent.UNDEFINED_CONDITION) {
                     return false
                 }
             }
@@ -180,6 +180,21 @@ class KeymapManager private constructor() : Disposable {
             }
 
             return false
+        }
+
+        private fun getConditionForKeyStroke(c: JComponent, keyStroke: KeyStroke): Int {
+            val condition = c.getConditionForKeyStroke(keyStroke)
+
+            // 如果这个键已经被组件注册了，那么忽略
+            if (condition != JComponent.UNDEFINED_CONDITION) {
+                return condition
+            }
+
+            if (c.parent is JComponent) {
+                return getConditionForKeyStroke(c.parent as JComponent, keyStroke)
+            }
+
+            return JComponent.UNDEFINED_CONDITION
         }
 
     }

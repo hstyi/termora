@@ -3,13 +3,13 @@ package app.termora.plugins.editor
 import app.termora.plugin.Extension
 import app.termora.plugin.ExtensionSupport
 import app.termora.plugin.Plugin
-import app.termora.sftp.SFTPEditFileExtension
+import app.termora.transfer.TransportEditFileExtension
 
 class EditorPlugin : Plugin {
     private val support = ExtensionSupport()
 
     init {
-        support.addExtension(SFTPEditFileExtension::class.java) { MySFTPEditFileExtension.instance }
+        support.addExtension(TransportEditFileExtension::class.java) { MyTransportEditFileExtension.instance }
     }
 
     override fun getAuthor(): String {

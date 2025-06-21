@@ -4,10 +4,9 @@ import app.termora.plugin.internal.local.LocalProtocolProvider
 import app.termora.plugin.internal.sftppty.SFTPPtyProtocolProvider
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
 import app.termora.protocol.ProtocolProvider.Companion.providers
-import app.termora.sftp.internal.local.LocalTransferProtocolProvider
-import app.termora.sftp.internal.sftp.SFTPTransferProtocolProvider
+import app.termora.transfer.internal.local.LocalTransferProtocolProvider
+import app.termora.transfer.internal.sftp.SFTPTransferProtocolProvider
 import org.apache.commons.lang3.StringUtils
-import org.apache.commons.vfs2.provider.FileProvider
 
 interface TransferProtocolProvider : ProtocolProvider {
 
@@ -32,14 +31,9 @@ interface TransferProtocolProvider : ProtocolProvider {
     }
 
     /**
-     * 获取文件提供者
+     * 创建一个文件
      */
-    fun getFileProvider(): FileProvider
-
-    /**
-     * 获取根文件
-     */
-    fun getRootFileObject(requester: FileObjectRequest): FileObjectHandler
+    fun createPathHandler(requester: PathHandlerRequest): PathHandler
 
     override fun isTransfer(): Boolean {
         return true

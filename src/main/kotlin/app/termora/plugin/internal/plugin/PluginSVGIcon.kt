@@ -7,7 +7,6 @@ import app.termora.setupAntialiasing
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.util.UIScale
 import com.github.weisj.jsvg.SVGDocument
-import com.github.weisj.jsvg.parser.LoaderContext
 import com.github.weisj.jsvg.parser.SVGLoader
 import java.awt.Component
 import java.awt.Graphics
@@ -22,8 +21,8 @@ class PluginSVGIcon(input: InputStream, dark: InputStream? = null) : Icon {
 
     }
 
-    private val document = svgLoader.load(input, null, LoaderContext.createDefault())
-    private val darkDocument = dark?.let { svgLoader.load(it, null, LoaderContext.createDefault()) }
+    private val document = svgLoader.load(input)
+    private val darkDocument = dark?.let { svgLoader.load(it) }
 
     override fun getIconHeight(): Int {
         return 32
