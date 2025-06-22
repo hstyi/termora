@@ -379,7 +379,11 @@ class TransferTableModel(private val coroutineScope: CoroutineScope) :
                     }
                     continue
                 } else if (canTransfer(node)) {
-                    doTransfer(node)
+                    if (continueTransfer(node, false)) {
+                        doTransfer(node)
+                    } else {
+                        changeState(node, State.Failed)
+                    }
                 }
                 lock.withLock { condition.signalAll() }
             } catch (_: CancellationException) {
@@ -407,8 +411,9 @@ class TransferTableModel(private val coroutineScope: CoroutineScope) :
                 }
             }
         } catch (e: Exception) {
-            node.tryChangeState(State.Failed)
+            tryChangeState(node, State.Failed)
             if (e !is UserCanceledException) {
+                node.setException(e)
                 throw e
             }
         } finally {
@@ -442,6 +447,12 @@ class TransferTableModel(private val coroutineScope: CoroutineScope) :
     private fun changeState(node: TransferTreeTableNode, state: State) {
         node.changeState(state)
         fireTransferChanged(node)
+    }
+
+    private fun tryChangeState(node: TransferTreeTableNode, state: State) {
+        if (node.tryChangeState(state)) {
+            fireTransferChanged(node)
+        }
     }
 
     private fun removeCompleted(node: TransferTreeTableNode) {

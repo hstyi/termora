@@ -5,6 +5,7 @@ import app.termora.formatBytes
 import app.termora.formatSeconds
 import app.termora.transfer.TransferTableModel.Companion.COLUMN_COUNT
 import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.exception.ExceptionUtils
 import org.jdesktop.swingx.treetable.DefaultMutableTreeTableNode
 import java.nio.file.FileSystems
 import java.nio.file.Path
@@ -42,6 +43,8 @@ class TransferTreeTableNode(transfer: Transfer) : DefaultMutableTreeTableNode(tr
      * 状态
      */
     private var state = State.Ready
+
+    private var exception: Exception? = null
 
 
     override fun getColumnCount(): Int {
@@ -96,6 +99,14 @@ class TransferTreeTableNode(transfer: Transfer) : DefaultMutableTreeTableNode(tr
             return I18n.getString("termora.transport.sftp.status.deleting")
         }
 
+        if (state == State.Failed) {
+            val e = exception
+            if (e != null) {
+                val message = ExceptionUtils.getRootCauseMessage(e)
+                return "${I18n.getString("termora.transport.sftp.status.failed")}: $message"
+            }
+        }
+
         return when (state) {
             State.Processing -> I18n.getString("termora.transport.sftp.status.transporting")
             State.Ready -> I18n.getString("termora.transport.sftp.status.waiting")
@@ -130,6 +141,9 @@ class TransferTreeTableNode(transfer: Transfer) : DefaultMutableTreeTableNode(tr
         this.state = state
     }
 
+    fun setException(e: Exception) {
+        this.exception = e
+    }
 
     fun tryChangeState(state: State): Boolean {
         if (this.state == State.Done || this.state == State.Failed) {
