@@ -588,6 +588,7 @@ class TerminalPanel(val terminal: Terminal, private val writer: TerminalWriter) 
         requestFocusInWindow()
     }
 
+    @Suppress("CascadeIf")
     override fun resumeVisualWindows(id: String, dataProvider: DataProvider) {
         val windows = properties.getString("VisualWindow.${id}.store") ?: return
         for (name in windows.split(",")) {
@@ -601,6 +602,13 @@ class TerminalPanel(val terminal: Terminal, private val writer: TerminalWriter) 
             } else if (name == "SystemInformation") {
                 addVisualWindow(
                     SystemInformationVisualWindow(
+                        dataProvider.getData(DataProviders.TerminalTab) as SSHTerminalTab,
+                        this
+                    )
+                )
+            } else if (name == "Transfer") {
+                addVisualWindow(
+                    TransferVisualWindow(
                         dataProvider.getData(DataProviders.TerminalTab) as SSHTerminalTab,
                         this
                     )

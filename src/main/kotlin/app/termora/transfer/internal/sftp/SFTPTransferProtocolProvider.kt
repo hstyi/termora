@@ -1,7 +1,6 @@
 package app.termora.transfer.internal.sftp
 
 import app.termora.SshClients
-import app.termora.database.DatabaseManager
 import app.termora.protocol.PathHandler
 import app.termora.protocol.PathHandlerRequest
 import app.termora.protocol.TransferProtocolProvider
@@ -14,7 +13,6 @@ import org.apache.sshd.sftp.client.SftpClientFactory
 internal class SFTPTransferProtocolProvider : TransferProtocolProvider {
     companion object {
         val instance by lazy { SFTPTransferProtocolProvider() }
-        private val sftp get() = DatabaseManager.getInstance().sftp
         const val PROTOCOL = "sftp"
     }
 

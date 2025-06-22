@@ -13,7 +13,6 @@ import com.formdev.flatlaf.icons.FlatTreeLeafIcon
 import com.formdev.flatlaf.util.SystemInfo
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
-import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.ArrayUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
@@ -46,7 +45,6 @@ import java.nio.file.attribute.PosixFilePermissions
 import java.text.MessageFormat
 import java.util.*
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.Future
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.regex.Pattern
@@ -120,7 +118,7 @@ class TransportPanel(
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private val disposed = AtomicBoolean(false)
-    private val futures = CopyOnWriteArraySet<Future<*>>()
+    private val futures = Collections.synchronizedSet(mutableSetOf<Future<*>>())
 
     private val _fileSystem by lazy { getSupport().fileSystem }
     private val defaultPath by lazy { getSupport().path }
@@ -456,6 +454,9 @@ class TransportPanel(
 
                     val rows = table.selectedRows.map { sorter.convertRowIndexToModel(it) }.toTypedArray()
                     showContextmenu(rows, e)
+                } else if (SwingUtilities.isLeftMouseButton(e)) {
+                    val row = table.rowAtPoint(e.point)
+                    if (row < 0) table.clearSelection()
                 }
             }
         })
@@ -627,7 +628,7 @@ class TransportPanel(
         }
     }
 
-    private fun reload(oldPath: Path? = workdir, newPath: Path? = workdir, requestFocus: Boolean = true): Boolean {
+    private fun reload(oldPath: Path? = workdir, newPath: Path? = workdir, requestFocus: Boolean = false): Boolean {
         assertEventDispatchThread()
 
         if (loading) return false
@@ -663,7 +664,7 @@ class TransportPanel(
         return true
     }
 
-    private suspend fun doReload(oldPath: Path? = null, newPath: Path? = null, requestFocus: Boolean = true): Path {
+    private suspend fun doReload(oldPath: Path? = null, newPath: Path? = null, requestFocus: Boolean = false): Path {
 
         val workdir = newPath ?: oldPath
 
@@ -854,7 +855,6 @@ class TransportPanel(
             futures.forEach { it.cancel(true) }
             futures.clear()
             coroutineScope.cancel()
-            if (loader.isLoaded && _fileSystem.isOpen) IOUtils.closeQuietly(_fileSystem)
             loadingPanel.busyLabel.isBusy = false
         }
     }
@@ -1038,10 +1038,12 @@ class TransportPanel(
                 val path = files.first().first
                 processPath(path.name) {
                     if (c.includeSubFolder) {
-                        val future = transferManager.addTransfer(
-                            listOf(path to files.first().second.copy(permissions = c.permissions)),
-                            InternalTransferManager.TransferMode.ChangePermission
-                        )
+                        val future = withContext(Dispatchers.Swing) {
+                            transferManager.addTransfer(
+                                listOf(path to files.first().second.copy(permissions = c.permissions)),
+                                InternalTransferManager.TransferMode.ChangePermission
+                            )
+                        }
                         mountFuture(future)
                         future.get()
                     } else {
@@ -1064,7 +1066,7 @@ class TransportPanel(
             }
         }
 
-        private fun processPath(name: String, action: () -> Unit) {
+        private fun processPath(name: String, action: suspend () -> Unit) {
             coroutineScope.launch {
                 try {
                     action.invoke()

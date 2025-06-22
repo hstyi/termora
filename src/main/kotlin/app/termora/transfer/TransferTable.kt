@@ -17,6 +17,7 @@ import java.awt.Insets
 import java.awt.event.ActionEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.*
 import javax.swing.table.DefaultTableCellRenderer
 import javax.swing.tree.DefaultTreeCellRenderer
@@ -30,7 +31,7 @@ class TransferTable(private val coroutineScope: CoroutineScope, private val tabl
 
     private val table get() = this
     private val owner get() = SwingUtilities.getWindowAncestor(this)
-
+    private val disposed = AtomicBoolean(false)
 
     init {
         initView()
@@ -153,7 +154,7 @@ class TransferTable(private val coroutineScope: CoroutineScope, private val tabl
     private fun refreshView() {
         coroutineScope.launch(Dispatchers.Swing) {
             val timeout = 500
-            while (coroutineScope.isActive) {
+            while (coroutineScope.isActive && disposed.get().not()) {
                 for (row in 0 until rowCount) {
                     val treePath = getPathForRow(row) ?: continue
                     val node = treePath.lastPathComponent as? DefaultMutableTreeTableNode ?: continue
@@ -162,6 +163,10 @@ class TransferTable(private val coroutineScope: CoroutineScope, private val tabl
                 delay(timeout.milliseconds)
             }
         }
+    }
+
+    override fun dispose() {
+        disposed.set(true)
     }
 
     private inner class ProgressTableCellRenderer : DefaultTableCellRenderer() {

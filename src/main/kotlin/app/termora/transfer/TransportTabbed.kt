@@ -18,10 +18,10 @@ import javax.swing.SwingUtilities
 @Suppress("DuplicatedCode")
 class TransportTabbed(
     private val transferManager: TransferManager,
-    private val internalTransferManager: InternalTransferManager
 ) : FlatTabbedPane(), Disposable {
     private val addBtn = JButton(Icons.add)
     private val tabbed get() = this
+    lateinit var internalTransferManager: InternalTransferManager
 
     init {
         initViews()

@@ -146,6 +146,9 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
                             }
                         }
                     }
+
+                    // stop
+                    stop()
                 }
             }
         })
