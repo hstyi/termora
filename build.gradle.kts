@@ -28,6 +28,7 @@ version = rootProject.projectDir.resolve("VERSION").readText().trim()
 val os: OperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
 val arch: ArchitectureInternal = DefaultNativePlatform.getCurrentArchitecture()
 val appVersion = project.version.toString().split("-")[0]
+val isDeb = os.isLinux && System.getProperty("type") == "deb"
 
 // macOS 签名信息
 val macOSSignUsername = System.getenv("TERMORA_MAC_SIGN_USER_NAME") ?: StringUtils.EMPTY
@@ -453,7 +454,7 @@ tasks.register<Exec>("jpackage") {
     val arguments = mutableListOf("${Jvm.current().javaHome}/bin/jpackage")
     arguments.addAll(listOf("--runtime-image", "${buildDir}/jlink"))
     arguments.addAll(listOf("--name", project.name.uppercaseFirstChar()))
-    arguments.addAll(listOf("--app-version", appVersion.toString()))
+    arguments.addAll(listOf("--app-version", appVersion))
     arguments.addAll(listOf("--main-jar", tasks.jar.get().archiveFileName.get()))
     arguments.addAll(listOf("--main-class", application.mainClass.get()))
     arguments.addAll(listOf("--input", "$buildDir/libs"))
@@ -502,7 +503,11 @@ tasks.register<Exec>("jpackage") {
     } else if (os.isWindows) {
         arguments.add("msi")
     } else if (os.isLinux) {
-        arguments.add("app-image")
+        arguments.add(if (isDeb) "deb" else "app-image")
+        if (isDeb) {
+            arguments.add("--linux-deb-maintainer")
+            arguments.add("support@termora.app")
+        }
     } else {
         throw UnsupportedOperationException()
     }
@@ -540,7 +545,7 @@ tasks.register("dist") {
         exec { commandLine(gradlew, ":jlink") }
 
         // 打包
-        exec { commandLine(gradlew, ":jpackage") }
+        exec { commandLine(gradlew, ":jpackage", "-Dtype=${System.getProperty("type")}") }
 
         // 根据不同的系统构建不同的二进制包
         pack()
@@ -705,6 +710,14 @@ fun packOnMac(distributionDir: Directory, finalFilenameWithoutExtension: String,
  * 创建 tar.gz 和 AppImage
  */
 fun packOnLinux(distributionDir: Directory, finalFilenameWithoutExtension: String, projectName: String) {
+
+    if (isDeb) {
+        val arch = if (arch.isArm) "arm" else "amd"
+        distributionDir.file("${project.name}_${appVersion}_${arch}64.deb").asFile
+            .renameTo(distributionDir.file("${finalFilenameWithoutExtension}.deb").asFile)
+        return
+    }
+
     // tar.gz
     exec {
         commandLine(
