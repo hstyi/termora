@@ -9,7 +9,9 @@ import app.termora.plugin.internal.ssh.SSHTerminalTab.Companion.SSHSession
 import app.termora.terminal.DataKey
 import app.termora.terminal.DataListener
 import app.termora.transfer.*
+import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.icons.FlatOptionPaneErrorIcon
+import com.formdev.flatlaf.util.SystemInfo
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import kotlinx.coroutines.*
@@ -20,17 +22,17 @@ import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.sftp.client.SftpClientFactory
 import org.jdesktop.swingx.JXBusyLabel
 import org.jdesktop.swingx.JXHyperlink
+import org.jdesktop.swingx.JXTree
 import org.slf4j.LoggerFactory
 import java.awt.*
-import java.awt.event.ActionEvent
-import java.awt.event.KeyEvent
-import java.awt.event.WindowAdapter
-import java.awt.event.WindowEvent
+import java.awt.event.*
+import java.net.URI
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import javax.swing.*
 import kotlin.io.path.absolutePathString
+import kotlin.math.max
 import kotlin.reflect.cast
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -83,6 +85,7 @@ class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindo
     private fun initEvents() {
         Disposer.register(tab, this)
         Disposer.register(this, disposable)
+        Disposer.register(disposable, transferManager)
 
         connectingPanel.busyLabel.isBusy = true
 
@@ -103,8 +106,9 @@ class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindo
         downloadBtn.addActionListener(object : AbstractAction() {
             override fun actionPerformed(e: ActionEvent) {
                 val dialog = DownloadDialog()
+                dialog.iconImages = owner.iconImages
                 dialog.setLocationRelativeTo(downloadBtn)
-                dialog.setLocation(dialog.x, downloadBtn.locationOnScreen.y + downloadBtn.height + 1)
+                dialog.setLocation(dialog.x, downloadBtn.locationOnScreen.y + downloadBtn.height + 2)
                 dialog.isVisible = true
             }
         })
@@ -117,6 +121,12 @@ class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindo
                     badgeIcon.visible = newVisible
                     downloadBtn.repaint()
                 }
+            }
+        })
+
+        questionBtn.addActionListener(object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent) {
+                Application.browse(URI.create("https://github.com/TermoraDev/termora/pull/690"))
             }
         })
 
@@ -219,30 +229,86 @@ class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindo
     }
 
     private inner class DownloadDialog() : JDialog() {
+
         init {
-            size = Dimension(UIManager.getInt("Dialog.width") - 150, UIManager.getInt("Dialog.height") - 100)
+            size = getMySize()
             isModal = false
             title = I18n.getString("termora.transport.sftp")
-            isUndecorated = true
             layout = BorderLayout()
+
+            if (SystemInfo.isMacOS) {
+                rootPane.putClientProperty("apple.awt.windowTitleVisible", false)
+                rootPane.putClientProperty("apple.awt.fullWindowContent", true)
+                rootPane.putClientProperty("apple.awt.transparentTitleBar", true)
+            }
+
             add(createCenterPanel(), BorderLayout.CENTER)
             val window = this
-
-            addWindowFocusListener(object : WindowAdapter() {
-                override fun windowLostFocus(e: WindowEvent?) {
-                    window.dispose()
-                }
-            })
 
             val inputMap = rootPane.getInputMap(WHEN_IN_FOCUSED_WINDOW)
             inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close")
             inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_W, toolkit.menuShortcutKeyMaskEx), "close")
             rootPane.actionMap.put("close", object : AnAction() {
                 override fun actionPerformed(evt: AnActionEvent) {
-                    if (hasPopupMenus()) return
-                    SwingUtilities.invokeLater { window.dispose() }
+                    if (hasPopupMenus().not()) {
+                        window.dispose()
+                    }
                 }
             })
+
+
+            // 判断失去焦点
+            val awtEventListener = object : AWTEventListener {
+                override fun eventDispatched(event: AWTEvent) {
+                    if (event !is MouseEvent) return
+                    if (event.id != MouseEvent.MOUSE_PRESSED) return
+                    val ancestor = SwingUtilities.getWindowAncestor(event.component)
+                    if (ancestor == window) return
+                    if (ancestor is Window && getOwners(ancestor).contains(window)) return
+                    // JTreeTable 比较特殊，要特别判断
+                    if (isFocused && event.component is JXTree) return
+                    window.dispose()
+                }
+
+                private fun getOwners(window: Window): List<Window> {
+                    val owners = mutableListOf<Window>()
+                    var owner: Window? = window.owner
+                    while (owner != null) {
+                        owners.add(owner)
+                        owner = owner.owner
+                    }
+                    return owners
+                }
+            }
+
+            // 监听全局事件
+            toolkit.addAWTEventListener(
+                awtEventListener,
+                MouseEvent.MOUSE_EVENT_MASK
+            )
+
+            addWindowListener(object : WindowAdapter() {
+                override fun windowClosed(e: WindowEvent) {
+                    removeWindowListener(this)
+                    toolkit.removeAWTEventListener(awtEventListener)
+                    properties.putString("VisualWindow.DownloadDialog.location.width", width.toString())
+                    properties.putString("VisualWindow.DownloadDialog.location.height", height.toString())
+                }
+            })
+
+        }
+
+        private fun getMySize(): Dimension {
+            val size = Dimension(UIManager.getInt("Dialog.width") - 150, UIManager.getInt("Dialog.height") - 100)
+            val width = properties.getString(
+                "VisualWindow.DownloadDialog.location.width",
+                size.width.toString()
+            ).toIntOrNull() ?: size.width
+            val height = properties.getString(
+                "VisualWindow.DownloadDialog.location.height",
+                size.height.toString()
+            ).toIntOrNull() ?: size.height
+            return Dimension(max(width, 250), max(height, 150))
         }
 
         private fun hasPopupMenus(): Boolean {
@@ -288,6 +354,21 @@ class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindo
                 }
             })
             return scrollPane
+        }
+
+        override fun addNotify() {
+            super.addNotify()
+
+            if (SystemInfo.isMacOS) {
+                NativeMacLibrary.setControlsVisible(this, false)
+            } else if (SystemInfo.isWindows || SystemInfo.isLinux) {
+                rootPane.putClientProperty(FlatClientProperties.FULL_WINDOW_CONTENT, true)
+                rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_ICONIFFY, false)
+                rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_ICON, false)
+                rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_MAXIMIZE, false)
+                rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_TITLE, false)
+                rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_CLOSE, false)
+            }
         }
 
     }
