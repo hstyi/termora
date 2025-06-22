@@ -57,8 +57,8 @@ class NvidiaSMIVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWind
         initVisualWindowPanel()
     }
 
-    override fun toolbarButtons(): List<JButton> {
-        return listOf(percentageBtn)
+    override fun toolbarButtons(): List<Pair<JButton, Position>> {
+        return listOf(percentageBtn to Position.Right)
     }
 
     private fun initViews() {

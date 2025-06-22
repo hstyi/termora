@@ -20,6 +20,7 @@ object Icons {
     val eye by lazy { DynamicIcon("icons/eye.svg", "icons/eye_dark.svg") }
     val eyeClose by lazy { DynamicIcon("icons/eyeClose.svg", "icons/eyeClose_dark.svg") }
     val matchCase by lazy { DynamicIcon("icons/matchCase.svg", "icons/matchCase_dark.svg") }
+    val questionMark by lazy { DynamicIcon("icons/questionMark.svg", "icons/questionMark_dark.svg") }
     val regex by lazy { DynamicIcon("icons/regex.svg", "icons/regex_dark.svg") }
     val vcs by lazy { DynamicIcon("icons/vcs.svg", "icons/vcs_dark.svg") }
     val dumpThreads by lazy { DynamicIcon("icons/dumpThreads.svg", "icons/dumpThreads_dark.svg") }
@@ -119,6 +120,7 @@ object Icons {
     val toolWindowJsonPath by lazy { DynamicIcon("icons/toolWindowJsonPath.svg", "icons/toolWindowJsonPath_dark.svg") }
     val codeSpan by lazy { DynamicIcon("icons/codeSpan.svg", "icons/codeSpan_dark.svg") }
     val fileTransfer by lazy { DynamicIcon("icons/fileTransfer.svg", "icons/fileTransfer_dark.svg") }
+    val transferToolWindow by lazy { DynamicIcon("icons/transferToolWindow.svg", "icons/transferToolWindow_dark.svg") }
     val help by lazy { DynamicIcon("icons/help.svg", "icons/help_dark.svg") }
     val applyNotConflictsLeft by lazy {
         DynamicIcon(

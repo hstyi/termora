@@ -12,6 +12,7 @@ import org.jdesktop.swingx.treetable.DefaultMutableTreeTableNode
 import org.jdesktop.swingx.treetable.DefaultTreeTableModel
 import org.slf4j.LoggerFactory
 import java.io.Closeable
+import java.io.InterruptedIOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
@@ -114,7 +115,7 @@ class TransferTableModel(private val coroutineScope: CoroutineScope) :
         val result = AtomicBoolean(false)
         if (SwingUtilities.isEventDispatchThread()) {
             if (validGrandfather(node.transfer.parentId())) {
-                map[node.transfer.id()] = node
+                putNodeToMap(node.transfer.id(), node)
                 insertNodeInto(node, parent, parent.childCount)
                 result.set(true)
             }
@@ -122,6 +123,21 @@ class TransferTableModel(private val coroutineScope: CoroutineScope) :
             SwingUtilities.invokeAndWait { result.set(insertNode(node, parent)) }
         }
         return result.get()
+    }
+
+    private fun removeNodeFromMap(id: String) {
+        if (map.remove(id) != null) {
+            for (listener in eventListener.getListeners(TransferListener::class.java)) {
+                listener.onTransferCountChanged()
+            }
+        }
+    }
+
+    private fun putNodeToMap(id: String, node: TransferTreeTableNode) {
+        map[id] = node
+        for (listener in eventListener.getListeners(TransferListener::class.java)) {
+            listener.onTransferCountChanged()
+        }
     }
 
     /**
@@ -179,7 +195,7 @@ class TransferTableModel(private val coroutineScope: CoroutineScope) :
                 // 定义为失败
                 node.tryChangeState(State.Failed)
                 // 移除
-                map.remove(node.transfer.id())
+                removeNodeFromMap(node.transfer.id())
                 removeNodeFromParent(node)
 
                 // 如果删除时还在传输，那么需要减去大小
@@ -387,6 +403,10 @@ class TransferTableModel(private val coroutineScope: CoroutineScope) :
                 }
                 lock.withLock { condition.signalAll() }
             } catch (_: CancellationException) {
+                break
+            } catch (_: InterruptedException) {
+                break
+            } catch (_: InterruptedIOException) {
                 break
             } catch (e: Exception) {
                 if (log.isErrorEnabled) log.error(e.message, e)

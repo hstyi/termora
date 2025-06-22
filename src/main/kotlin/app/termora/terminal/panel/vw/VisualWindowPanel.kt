@@ -17,6 +17,10 @@ import kotlin.math.min
 open class VisualWindowPanel(protected val id: String, protected val visualWindowManager: VisualWindowManager) :
     JPanel(BorderLayout()), VisualWindow {
 
+    protected enum class Position {
+        Left, Right
+    }
+
     private val stickPx = 2
     protected val properties get() = DatabaseManager.getInstance().properties
     private val titleLabel = JLabel()
@@ -90,7 +94,7 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
         alwaysTopBtn.isVisible = false
     }
 
-    protected open fun toolbarButtons(): List<JButton> {
+    protected open fun toolbarButtons(): List<Pair<JButton, Position>> {
         return emptyList()
     }
 
@@ -164,19 +168,19 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
     }
 
     private fun initToolBar() {
-        val btns = toolbarButtons()
-        val count = 2 + btns.size
+        val buttons = toolbarButtons()
+        val count = 2 + buttons.size - (buttons.count { it.second == Position.Left } * 2)
         toolbar.add(alwaysTopBtn)
-        toolbar.add(Box.createHorizontalStrut(count * 26))
-        toolbar.add(JLabel(Icons.empty))
+        buttons.filter { it.second == Position.Left }.forEach { toolbar.add(it.first) }
+        toolbar.add(Box.createHorizontalStrut(max(count * 26, 0)))
         toolbar.add(Box.createHorizontalGlue())
         toolbar.add(titleLabel)
         toolbar.add(Box.createHorizontalGlue())
 
-        btns.forEach { toolbar.add(it) }
+        buttons.filter { it.second == Position.Right }.forEach { toolbar.add(it.first) }
 
         toolbar.add(toggleWindowBtn)
-        toolbar.add(JButton(Icons.close).apply { addActionListener { Disposer.dispose(visualWindow) } })
+        toolbar.add(JButton(Icons.close).apply { addActionListener { if (beforeClose()) Disposer.dispose(visualWindow) } })
         toolbar.border = BorderFactory.createMatteBorder(0, 0, 1, 0, DynamicColor.BorderColor)
         add(toolbar, BorderLayout.NORTH)
     }
@@ -318,6 +322,9 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
         SwingUtilities.invokeLater { SwingUtilities.updateComponentTreeUI(this) }
     }
 
+    protected open fun beforeClose(): Boolean {
+        return true
+    }
 
     protected open fun close() {
         if (isWindow()) {

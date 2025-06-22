@@ -6,5 +6,7 @@ interface TransferListener : EventListener {
     /**
      * 状态变化
      */
-    fun onTransferChanged(transfer: Transfer, state: TransferTreeTableNode.State)
+    fun onTransferChanged(transfer: Transfer, state: TransferTreeTableNode.State) {}
+
+    fun onTransferCountChanged() {}
 }

@@ -12,6 +12,7 @@ import app.termora.snippet.SnippetTreeDialog
 import app.termora.terminal.DataKey
 import app.termora.terminal.panel.vw.NvidiaSMIVisualWindow
 import app.termora.terminal.panel.vw.SystemInformationVisualWindow
+import app.termora.terminal.panel.vw.TransferVisualWindow
 import com.formdev.flatlaf.extras.components.FlatToolBar
 import com.formdev.flatlaf.ui.FlatRoundBorder
 import org.apache.commons.lang3.StringUtils
@@ -118,6 +119,9 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
         // 服务器信息
         add(initServerInfoActionButton())
 
+        // Transfer
+        add(initTransferActionButton())
+
         // Snippet
         add(initSnippetActionButton())
 
@@ -178,6 +182,34 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
                 }
 
                 val visualWindowPanel = SystemInformationVisualWindow(tab, terminalPanel)
+                terminalPanel.addVisualWindow(visualWindowPanel)
+
+            }
+        })
+        return btn
+    }
+
+    private fun initTransferActionButton(): JButton {
+        val btn = JButton(Icons.folder)
+        btn.toolTipText = I18n.getString("termora.transport.sftp")
+        btn.addActionListener(object : AnAction() {
+            override fun actionPerformed(evt: AnActionEvent) {
+                val tab = anEvent.getData(DataProviders.TerminalTab) ?: return
+                val terminalPanel = (tab as DataProvider?)?.getData(DataProviders.TerminalPanel) ?: return
+
+                if (tab !is SSHTerminalTab) {
+                    terminalPanel.toast(I18n.getString("termora.floating-toolbar.not-supported"))
+                    return
+                }
+
+                for (window in terminalPanel.getVisualWindows()) {
+                    if (window is TransferVisualWindow) {
+                        terminalPanel.moveToFront(window)
+                        return
+                    }
+                }
+
+                val visualWindowPanel = TransferVisualWindow(tab, terminalPanel)
                 terminalPanel.addVisualWindow(visualWindowPanel)
 
             }
