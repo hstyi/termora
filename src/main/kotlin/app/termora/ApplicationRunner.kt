@@ -222,7 +222,7 @@ class ApplicationRunner {
             UIManager.put("TabbedPane.tabHeight", UIManager.getInt("TitleBar.height") - 6)
         }
 
-        if (SystemInfo.isLinux) {
+        if (SystemInfo.isLinux || SystemInfo.isWindows) {
             UIManager.put("TitlePane.centerTitle", true)
             UIManager.put("TitlePane.showIcon", false)
             UIManager.put("TitlePane.showIconInDialogs", false)
