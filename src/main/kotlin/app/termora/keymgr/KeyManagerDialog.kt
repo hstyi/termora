@@ -58,7 +58,7 @@ class KeyManagerDialog(
 
 
         tabbed.addTab(
-            I18n.getString("termora.settings.sync.range.keys"),
+            I18n.getString("termora.keymgr.my-keys"),
             Icons.user,
             KeyManagerPanel(AccountOwner(accountManager.getAccountId(), accountManager.getEmail(), OwnerType.User))
         )
