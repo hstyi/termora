@@ -50,7 +50,7 @@ class KeywordHighlightDialog(owner: Window) : DialogWrapper(owner) {
             ).apply { Disposer.register(disposable, this) }
         )
 
-        if (accountManager.isSigned()) {
+        if (accountManager.hasTeamFeature()) {
             for (team in accountManager.getTeams()) {
                 tabbed.addTab(
                     team.name,

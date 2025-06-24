@@ -51,7 +51,7 @@ class TagDialog(owner: Window, private val accountOwnerId: String = StringUtils.
             ).apply { Disposer.register(disposable, this) }
         )
 
-        if (accountManager.isSigned()) {
+        if (accountManager.hasTeamFeature()) {
             for (team in accountManager.getTeams()) {
                 tabbed.addTab(
                     team.name,

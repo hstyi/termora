@@ -117,13 +117,23 @@ class PushService private constructor() : SyncService(), Disposable, Application
     }
 
     private fun push(data: Data) {
+        val encryptedData = encryptData(data.id, data.data, data.ownerId)
+        if (encryptedData.isBlank()) {
+            if (log.isErrorEnabled) {
+                log.error("数据: {} 没有找到对应 ownerId 的密钥，此数据将标记为已同步", data.id)
+            }
+            // 标记为已经同步
+            updateData(data.id, synced = true)
+            return
+        }
+
         val requestData = PushDataRequest(
             objectId = data.id,
             ownerId = data.ownerId,
             ownerType = data.ownerType,
             version = data.version,
             type = data.type,
-            data = encryptData(data.id, data.data),
+            data = encryptedData,
         )
 
         val request = Request.Builder().url("${accountManager.getServer()}/v1/data/push")

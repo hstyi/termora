@@ -42,7 +42,7 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     fun getSecretKey() = account.secretKey
     fun getPublicKey() = account.publicKey
     fun getPrivateKey() = account.privateKey
-    fun isSigned() = isFreePlan().not() && accountProperties.signed
+    fun isSigned() = accountProperties.signed
     fun isLocally() = account.isLocally
     fun getLastSynchronizationOn() = accountProperties.lastSynchronizationOn
     fun getAccessToken() = account.accessToken

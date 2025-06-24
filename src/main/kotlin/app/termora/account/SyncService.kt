@@ -3,6 +3,7 @@ package app.termora.account
 import app.termora.AES
 import app.termora.database.*
 import app.termora.database.Data.Companion.toData
+import okhttp3.internal.EMPTY_BYTE_ARRAY
 import org.apache.commons.codec.binary.Base64
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.lang3.ObjectUtils
@@ -75,14 +76,21 @@ abstract class SyncService {
         }
     }
 
-    protected fun encryptData(id: String, data: String): String {
+    protected fun encryptData(id: String, data: String, ownerId: String): String {
         val iv = DigestUtils.sha256(id).copyOf(12)
-        return Base64.encodeBase64String(
-            AES.GCM.encrypt(
-                accountManager.getSecretKey(), iv,
-                data.toByteArray()
-            )
-        )
+        var secretKey = EMPTY_BYTE_ARRAY
+        if (ownerId != accountManager.getAccountId()) {
+            val team = accountManager.getTeams().firstOrNull { it.id == ownerId }
+            if (team == null) {
+                return StringUtils.EMPTY
+            } else {
+                secretKey = team.secretKey
+            }
+        } else if (ownerId == accountManager.getAccountId()) {
+            secretKey = accountManager.getSecretKey()
+        }
+        if (secretKey.isEmpty()) return StringUtils.EMPTY
+        return Base64.encodeBase64String(AES.GCM.encrypt(secretKey, iv, data.toByteArray()))
     }
 
     protected fun decryptData(id: String, data: String): String {
