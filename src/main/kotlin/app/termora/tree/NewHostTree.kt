@@ -8,9 +8,11 @@ import app.termora.database.DatabaseManager
 import app.termora.plugin.ExtensionManager
 import app.termora.plugin.internal.sftppty.SFTPPtyProtocolProvider
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
+import app.termora.protocol.TransferProtocolProvider
 import app.termora.tag.TagDialog
 import app.termora.tag.TagManager
 import app.termora.tag.TagSimpleTreeCellRendererExtension
+import app.termora.transfer.TransferActionEvent
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
@@ -471,12 +473,12 @@ class NewHostTree : SimpleTree(), Disposable {
     }
 
     private fun openWithSFTP(evt: EventObject) {
-        val nodes =
-            getSelectionSimpleTreeNodes(true).map { it.host }.filter { it.protocol == SSHProtocolProvider.PROTOCOL }
+        val nodes = getSelectionSimpleTreeNodes(true)
+            .map { it.host }.filter { TransferProtocolProvider.valueOf(it.protocol) != null }
         if (nodes.isEmpty()) return
 
         for (node in nodes) {
-//            sftpAction.actionPerformed(SFTPActionEvent(this, node.id, evt))
+            sftpAction.actionPerformed(TransferActionEvent(this, node.id, evt))
         }
     }
 
