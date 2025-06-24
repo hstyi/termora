@@ -1,6 +1,7 @@
 package app.termora.plugins.bg
 
 import app.termora.GlassPaneExtension
+import app.termora.WindowScope
 import com.formdev.flatlaf.FlatLaf
 import java.awt.AlphaComposite
 import java.awt.Graphics2D
@@ -11,12 +12,9 @@ class BGGlassPaneExtension private constructor() : GlassPaneExtension {
         val instance = BGGlassPaneExtension()
     }
 
-    override fun paint(
-        c: JComponent,
-        g2d: Graphics2D
-    ): Boolean {
+    override fun paint(scope: WindowScope, c: JComponent, g2d: Graphics2D) {
 
-        val img = BackgroundManager.getInstance().getBackgroundImage() ?: return false
+        val img = BackgroundManager.getInstance().getBackgroundImage() ?: return
         g2d.composite = AlphaComposite.getInstance(
             AlphaComposite.SRC_OVER,
             if (FlatLaf.isLafDark()) 0.2f else 0.1f
@@ -24,6 +22,5 @@ class BGGlassPaneExtension private constructor() : GlassPaneExtension {
         g2d.drawImage(img, 0, 0, c.width, c.height, null)
         g2d.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
 
-        return true
     }
 }

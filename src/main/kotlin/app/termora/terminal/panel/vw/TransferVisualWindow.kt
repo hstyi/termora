@@ -4,6 +4,7 @@ import app.termora.*
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProviders
+import app.termora.plugin.internal.badge.Badge
 import app.termora.plugin.internal.ssh.SSHTerminalTab
 import app.termora.plugin.internal.ssh.SSHTerminalTab.Companion.SSHSession
 import app.termora.terminal.DataKey
@@ -61,8 +62,9 @@ class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindo
     private val disposable = Disposer.newDisposable()
     private val owner get() = SwingUtilities.getWindowAncestor(this)
     private val questionBtn = JButton(Icons.questionMark)
-    private val badgeIcon = BadgeIcon(Icons.download)
-    private val downloadBtn = JButton(badgeIcon)
+    private val downloadBtn = JButton(Icons.download)
+    private val badgePresentation = Badge.getInstance(tab.windowScope)
+        .addBadge(downloadBtn).apply { visible = false }
 
 
     init {
@@ -86,6 +88,7 @@ class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindo
         Disposer.register(tab, this)
         Disposer.register(this, disposable)
         Disposer.register(disposable, transferManager)
+        Disposer.register(disposable, badgePresentation)
 
         connectingPanel.busyLabel.isBusy = true
 
@@ -115,10 +118,10 @@ class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindo
 
         transferManager.addTransferListener(object : TransferListener {
             override fun onTransferCountChanged() {
-                val oldVisible = badgeIcon.visible
+                val oldVisible = badgePresentation.visible
                 val newVisible = transferManager.getTransferCount() > 0
                 if (oldVisible != newVisible) {
-                    badgeIcon.visible = newVisible
+                    badgePresentation.visible = newVisible
                     downloadBtn.repaint()
                 }
             }

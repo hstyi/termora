@@ -1,6 +1,5 @@
 package app.termora.plugin.internal.badge
 
-import app.termora.BadgeGlassPaneExtension
 import app.termora.GlassPaneExtension
 import app.termora.plugin.Extension
 import app.termora.plugin.InternalPlugin
