@@ -63,7 +63,7 @@ import kotlin.time.Duration.Companion.seconds
 
 class TransportPanel(
     private val transferManager: InternalTransferManager,
-    val host: Host,
+    var host: Host,
     val loader: TransportSupportLoader,
 ) : JPanel(BorderLayout()), DataProvider, Disposable, TransportNavigator {
     companion object {

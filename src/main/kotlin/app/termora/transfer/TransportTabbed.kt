@@ -3,6 +3,8 @@ package app.termora.transfer
 import app.termora.*
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
+import app.termora.database.DatabaseChangedExtension
+import app.termora.database.DatabaseManager
 import app.termora.plugin.internal.local.LocalProtocolProvider
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
@@ -124,28 +126,38 @@ class TransportTabbed(
         return true
     }
 
-    fun addSelectionTab() {
+    fun addSelectionTab(): TransportSelectionPanel {
         val c = TransportSelectionPanel(tabbed, internalTransferManager)
         addTab(I18n.getString("termora.transport.sftp.select-host"), c)
         selectedIndex = tabCount - 1
         SwingUtilities.invokeLater { c.requestFocusInWindow() }
+        return c
     }
 
     fun addLocalTab() {
         val host = Host(name = "Local", protocol = LocalProtocolProvider.PROTOCOL)
-        val support = TransportSupport(FileSystems.getDefault(), SystemUtils.USER_HOME)
+        val support = TransportSupport(FileSystems.getDefault(), getDefaultLocalPath())
         val panel = TransportPanel(internalTransferManager, host, TransportSupportLoader { support })
         addTab(I18n.getString("termora.transport.local"), panel)
         super.setTabClosable(0, false)
     }
 
+    private fun getDefaultLocalPath(): String {
+        val defaultDirectory = DatabaseManager.getInstance().sftp.defaultDirectory
+        if (defaultDirectory.isBlank()) return SystemUtils.USER_HOME
+        return defaultDirectory
+    }
+
     private fun showContextMenu(tabIndex: Int, e: MouseEvent) {
+        val panel = getTransportPanel(tabIndex) ?: return
         val popupMenu = FlatPopupMenu()
+
         // 克隆
         val clone = popupMenu.add(I18n.getString("termora.tabbed.contextmenu.clone"))
         clone.addActionListener(object : AnAction() {
             override fun actionPerformed(evt: AnActionEvent) {
-
+                val c = addSelectionTab()
+                c.connect(panel.host)
             }
         })
 
@@ -153,7 +165,15 @@ class TransportTabbed(
         val edit = popupMenu.add(I18n.getString("termora.keymgr.edit"))
         edit.addActionListener(object : AnAction() {
             override fun actionPerformed(evt: AnActionEvent) {
-
+                val window = evt.window
+                val dialog = NewHostDialogV2(window, panel.host)
+                dialog.setLocationRelativeTo(window)
+                dialog.title = panel.host.name
+                dialog.isVisible = true
+                val host = dialog.host ?: return
+                HostManager.getInstance().addHost(host, DatabaseChangedExtension.Source.Sync)
+                setTitleAt(tabIndex, host.name)
+                panel.host = host
             }
         })
 
