@@ -362,6 +362,7 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
                     super.doOKAction()
                 }
             } catch (e: Exception) {
+                if (log.isErrorEnabled) log.error(e.message, e)
                 withContext(Dispatchers.Swing) {
                     OptionPane.showMessageDialog(
                         this@LoginServerDialog,

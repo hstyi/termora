@@ -97,7 +97,7 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
             planBox.add(Box.createHorizontalStrut(16))
             val upgrade = JXHyperlink(object : AnAction(I18n.getString("termora.settings.account.upgrade")) {
                 override fun actionPerformed(evt: AnActionEvent) {
-
+                    Application.browse(URI.create("https://www.termora.app/pricing"))
                 }
             })
             upgrade.isFocusable = false

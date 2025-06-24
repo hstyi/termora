@@ -63,7 +63,7 @@ class KeyManagerDialog(
             KeyManagerPanel(AccountOwner(accountManager.getAccountId(), accountManager.getEmail(), OwnerType.User))
         )
 
-        if (accountManager.isSigned()) {
+        if (accountManager.hasTeamFeature()) {
             for (team in accountManager.getTeams()) {
                 tabbed.addTab(
                     team.name,
