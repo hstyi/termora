@@ -253,7 +253,7 @@ class TermoraFrame : JFrame(), DataProvider {
     }
 
 
-    private class GlassPane : JComponent() {
+    private inner class GlassPane : JComponent() {
 
         init {
             isFocusable = false
@@ -266,9 +266,8 @@ class TermoraFrame : JFrame(), DataProvider {
             if (extensions.isNotEmpty()) {
                 for (extension in extensions) {
                     g2d.save()
-                    val painted = extension.paint(this, g2d)
+                    extension.paint(windowScope, this, g2d)
                     g2d.restore()
-                    if (painted) break
                 }
             }
         }
