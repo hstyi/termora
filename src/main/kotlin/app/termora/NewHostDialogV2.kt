@@ -59,6 +59,7 @@ class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : Dialo
         toolbar.add(Box.createHorizontalGlue())
 
         val extensions = ProtocolHostPanelExtension.extensions
+            .filter { it.canCreateProtocolHostPanel() }
         for ((index, extension) in extensions.withIndex()) {
             val protocol = extension.getProtocolProvider().getProtocol()
             val icon = FlatSVGIcon(

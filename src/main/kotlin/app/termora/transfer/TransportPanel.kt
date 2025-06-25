@@ -5,6 +5,7 @@ import app.termora.*
 import app.termora.actions.DataProvider
 import app.termora.database.DatabaseManager
 import app.termora.plugin.ExtensionManager
+import app.termora.plugin.internal.wsl.WSLHostTerminalTab
 import app.termora.transfer.TransportTableModel.Attributes
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatToolBar
@@ -47,7 +48,6 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Future
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.regex.Pattern
 import java.util.stream.Stream
 import javax.swing.*
 import javax.swing.TransferHandler
@@ -952,7 +952,7 @@ class TransportPanel(
 
                 val p = localPath.absolutePathString()
                 if (editCommand.isNotBlank()) {
-                    ProcessBuilder(parseCommand(MessageFormat.format(editCommand, p))).start()
+                    ProcessBuilder(WSLHostTerminalTab.parseCommand(MessageFormat.format(editCommand, p))).start()
                 } else if (SystemInfo.isMacOS) {
                     ProcessBuilder("open", "-a", "TextEdit", "-W", p).start().onExit()
                         .whenComplete { _, _ -> if (disposed.get().not()) Disposer.dispose(disposable) }
@@ -971,20 +971,6 @@ class TransportPanel(
             }
 
             return disposable
-        }
-
-        private fun parseCommand(command: String): List<String> {
-            val result = mutableListOf<String>()
-            val matcher = Pattern.compile("\"([^\"]*)\"|(\\S+)").matcher(command)
-
-            while (matcher.find()) {
-                if (matcher.group(1) != null) {
-                    result.add(matcher.group(1)) // 处理双引号部分
-                } else {
-                    result.add(matcher.group(2).replace("\\\\ ", " "))
-                }
-            }
-            return result
         }
 
         override fun dispose() {

@@ -11,6 +11,7 @@ import app.termora.plugin.internal.rdp.RDPInternalPlugin
 import app.termora.plugin.internal.serial.SerialInternalPlugin
 import app.termora.plugin.internal.sftppty.SFTPPtyInternalPlugin
 import app.termora.plugin.internal.ssh.SSHInternalPlugin
+import app.termora.plugin.internal.wsl.WSLInternalPlugin
 import app.termora.swingCoroutineScope
 import app.termora.transfer.internal.local.LocalPlugin
 import app.termora.transfer.internal.sftp.SFTPPlugin
@@ -115,6 +116,10 @@ internal class PluginManager private constructor() {
         plugins.add(PluginDescriptor(LocalInternalPlugin(), origin = PluginOrigin.Internal, version = version))
         // rdp plugin
         plugins.add(PluginDescriptor(RDPInternalPlugin(), origin = PluginOrigin.Internal, version = version))
+        // wsl plugin
+//        if (SystemUtils.IS_OS_WINDOWS) {
+            plugins.add(PluginDescriptor(WSLInternalPlugin(), origin = PluginOrigin.Internal, version = version))
+//        }
         // sftp pty plugin
         plugins.add(PluginDescriptor(SFTPPtyInternalPlugin(), origin = PluginOrigin.Internal, version = version))
 

@@ -15,7 +15,7 @@ import javax.swing.SwingUtilities
 import javax.swing.tree.TreePath
 
 class SnippetTree : SimpleTree() {
-    override val model = SnippetTreeModel()
+    override val simpleTreeModel = SnippetTreeModel()
 
     private val snippetManager get() = SnippetManager.getInstance()
 
@@ -25,7 +25,7 @@ class SnippetTree : SimpleTree() {
     }
 
     private fun initViews() {
-        super.setModel(model)
+        super.setModel(simpleTreeModel)
         isEditable = true
         dragEnabled = true
         dropMode = DropMode.ON_OR_INSERT
@@ -68,16 +68,16 @@ class SnippetTree : SimpleTree() {
             newFile(SnippetTreeNode(snippet))
         }
 
-        rename.addActionListener { startEditingAtPath(TreePath(model.getPathToRoot(lastNode))) }
-        refresh.addActionListener { model.reload(lastNode) }
+        rename.addActionListener { startEditingAtPath(TreePath(simpleTreeModel.getPathToRoot(lastNode))) }
+        refresh.addActionListener { simpleTreeModel.reload(lastNode) }
         expandAll.addActionListener {
             for (node in getSelectionSimpleTreeNodes(true)) {
-                expandPath(TreePath(model.getPathToRoot(node)))
+                expandPath(TreePath(simpleTreeModel.getPathToRoot(node)))
             }
         }
         colspanAll.addActionListener {
             for (node in getSelectionSimpleTreeNodes(true).reversed()) {
-                collapsePath(TreePath(model.getPathToRoot(node)))
+                collapsePath(TreePath(simpleTreeModel.getPathToRoot(node)))
             }
         }
         remove.addActionListener(object : AnAction() {
@@ -94,7 +94,7 @@ class SnippetTree : SimpleTree() {
                 ) {
                     for (c in nodes) {
                         snippetManager.addSnippet(c.data.copy(deleted = true, updateDate = System.currentTimeMillis()))
-                        model.removeNodeFromParent(c)
+                        simpleTreeModel.removeNodeFromParent(c)
                         // 将所有子孙也删除
                         for (child in c.getAllChildren()) {
                             snippetManager.addSnippet(
@@ -110,7 +110,7 @@ class SnippetTree : SimpleTree() {
         })
 
 
-        rename.isEnabled = lastNode != model.root
+        rename.isEnabled = lastNode != simpleTreeModel.root
         remove.isEnabled = rename.isEnabled
         newFolder.isEnabled = lastNode.data.type == SnippetType.Folder
         newSnippet.isEnabled = newFolder.isEnabled
@@ -130,18 +130,18 @@ class SnippetTree : SimpleTree() {
         val n = node as? SnippetTreeNode ?: return
         n.data = n.data.copy(name = text, updateDate = System.currentTimeMillis())
         snippetManager.addSnippet(n.data)
-        model.nodeStructureChanged(n)
+        simpleTreeModel.nodeStructureChanged(n)
     }
 
     override fun rebase(node: SimpleTreeNode<*>, parent: SimpleTreeNode<*>, index: Int) {
         // 从原来的父移除
-        model.removeNodeFromParent(node)
+        simpleTreeModel.removeNodeFromParent(node)
 
         val nNode = node as? SnippetTreeNode ?: return
         val nParent = parent as? SnippetTreeNode ?: return
         nNode.data = nNode.data.copy(parentId = nParent.data.id, updateDate = System.currentTimeMillis())
 
-        model.insertNodeInto(nNode, nParent, index)
+        simpleTreeModel.insertNodeInto(nNode, nParent, index)
     }
 
     override fun getSelectionSimpleTreeNodes(include: Boolean): List<SnippetTreeNode> {

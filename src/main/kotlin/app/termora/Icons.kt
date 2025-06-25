@@ -92,6 +92,10 @@ object Icons {
     val terminalUnread by lazy { DynamicIcon("icons/terminalUnread.svg", "icons/terminalUnread_dark.svg") }
     val dbPrimitive by lazy { DynamicIcon("icons/dbPrimitive.svg", "icons/dbPrimitive_dark.svg") }
     val linux by lazy { DynamicIcon("icons/linux.svg", "icons/linux_dark.svg") }
+    val debian by lazy { DynamicIcon("icons/debian.svg") }
+    val fedora by lazy { DynamicIcon("icons/fedora.svg") }
+    val almalinux by lazy { DynamicIcon("icons/almalinux.svg") }
+    val ubuntu by lazy { DynamicIcon("icons/ubuntu.svg") }
     val success by lazy { DynamicIcon("icons/success.svg", "icons/success_dark.svg") }
     val errorDialog by lazy { DynamicIcon("icons/errorDialog.svg", "icons/errorDialog_dark.svg") }
     val network by lazy { DynamicIcon("icons/network.svg", "icons/network_dark.svg") }

@@ -5,6 +5,7 @@ import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import app.termora.plugin.internal.rdp.RDPProtocolProvider
 import app.termora.plugin.internal.serial.SerialProtocolProvider
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
+import app.termora.plugin.internal.wsl.WSLProtocolProvider
 import org.apache.commons.lang3.StringUtils
 import java.awt.Graphics2D
 import javax.swing.JComponent
@@ -32,6 +33,12 @@ class ShowMoreInfoSimpleTreeCellRendererExtension private constructor() : Simple
             .let { Disposer.register(this, it) }
     }
 
+    // wsl
+    // key: guid
+    // value: name
+    private val map = mutableMapOf<String, String?>()
+
+    @Suppress("CascadeIf")
     override fun createAnnotations(
         tree: JTree,
         value: Any?,
@@ -58,6 +65,8 @@ class ShowMoreInfoSimpleTreeCellRendererExtension private constructor() : Simple
                 }
             } else if (host.protocol == SerialProtocolProvider.PROTOCOL) {
                 text = host.options.serialComm.port
+            } else if (host.protocol == WSLProtocolProvider.PROTOCOL) {
+                text = host.host
             }
         }
 
