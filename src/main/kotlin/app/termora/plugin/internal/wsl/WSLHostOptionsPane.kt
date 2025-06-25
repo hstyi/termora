@@ -29,12 +29,14 @@ internal open class WSLHostOptionsPane : OptionsPane() {
     open fun getHost(): Host {
         val name = generalOption.nameTextField.text
         val protocol = WSLProtocolProvider.PROTOCOL
-        val host = (generalOption.hostComboBox.selectedItem as WSLDistribution).distributionName
+        val wsl = generalOption.hostComboBox.selectedItem as WSLDistribution
+        val host = wsl.distributionName
 
         val options = Options.Companion.Default.copy(
             encoding = terminalOption.charsetComboBox.selectedItem as String,
             env = terminalOption.environmentTextArea.text,
             startupCommand = terminalOption.startupCommandTextField.text,
+            extras = mutableMapOf("wsl-guid" to wsl.guid, "wsl-flavor" to wsl.flavor)
         )
 
         return Host(

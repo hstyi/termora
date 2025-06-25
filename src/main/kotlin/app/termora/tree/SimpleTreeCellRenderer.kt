@@ -85,11 +85,11 @@ open class SimpleTreeCellRenderer : DefaultTreeCellRenderer() {
             if (c is DefaultTreeCellRenderer) {
                 if (g.color == c.textSelectionColor) {
                     val icon = this.icon
-                    if (icon is DynamicIcon && FlatLaf.isLafDark().not()) {
+                    if (icon is DynamicIcon && icon.allowColorFilter && FlatLaf.isLafDark().not()) {
                         val oldColorFilter = icon.colorFilter
-//                        icon.colorFilter = colorFilter
+                        icon.colorFilter = colorFilter
                         icon.paintIcon(c, g, x, y)
-//                        icon.colorFilter = oldColorFilter
+                        icon.colorFilter = oldColorFilter
                         return
                     }
                 }
