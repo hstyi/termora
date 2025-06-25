@@ -40,7 +40,12 @@ object Icons {
     val error by lazy { DynamicIcon("icons/error.svg", "icons/error_dark.svg") }
     val cwmUsers by lazy { DynamicIcon("icons/cwmUsers.svg", "icons/cwmUsers_dark.svg") }
     val cwmPermissions by lazy { DynamicIcon("icons/cwmPermissions.svg", "icons/cwmPermissions_dark.svg") }
-    val warningIntroduction by lazy { DynamicIcon("icons/warningIntroduction.svg", "icons/warningIntroduction_dark.svg") }
+    val warningIntroduction by lazy {
+        DynamicIcon(
+            "icons/warningIntroduction.svg",
+            "icons/warningIntroduction_dark.svg"
+        )
+    }
     val networkPolicy by lazy { DynamicIcon("icons/networkPolicy.svg", "icons/networkPolicy_dark.svg") }
     val clusterRole by lazy { DynamicIcon("icons/clusterRole.svg", "icons/clusterRole_dark.svg") }
     val daemonSets by lazy { DynamicIcon("icons/daemonSets.svg", "icons/daemonSets_dark.svg") }
@@ -91,7 +96,7 @@ object Icons {
     val digitalocean by lazy { DynamicIcon("icons/digitalocean.svg", "icons/digitalocean_dark.svg") }
     val terminalUnread by lazy { DynamicIcon("icons/terminalUnread.svg", "icons/terminalUnread_dark.svg") }
     val dbPrimitive by lazy { DynamicIcon("icons/dbPrimitive.svg", "icons/dbPrimitive_dark.svg") }
-    val linux by lazy { DynamicIcon("icons/linux.svg", "icons/linux_dark.svg") }
+    val linux by lazy { DynamicIcon("icons/linux.svg", "icons/linux_dark.svg", false) }
     val debian by lazy { DynamicIcon("icons/debian.svg") }
     val fedora by lazy { DynamicIcon("icons/fedora.svg") }
     val almalinux by lazy { DynamicIcon("icons/almalinux.svg") }
