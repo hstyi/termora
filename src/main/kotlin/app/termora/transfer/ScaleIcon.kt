@@ -13,8 +13,9 @@ class ScaleIcon(private val icon: Icon, private val size: Int) : Icon {
             g.save()
             val iconWidth = icon.iconWidth.toDouble()
             val iconHeight = icon.iconHeight.toDouble()
+            g.translate(x, y)
             g.scale(getIconWidth() / iconWidth, getIconHeight() / iconHeight)
-            icon.paintIcon(c, g, x, y)
+            icon.paintIcon(c, g, 0, 0)
             g.restore()
         }
     }

@@ -1,32 +1,44 @@
 package app.termora.plugins.s3
 
 import io.minio.MinioClient
-import org.apache.commons.vfs2.Capability
-import org.apache.commons.vfs2.FileName
-import org.apache.commons.vfs2.FileObject
-import org.apache.commons.vfs2.FileSystemOptions
-import org.apache.commons.vfs2.provider.AbstractFileName
-import org.apache.commons.vfs2.provider.AbstractFileSystem
+import org.apache.sshd.common.file.util.BaseFileSystem
+import java.nio.file.Path
+import java.nio.file.attribute.UserPrincipalLookupService
+import java.util.concurrent.atomic.AtomicBoolean
 
 class S3FileSystem(
-    private val minio: MinioClient,
-    rootName: FileName,
-    fileSystemOptions: FileSystemOptions
-) : AbstractFileSystem(rootName, null, fileSystemOptions) {
+    private val minioClient: MinioClient,
+) : BaseFileSystem<S3Path>(S3FileSystemProvider(minioClient)) {
 
-    override fun addCapabilities(caps: MutableCollection<Capability>) {
-        caps.addAll(S3FileProvider.capabilities)
-    }
+    private val isOpen = AtomicBoolean(true)
 
-    override fun createFile(name: AbstractFileName): FileObject? {
-        return S3FileObject(minio, name, this)
-    }
-
-    fun getDelimiter(): String {
-        return S3FileSystemConfigBuilder.instance.getDelimiter(fileSystemOptions)
+    override fun create(root: String?, names: List<String>): S3Path {
+        val path = S3Path(this, root, names)
+        if (names.isEmpty()) {
+            path.attributes = path.attributes.copy(directory = true)
+        }
+        return path
     }
 
     override fun close() {
-        minio.close()
+        if (isOpen.compareAndSet(false, true)) {
+            minioClient.close()
+        }
+    }
+
+    override fun isOpen(): Boolean {
+        return isOpen.get()
+    }
+
+    override fun getRootDirectories(): Iterable<Path> {
+        return mutableSetOf<Path>(create(separator))
+    }
+
+    override fun supportedFileAttributeViews(): Set<String> {
+        TODO("Not yet implemented")
+    }
+
+    override fun getUserPrincipalLookupService(): UserPrincipalLookupService {
+        throw UnsupportedOperationException()
     }
 }
