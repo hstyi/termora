@@ -22,7 +22,7 @@ import kotlin.math.min
 
 open class SimpleTree : JXTree() {
 
-    protected open val model get() = super.getModel() as SimpleTreeModel<*>
+    open val simpleTreeModel get() = super.getModel() as SimpleTreeModel<*>
     private val editor = OutlineTextField(64)
     protected val tree get() = this
 
@@ -123,12 +123,12 @@ open class SimpleTree : JXTree() {
                 if (tree.canCreateTransferable(c).not()) return null
                 val nodes = getSelectionSimpleTreeNodes().toMutableList()
                 if (nodes.isEmpty()) return null
-                if (nodes.contains(model.root)) return null
+                if (nodes.contains(simpleTreeModel.root)) return null
 
                 val iterator = nodes.iterator()
                 while (iterator.hasNext()) {
                     val node = iterator.next()
-                    val parents = model.getPathToRoot(node).filter { it != node }
+                    val parents = simpleTreeModel.getPathToRoot(node).filter { it != node }
                     if (parents.any { nodes.contains(it) }) {
                         iterator.remove()
                     }
@@ -211,11 +211,11 @@ open class SimpleTree : JXTree() {
                     }
 
                     rebase(e, node, min(index, node.childCount))
-                    selectionPath = TreePath(model.getPathToRoot(e))
+                    selectionPath = TreePath(simpleTreeModel.getPathToRoot(e))
                 }
 
                 // 先展开最顶级的
-                expandPath(TreePath(model.getPathToRoot(node)))
+                expandPath(TreePath(simpleTreeModel.getPathToRoot(node)))
 
                 return true
             }
@@ -245,8 +245,8 @@ open class SimpleTree : JXTree() {
     private fun newNode(newNode: SimpleTreeNode<*>, index: Int): Boolean {
         val lastNode = lastSelectedPathComponent
         if (lastNode !is SimpleTreeNode<*>) return false
-        model.insertNodeInto(newNode, lastNode, index)
-        selectionPath = TreePath(model.getPathToRoot(newNode))
+        simpleTreeModel.insertNodeInto(newNode, lastNode, index)
+        selectionPath = TreePath(simpleTreeModel.getPathToRoot(newNode))
         startEditingAtPath(selectionPath)
         return true
     }
@@ -291,7 +291,7 @@ open class SimpleTree : JXTree() {
     }
 
     protected open fun isCellEditable(e: EventObject?): Boolean {
-        return getLastSelectedPathNode() != model.root
+        return getLastSelectedPathNode() != simpleTreeModel.root
     }
 
     protected open fun rebase(node: SimpleTreeNode<*>, parent: SimpleTreeNode<*>, index: Int) {

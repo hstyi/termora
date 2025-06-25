@@ -17,6 +17,11 @@ interface ProtocolHostPanelExtension : Extension {
     fun getProtocolProvider(): ProtocolProvider
 
     /**
+     * 是否可以创建协议主机面板
+     */
+    fun canCreateProtocolHostPanel(): Boolean = true
+
+    /**
      * 创建协议主机面板
      */
     fun createProtocolHostPanel(): ProtocolHostPanel
