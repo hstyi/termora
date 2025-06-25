@@ -117,9 +117,9 @@ internal class PluginManager private constructor() {
         // rdp plugin
         plugins.add(PluginDescriptor(RDPInternalPlugin(), origin = PluginOrigin.Internal, version = version))
         // wsl plugin
-//        if (SystemUtils.IS_OS_WINDOWS) {
+        if (SystemUtils.IS_OS_WINDOWS) {
             plugins.add(PluginDescriptor(WSLInternalPlugin(), origin = PluginOrigin.Internal, version = version))
-//        }
+        }
         // sftp pty plugin
         plugins.add(PluginDescriptor(SFTPPtyInternalPlugin(), origin = PluginOrigin.Internal, version = version))
 
