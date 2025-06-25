@@ -3,7 +3,7 @@ package app.termora
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.protocol.*
-import com.formdev.flatlaf.extras.FlatSVGIcon
+import app.termora.transfer.ScaleIcon
 import com.formdev.flatlaf.extras.components.FlatToolBar
 import com.formdev.flatlaf.ui.FlatButtonBorder
 import kotlinx.coroutines.Dispatchers
@@ -20,10 +20,16 @@ import javax.swing.*
 
 class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : DialogWrapper(owner) {
 
+    private object Current {
+        var card: ProtocolHostPanel? = null
+        var extension: ProtocolHostPanelExtension? = null
+    }
+
     private val cardLayout = CardLayout()
     private val cardPanel = JPanel(cardLayout)
+    private val testConnectionAction = createTestConnectionAction()
+    private val testConnectionBtn = JButton(testConnectionAction)
     private val buttonGroup = mutableListOf<JToggleButton>()
-    private var currentCard: ProtocolHostPanel? = null
     var host: Host? = null
         private set
 
@@ -62,10 +68,7 @@ class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : Dialo
             .filter { it.canCreateProtocolHostPanel() }
         for ((index, extension) in extensions.withIndex()) {
             val protocol = extension.getProtocolProvider().getProtocol()
-            val icon = FlatSVGIcon(
-                extension.getProtocolProvider().getIcon().name,
-                22, 22, extension.javaClass.classLoader
-            )
+            val icon = ScaleIcon(extension.getProtocolProvider().getIcon(), 22)
             val hostPanel = extension.createProtocolHostPanel()
             val button = JToggleButton(protocol, icon).apply { buttonGroup.add(this) }
             button.setVerticalTextPosition(SwingConstants.BOTTOM)
@@ -74,7 +77,7 @@ class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : Dialo
                 FlatButtonBorder(),
                 BorderFactory.createEmptyBorder(0, 4, 0, 4)
             )
-            button.addActionListener { show(protocol, hostPanel, button) }
+            button.addActionListener { show(protocol, hostPanel, extension, button) }
 
             Disposer.register(disposable, hostPanel)
 
@@ -88,22 +91,22 @@ class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : Dialo
 
             if (editHost == null) {
                 if (index == 0) {
-                    show(protocol, hostPanel, button)
+                    show(protocol, hostPanel, extension, button)
                 }
             } else {
                 if (StringUtils.equalsIgnoreCase(editHost.protocol, protocol)) {
-                    show(protocol, hostPanel, button)
-                    currentCard?.setHost(editHost)
+                    show(protocol, hostPanel, extension, button)
+                    Current.card?.setHost(editHost)
                 }
             }
 
         }
 
-        if (editHost != null && currentCard == null) {
+        if (editHost != null && Current.card == null) {
             SwingUtilities.invokeLater {
                 OptionPane.showMessageDialog(
                     this,
-                    "Protocol ${editHost.protocol} not supported",
+                    I18n.getString("termora.protocol.not-supported", editHost.protocol),
                     messageType = JOptionPane.ERROR_MESSAGE
                 )
                 doCancelAction()
@@ -115,28 +118,45 @@ class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : Dialo
         return panel
     }
 
-    private fun show(name: String, card: ProtocolHostPanel, button: JToggleButton) {
-        currentCard?.onBeforeHidden()
+    private fun show(
+        name: String,
+        card: ProtocolHostPanel,
+        extension: ProtocolHostPanelExtension,
+        button: JToggleButton
+    ) {
+        Current.card?.onBeforeHidden()
         card.onBeforeShown()
         cardLayout.show(cardPanel, name)
-        currentCard?.onHidden()
+        Current.card?.onHidden()
         card.onShown()
 
-        currentCard = card
+        Current.card = card
+        Current.extension = extension
 
         buttonGroup.forEach { it.isSelected = false }
         button.isSelected = true
+
+        val provider = extension.getProtocolProvider()
+        testConnectionBtn.isVisible = provider is ProtocolTester
+
     }
 
     override fun createActions(): List<AbstractAction> {
-        return listOf(createOkAction(), createTestConnectionAction(), CancelAction())
+        return listOf(createOkAction(), testConnectionAction, CancelAction())
+    }
+
+    override fun createJButtonForAction(action: Action): JButton {
+        if (testConnectionAction == action) {
+            return testConnectionBtn
+        }
+        return super.createJButtonForAction(action)
     }
 
     private fun createTestConnectionAction(): AbstractAction {
         return object : AnAction(I18n.getString("termora.new-host.test-connection")) {
             override fun actionPerformed(evt: AnActionEvent) {
 
-                val panel = currentCard ?: return
+                val panel = Current.card ?: return
                 if (panel.validateFields().not()) return
                 val host = panel.getHost()
                 val provider = ProtocolProvider.valueOf(host.protocol) ?: return
@@ -181,7 +201,7 @@ class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : Dialo
     }
 
     override fun doOKAction() {
-        val panel = currentCard ?: return
+        val panel = Current.card ?: return
         if (panel.validateFields().not()) return
         var host = panel.getHost()
 

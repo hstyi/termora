@@ -168,6 +168,7 @@ class S3HostOptionsPane : OptionsPane() {
 
         private fun initView() {
             delimiterTextField.text = "/"
+            delimiterTextField.isEditable = false
             add(getCenterComponent(), BorderLayout.CENTER)
         }
 

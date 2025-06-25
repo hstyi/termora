@@ -28,7 +28,7 @@ class OpenHostAction : AnAction() {
         if (providers.none { StringUtils.equalsIgnoreCase(it.getProtocol(), host.protocol) }) {
             OptionPane.showMessageDialog(
                 windowScope.window,
-                "Protocol ${host.protocol} not supported",
+                I18n.getString("termora.protocol.not-supported", host.protocol),
                 messageType = JOptionPane.ERROR_MESSAGE,
             )
             return

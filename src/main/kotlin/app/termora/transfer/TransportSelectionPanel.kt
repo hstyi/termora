@@ -101,7 +101,7 @@ class TransportSelectionPanel(
 
         val provider = TransferProtocolProvider.valueOf(host.protocol)
         if (provider == null) {
-            throw IllegalStateException("Protocol ${host.protocol} not supported")
+            throw IllegalStateException(I18n.getString("termora.protocol.not-supported", host.protocol))
         }
 
         val handler = provider.createPathHandler(PathHandlerRequest(host, owner))

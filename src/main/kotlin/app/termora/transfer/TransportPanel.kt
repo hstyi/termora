@@ -889,8 +889,8 @@ class TransportPanel(
         ) {
             // 只处理最终状态
             if (state != TransferTreeTableNode.State.Done && state != TransferTreeTableNode.State.Failed) return
-            // 删除失败就是不存在
-            if (transferIds.remove(transfer.id()).not()) return
+            // 不存在的任务则不需要监听
+            if (transferIds.contains(transfer.id()).not()) return
             if (state == TransferTreeTableNode.State.Done) {
                 listenFileChanged(transfer.target(), transfer.source())
             }

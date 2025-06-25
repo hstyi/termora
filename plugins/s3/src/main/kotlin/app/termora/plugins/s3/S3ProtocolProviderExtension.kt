@@ -9,6 +9,6 @@ class S3ProtocolProviderExtension private constructor() : ProtocolProviderExtens
     }
 
     override fun getProtocolProvider(): ProtocolProvider {
-        return S3ProtocolProvider.Companion.instance
+        return S3ProtocolProvider.instance
     }
 }

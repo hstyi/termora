@@ -7,9 +7,6 @@ import app.termora.protocol.PathHandlerRequest
 import app.termora.protocol.TransferProtocolProvider
 import io.minio.MinioClient
 import org.apache.commons.lang3.StringUtils
-import org.apache.commons.vfs2.FileSystemOptions
-import org.apache.commons.vfs2.VFS
-import org.apache.commons.vfs2.provider.FileProvider
 
 class S3ProtocolProvider private constructor() : TransferProtocolProvider {
 
@@ -26,11 +23,7 @@ class S3ProtocolProvider private constructor() : TransferProtocolProvider {
         return Icons.minio
     }
 
-    override fun getFileProvider(): FileProvider {
-        return S3FileProvider.instance
-    }
-
-    override fun getRootFileObject(requester: PathHandlerRequest): PathHandler {
+    override fun createPathHandler(requester: PathHandlerRequest): PathHandler {
         val host = requester.host
         val builder = MinioClient.builder()
             .endpoint(host.host)
@@ -39,21 +32,12 @@ class S3ProtocolProvider private constructor() : TransferProtocolProvider {
         if (StringUtils.isNotBlank(region)) {
             builder.region(region)
         }
-        val delimiter = host.options.extras["s3.delimiter"] ?: "/"
-        val options = FileSystemOptions()
+//        val delimiter = host.options.extras["s3.delimiter"] ?: "/"
         val defaultPath = host.options.sftpDefaultDirectory
-
-        S3FileSystemConfigBuilder.instance.setRegion(options, StringUtils.defaultString(region))
-        S3FileSystemConfigBuilder.instance.setEndpoint(options, host.host)
-        S3FileSystemConfigBuilder.instance.setAccessKey(options, host.username)
-        S3FileSystemConfigBuilder.instance.setSecretKey(options, host.authentication.password)
-        S3FileSystemConfigBuilder.instance.setDelimiter(options, delimiter)
-
-        val file = VFS.getManager().resolveFile(
-            "s3://${StringUtils.defaultIfBlank(defaultPath, "/")}",
-            options
-        )
-        return PathHandler(file)
+        val minioClient = builder.build()
+        val fs = S3FileSystem(minioClient)
+        return PathHandler(fs, fs.getPath(defaultPath))
     }
+
 
 }
