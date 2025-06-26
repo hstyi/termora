@@ -95,9 +95,6 @@ class TransportViewer : JPanel(BorderLayout()), DataProvider, Disposable {
                     return source.getSelectedTransportPanel()?.workdir
                 }
 
-                override fun getTableModel(): TransportTableModel? {
-                    return source.getSelectedTransportPanel()?.getTableModel()
-                }
 
             },
             object : DefaultInternalTransferManager.WorkdirProvider {
@@ -105,9 +102,6 @@ class TransportViewer : JPanel(BorderLayout()), DataProvider, Disposable {
                     return target.getSelectedTransportPanel()?.workdir
                 }
 
-                override fun getTableModel(): TransportTableModel? {
-                    return target.getSelectedTransportPanel()?.getTableModel()
-                }
             })
 
     }
