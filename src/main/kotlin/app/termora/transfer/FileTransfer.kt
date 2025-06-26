@@ -6,6 +6,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.io.path.inputStream
 import kotlin.io.path.outputStream
 
@@ -18,7 +19,11 @@ class FileTransfer(
     private lateinit var input: InputStream
     private lateinit var output: OutputStream
 
+    private val closed = AtomicBoolean(false)
+
     override suspend fun transfer(bufferSize: Int): Long {
+
+        if (closed.get()) throw IllegalStateException("Transfer already closed")
 
         if (::input.isInitialized.not()) {
             input = source().inputStream(StandardOpenOption.READ)
@@ -48,12 +53,14 @@ class FileTransfer(
     }
 
     override fun close() {
-        if (::input.isInitialized) {
-            IOUtils.closeQuietly(input)
-        }
+        if (closed.compareAndSet(false, true)) {
+            if (::input.isInitialized) {
+                IOUtils.closeQuietly(input)
+            }
 
-        if (::output.isInitialized) {
-            IOUtils.closeQuietly(output)
+            if (::output.isInitialized) {
+                IOUtils.closeQuietly(output)
+            }
         }
     }
 

@@ -10,7 +10,8 @@ import java.awt.Component
 import java.awt.event.ItemEvent
 import javax.swing.*
 
-class BasicProxyOption : JPanel(BorderLayout()), Option {
+class BasicProxyOption(private val proxyTypes: List<ProxyType> = listOf(ProxyType.HTTP, ProxyType.SOCKS5)) :
+    JPanel(BorderLayout()), Option {
     private val formMargin = "7dlu"
 
     val proxyTypeComboBox = FlatComboBox<ProxyType>()
@@ -61,8 +62,9 @@ class BasicProxyOption : JPanel(BorderLayout()), Option {
         }
 
         proxyTypeComboBox.addItem(ProxyType.No)
-        proxyTypeComboBox.addItem(ProxyType.HTTP)
-        proxyTypeComboBox.addItem(ProxyType.SOCKS5)
+        for (type in proxyTypes) {
+            proxyTypeComboBox.addItem(type)
+        }
 
         proxyAuthenticationTypeComboBox.addItem(AuthenticationType.No)
         proxyAuthenticationTypeComboBox.addItem(AuthenticationType.Password)

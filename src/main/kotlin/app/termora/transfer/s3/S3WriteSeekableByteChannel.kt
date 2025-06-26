@@ -1,14 +1,13 @@
-package app.termora.plugins.s3
+package app.termora.transfer.s3
 
 import org.apache.commons.io.IOUtils
+import java.io.OutputStream
 import java.nio.ByteBuffer
+import java.nio.channels.Channels
 import java.nio.channels.SeekableByteChannel
-import java.nio.channels.WritableByteChannel
 
-class S3WriteSeekableByteChannel(
-    private val channel: WritableByteChannel,
-) : SeekableByteChannel {
-
+open class S3WriteSeekableByteChannel(output: OutputStream) : SeekableByteChannel {
+    private val channel = Channels.newChannel(output)
 
     override fun read(dst: ByteBuffer): Int {
         throw UnsupportedOperationException("read not supported")

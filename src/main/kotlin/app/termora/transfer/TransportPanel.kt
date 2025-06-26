@@ -290,7 +290,7 @@ class TransportPanel(
         // 传输完成之后刷新
         transferManager.addTransferListener(object : TransferListener {
             override fun onTransferChanged(transfer: Transfer, state: TransferTreeTableNode.State) {
-                if (state != TransferTreeTableNode.State.Done) return
+                if (state != TransferTreeTableNode.State.Done && state != TransferTreeTableNode.State.Failed) return
                 if (transfer.target().fileSystem != _fileSystem) return
                 if (transfer.target() == workdir || transfer.target().parent == workdir) {
                     reload(requestFocus = false)

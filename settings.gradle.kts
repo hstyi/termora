@@ -5,7 +5,7 @@ rootProject.name = "termora"
 
 include("plugins:s3")
 //include("plugins:oss")
-//include("plugins:cos")
+include("plugins:cos")
 //include("plugins:obs")
 //include("plugins:ftp")
 include("plugins:bg")

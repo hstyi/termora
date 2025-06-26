@@ -10,7 +10,7 @@ class HostTest {
             """
             {
               "name": "test",
-              "protocol": SSHProtocolProvider.PROTOCOL,
+              "protocol": "SSH",
               "test": ""
             }
         """.trimIndent()

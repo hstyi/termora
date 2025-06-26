@@ -424,6 +424,11 @@ class TransferTableModel(private val coroutineScope: CoroutineScope) :
                 // 异步上报，因为数据量非常大，所以采用异步
                 reporter.report(node, len, System.currentTimeMillis())
             }
+
+            // 因为可能是异步传输，只有关闭后才能确保数据已经到达云端
+            // 尤其是 S3 协议
+            if (transfer is Closeable) IOUtils.closeQuietly(transfer)
+
             withContext(Dispatchers.Swing) {
                 if (continueTransfer(node)) {
                     changeState(node, State.Done)

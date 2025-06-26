@@ -1,8 +1,5 @@
 package app.termora.plugins.cos
 
-import app.termora.DynamicIcon
-import app.termora.I18n
-import app.termora.Icons
 import app.termora.plugin.Extension
 import app.termora.plugin.ExtensionSupport
 import app.termora.plugin.PaidPlugin
@@ -13,8 +10,8 @@ class COSPlugin : PaidPlugin {
     private val support = ExtensionSupport()
 
     init {
-        support.addExtension(ProtocolProviderExtension::class.java) { COSProtocolProviderExtension.Companion.instance }
-        support.addExtension(ProtocolHostPanelExtension::class.java) { COSProtocolHostPanelExtension.Companion.instance }
+        support.addExtension(ProtocolProviderExtension::class.java) { COSProtocolProviderExtension.instance }
+        support.addExtension(ProtocolHostPanelExtension::class.java) { COSProtocolHostPanelExtension.instance }
     }
 
     override fun getAuthor(): String {

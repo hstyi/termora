@@ -31,6 +31,7 @@ import kotlin.collections.ArrayDeque
 import kotlin.collections.List
 import kotlin.collections.Set
 import kotlin.collections.isNotEmpty
+import kotlin.io.path.exists
 import kotlin.io.path.name
 import kotlin.io.path.pathString
 import kotlin.math.max
@@ -49,7 +50,6 @@ class DefaultInternalTransferManager(
 
     interface WorkdirProvider {
         fun getWorkdir(): Path?
-        fun getTableModel(): TransportTableModel?
     }
 
 
@@ -85,19 +85,14 @@ class DefaultInternalTransferManager(
         if (paths.isEmpty()) return CompletableFuture.completedFuture(Unit)
 
         val future = CompletableFuture<Unit>()
-        val tableModel = when (targetWorkdir.fileSystem) {
-            source.getWorkdir()?.fileSystem -> source.getTableModel()
-            target.getWorkdir()?.fileSystem -> target.getTableModel()
-            else -> null
-        }
 
         coroutineScope.launch(Dispatchers.IO) {
             try {
                 val context = AskTransferContext(TransferAction.Overwrite, false)
                 for (pair in paths) {
-                    if (mode == TransferMode.Transfer && tableModel != null && context.applyAll.not()) {
+                    if (mode == TransferMode.Transfer && context.applyAll.not()) {
                         val action = withContext(Dispatchers.Swing) {
-                            getTransferAction(context, tableModel, pair.second)
+                            getTransferAction(context, targetWorkdir.resolve(pair.first.name), pair.second)
                         }
                         if (action == null) {
                             break
@@ -143,21 +138,19 @@ class DefaultInternalTransferManager(
 
     private fun getTransferAction(
         context: AskTransferContext,
-        model: TransportTableModel,
+        path: Path,
         source: TransportTableModel.Attributes
     ): TransferAction? {
         if (context.applyAll) return context.action
 
-        for (i in 0 until model.rowCount) {
-            val c = model.getAttributes(i)
-            if (c.name != source.name) continue
-            val transfer = askTransfer(source, c)
+        if (path.exists()) {
+            val transfer = askTransfer(source, source)
             context.action = transfer.action
             context.applyAll = transfer.applyAll
             if (transfer.option != JOptionPane.OK_OPTION) return null
         }
 
-        return context.action
+        return TransferAction.Overwrite
     }
 
 

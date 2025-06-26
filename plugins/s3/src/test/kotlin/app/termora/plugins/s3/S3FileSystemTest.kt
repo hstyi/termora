@@ -58,7 +58,7 @@ class S3FileSystemTest {
             }
         }
 
-        val fileSystem = S3FileSystem(minioClient)
+        val fileSystem = MyS3FileSystem(minioClient)
         val path = fileSystem.getPath("/")
         PathWalker.walkFileTree(path, object : PathVisitor {
             override fun preVisitDirectory(

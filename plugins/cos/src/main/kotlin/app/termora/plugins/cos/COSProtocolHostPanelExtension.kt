@@ -10,7 +10,7 @@ class COSProtocolHostPanelExtension private constructor() : ProtocolHostPanelExt
     }
 
     override fun getProtocolProvider(): ProtocolProvider {
-        return COSProtocolProvider.Companion.instance
+        return COSProtocolProvider.instance
     }
 
     override fun createProtocolHostPanel(): ProtocolHostPanel {

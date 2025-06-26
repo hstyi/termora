@@ -24,8 +24,8 @@ internal class SFTPPathHandler(
     }
 
     override fun dispose() {
+        super.dispose()
         session.removeCloseFutureListener(listener)
-        IOUtils.closeQuietly(fileSystem)
         IOUtils.closeQuietly(session)
         IOUtils.closeQuietly(client)
     }

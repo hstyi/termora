@@ -9,6 +9,6 @@ class COSProtocolProviderExtension private constructor() : ProtocolProviderExten
     }
 
     override fun getProtocolProvider(): ProtocolProvider {
-        return COSProtocolProvider.Companion.instance
+        return COSProtocolProvider.instance
     }
 }
