@@ -15,7 +15,7 @@ import javax.swing.*
 
 class COSHostOptionsPane : OptionsPane() {
     private val generalOption = GeneralOption()
-    private val proxyOption = BasicProxyOption()
+    private val proxyOption = BasicProxyOption(listOf(ProxyType.HTTP))
     private val sftpOption = SFTPOption()
 
     init {
@@ -24,7 +24,6 @@ class COSHostOptionsPane : OptionsPane() {
         addOption(sftpOption)
 
     }
-
 
     fun getHost(): Host {
         val name = generalOption.nameTextField.text
@@ -55,7 +54,6 @@ class COSHostOptionsPane : OptionsPane() {
         val options = Options.Default.copy(
             sftpDefaultDirectory = sftpOption.defaultDirectoryField.text,
             extras = mutableMapOf(
-                "cos.region" to (generalOption.regionComboBox.selectedItem as String? ?: StringUtils.EMPTY),
                 "cos.delimiter" to generalOption.delimiterTextField.text,
             )
         )
@@ -78,7 +76,6 @@ class COSHostOptionsPane : OptionsPane() {
         generalOption.usernameTextField.text = host.username
         generalOption.remarkTextArea.text = host.remark
         generalOption.passwordTextField.text = host.authentication.password
-        generalOption.regionComboBox.selectedItem = host.options.extras["cos.region"] ?: StringUtils.EMPTY
         generalOption.delimiterTextField.text = host.options.extras["cos.delimiter"] ?: StringUtils.EMPTY
 
         proxyOption.proxyTypeComboBox.selectedItem = host.proxy.type
@@ -140,10 +137,10 @@ class COSHostOptionsPane : OptionsPane() {
         return false
     }
 
-    private fun setOutlineError(textField: JTextField) {
-        selectOptionJComponent(textField)
-        textField.putClientProperty(FlatClientProperties.OUTLINE, FlatClientProperties.OUTLINE_ERROR)
-        textField.requestFocusInWindow()
+    private fun setOutlineError(c: JComponent) {
+        selectOptionJComponent(c)
+        c.putClientProperty(FlatClientProperties.OUTLINE, FlatClientProperties.OUTLINE_ERROR)
+        c.requestFocusInWindow()
     }
 
 
@@ -152,7 +149,8 @@ class COSHostOptionsPane : OptionsPane() {
         val usernameTextField = OutlineTextField(128)
         val passwordTextField = OutlinePasswordField(255)
         val remarkTextArea = FixedLengthTextArea(512)
-        val regionComboBox = OutlineComboBox<String>()
+
+        //        val regionComboBox = OutlineComboBox<String>()
         val delimiterTextField = OutlineTextField(128)
 
         init {
@@ -162,7 +160,7 @@ class COSHostOptionsPane : OptionsPane() {
 
         private fun initView() {
 
-            regionComboBox.addItem("ap-beijing-1")
+            /*regionComboBox.addItem("ap-beijing-1")
             regionComboBox.addItem("ap-beijing")
             regionComboBox.addItem("ap-nanjing")
             regionComboBox.addItem("ap-shanghai")
@@ -184,7 +182,7 @@ class COSHostOptionsPane : OptionsPane() {
             regionComboBox.addItem("sa-saopaulo")
             regionComboBox.addItem("eu-frankfurt")
 
-            regionComboBox.isEditable = true
+            regionComboBox.isEditable = true*/
 
             delimiterTextField.text = "/"
             delimiterTextField.isEditable = false
@@ -246,9 +244,6 @@ class COSHostOptionsPane : OptionsPane() {
 
                 .add("SecretKey:").xy(1, rows)
                 .add(passwordTextField).xyw(3, rows, 5).apply { rows += step }
-
-                .add("Region:").xy(1, rows)
-                .add(regionComboBox).xyw(3, rows, 5).apply { rows += step }
 
                 .add("Delimiter:").xy(1, rows)
                 .add(delimiterTextField).xyw(3, rows, 5).apply { rows += step }
