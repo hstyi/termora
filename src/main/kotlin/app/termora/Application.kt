@@ -121,6 +121,30 @@ object Application {
         return version
     }
 
+    fun getLayout(): AppLayout {
+        if (SystemInfo.isMacOS) return AppLayout.App
+
+        val layout = System.getProperty("jpackage.app-layout")
+        if (SystemInfo.isLinux) {
+            if ("deb" == layout) {
+                return AppLayout.Deb
+            } else if ("tar.gz" == layout) {
+                return AppLayout.TarGz
+            }
+        }
+
+        if (SystemInfo.isWindows) {
+            if ("exe" == layout) {
+                return AppLayout.Exe
+            } else if ("zip" == layout) {
+                return AppLayout.Zip
+            }
+        }
+
+        return if (SystemInfo.isWindows) AppLayout.Exe else AppLayout.AppImage
+
+    }
+
     /**
      * 未知版本通常是开发版本
      */

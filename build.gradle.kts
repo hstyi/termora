@@ -449,6 +449,9 @@ tasks.register<Exec>("jpackage") {
 
     if (os.isLinux) {
         options.add("-Dsun.java2d.opengl=true")
+        if (isDeb) {
+            options.add("-Djpackage.app-layout=deb")
+        }
     }
 
     val arguments = mutableListOf("${Jvm.current().javaHome}/bin/jpackage")
@@ -601,20 +604,26 @@ fun pack() {
 }
 
 /**
- * 创建 zip、7z、msi
+ * 创建 zip、msi
  */
 fun packOnWindows(distributionDir: Directory, finalFilenameWithoutExtension: String, projectName: String) {
+    val dir = layout.buildDirectory.dir("jpackage/images/win-msi.image/").get().asFile
+    val cfg = FileUtils.getFile(dir, projectName, "app", "${projectName}.cfg")
+    val configText = cfg.readText()
+
     // zip
+    cfg.writeText(StringBuilder(configText).appendLine("java-options=-Djpackage.app-layout=zip").toString())
     exec {
         commandLine(
             "tar", "-vacf",
             distributionDir.file("${finalFilenameWithoutExtension}.zip").asFile.absolutePath,
             projectName
         )
-        workingDir = layout.buildDirectory.dir("jpackage/images/win-msi.image/").get().asFile
+        workingDir = dir
     }
 
     // exe
+    cfg.writeText(StringBuilder(configText).appendLine("java-options=-Djpackage.app-layout=exe").toString())
     exec {
         commandLine(
             "iscc",
@@ -718,7 +727,11 @@ fun packOnLinux(distributionDir: Directory, finalFilenameWithoutExtension: Strin
         return
     }
 
+    val cfg = FileUtils.getFile(distributionDir.asFile, projectName, "lib", "app", "${projectName}.cfg")
+    val configText = cfg.readText()
+
     // tar.gz
+    cfg.writeText(StringBuilder(configText).appendLine("java-options=-Djpackage.app-layout=tar.gz").toString())
     exec {
         commandLine(
             "tar", "-czvf",
@@ -773,6 +786,7 @@ Terminal=false
     appRun.setExecutable(true)
 
     // AppImage
+    cfg.writeText(StringBuilder(configText).appendLine("java-options=-Djpackage.app-layout=AppImage").toString())
     exec {
         commandLine(appimagetool.absolutePath, termoraName, "${finalFilenameWithoutExtension}.AppImage")
         workingDir = distributionDir.asFile
