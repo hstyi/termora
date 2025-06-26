@@ -1,14 +1,11 @@
-package app.termora.plugins.s3
+package app.termora.transfer.s3
 
-import io.minio.MinioClient
 import org.apache.sshd.common.file.util.BaseFileSystem
 import java.nio.file.Path
 import java.nio.file.attribute.UserPrincipalLookupService
 import java.util.concurrent.atomic.AtomicBoolean
 
-class S3FileSystem(
-    private val minioClient: MinioClient,
-) : BaseFileSystem<S3Path>(S3FileSystemProvider(minioClient)) {
+open class S3FileSystem(provider: S3FileSystemProvider) : BaseFileSystem<S3Path>(provider) {
 
     private val isOpen = AtomicBoolean(true)
 
@@ -20,14 +17,12 @@ class S3FileSystem(
         return path
     }
 
-    override fun close() {
-        if (isOpen.compareAndSet(false, true)) {
-            minioClient.close()
-        }
-    }
-
     override fun isOpen(): Boolean {
         return isOpen.get()
+    }
+
+    override fun close() {
+        isOpen.compareAndSet(false, true)
     }
 
     override fun getRootDirectories(): Iterable<Path> {

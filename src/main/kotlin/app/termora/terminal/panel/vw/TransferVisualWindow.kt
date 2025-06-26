@@ -442,11 +442,6 @@ class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindo
                 override fun getWorkdir(): Path? {
                     return transportPanel.workdir
                 }
-
-                override fun getTableModel(): TransportTableModel? {
-                    return transportPanel.getTableModel()
-                }
-
             }
         }
 
@@ -457,7 +452,6 @@ class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindo
                 transferManager,
                 object : DefaultInternalTransferManager.WorkdirProvider {
                     override fun getWorkdir() = null
-                    override fun getTableModel() = null
                 },
                 createWorkdirProvider(transportPanel)
             )

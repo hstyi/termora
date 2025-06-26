@@ -70,7 +70,7 @@ class S3ProtocolProvider private constructor() : TransferProtocolProvider {
 //        val delimiter = host.options.extras["s3.delimiter"] ?: "/"
         val defaultPath = host.options.sftpDefaultDirectory
         val minioClient = builder.build()
-        val fs = S3FileSystem(minioClient)
+        val fs = MyS3FileSystem(minioClient)
         return PathHandler(fs, fs.getPath(defaultPath))
     }
 

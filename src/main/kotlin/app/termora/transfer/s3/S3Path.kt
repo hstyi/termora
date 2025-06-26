@@ -1,4 +1,4 @@
-package app.termora.plugins.s3
+package app.termora.transfer.s3
 
 import app.termora.transfer.WithPathAttributes
 import org.apache.sshd.common.file.util.BasePath
@@ -6,7 +6,7 @@ import java.nio.file.LinkOption
 import java.nio.file.Path
 import kotlin.io.path.absolutePathString
 
-class S3Path(
+open class S3Path(
     fileSystem: S3FileSystem,
     root: String?,
     names: List<String>,
@@ -20,27 +20,27 @@ class S3Path(
     /**
      * 是否是 Bucket
      */
-    val isBucket get() = parent != null && parent?.parent == null
+    open val isBucket get() = parent != null && parent?.parent == null
 
     /**
      * 是否是根
      */
-    val isRoot get() = absolutePathString() == separator
+    open val isRoot get() = absolutePathString() == separator
 
     /**
      * Bucket Name
      */
-    val bucketName: String get() = names.first()
+    open val bucketName: String get() = names.first()
 
     /**
      * 获取 Bucket
      */
-    val bucket: S3Path get() = fileSystem.getPath(root, bucketName)
+    open val bucket: S3Path get() = fileSystem.getPath(root, bucketName)
 
     /**
      * 获取所在 Bucket 的路径
      */
-    val objectName: String get() = names.subList(1, names.size).joinToString(separator)
+    open val objectName: String get() = names.subList(1, names.size).joinToString(separator)
 
     override fun getCustomType(): String? {
         if (isBucket) return "Bucket"

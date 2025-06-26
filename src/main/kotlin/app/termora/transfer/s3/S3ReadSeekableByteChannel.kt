@@ -1,16 +1,13 @@
-package app.termora.plugins.s3
+package app.termora.transfer.s3
 
-import io.minio.StatObjectResponse
 import org.apache.commons.io.IOUtils
+import java.io.InputStream
 import java.nio.ByteBuffer
-import java.nio.channels.ReadableByteChannel
+import java.nio.channels.Channels
 import java.nio.channels.SeekableByteChannel
 
-class S3ReadSeekableByteChannel(
-    private val channel: ReadableByteChannel,
-    private val stat: StatObjectResponse
-) : SeekableByteChannel {
-
+open class S3ReadSeekableByteChannel(input: InputStream, private val size: Long) : SeekableByteChannel {
+    private val channel = Channels.newChannel(input)
     private var position: Long = 0
 
     override fun read(dst: ByteBuffer): Int {
@@ -34,7 +31,7 @@ class S3ReadSeekableByteChannel(
     }
 
     override fun size(): Long {
-        return stat.size()
+        return size
     }
 
     override fun truncate(size: Long): SeekableByteChannel {
