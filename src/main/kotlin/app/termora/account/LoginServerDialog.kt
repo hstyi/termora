@@ -37,8 +37,9 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
     }
 
     private val serverComboBox = OutlineComboBox<Server>()
-    private val usernameTextField = OutlineTextField()
+    private val usernameTextField = OutlineTextField(128)
     private val passwordField = OutlinePasswordField()
+    private val mfaTextField = OutlineTextField(128)
     private val okAction = OkAction(I18n.getString("termora.settings.account.login"))
     private val cancelAction = super.createCancelAction()
     private val cancelButton = super.createJButtonForAction(cancelAction)
@@ -70,7 +71,7 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
     override fun createCenterPanel(): JComponent {
         val layout = FormLayout(
             "left:pref, $FORM_MARGIN, default:grow, $FORM_MARGIN, pref",
-            "pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN"
+            "pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN"
         )
 
         var rows = 1
@@ -91,6 +92,8 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
         for (server in servers) {
             serverComboBox.addItem(Server(server.name, server.server))
         }
+
+        mfaTextField.placeholderText = I18n.getString("termora.settings.account.mfa")
 
         serverComboBox.renderer = object : DefaultListCellRenderer() {
             override fun getListCellRendererComponent(
@@ -227,6 +230,8 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
             .add(registerLink).xy(5, rows).apply { rows += step }
             .add("${I18n.getString("termora.new-host.general.password")}:").xy(1, rows)
             .add(passwordField).xy(3, rows).apply { rows += step }
+            .add("MFA:").xy(1, rows)
+            .add(mfaTextField).xy(3, rows).apply { rows += step }
             .build()
     }
 
@@ -336,6 +341,7 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
             okAction.isEnabled = false
             usernameTextField.isEnabled = false
             passwordField.isEnabled = false
+            mfaTextField.isEnabled = false
             serverComboBox.isEnabled = false
             cancelButton.isVisible = false
             onLogin(server)
@@ -357,7 +363,10 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
 
         val loginJob = swingCoroutineScope.launch(Dispatchers.IO) {
             try {
-                ServerManager.getInstance().login(server, usernameTextField.text, String(passwordField.password))
+                ServerManager.getInstance().login(
+                    server, usernameTextField.text,
+                    String(passwordField.password), mfaTextField.text.trim()
+                )
                 withContext(Dispatchers.Swing) {
                     super.doOKAction()
                 }
@@ -382,6 +391,7 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
                     passwordField.isEnabled = true
                     serverComboBox.isEnabled = true
                     cancelButton.isVisible = true
+                    mfaTextField.isEnabled = true
                 }
                 isLoggingIn.compareAndSet(true, false)
             }
