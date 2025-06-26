@@ -13,6 +13,7 @@ import java.nio.channels.SeekableByteChannel
 import java.nio.file.*
 import java.nio.file.attribute.*
 import java.nio.file.spi.FileSystemProvider
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.name
 
@@ -63,25 +64,33 @@ class S3FileSystemProvider(private val minioClient: MinioClient) : FileSystemPro
     private fun createStreamer(path: S3Path): OutputStream {
         val pis = PipedInputStream()
         val pos = PipedOutputStream(pis)
+        val exception = AtomicReference<Throwable>()
 
         val thread = Thread.ofVirtual().start {
-            minioClient.putObject(
-                PutObjectArgs.builder()
-                    .bucket(path.bucketName)
-                    .stream(pis, -1, 32 * 1024 * 1024)
-                    .`object`(path.objectName).build()
-            )
-            IOUtils.closeQuietly(pis)
+            try {
+                minioClient.putObject(
+                    PutObjectArgs.builder()
+                        .bucket(path.bucketName)
+                        .stream(pis, -1, 32 * 1024 * 1024)
+                        .`object`(path.objectName).build()
+                )
+            } catch (e: Exception) {
+                exception.set(e)
+            } finally {
+                IOUtils.closeQuietly(pis)
+            }
         }
 
         return object : OutputStream() {
             override fun write(b: Int) {
+                val exception = exception.get()
+                if (exception != null) throw exception
                 pos.write(b)
             }
 
             override fun close() {
                 pos.close()
-                thread.join()
+                if (thread.isAlive) thread.join()
             }
         }
     }

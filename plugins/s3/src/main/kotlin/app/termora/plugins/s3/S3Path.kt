@@ -1,5 +1,6 @@
 package app.termora.plugins.s3
 
+import app.termora.transfer.WithPathAttributes
 import org.apache.sshd.common.file.util.BasePath
 import java.nio.file.LinkOption
 import java.nio.file.Path
@@ -9,7 +10,7 @@ class S3Path(
     fileSystem: S3FileSystem,
     root: String?,
     names: List<String>,
-) : BasePath<S3Path, S3FileSystem>(fileSystem, root, names) {
+) : BasePath<S3Path, S3FileSystem>(fileSystem, root, names), WithPathAttributes {
 
 
     private val separator get() = fileSystem.separator
@@ -40,6 +41,11 @@ class S3Path(
      * 获取所在 Bucket 的路径
      */
     val objectName: String get() = names.subList(1, names.size).joinToString(separator)
+
+    override fun getCustomType(): String? {
+        if (isBucket) return "Bucket"
+        return null
+    }
 
     override fun toRealPath(vararg options: LinkOption): Path {
         return toAbsolutePath()

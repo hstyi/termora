@@ -1115,7 +1115,7 @@ class TransportPanel(
 
             var text = when (column) {
                 TransportTableModel.COLUMN_NAME -> attributes.name
-                TransportTableModel.COLUMN_TYPE -> attributes.type
+                TransportTableModel.COLUMN_TYPE -> getType(row, attributes)
                 TransportTableModel.COLUMN_FILE_SIZE -> formatBytes(attributes.fileSize)
                 // @formatter:off
                 TransportTableModel.COLUMN_LAST_MODIFIED_TIME -> DateFormatUtils.format(Date(attributes.lastModifiedTime), I18n.getString("termora.date-format"))
@@ -1163,6 +1163,15 @@ class TransportPanel(
             }
 
             return c
+        }
+
+        private fun getType(row: Int, attributes: Attributes): String {
+            val path = model.getPath(sorter.convertRowIndexToModel(row))
+            if (path is WithPathAttributes) {
+                val type = path.getCustomType()
+                if (type != null) return type
+            }
+            return attributes.type
         }
     }
 
