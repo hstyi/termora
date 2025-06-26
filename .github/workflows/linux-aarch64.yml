@@ -36,7 +36,7 @@ jobs:
 
       # test build
       - run: |
-          ./gradlew build -x test --no-daemon
+          ./gradlew classes -x test --no-daemon
           ./gradlew clean --no-daemon
 
       # dist
