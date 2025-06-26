@@ -28,7 +28,7 @@ class ServerManager private constructor() {
     /**
      * 登录，不报错就是登录成功
      */
-    fun login(server: Server, username: String, password: String) {
+    fun login(server: Server, username: String, password: String, mfa: String) {
 
         if (accountManager.isLocally().not()) {
             throw IllegalStateException("Already logged in")
@@ -39,19 +39,19 @@ class ServerManager private constructor() {
         }
 
         try {
-            doLogin(server, username, password)
+            doLogin(server, username, password, mfa)
         } finally {
             isLoggingIn.compareAndSet(true, false)
         }
 
     }
 
-    private fun doLogin(server: Server, username: String, password: String) {
+    private fun doLogin(server: Server, username: String, password: String, mfa: String) {
         // 服务器信息
         val serverInfo = getServerInfo(server)
 
         // call login
-        val loginResponse = callLogin(serverInfo, server, username, password)
+        val loginResponse = callLogin(serverInfo, server, username, password, mfa)
 
         // call me
         val meResponse = callMe(server, loginResponse.accessToken)
@@ -106,10 +106,16 @@ class ServerManager private constructor() {
         return ohMyJson.decodeFromString<ServerInfo>(AccountHttp.execute(request = request))
     }
 
-    private fun callLogin(serverInfo: ServerInfo, server: Server, username: String, password: String): LoginResponse {
+    private fun callLogin(
+        serverInfo: ServerInfo,
+        server: Server,
+        username: String,
+        password: String,
+        mfa: String
+    ): LoginResponse {
 
         val passwordHex = DigestUtils.sha256Hex("${serverInfo.salt}:${username}:${password}")
-        val requestBody = ohMyJson.encodeToString(mapOf("email" to username, "password" to passwordHex))
+        val requestBody = ohMyJson.encodeToString(mapOf("email" to username, "password" to passwordHex, "mfa" to mfa))
             .toRequestBody("application/json".toMediaType())
 
         val request = Request.Builder()
