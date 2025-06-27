@@ -39,9 +39,6 @@ class COSProtocolProvider private constructor() : TransferProtocolProvider {
 
         try {
             buckets = cosClient.listBuckets()
-            if (buckets.isEmpty()) {
-                throw IllegalStateException("没有获取到桶信息")
-            }
         } finally {
             cosClient.shutdown()
         }
