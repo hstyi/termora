@@ -2,10 +2,13 @@ package app.termora.plugins.obs
 
 import app.termora.DynamicIcon
 import app.termora.Icons
-import app.termora.protocol.FileObjectHandler
-import app.termora.protocol.FileObjectRequest
+import app.termora.protocol.PathHandler
+import app.termora.protocol.PathHandlerRequest
 import app.termora.protocol.TransferProtocolProvider
-import org.apache.commons.vfs2.provider.FileProvider
+import com.obs.services.BasicObsCredentialsProvider
+import com.obs.services.ObsClient
+import com.obs.services.model.ListBucketsRequest
+
 
 class OBSProtocolProvider private constructor() : TransferProtocolProvider {
 
@@ -22,12 +25,19 @@ class OBSProtocolProvider private constructor() : TransferProtocolProvider {
         return Icons.huawei
     }
 
-    override fun getFileProvider(): FileProvider {
-        return OBSFileProvider.instance
+    override fun createPathHandler(requester: PathHandlerRequest): PathHandler {
+        val host = requester.host
+        val accessKeyId = host.username
+        val secretAccessKey = host.authentication.password
+
+        val cred = BasicObsCredentialsProvider(accessKeyId, secretAccessKey)
+        val obsClient = ObsClient(cred, "https://obs.cn-north-4.myhuaweicloud.com")
+        val buckets = obsClient.listBuckets(ListBucketsRequest())
+        val defaultPath = host.options.sftpDefaultDirectory
+        val fs = OBSFileSystem(OBSClientHandler(cred, host.proxy, buckets))
+        return PathHandler(fs, fs.getPath(defaultPath))
+
     }
 
-    override fun getRootFileObject(requester: FileObjectRequest): FileObjectHandler {
-        TODO("Not yet implemented")
-    }
 
 }

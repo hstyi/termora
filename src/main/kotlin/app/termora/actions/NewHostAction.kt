@@ -18,7 +18,7 @@ class NewHostAction : AnAction() {
         val tree = evt.getData(DataProviders.Welcome.HostTree) ?: return
         var lastNode = (tree.lastSelectedPathComponent ?: tree.model.root) as? HostTreeNode ?: return
         if (lastNode.host.isFolder.not()) {
-            lastNode = lastNode.parent ?: return
+            lastNode = lastNode.parent ?: tree.simpleTreeModel.root
         }
 
         // Root 不可以添加，如果是 Root 那么加到用户下

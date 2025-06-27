@@ -9,6 +9,6 @@ class OBSProtocolProviderExtension private constructor() : ProtocolProviderExten
     }
 
     override fun getProtocolProvider(): ProtocolProvider {
-        return OBSProtocolProvider.Companion.instance
+        return OBSProtocolProvider.instance
     }
 }

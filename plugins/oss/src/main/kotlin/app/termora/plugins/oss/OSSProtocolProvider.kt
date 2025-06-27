@@ -43,9 +43,6 @@ class OSSProtocolProvider private constructor() : TransferProtocolProvider {
 
         try {
             buckets = oss.listBuckets()
-            if (buckets.isEmpty()) {
-                throw IllegalStateException("没有获取到桶信息")
-            }
         } finally {
             oss.shutdown()
         }
