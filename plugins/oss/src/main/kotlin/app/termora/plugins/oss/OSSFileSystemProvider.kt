@@ -1,11 +1,11 @@
-package app.termora.plugins.cos
+package app.termora.plugins.oss
 
 import app.termora.transfer.s3.S3FileAttributes
 import app.termora.transfer.s3.S3FileSystemProvider
 import app.termora.transfer.s3.S3Path
-import com.qcloud.cos.model.ListObjectsRequest
-import com.qcloud.cos.model.ObjectMetadata
-import com.qcloud.cos.model.PutObjectRequest
+import com.aliyun.oss.model.ListObjectsRequest
+import com.aliyun.oss.model.ObjectMetadata
+import com.aliyun.oss.model.PutObjectRequest
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import java.io.InputStream
@@ -17,11 +17,11 @@ import java.nio.file.NoSuchFileException
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.absolutePathString
 
-class COSFileSystemProvider(private val clientHandler: COSClientHandler) : S3FileSystemProvider() {
+class OSSFileSystemProvider(private val clientHandler: OSSClientHandler) : S3FileSystemProvider() {
 
 
     override fun getScheme(): String? {
-        return "cos"
+        return "oss"
     }
 
     override fun getOutputStream(path: S3Path): OutputStream {
@@ -84,13 +84,12 @@ class COSFileSystemProvider(private val clientHandler: COSClientHandler) : S3Fil
         val bucketName = path.bucketName
         while (true) {
             val request = ListObjectsRequest()
-                .withBucketName(bucketName)
-                .withMaxKeys(maxKeys)
-                .withDelimiter(path.fileSystem.separator)
+            request.bucketName = bucketName
+            request.maxKeys = maxKeys
+            request.delimiter = path.fileSystem.separator
 
-            if (path.objectName.isNotBlank()) request.withPrefix(path.objectName + path.fileSystem.separator)
-            if (nextMarker.isNotBlank()) request.withMarker(nextMarker)
-
+            if (path.objectName.isNotBlank()) request.prefix = path.objectName + path.fileSystem.separator
+            if (nextMarker.isNotBlank()) request.marker = nextMarker
 
             val objectListing = clientHandler.getClientForBucket(bucketName).listObjects(request)
             for (e in objectListing.commonPrefixes) {
