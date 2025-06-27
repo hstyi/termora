@@ -94,7 +94,7 @@ class TransportPopupMenu(
         renameMenu.isEnabled = hasParent.not() && files.size == 1
         deleteMenu.isEnabled = hasParent.not() && files.isNotEmpty()
         rmrfMenu.isEnabled = hasParent.not() && files.isNotEmpty()
-        changePermissionsMenu.isEnabled = hasParent.not() && fileSystem is SftpFileSystem && files.size == 1
+        changePermissionsMenu.isVisible = hasParent.not() && fileSystem is SftpFileSystem && files.size == 1
 
         for ((item, mnemonic) in mnemonics) {
             item.text = "${item.text}(${KeyEvent.getKeyText(mnemonic)})"

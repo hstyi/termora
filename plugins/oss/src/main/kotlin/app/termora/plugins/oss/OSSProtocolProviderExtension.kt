@@ -9,6 +9,6 @@ class OSSProtocolProviderExtension private constructor() : ProtocolProviderExten
     }
 
     override fun getProtocolProvider(): ProtocolProvider {
-        return OSSProtocolProvider.Companion.instance
+        return OSSProtocolProvider.instance
     }
 }
