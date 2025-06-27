@@ -436,7 +436,7 @@ class TransferTableModel(private val coroutineScope: CoroutineScope) :
                 }
             }
         } catch (e: Exception) {
-            tryChangeState(node, State.Failed)
+            withContext(Dispatchers.Swing) { tryChangeState(node, State.Failed) }
             if (e !is UserCanceledException) {
                 node.setException(e)
                 throw e
