@@ -25,7 +25,7 @@ class GeoSimpleTreeCellRendererExtension private constructor() : SimpleTreeCellR
         hasFocus: Boolean
     ): List<SimpleTreeCellAnnotation> {
 
-        val node = value as HostTreeNode? ?: return emptyList()
+        val node = value as? HostTreeNode ?: return emptyList()
         if (node.isFolder) return emptyList()
         val protocol = node.data.protocol
         if ((protocol == "SSH" || protocol == "RDP").not()) return emptyList()
