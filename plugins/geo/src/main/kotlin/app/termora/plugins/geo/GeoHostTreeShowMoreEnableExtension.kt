@@ -1,7 +1,6 @@
 package app.termora.plugins.geo
 
 import app.termora.EnableManager
-import app.termora.I18n
 import app.termora.SwingUtils
 import app.termora.TermoraFrameManager
 import app.termora.tree.HostTreeShowMoreEnableExtension
@@ -21,11 +20,7 @@ internal class GeoHostTreeShowMoreEnableExtension private constructor() : HostTr
 
     override fun createJCheckBoxMenuItem(tree: JTree): JCheckBoxMenuItem {
         val item = JCheckBoxMenuItem("Geo")
-        item.isEnabled = GeoApplicationRunnerExtension.instance.isReady()
         item.isSelected = item.isEnabled && enableManager.getFlag(KEY, true)
-        if (item.isEnabled.not()) {
-            item.text = GeoI18n.getString("termora.plugins.geo.coming-soon")
-        }
         item.addActionListener {
             enableManager.setFlag(KEY, item.isSelected)
             updateComponentTreeUI()
