@@ -20,6 +20,7 @@ import org.apache.commons.net.io.Util
 import org.jdesktop.swingx.JXLabel
 import org.slf4j.LoggerFactory
 import java.awt.Dimension
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import javax.swing.*
@@ -32,6 +33,11 @@ class PluginPanel(val descriptor: PluginPluginDescriptor) : JPanel(), Disposable
         private val log = LoggerFactory.getLogger(PluginPanel::class.java)
         private val installed = mutableSetOf<String>()
         private val uninstalled = mutableSetOf<String>()
+
+        /**
+         * 正在安装的数量
+         */
+        private val installing = AtomicInteger(0)
         private val publicKey = Ed25519.generatePublic(
             Base64.decodeBase64("MCowBQYDK2VwAyEAHPyJ5kt2UHWYUPnWU84DOEhCCUE5FEpzdAbeTCNV31A")
         )
@@ -205,7 +211,7 @@ class PluginPanel(val descriptor: PluginPluginDescriptor) : JPanel(), Disposable
         button.installing = true
         button.progress = 0
         button.isEnabled = false
-
+        installing.incrementAndGet()
 
         val job = swingCoroutineScope.launch(Dispatchers.IO) {
             try {
@@ -229,7 +235,11 @@ class PluginPanel(val descriptor: PluginPluginDescriptor) : JPanel(), Disposable
 
                 withContext(Dispatchers.Swing) {
                     installed.add(descriptor.id)
-                    restarter.scheduleRestart(owner)
+
+                    // 当有多个插件正在安装时，那么最后一个安装成功的询问是否重启
+                    if (installing.get() <= 1) {
+                        restarter.scheduleRestart(owner)
+                    }
 
                     // 如果是更新，那么也需要刷新 InstalledPanel 下的按钮状态
                     if (button == updateButton) {
@@ -261,6 +271,7 @@ class PluginPanel(val descriptor: PluginPluginDescriptor) : JPanel(), Disposable
                 }
             } finally {
                 withContext(Dispatchers.Swing) {
+                    installing.decrementAndGet()
                     button.installing = false
                     refreshButtons()
                 }
