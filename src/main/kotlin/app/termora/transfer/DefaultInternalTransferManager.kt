@@ -175,7 +175,7 @@ class DefaultInternalTransferManager(
 
         val actionsComBoBox = JComboBox<TransferAction>()
         actionsComBoBox.addItem(TransferAction.Overwrite)
-        actionsComBoBox.addItem(TransferAction.Append)
+//        actionsComBoBox.addItem(TransferAction.Append)
         actionsComBoBox.addItem(TransferAction.Skip)
         actionsComBoBox.renderer = object : DefaultListCellRenderer() {
             override fun getListCellRendererComponent(
