@@ -58,8 +58,8 @@ class ServerManager private constructor() {
 
         // 解密
         val salt = "${serverInfo.salt}:${username}".toByteArray()
-        val privateKeySecureKey = PBKDF2.hash(salt, username.toCharArray(), 1024, 256)
-        val privateKeySecureIv = PBKDF2.hash(salt, username.toCharArray(), 1024, 128)
+        val privateKeySecureKey = PBKDF2.hash(salt, password.toCharArray(), 1024, 256)
+        val privateKeySecureIv = PBKDF2.hash(salt, password.toCharArray(), 1024, 128)
         val privateKeyEncoded = AES.CBC.decrypt(
             privateKeySecureKey, privateKeySecureIv,
             Base64.decodeBase64(meResponse.privateKey)

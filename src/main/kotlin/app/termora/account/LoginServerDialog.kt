@@ -77,13 +77,8 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
         var rows = 1
         val step = 2
 
-
-        if (Application.isUnknownVersion()) {
-            serverComboBox.addItem(Server("Localhost", "http://127.0.0.1:8080"))
-        }
-
 //        serverComboBox.addItem(singaporeServer)
-//        serverComboBox.addItem(chinaServer)
+        serverComboBox.addItem(chinaServer)
 
         val properties = DatabaseManager.getInstance().properties
         val servers = (runCatching {
@@ -288,8 +283,8 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
                 .add("${I18n.getString("termora.new-host.general.name")}:").xy(1, rows)
                 .add(nameTextField).xyw(3, rows, 3).apply { rows += step }
                 .add("${I18n.getString("termora.settings.account.server")}:").xy(1, rows)
-                .add(serverTextField).xy(3, rows)
-                .add(deploy).xy(5, rows).apply { rows += step }
+                .add(serverTextField).xyw(3, rows, 3)
+//                .add(deploy).xy(5, rows).apply { rows += step }
                 .build()
         }
 
