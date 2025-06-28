@@ -93,8 +93,12 @@ internal class MarketplaceManager private constructor() {
         val version = Semver.parse(Application.getVersion())
             ?: return emptyList()
 
-        val repositories = PluginRepositoryManager.getInstance().getRepositories().toMutableSet()
-        repositories.add("https://github.com/TermoraDev/termora-marketplace/releases/latest/download/plugins.xml")
+        val repositories = PluginRepositoryManager.getInstance().getRepositories().distinct().toMutableList()
+        if (I18n.isChinaMainland()) {
+            repositories.addFirst("https://plugins.termora.cn/plugins.xml")
+        } else {
+            repositories.addFirst("https://github.com/TermoraDev/termora-marketplace/releases/latest/download/plugins.xml")
+        }
 
         val plugins = mutableListOf<MarketplacePlugin>()
         val executorService = Executors.newVirtualThreadPerTaskExecutor()

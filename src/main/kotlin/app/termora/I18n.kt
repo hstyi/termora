@@ -1,6 +1,7 @@
 package app.termora
 
 import org.apache.commons.lang3.LocaleUtils
+import org.apache.commons.lang3.StringUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.*
@@ -31,6 +32,13 @@ object I18n : AbstractI18n() {
             }
         }
         return null
+    }
+
+    /**
+     * 如果使用 zh_CN 则定义为中国大陆用户，应当优先使用国内服务器
+     */
+    fun isChinaMainland(): Boolean {
+        return StringUtils.equalsIgnoreCase(containsLanguage(Locale.getDefault()), "zh_CN")
     }
 
     fun getLanguages(): Map<String, String> {
