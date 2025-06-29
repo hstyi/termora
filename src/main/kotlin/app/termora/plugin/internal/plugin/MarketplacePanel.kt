@@ -28,7 +28,7 @@ class MarketplacePanel : JPanel(BorderLayout()), Disposable {
     private val busyLabel = JXBusyLabel()
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val failedLabel = JLabel()
-    private val isLoading = AtomicBoolean(false)
+    val isLoading = AtomicBoolean(false)
 
     private val marketplaceManager get() = MarketplaceManager.getInstance()
 
@@ -112,7 +112,6 @@ class MarketplacePanel : JPanel(BorderLayout()), Disposable {
                                 pluginsPanel.add(createMarketplacePluginPanel(plugin))
                                 pluginsPanel.add(JToolBar.Separator())
                             }
-                            pluginsPanel.add(createRetry())
                             cardLayout.show(cardPanel, PanelState.Plugins.name)
                         } else {
                             failedLabel.text = "No plugins found"
@@ -134,7 +133,7 @@ class MarketplacePanel : JPanel(BorderLayout()), Disposable {
     private fun createRetry(): JComponent {
         val box = Box.createHorizontalBox()
         box.add(Box.createHorizontalGlue())
-        box.add(JXHyperlink(object : AbstractAction(I18n.getString("termora.transport.sftp.retry")) {
+        box.add(JXHyperlink(object : AbstractAction(I18n.getString("termora.transport.table.contextmenu.refresh")) {
             override fun actionPerformed(e: ActionEvent) {
                 marketplaceManager.clear()
                 reload()

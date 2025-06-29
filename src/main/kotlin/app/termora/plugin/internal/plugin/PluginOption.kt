@@ -31,9 +31,11 @@ class PluginOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable, Acc
     private val tabbed = FlatTabbedPane()
     private val toolbar = FlatToolBar()
     private val settingsButton = JButton(Icons.settings)
+    private val refreshButton = JButton(Icons.refresh)
     private val owner get() = SwingUtilities.getWindowAncestor(this)
     private val marketplacePanel = MarketplacePanel()
     private val installedPanel = InstalledPanel()
+    private val marketplaceManager get() = MarketplaceManager.getInstance()
 
     init {
         initView()
@@ -58,10 +60,12 @@ class PluginOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable, Acc
         tabbed.addTab(I18n.getString("termora.settings.plugin.installed"), installedPanel)
 
         toolbar.add(Box.createHorizontalGlue())
+        toolbar.add(refreshButton)
         toolbar.add(settingsButton)
         tabbed.trailingComponent = toolbar
 
         tabbed.selectedIndex = EnableManager.getInstance().getFlag("PluginOption.defaultTab", 0)
+        refreshButton.isVisible = tabbed.selectedIndex == 0
 
         add(tabbed, BorderLayout.CENTER)
 
@@ -73,6 +77,13 @@ class PluginOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable, Acc
             .let { Disposer.register(this, it) }
 
         settingsButton.addActionListener { showContextMenu() }
+        refreshButton.addActionListener {
+            if (marketplacePanel.isLoading.get().not()) {
+                marketplaceManager.clear()
+                marketplacePanel.reload()
+            }
+        }
+        tabbed.addChangeListener { refreshButton.isVisible = tabbed.selectedIndex == 0 }
     }
 
     override fun getIcon(isSelected: Boolean): Icon {
