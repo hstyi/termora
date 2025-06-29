@@ -179,6 +179,11 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
             source: DatabaseChangedExtension.Source
         ) {
 
+            // 同步数据
+            if (type == DataType.Host.name && id.isNotBlank()) {
+                syncUserObject(id)
+            }
+
             if (id.isBlank() || source != DatabaseChangedExtension.Source.Sync) return
             if (type.isNotBlank() && type != DataType.Host.name) return
 
@@ -210,6 +215,16 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
                         reload(node.parent ?: break)
                         break
                     }
+                }
+            }
+        }
+
+        private fun syncUserObject(id: String) {
+            for (node in getRoot().getAllChildren()) {
+                if (node.id == id) {
+                    val host = hostManager.getHost(id) ?: return
+                    node.host = host
+                    return
                 }
             }
         }
