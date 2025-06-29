@@ -17,15 +17,13 @@ import kotlin.io.path.absolutePathString
 import kotlin.io.path.name
 
 
-class EditorDialog(file: Path, owner: Window, myDisposable: Disposable) : DialogWrapper(null) {
+class EditorDialog(file: Path, owner: Window, private val myDisposable: Disposable) : DialogWrapper(null) {
 
     private val filename = file.name
     private val filepath = File(file.absolutePathString())
     private val editorPanel = EditorPanel(this, filepath)
 
     init {
-        Disposer.register(disposable, myDisposable)
-
         size = Dimension(UIManager.getInt("Dialog.width"), UIManager.getInt("Dialog.height"))
         isModal = false
         controlsVisible = true
@@ -47,6 +45,18 @@ class EditorDialog(file: Path, owner: Window, myDisposable: Disposable) : Dialog
         addWindowListener(object : WindowAdapter() {
             override fun windowClosing(e: WindowEvent?) {
                 doCancelAction()
+            }
+        })
+
+        Disposer.register(myDisposable, object : Disposable {
+            override fun dispose() {
+                doCancelAction()
+            }
+        })
+
+        Disposer.register(disposable, object : Disposable {
+            override fun dispose() {
+                Disposer.dispose(myDisposable)
             }
         })
     }
