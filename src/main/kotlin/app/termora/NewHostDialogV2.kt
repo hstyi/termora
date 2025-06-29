@@ -206,6 +206,14 @@ class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : Dialo
         var host = panel.getHost()
 
         if (editHost != null) {
+            val extras = mutableMapOf<String, String>()
+            extras.putAll(editHost.options.extras)
+            extras.putAll(host.options.extras)
+
+            val tags = mutableListOf<String>()
+            tags.addAll(editHost.options.tags)
+            tags.addAll(host.options.tags)
+
             host = editHost.copy(
                 name = host.name,
                 protocol = host.protocol,
@@ -215,7 +223,7 @@ class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : Dialo
                 authentication = host.authentication,
                 proxy = host.proxy,
                 remark = host.remark,
-                options = host.options,
+                options = host.options.copy(extras = extras, tags = tags),
                 tunnelings = host.tunnelings,
             )
         }
