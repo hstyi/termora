@@ -882,6 +882,11 @@ class TransportPanel(
     private inner class EditTransferListener : TransferListener, Disposable {
         private val transferIds = mutableSetOf<String>()
         private val sftp get() = DatabaseManager.getInstance().sftp
+        private val parentDisposable = Disposer.newDisposable()
+
+        init {
+            Disposer.register(this, parentDisposable)
+        }
 
         override fun onTransferChanged(
             transfer: Transfer,
@@ -915,13 +920,22 @@ class TransportPanel(
                 }
             }
 
+            val disposed = AtomicBoolean(false)
             Disposer.register(disposable, object : Disposable {
                 override fun dispose() {
-                    job.cancel()
+                    disposed.compareAndSet(false, true)
                 }
             })
 
-            Disposer.register(this, disposable)
+            Disposer.register(parentDisposable, object : Disposable {
+                override fun dispose() {
+                    job.cancel()
+                    if (disposed.compareAndSet(false, true)) {
+                        Disposer.dispose(disposable)
+                    }
+                }
+            })
+
         }
 
         private fun startEditor(localPath: Path): Disposable {
