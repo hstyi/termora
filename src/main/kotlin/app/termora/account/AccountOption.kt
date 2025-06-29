@@ -98,9 +98,9 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
             val upgrade = JXHyperlink(object : AnAction(I18n.getString("termora.settings.account.upgrade")) {
                 override fun actionPerformed(evt: AnActionEvent) {
                     if (I18n.isChinaMainland()) {
-                        Application.browse(URI.create("https://www.termora.cn/pricing"))
+                        Application.browse(URI.create("https://www.termora.cn/pricing?version=${Application.getVersion()}"))
                     } else {
-                        Application.browse(URI.create("https://www.termora.app/pricing"))
+                        Application.browse(URI.create("https://www.termora.app/pricing?version=${Application.getVersion()}"))
                     }
                 }
             })
@@ -116,7 +116,7 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
                 val upgrade =
                     JXHyperlink(object : AnAction(I18n.getString("termora.settings.account.verify"), Icons.error) {
                         override fun actionPerformed(evt: AnActionEvent) {
-                            Application.browse(URI.create("https://www.termora.app"))
+                            Application.browse(URI.create("https://www.termora.app?version=${Application.getVersion()}"))
                         }
                     })
                 upgrade.isFocusable = false

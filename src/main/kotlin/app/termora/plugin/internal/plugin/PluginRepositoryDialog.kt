@@ -66,7 +66,11 @@ internal class PluginRepositoryDialog(owner: Window) : DialogWrapper(owner) {
 
         urlBtn.addActionListener(object : AbstractAction() {
             override fun actionPerformed(e: ActionEvent) {
-                Application.browse(URI.create("https://github.com/TermoraDev/termora-marketplace/releases/latest"))
+                if (I18n.isChinaMainland()) {
+                    Application.browse(URI.create("https://www.termora.cn/plugins/mirrors?version=${Application.getVersion()}"))
+                } else {
+                    Application.browse(URI.create("https://www.termora.app/plugins/mirrors?version=${Application.getVersion()}"))
+                }
             }
         })
 
