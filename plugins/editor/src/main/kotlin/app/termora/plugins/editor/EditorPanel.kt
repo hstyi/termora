@@ -33,6 +33,7 @@ import javax.swing.*
 import javax.swing.SwingConstants.VERTICAL
 import javax.swing.event.DocumentEvent
 import kotlin.math.max
+import kotlin.math.min
 
 class EditorPanel(private val window: JDialog, private val file: File) : JPanel(BorderLayout()) {
 
@@ -212,28 +213,7 @@ class EditorPanel(private val window: JDialog, private val file: File) : JPanel(
 
         textArea.actionMap.put("Format", object : AbstractAction() {
             override fun actionPerformed(e: ActionEvent) {
-                if (textArea.syntaxEditingStyle == SyntaxConstants.SYNTAX_STYLE_JSON) {
-                    runCatching {
-                        val json = prettyJson.parseToJsonElement(textArea.text)
-                        textArea.text = prettyJson.encodeToString(json)
-                    }.onFailure {
-                        if (log.isErrorEnabled) {
-                            log.error(it.message, it)
-                        }
-                    }
-                } else if (textArea.syntaxEditingStyle == SyntaxConstants.SYNTAX_STYLE_XML) {
-                    runCatching {
-                        val document = SAXReader().read(StringReader(textArea.text))
-                        val sw = StringWriter()
-                        val writer = XMLWriter(sw, OutputFormat.createPrettyPrint())
-                        writer.write(document)
-                        textArea.text = sw.toString()
-                    }.onFailure {
-                        if (log.isErrorEnabled) {
-                            log.error(it.message, it)
-                        }
-                    }
-                }
+                format()
             }
         })
 
@@ -265,10 +245,57 @@ class EditorPanel(private val window: JDialog, private val file: File) : JPanel(
 
 
 
-        prettyBtn.addActionListener(searchTextField.actionMap.get("Format"))
+        prettyBtn.addActionListener(textArea.actionMap.get("Format"))
 
         prevBtn.addActionListener { search(false) }
         nextBtn.addActionListener { search(true) }
+    }
+
+    private fun format() {
+        val vertical = scrollPane.verticalScrollBar.value
+        val horizontal = scrollPane.horizontalScrollBar.value
+        val caretPosition = textArea.caretPosition
+
+        val c = if (textArea.syntaxEditingStyle == SyntaxConstants.SYNTAX_STYLE_JSON) {
+            runCatching {
+                val json = prettyJson.parseToJsonElement(textArea.text)
+                textArea.text = prettyJson.encodeToString(json)
+            }.onFailure {
+                if (log.isErrorEnabled) {
+                    log.error(it.message, it)
+                }
+            }
+        } else if (textArea.syntaxEditingStyle == SyntaxConstants.SYNTAX_STYLE_XML) {
+            runCatching {
+                val document = SAXReader().read(StringReader(textArea.text))
+                val sw = StringWriter()
+                val writer = XMLWriter(sw, OutputFormat.createPrettyPrint())
+                writer.write(document)
+                textArea.text = sw.toString()
+            }.onFailure {
+                if (log.isErrorEnabled) {
+                    log.error(it.message, it)
+                }
+            }
+        } else {
+            null
+        } ?: return
+
+        c.onSuccess {
+            SwingUtilities.invokeLater {
+                scrollPane.verticalScrollBar.value = min(
+                    vertical,
+                    scrollPane.verticalScrollBar.maximum
+                )
+                scrollPane.horizontalScrollBar.value = min(
+                    horizontal,
+                    scrollPane.horizontalScrollBar.maximum
+                )
+                if (caretPosition >= 0 && caretPosition < textArea.document.length) {
+                    textArea.caretPosition = caretPosition
+                }
+            }
+        }
     }
 
     private fun search(searchForward: Boolean = true) {
