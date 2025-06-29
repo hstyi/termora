@@ -183,6 +183,10 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
                         || node.host.username.contains(text)
             }
 
+            override fun canFilter(): Boolean {
+                return searchTextField.text.isNotBlank()
+            }
+
         })
 
         searchTextField.addKeyListener(object : KeyAdapter() {

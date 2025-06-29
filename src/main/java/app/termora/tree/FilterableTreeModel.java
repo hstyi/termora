@@ -4,9 +4,11 @@ import app.termora.Disposable;
 import app.termora.DocumentAdaptor;
 import com.formdev.flatlaf.extras.components.FlatTextField;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.JTree;
+import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.EventListenerList;
 import javax.swing.event.TreeModelEvent;
@@ -117,7 +119,7 @@ public class FilterableTreeModel implements TreeModel, Disposable {
     private void rebuildAndNotify(TreeModelEvent event) {
         rebuildFilteredTree();
         notifyTreeStructureChanged(event);
-        if (expand) {
+        if (expand && Arrays.stream(filters).anyMatch(Filter::canFilter)) {
             expandAllNodes(tree, getRoot(), new TreePath(getRoot()));
         }
     }
@@ -194,7 +196,7 @@ public class FilterableTreeModel implements TreeModel, Disposable {
      * @return true如果通过所有过滤器
      */
     private boolean passesFilter(Object node) {
-        return Arrays.stream(filters).allMatch(filter -> filter.filter(node));
+        return Arrays.stream(filters).allMatch(filter -> !filter.canFilter() || filter.filter(node));
     }
 
     /**
@@ -220,6 +222,18 @@ public class FilterableTreeModel implements TreeModel, Disposable {
             TreeModelEvent evt = new TreeModelEvent(this, event == null ? new Object[]{getRoot()} : event.getPath());
             for (TreeModelListener listener : listeners) {
                 listener.treeStructureChanged(evt);
+            }
+
+            // 修复 “我的主机” 在过滤时新增文件夹会自动隐藏的问题
+            if (event != null) {
+                final TreePath treePath = event.getTreePath();
+                final Object lastPathComponent = treePath.getLastPathComponent();
+                if (lastPathComponent instanceof SimpleTreeNode<?> c) {
+                    final SimpleTreeNode<?> parent = c.getParent();
+                    if (StringUtils.equals("0", c.getId()) || (parent != null && StringUtils.equals("0", parent.getId()))) {
+                        SwingUtilities.invokeLater(() -> SwingUtilities.updateComponentTreeUI(tree));
+                    }
+                }
             }
         }
     }
