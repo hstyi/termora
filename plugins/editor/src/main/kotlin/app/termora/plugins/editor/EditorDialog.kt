@@ -10,6 +10,7 @@ import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import java.io.File
 import java.nio.file.Path
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.JComponent
 import javax.swing.JOptionPane
 import javax.swing.UIManager
@@ -22,6 +23,7 @@ class EditorDialog(file: Path, owner: Window, private val myDisposable: Disposab
     private val filename = file.name
     private val filepath = File(file.absolutePathString())
     private val editorPanel = EditorPanel(this, filepath)
+    private val disposed = AtomicBoolean()
 
     init {
         size = Dimension(UIManager.getInt("Dialog.width"), UIManager.getInt("Dialog.height"))
@@ -42,21 +44,28 @@ class EditorDialog(file: Path, owner: Window, private val myDisposable: Disposab
 
 
     private fun initEvents() {
+
         addWindowListener(object : WindowAdapter() {
             override fun windowClosing(e: WindowEvent?) {
-                doCancelAction()
+                if (disposed.compareAndSet(false, true)) {
+                    doCancelAction()
+                }
             }
         })
 
         Disposer.register(myDisposable, object : Disposable {
             override fun dispose() {
-                doCancelAction()
+                if (disposed.compareAndSet(false, true)) {
+                    doCancelAction()
+                }
             }
         })
 
         Disposer.register(disposable, object : Disposable {
             override fun dispose() {
-                Disposer.dispose(myDisposable)
+                if (disposed.compareAndSet(false, true)) {
+                    Disposer.dispose(myDisposable)
+                }
             }
         })
     }
