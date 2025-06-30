@@ -79,7 +79,13 @@ class TransportTableModel() : DefaultTableModel() {
                     return I18n.getString("termora.folder")
                 }
                 if (name == "..") return StringUtils.EMPTY
-                return FilenameUtils.getExtension(name)
+                try {
+                    return FilenameUtils.getExtension(name)
+                } catch (_: Exception) { // 如果 name 中包含 : 会报错
+                    val idx = name.lastIndexOf('.')
+                    if (idx < 0) return StringUtils.EMPTY
+                    return name.substring(idx + 1)
+                }
             }
         }
 
