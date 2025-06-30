@@ -29,6 +29,7 @@
 - Broadcast commands to multiple sessions
 - [Find Everywhere](./docs/findeverywhere.png?raw=1) quick navigation
 - Data encryption
+- Support [plugins](https://www.termora.app/plugins)
 - ...
 
 ## Download
