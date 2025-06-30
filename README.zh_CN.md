@@ -25,6 +25,7 @@
 - 支持将命令发送到多个会话
 - 支持 [Find Everywhere](./docs/findeverywhere-zh_CN.png?raw=1) 快速跳转
 - 支持数据加密
+- 支持[插件](https://www.termora.app/plugins)
 - ...
 
 ## 下载
