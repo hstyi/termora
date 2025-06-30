@@ -20,7 +20,6 @@ import org.apache.commons.net.io.Util
 import org.jdesktop.swingx.JXLabel
 import org.slf4j.LoggerFactory
 import java.awt.Dimension
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import javax.swing.*
@@ -33,11 +32,6 @@ class PluginPanel(val descriptor: PluginPluginDescriptor) : JPanel(), Disposable
         private val log = LoggerFactory.getLogger(PluginPanel::class.java)
         private val installed = mutableSetOf<String>()
         private val uninstalled = mutableSetOf<String>()
-
-        /**
-         * 正在安装的数量
-         */
-        private val installing = AtomicInteger(0)
         private val publicKey = Ed25519.generatePublic(
             Base64.decodeBase64("MCowBQYDK2VwAyEAHPyJ5kt2UHWYUPnWU84DOEhCCUE5FEpzdAbeTCNV31A")
         )
@@ -47,7 +41,7 @@ class PluginPanel(val descriptor: PluginPluginDescriptor) : JPanel(), Disposable
     private val updateButton = InstallButton().apply { update = true }
     private val installButton = InstallButton()
     private val uninstallButton = JButton(I18n.getString("termora.settings.plugin.uninstall"))
-
+    private val installing get() = MarketplacePanel.installing
     private val restarter get() = TermoraRestarter.getInstance()
     private val pluginManager get() = PluginManager.getInstance()
     private val owner get() = SwingUtilities.getWindowAncestor(this)

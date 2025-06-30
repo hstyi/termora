@@ -15,10 +15,17 @@ import java.awt.BorderLayout
 import java.awt.CardLayout
 import java.awt.event.ActionEvent
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.*
 
 
 class MarketplacePanel : JPanel(BorderLayout()), Disposable {
+    companion object {
+        /**
+         * 正在安装的数量
+         */
+        val installing = AtomicInteger(0)
+    }
 
     private val pluginsPanel = JPanel(VerticalFlowLayout(VerticalFlowLayout.TOP, 0, 8))
     private val cardLayout = CardLayout()
@@ -93,6 +100,7 @@ class MarketplacePanel : JPanel(BorderLayout()), Disposable {
     }
 
     fun reload() {
+        if (installing.get() > 0) return
         if (isLoading.compareAndSet(false, true)) {
             coroutineScope.launch {
                 withContext(Dispatchers.Swing) {
