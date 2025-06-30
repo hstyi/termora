@@ -11,6 +11,7 @@ import com.formdev.flatlaf.extras.components.FlatTextField
 import com.formdev.flatlaf.extras.components.FlatToolBar
 import com.formdev.flatlaf.ui.FlatLineBorder
 import com.formdev.flatlaf.util.SystemInfo
+import org.apache.commons.io.FilenameUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
@@ -205,7 +206,7 @@ class TransportNavigationPanel(
         if (path.fileSystem.isWindowsFileSystem() && path.pathString == path.fileSystem.separator) {
             textField.text = StringUtils.EMPTY
         } else {
-            textField.text = path.absolutePathString()
+            textField.text = FilenameUtils.separatorsToUnix(path.absolutePathString())
         }
     }
 
