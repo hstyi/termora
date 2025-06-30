@@ -21,33 +21,39 @@ object WSLSupport {
 
     fun getDistributions(): List<WSLDistribution> {
         if (isSupported.not()) return emptyList()
-
-        val baseKeyPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Lxss"
-        val guids = Advapi32Util.registryGetKeys(WinReg.HKEY_CURRENT_USER, baseKeyPath)
         val distributions = mutableListOf<WSLDistribution>()
 
-        for (guid in guids) {
-            val key = baseKeyPath + "\\" + guid
-            try {
-                if (Advapi32Util.registryKeyExists(WinReg.HKEY_CURRENT_USER, key)) {
-                    val distroName =
-                        Advapi32Util.registryGetStringValue(WinReg.HKEY_CURRENT_USER, key, "DistributionName")
-                    val basePath = Advapi32Util.registryGetStringValue(WinReg.HKEY_CURRENT_USER, key, "BasePath")
-                    val flavor = Advapi32Util.registryGetStringValue(WinReg.HKEY_CURRENT_USER, key, "Flavor")
-                    if (StringUtils.isAnyBlank(distroName, guid, basePath, flavor)) continue
-                    distributions.add(
-                        WSLDistribution(
-                            guid = guid,
-                            flavor = flavor,
-                            basePath = basePath,
-                            distributionName = distroName
+        try {
+            val baseKeyPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Lxss"
+            val guids = Advapi32Util.registryGetKeys(WinReg.HKEY_CURRENT_USER, baseKeyPath)
+
+            for (guid in guids) {
+                val key = baseKeyPath + "\\" + guid
+                try {
+                    if (Advapi32Util.registryKeyExists(WinReg.HKEY_CURRENT_USER, key)) {
+                        val distroName =
+                            Advapi32Util.registryGetStringValue(WinReg.HKEY_CURRENT_USER, key, "DistributionName")
+                        val basePath = Advapi32Util.registryGetStringValue(WinReg.HKEY_CURRENT_USER, key, "BasePath")
+                        val flavor = Advapi32Util.registryGetStringValue(WinReg.HKEY_CURRENT_USER, key, "Flavor")
+                        if (StringUtils.isAnyBlank(distroName, guid, basePath, flavor)) continue
+                        distributions.add(
+                            WSLDistribution(
+                                guid = guid,
+                                flavor = flavor,
+                                basePath = basePath,
+                                distributionName = distroName
+                            )
                         )
-                    )
+                    }
+                } catch (e: Exception) {
+                    if (log.isWarnEnabled) {
+                        log.warn(e.message, e)
+                    }
                 }
-            } catch (e: Exception) {
-                if (log.isWarnEnabled) {
-                    log.warn(e.message, e)
-                }
+            }
+        } catch (e: Exception) {
+            if (log.isWarnEnabled) {
+                log.warn(e.message, e)
             }
         }
 
