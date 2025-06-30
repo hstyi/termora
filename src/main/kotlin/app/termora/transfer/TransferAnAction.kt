@@ -56,17 +56,24 @@ class TransferAnAction : AnAction(I18n.getString("termora.transport.sftp"), Icon
         }
 
         val host = hostManager.getHost(hostId) ?: return
+        var selectionPane: TransportSelectionPanel? = null
+
         for (i in 0 until tabbed.tabCount) {
             val c = tabbed.getComponentAt(i)
             if (c is TransportSelectionPanel) {
                 if (c.state == TransportSelectionPanel.State.Initialized) {
-                    c.connect(host)
-                    return
+                    selectionPane = c
+                    break
                 }
             }
         }
 
-        tabbed.addSelectionTab()
+        if (selectionPane == null) {
+            selectionPane = tabbed.addSelectionTab()
+        }
+
+        selectionPane.connect(host)
+
 
     }
 }
