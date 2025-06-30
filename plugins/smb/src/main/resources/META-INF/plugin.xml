@@ -1,0 +1,24 @@
+<termora-plugin>
+
+    <id>smb</id>
+
+    <name>SMB</name>
+
+    <paid/>
+
+    <version>${projectVersion}</version>
+
+    <termora-version since=">=${rootProjectVersion}" until=""/>
+
+    <entry>app.termora.plugins.smb.SMBPlugin</entry>
+
+    <descriptions>
+        <description>Connecting to SMB</description>
+        <description language="zh_CN">支持连接到 SMB</description>
+        <description language="zh_TW">支援連接到 SMB</description>
+    </descriptions>
+
+    <vendor url="https://github.com/TermoraDev">TermoraDev</vendor>
+
+
+</termora-plugin>
