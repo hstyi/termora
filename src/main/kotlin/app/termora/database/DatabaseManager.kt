@@ -5,14 +5,19 @@ import app.termora.Application.ohMyJson
 import app.termora.account.Account
 import app.termora.account.AccountExtension
 import app.termora.account.AccountManager
+import app.termora.account.AccountOwner
 import app.termora.database.Data.Companion.toData
+import app.termora.highlight.KeywordHighlightManager
+import app.termora.keymap.KeymapManager
+import app.termora.keymgr.KeyManager
+import app.termora.macro.MacroManager
 import app.termora.plugin.ExtensionManager
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
+import app.termora.snippet.SnippetManager
 import app.termora.terminal.CursorStyle
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.statements.StatementType
 import org.jetbrains.exposed.v1.jdbc.*
@@ -402,41 +407,65 @@ class DatabaseManager private constructor() : Disposable {
             }
         }
 
+        private fun silentDelete(id: String) {
+            lock.withLock {
+                transaction(database) {
+                    DataEntity.deleteWhere { DataEntity.id.eq(id) }
+                }
+            }
+        }
+
         private fun transferData(account: Account) {
-            val deleteIds = mutableSetOf<String>()
+            val hostManager = HostManager.getInstance()
+            val snippetManager = SnippetManager.getInstance()
+            val macroManager = MacroManager.getInstance()
+            val keymapManager = KeymapManager.getInstance()
+            val keyManager = KeyManager.getInstance()
+            val highlightManager = KeywordHighlightManager.getInstance()
+            val accountOwner = AccountOwner(
+                id = account.id,
+                name = account.email,
+                type = OwnerType.User
+            )
 
             for (host in hostManager.hosts()) {
+                // 已经删除，则忽略
+                if (host.deleted) continue
                 // 不是用户数据，那么忽略
                 if (host.ownerType.isNotBlank() && host.ownerType != OwnerType.User.name) continue
                 // 不是本地用户数据，那么忽略
                 if (AccountManager.isLocally(host.ownerId).not()) continue
-                // 转移资产
-                val newHost = host.copy(
-                    id = randomUUID(),
-                    ownerId = account.id,
-                    ownerType = OwnerType.User.name,
-                )
-                // 保存数据
-                save(
-                    Data(
-                        id = newHost.id,
-                        ownerId = newHost.ownerId,
-                        ownerType = newHost.ownerType,
-                        type = DataType.Host.name,
-                        data = ohMyJson.encodeToString(newHost),
-                    )
-                )
-
-                deleteIds.add(host.id)
+                // 先删除，因为 ID 没有改变，改变的只是 owner 信息
+                silentDelete(host.id)
+                hostManager.addHost(host.copy(ownerId = accountOwner.id, ownerType = accountOwner.type.name))
             }
 
-            if (deleteIds.isNotEmpty()) {
-                lock.withLock {
-                    transaction(database) {
-                        DataEntity.deleteWhere { DataEntity.id.inList(deleteIds) }
-                    }
-                }
+            for (snippet in snippetManager.snippets()) {
+                if (snippet.deleted) continue
+                silentDelete(snippet.id)
+                snippetManager.addSnippet(snippet)
             }
+
+            for (macro in macroManager.getMacros()) {
+                silentDelete(macro.id)
+                macroManager.addMacro(macro)
+            }
+
+            for (keymap in keymapManager.getKeymaps()) {
+                silentDelete(keymap.id)
+                keymapManager.addKeymap(keymap)
+            }
+
+            for (keypair in keyManager.getOhKeyPairs()) {
+                silentDelete(keypair.id)
+                keyManager.addOhKeyPair(keypair, accountOwner)
+            }
+
+            for (e in highlightManager.getKeywordHighlights()) {
+                silentDelete(e.id)
+                highlightManager.addKeywordHighlight(e, accountOwner)
+            }
+
         }
 
         override fun ordered(): Long {
