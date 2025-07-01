@@ -188,6 +188,11 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
         // Nothing
     }
 
+    override fun loginScriptsPtyConnector(host: Host, ptyConnector: PtyConnector): PtyConnector {
+        // Nothing
+        return ptyConnector
+    }
+
     private inner class PasswordReporterDataListener(private val host: Host) : DataListener {
         override fun onChanged(key: DataKey<*>, data: Any) {
             if (key == VisualTerminal.Companion.Written && data is String) {

@@ -45,8 +45,8 @@ class NewKeywordHighlightDialog(
         Color(colorPalette.getColor(TerminalColor.Basic.BACKGROUND)),
         I18n.getString("termora.highlight.background-color")
     )
-    val matchCaseBtn = JToggleButton(Icons.matchCase)
-    val regexBtn = JToggleButton(Icons.regex)
+    val matchCaseBtn = JToggleButton(Icons.matchCase).apply { toolTipText = I18n.getString("termora.match-case") }
+    val regexBtn = JToggleButton(Icons.regex).apply { toolTipText = I18n.getString("termora.regex") }
 
 
     private val textColorRevert = JButton(Icons.revert)
