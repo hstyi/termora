@@ -88,7 +88,27 @@ data class SerialComm(
 )
 
 @Serializable
-data class HostTag(val text: String)
+data class LoginScript(
+    /**
+     * 等待字符串
+     */
+    val expect: String,
+
+    /**
+     * 等待之后发送
+     */
+    val send: String,
+
+    /**
+     * [expect] 是否是正则
+     */
+    val regex: Boolean = false,
+
+    /**
+     * [expect] 是否大小写匹配，如果为 true 表示不忽略大小写，也就是：'A != a'；如果为 false 那么 'A == a'
+     */
+    val matchCase: Boolean = false,
+)
 
 
 @Serializable
@@ -97,6 +117,10 @@ data class Options(
      * 跳板机
      */
     val jumpHosts: List<String> = mutableListOf(),
+    /**
+     * 登录脚本
+     */
+    val loginScripts: List<LoginScript> = emptyList(),
     /**
      * 编码
      */

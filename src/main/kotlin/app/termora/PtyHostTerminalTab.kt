@@ -37,7 +37,7 @@ abstract class PtyHostTerminalTab(
                 }
 
                 // 开启 PTY
-                val ptyConnector = openPtyConnector()
+                val ptyConnector = loginScriptsPtyConnector(host, openPtyConnector())
                 ptyConnectorDelegate.ptyConnector = ptyConnector
 
                 // 开启 reader
@@ -78,6 +78,73 @@ abstract class PtyHostTerminalTab(
                 }
             }
 
+        }
+    }
+
+    /**
+     * 登录脚本
+     */
+    open fun loginScriptsPtyConnector(host: Host, ptyConnector: PtyConnector): PtyConnector {
+        val loginScripts = host.options.loginScripts.toMutableList()
+        if (loginScripts.isEmpty()) {
+            return ptyConnector
+        }
+
+        return object : PtyConnectorDelegate(ptyConnector) {
+            override fun read(buffer: CharArray): Int {
+                val len = super.read(buffer)
+
+                // 获取一个匹配的登录脚本
+                val scripts = runCatching { popLoginScript(buffer, len) }.getOrNull() ?: return len
+                if (scripts.isEmpty()) return len
+
+                for (script in scripts) {
+                    // send
+                    write(script.send.toByteArray(getCharset()))
+
+                    // send \r or \n
+                    val enter = terminal.getKeyEncoder().encode(TerminalKeyEvent(KeyEvent.VK_ENTER))
+                        .toByteArray(getCharset())
+                    write(enter)
+                }
+
+
+                return len
+            }
+
+            private fun popLoginScript(buffer: CharArray, len: Int): List<LoginScript> {
+                if (loginScripts.isEmpty()) return emptyList()
+                if (len < 1) return emptyList()
+
+                val scripts = mutableListOf<LoginScript>()
+                val text = String(buffer, 0, len)
+                val iterator = loginScripts.iterator()
+                while (iterator.hasNext()) {
+                    val script = iterator.next()
+                    if (script.expect.isEmpty()) {
+                        scripts.add(script)
+                        iterator.remove()
+                        continue
+                    } else if (script.regex) {
+                        val regex = if (script.matchCase) script.expect.toRegex()
+                        else script.expect.toRegex(RegexOption.IGNORE_CASE)
+                        if (regex.matches(text)) {
+                            scripts.add(script)
+                            iterator.remove()
+                            continue
+                        }
+                    } else {
+                        if (text.contains(script.expect, script.matchCase.not())) {
+                            scripts.add(script)
+                            iterator.remove()
+                            continue
+                        }
+                    }
+                    break
+                }
+
+                return scripts
+            }
         }
     }
 
