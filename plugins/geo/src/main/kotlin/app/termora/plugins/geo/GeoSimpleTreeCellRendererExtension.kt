@@ -5,6 +5,7 @@ import app.termora.tree.HostTreeNode
 import app.termora.tree.MarkerSimpleTreeCellAnnotation
 import app.termora.tree.SimpleTreeCellAnnotation
 import app.termora.tree.SimpleTreeCellRendererExtension
+import com.formdev.flatlaf.util.SystemInfo
 import java.awt.Color
 import javax.swing.JTree
 
@@ -33,7 +34,7 @@ class GeoSimpleTreeCellRendererExtension private constructor() : SimpleTreeCellR
         if (GeoHostTreeShowMoreEnableExtension.instance.isShowMore().not()) return emptyList()
         val country = geo.country(node.data.host) ?: return emptyList()
 
-        val text = "${countryCodeToFlagEmoji(country.isoCode)}${country.name}"
+        val text = if (SystemInfo.isMacOS) "${countryCodeToFlagEmoji(country.isoCode)}${country.name}" else country.name
         return listOf(
             MarkerSimpleTreeCellAnnotation(
                 text,
