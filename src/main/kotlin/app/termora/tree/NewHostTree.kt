@@ -332,8 +332,8 @@ class NewHostTree : SimpleTree(), Disposable {
         importMenu.isEnabled = lastNode.isFolder
 
         // 如果选中了 SSH 服务器，那么才启用
-        openWithSFTP.isEnabled = fullNodes.map { it.host }.any { it.protocol == SSHProtocolProvider.PROTOCOL }
-        openWithSFTPCommand.isEnabled = openWithSFTP.isEnabled
+        openWithSFTP.isEnabled = fullNodes.map { it.host }.any { TransferProtocolProvider.valueOf(it.protocol) != null }
+        openWithSFTPCommand.isEnabled = fullNodes.map { it.host }.any { it.protocol == SSHProtocolProvider.PROTOCOL }
         openWith.isEnabled = openWith.menuComponents.any { it is JMenuItem && it.isEnabled }
 
 
