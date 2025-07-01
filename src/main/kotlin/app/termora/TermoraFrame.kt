@@ -190,7 +190,7 @@ class TermoraFrame : JFrame(), DataProvider {
         }
 
         if (SystemInfo.isWindows || SystemInfo.isLinux) {
-            val sizes = listOf(16, 20, 24, 28, 32, 48, 64)
+            val sizes = listOf(16, 20, 24, 28, 32, 48, 64, 128)
             val loader = TermoraFrame::class.java.classLoader
             val images = sizes.mapNotNull { e ->
                 loader.getResourceAsStream("icons/termora_${e}x${e}.png")?.use { ImageIO.read(it) }
