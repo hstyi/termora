@@ -86,7 +86,9 @@ class FileTransfer(
                     }
                 }.onFailure {
                     if (log.isWarnEnabled) {
-                        log.error(it.message, it)
+                        if (it !is UnsupportedOperationException) {
+                            log.warn(it.message, it)
+                        }
                     }
                 }
             }
