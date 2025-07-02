@@ -1,6 +1,7 @@
 package app.termora.plugin.internal.ssh
 
 import app.termora.*
+import app.termora.account.AccountOwner
 import app.termora.keymgr.KeyManager
 import app.termora.keymgr.KeyManagerDialog
 import app.termora.plugin.internal.BasicProxyOption
@@ -29,7 +30,7 @@ import javax.swing.table.DefaultTableModel
 import kotlin.math.max
 
 @Suppress("CascadeIf")
-open class SSHHostOptionsPane : OptionsPane() {
+open class SSHHostOptionsPane(private val accountOwner: AccountOwner) : OptionsPane() {
     protected val tunnelingOption = TunnelingOption()
     protected val generalOption = GeneralOption()
     protected val proxyOption = BasicProxyOption()
@@ -375,6 +376,7 @@ open class SSHHostOptionsPane : OptionsPane() {
             val dialog = KeyManagerDialog(
                 owner,
                 selectMode = true,
+                accountOwner = accountOwner,
             )
             dialog.pack()
             dialog.setLocationRelativeTo(owner)
@@ -383,7 +385,7 @@ open class SSHHostOptionsPane : OptionsPane() {
             val selectedItem = publicKeyComboBox.selectedItem
 
             publicKeyComboBox.removeAllItems()
-            for (keyPair in KeyManager.getInstance().getOhKeyPairs()) {
+            for (keyPair in KeyManager.getInstance().getOhKeyPairs(accountOwner.id)) {
                 publicKeyComboBox.addItem(keyPair.id)
             }
             publicKeyComboBox.selectedItem = selectedItem
@@ -465,7 +467,7 @@ open class SSHHostOptionsPane : OptionsPane() {
             if (authenticationTypeComboBox.selectedItem == AuthenticationType.PublicKey) {
                 val selectedItem = publicKeyComboBox.selectedItem
                 publicKeyComboBox.removeAllItems()
-                for (pair in KeyManager.getInstance().getOhKeyPairs()) {
+                for (pair in KeyManager.getInstance().getOhKeyPairs(accountOwner.id)) {
                     publicKeyComboBox.addItem(pair.id)
                 }
                 publicKeyComboBox.selectedItem = selectedItem

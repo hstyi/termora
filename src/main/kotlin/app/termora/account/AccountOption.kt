@@ -75,8 +75,10 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
         val subscription = accountManager.getSubscription()
         val isFreePlan = accountManager.isFreePlan()
         val isLocally = accountManager.isLocally()
-        val validTo = if (isFreePlan) "-" else if (subscription.endAt >= Long.MAX_VALUE)
-            I18n.getString("termora.settings.account.lifetime") else
+        val validTo = if (isFreePlan) "-"
+        else if (subscription.endAt >= Long.MAX_VALUE)
+            I18n.getString("termora.settings.account.lifetime")
+        else
             DateFormatUtils.format(Date(subscription.endAt), I18n.getString("termora.date-format"))
         val lastSynchronizationOn = if (isFreePlan) "-" else
             DateFormatUtils.format(
@@ -158,9 +160,19 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
             if (isFreePlan.not()) {
                 actions.add(JXHyperlink(object : AnAction(I18n.getString("termora.settings.account.sync-now")) {
                     override fun actionPerformed(evt: AnActionEvent) {
+                        // 全量同步
+                        accountProperties.nextSynchronizationSince = 0
+
+                        // 拉取
                         PullService.getInstance().trigger()
+
+                        // 推送
                         PushService.getInstance().trigger()
+
                         swingCoroutineScope.launch(Dispatchers.IO) {
+                            // 刷新账户
+                            accountManager.refreshAccount()
+
                             withContext(Dispatchers.Swing) {
                                 isEnabled = false
                                 lastSynchronizationOnLabel.text = DateFormatUtils.format(

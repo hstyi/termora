@@ -183,8 +183,8 @@ object AccountHttp {
 
                 if (isRefreshing.compareAndSet(false, true)) {
                     try {
-                        // 刷新 token
-                        accountManager.refreshToken()
+                        // 刷新 token 和用户
+                        accountManager.refresh()
                     } finally {
                         lock.withLock {
                             isRefreshing.set(false)

@@ -1,5 +1,6 @@
 package app.termora
 
+import app.termora.account.AccountOwner
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.protocol.*
@@ -18,7 +19,11 @@ import java.awt.Dimension
 import java.awt.Window
 import javax.swing.*
 
-class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : DialogWrapper(owner) {
+class NewHostDialogV2(
+    owner: Window,
+    private val editHost: Host? = null,
+    private val accountOwner: AccountOwner,
+) : DialogWrapper(owner) {
 
     private object Current {
         var card: ProtocolHostPanel? = null
@@ -65,11 +70,11 @@ class NewHostDialogV2(owner: Window, private val editHost: Host? = null) : Dialo
         toolbar.add(Box.createHorizontalGlue())
 
         val extensions = ProtocolHostPanelExtension.extensions
-            .filter { it.canCreateProtocolHostPanel() }
+            .filter { it.canCreateProtocolHostPanel(accountOwner) }
         for ((index, extension) in extensions.withIndex()) {
             val protocol = extension.getProtocolProvider().getProtocol()
             val icon = ScaleIcon(extension.getProtocolProvider().getIcon(), 22)
-            val hostPanel = extension.createProtocolHostPanel()
+            val hostPanel = extension.createProtocolHostPanel(accountOwner)
             val button = JToggleButton(protocol, icon).apply { buttonGroup.add(this) }
             button.setVerticalTextPosition(SwingConstants.BOTTOM)
             button.setHorizontalTextPosition(SwingConstants.CENTER)

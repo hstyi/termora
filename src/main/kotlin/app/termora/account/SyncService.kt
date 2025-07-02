@@ -78,28 +78,23 @@ abstract class SyncService {
 
     protected fun encryptData(id: String, data: String, ownerId: String): String {
         val iv = DigestUtils.sha256(id).copyOf(12)
-        var secretKey = EMPTY_BYTE_ARRAY
-        if (ownerId != accountManager.getAccountId()) {
-            val team = accountManager.getTeams().firstOrNull { it.id == ownerId }
-            if (team == null) {
-                return StringUtils.EMPTY
-            } else {
-                secretKey = team.secretKey
-            }
-        } else if (ownerId == accountManager.getAccountId()) {
-            secretKey = accountManager.getSecretKey()
-        }
+        val secretKey = getSecretKey(ownerId)
         if (secretKey.isEmpty()) return StringUtils.EMPTY
         return Base64.encodeBase64String(AES.GCM.encrypt(secretKey, iv, data.toByteArray()))
     }
 
-    protected fun decryptData(id: String, data: String): String {
+    protected fun getSecretKey(ownerId: String): ByteArray {
+        if (ownerId == accountManager.getAccountId()) {
+            return accountManager.getSecretKey()
+        }
+        val team = accountManager.getTeams().firstOrNull { it.id == ownerId }
+        return team?.secretKey ?: EMPTY_BYTE_ARRAY
+    }
+
+    protected fun decryptData(id: String, data: String, ownerId: String): String {
         val iv = DigestUtils.sha256(id).copyOf(12)
-        return String(
-            AES.GCM.decrypt(
-                accountManager.getSecretKey(), iv,
-                Base64.decodeBase64(data)
-            )
-        )
+        val secretKey = getSecretKey(ownerId)
+        if (secretKey.isEmpty()) throw IllegalStateException("根据 ownerId 无法获取对应密钥")
+        return String(AES.GCM.decrypt(secretKey, iv, Base64.decodeBase64(data)))
     }
 }

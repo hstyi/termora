@@ -45,6 +45,15 @@ class PullService private constructor() : SyncService(), Disposable, Application
                     lastChangeHash = StringUtils.EMPTY
                 }
 
+                // 团队变了，全量同步
+                if (oldAccount.id == newAccount.id) {
+                    if (oldAccount.teams != newAccount.teams) {
+                        accountProperties.nextSynchronizationSince = 0
+                        trigger()
+                        return
+                    }
+                }
+
                 if (oldAccount.isLocally && newAccount.isLocally.not()) {
                     trigger()
                 }
@@ -213,7 +222,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
             log.debug("拉取数据: {} 成功, 响应码: {}", id, response.code)
         }
 
-        if(response.isSuccessful.not()){
+        if (response.isSuccessful.not()) {
             IOUtils.closeQuietly(response)
         }
 
@@ -281,7 +290,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
                     ownerId = ownerId,
                     ownerType = ownerType,
                     type = type,
-                    data = decryptData(id, data),
+                    data = decryptData(id, data, ownerId),
                     version = version,
                     // 因为已经是拉取最新版本了，所以这里无需再同步了
                     synced = true,
@@ -298,11 +307,8 @@ class PullService private constructor() : SyncService(), Disposable, Application
             if (log.isDebugEnabled) {
                 log.debug("数据: {}, 类型: {} 云端已经删除，本地即将删除", id, type)
             }
-            databaseManager.delete(
-                id, type,
-                DatabaseChangedExtension.Source.Sync
-            )
 
+            databaseManager.delete(id, type, DatabaseChangedExtension.Source.Sync)
             if (log.isInfoEnabled) {
                 log.info("数据: {}, 类型: {} 已从本地删除", id, type)
 
@@ -340,7 +346,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
                     ownerId = ownerId,
                     ownerType = ownerType,
                     type = type,
-                    data = decryptData(id, data),
+                    data = decryptData(id, data, ownerId),
                     version = version,
                     // 因为已经是拉取最新版本了，所以这里无需再同步了
                     synced = true,
@@ -377,7 +383,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
                 pullChanges()
 
                 // N 秒拉一次
-                val result = withTimeoutOrNull(Random.nextInt(5, 15).seconds) {
+                val result = withTimeoutOrNull(Random.nextInt(3, 10).seconds) {
                     channel.receiveCatching()
                 } ?: continue
                 if (result.isFailure) break

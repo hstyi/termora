@@ -148,6 +148,10 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
             }
             hostManager.removeHost(node.id)
         }
+        removeNodeFromParent0(node)
+    }
+
+    private fun removeNodeFromParent0(node: MutableTreeNode?) {
         super.removeNodeFromParent(node)
     }
 
@@ -232,7 +236,13 @@ class NewHostTreeModel private constructor() : SimpleTreeModel<Host>(
 
     private inner class MyAccountAccountExtension : AccountExtension {
         override fun onAccountChanged(oldAccount: Account, newAccount: Account) {
-            if (oldAccount.id != newAccount.id) reload(getRoot())
+            if (oldAccount.id != newAccount.id) {
+                reload(getRoot())
+            } else if (oldAccount.teams != newAccount.teams) {
+                val nodes = getRoot().children().toList().filterIsInstance<TeamTreeNode>()
+                nodes.forEach { removeNodeFromParent0(it) }
+                reload(getRoot())
+            }
         }
     }
 

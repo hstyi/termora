@@ -1,5 +1,6 @@
 package app.termora.plugins.smb
 
+import app.termora.account.AccountOwner
 import app.termora.protocol.ProtocolHostPanel
 import app.termora.protocol.ProtocolHostPanelExtension
 import app.termora.protocol.ProtocolProvider
@@ -13,7 +14,7 @@ class SMBProtocolHostPanelExtension private constructor() : ProtocolHostPanelExt
         return SMBProtocolProvider.instance
     }
 
-    override fun createProtocolHostPanel(): ProtocolHostPanel {
+    override fun createProtocolHostPanel(accountOwner: AccountOwner): ProtocolHostPanel {
         return SMBProtocolHostPanel()
     }
 }

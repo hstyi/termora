@@ -14,12 +14,15 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.apache.commons.codec.binary.Base64
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
+import org.slf4j.LoggerFactory
 import java.security.PrivateKey
 import java.security.PublicKey
 import javax.swing.SwingUtilities
 
 class AccountManager private constructor() : ApplicationRunnerExtension {
     companion object {
+        private val log = LoggerFactory.getLogger(AccountManager::class.java)
+
         fun getInstance(): AccountManager {
             return ApplicationScope.forApplicationScope()
                 .getOrCreate(AccountManager::class) { AccountManager() }
@@ -30,6 +33,7 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
         }
     }
 
+    private val serverManager get() = ServerManager.getInstance()
     private var account = locally()
     private val accountProperties get() = AccountProperties.getInstance()
 
@@ -48,10 +52,14 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     fun getAccessToken() = account.accessToken
     fun getRefreshToken() = account.refreshToken
     fun getOwnerIds() = account.teams.map { it.id }.toMutableList().apply { add(getAccountId()) }.toSet()
-    fun getOwners() =
-        account.teams.map { AccountOwner(it.id, it.name, OwnerType.Team) }
-            .toMutableList().apply { AccountOwner(getAccountId(), getEmail(), OwnerType.User) }
-            .toSet()
+    fun getOwners(): Set<AccountOwner> {
+        val owners = mutableSetOf<AccountOwner>()
+        owners.add(AccountOwner(getAccountId(), getEmail(), OwnerType.User))
+        for (team in getTeams()) {
+            owners.add(AccountOwner(team.id, team.name, OwnerType.Team))
+        }
+        return owners
+    }
 
     fun isFreePlan(): Boolean {
         return isLocally() || getSubscription().plan == SubscriptionPlan.Free
@@ -126,37 +134,39 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
      * 设置账户信息，可以多次调用，每次修改用户信息都要通过这个方法
      */
     internal fun login(account: Account) {
+        synchronized(this) {
 
-        val oldAccount = this.account
+            val oldAccount = this.account
 
-        this.account = account
+            this.account = account
 
-        // 立即保存到数据库
-        val accountProperties = AccountProperties.getInstance()
-        accountProperties.id = account.id
-        accountProperties.server = account.server
-        accountProperties.email = account.email
-        accountProperties.teams = ohMyJson.encodeToString(account.teams)
-        accountProperties.subscriptions = ohMyJson.encodeToString(account.subscriptions)
-        accountProperties.accessToken = account.accessToken
-        accountProperties.refreshToken = account.refreshToken
-        accountProperties.secretKey = ohMyJson.encodeToString(account.secretKey)
+            // 立即保存到数据库
+            val accountProperties = AccountProperties.getInstance()
+            accountProperties.id = account.id
+            accountProperties.server = account.server
+            accountProperties.email = account.email
+            accountProperties.teams = ohMyJson.encodeToString(account.teams)
+            accountProperties.subscriptions = ohMyJson.encodeToString(account.subscriptions)
+            accountProperties.accessToken = account.accessToken
+            accountProperties.refreshToken = account.refreshToken
+            accountProperties.secretKey = ohMyJson.encodeToString(account.secretKey)
 
-        // 如果变更账户了，那么同步时间从0开始
-        if (oldAccount.id != account.id) {
-            accountProperties.nextSynchronizationSince = 0
+            // 如果变更账户了，那么同步时间从0开始
+            if (oldAccount.id != account.id) {
+                accountProperties.nextSynchronizationSince = 0
+            }
+
+            if (isLocally().not()) {
+                accountProperties.publicKey = Base64.encodeBase64String(account.publicKey.encoded)
+                accountProperties.privateKey = Base64.encodeBase64String(account.privateKey.encoded)
+            } else {
+                accountProperties.publicKey = StringUtils.EMPTY
+                accountProperties.privateKey = StringUtils.EMPTY
+            }
+
+            // 通知变化
+            notifyAccountChanged(oldAccount, account)
         }
-
-        if (isLocally().not()) {
-            accountProperties.publicKey = Base64.encodeBase64String(account.publicKey.encoded)
-            accountProperties.privateKey = Base64.encodeBase64String(account.privateKey.encoded)
-        } else {
-            accountProperties.publicKey = StringUtils.EMPTY
-            accountProperties.privateKey = StringUtils.EMPTY
-        }
-
-        // 通知变化
-        notifyAccountChanged(oldAccount, account)
     }
 
     private fun notifyAccountChanged(oldAccount: Account, newAccount: Account) {
@@ -220,7 +230,7 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
 
     override fun ready() {
         if (isLocally().not()) {
-            swingCoroutineScope.launch(Dispatchers.IO) { refreshToken() }
+            swingCoroutineScope.launch(Dispatchers.IO) { refresh() }
         }
     }
 
@@ -228,8 +238,34 @@ class AccountManager private constructor() : ApplicationRunnerExtension {
     /**
      * 刷新用户
      */
-    fun refresh(accessToken: String = getAccessToken()) {
+    fun refresh() {
+        runCatching { refreshToken() }.onSuccess {
+            refreshAccount()
+        }.onFailure {
+            if (log.isErrorEnabled) {
+                log.error(it.message, it)
+            }
+        }
+    }
 
+    fun refreshAccount() {
+        try {
+            val me = serverManager.callMe(account.server, getAccessToken())
+            val teams = me.teams.map {
+                Team(
+                    id = it.id,
+                    name = it.name,
+                    secretKey = RSA.decrypt(getPrivateKey(), Base64.decodeBase64(it.secretKey)),
+                    role = it.role
+                )
+            }
+            // 重新登录
+            login(account.copy(teams = teams, subscriptions = me.subscriptions))
+        } catch (e: Exception) {
+            if (log.isErrorEnabled) {
+                log.error(e.message, e)
+            }
+        }
     }
 
     class AccountApplicationRunnerExtension private constructor() : ApplicationRunnerExtension {

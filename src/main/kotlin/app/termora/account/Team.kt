@@ -26,4 +26,22 @@ class Team(
      * 所属角色
      */
     val role: TeamRole,
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Team
+
+        if (id != other.id) return false
+        if (name != other.name) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = id.hashCode()
+        result = 31 * result + name.hashCode()
+        return result
+    }
+}

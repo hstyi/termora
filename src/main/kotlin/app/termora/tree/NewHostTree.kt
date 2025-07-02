@@ -2,6 +2,7 @@ package app.termora.tree
 
 import app.termora.*
 import app.termora.Application.ohMyJson
+import app.termora.account.AccountManager
 import app.termora.actions.OpenHostAction
 import app.termora.database.DatabaseChangedExtension
 import app.termora.database.DatabaseManager
@@ -295,8 +296,11 @@ class NewHostTree : SimpleTree(), Disposable {
             }
         }
         newHost.addActionListener(object : ActionListener {
+            private val accountManager get() = AccountManager.getInstance()
             override fun actionPerformed(e: ActionEvent) {
-                val dialog = NewHostDialogV2(owner)
+                val dialog = NewHostDialogV2(
+                    owner,
+                    accountOwner = accountManager.getOwners().first { it.id == lastHost.ownerId })
                 dialog.setLocationRelativeTo(owner)
                 dialog.isVisible = true
                 val host = (dialog.host ?: return).copy(
@@ -311,8 +315,12 @@ class NewHostTree : SimpleTree(), Disposable {
             }
         })
         property.addActionListener(object : ActionListener {
+            private val accountManager get() = AccountManager.getInstance()
             override fun actionPerformed(e: ActionEvent) {
-                val dialog = NewHostDialogV2(owner, lastHost)
+                val dialog = NewHostDialogV2(
+                    owner,
+                    lastHost,
+                    accountOwner = accountManager.getOwners().first { it.id == lastHost.ownerId })
                 dialog.setLocationRelativeTo(owner)
                 dialog.title = lastHost.name
                 dialog.isVisible = true
@@ -639,12 +647,12 @@ class NewHostTree : SimpleTree(), Disposable {
                     ownerType = folder.host.ownerType,
                     ownerId = folder.host.ownerId,
                 ),
-                DatabaseChangedExtension.Source.Sync
+                DatabaseChangedExtension.Source.User
             )
             for (host in node.getAllChildren().map { it.host }) {
                 hostManager.addHost(
                     host.copy(ownerType = folder.host.ownerType, ownerId = folder.host.ownerId),
-                    DatabaseChangedExtension.Source.Sync
+                    DatabaseChangedExtension.Source.User
                 )
             }
         }

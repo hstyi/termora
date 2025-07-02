@@ -1,5 +1,6 @@
 package app.termora.plugin.internal.ssh
 
+import app.termora.account.AccountOwner
 import app.termora.protocol.ProtocolHostPanel
 import app.termora.protocol.ProtocolHostPanelExtension
 import app.termora.protocol.ProtocolProvider
@@ -14,8 +15,8 @@ internal class SSHProtocolHostPanelExtension private constructor() : ProtocolHos
         return SSHProtocolProvider.instance
     }
 
-    override fun createProtocolHostPanel(): ProtocolHostPanel {
-        return SSHProtocolHostPanel()
+    override fun createProtocolHostPanel(accountOwner: AccountOwner): ProtocolHostPanel {
+        return SSHProtocolHostPanel(accountOwner)
     }
 
 }

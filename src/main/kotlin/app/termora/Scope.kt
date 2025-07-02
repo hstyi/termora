@@ -33,7 +33,7 @@ open class Scope(
             return get(clazz)
         }
 
-        synchronized(clazz) {
+        synchronized(this) {
             if (beans.containsKey(clazz)) {
                 return get(clazz)
             }

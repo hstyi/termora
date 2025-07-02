@@ -1,5 +1,6 @@
 package app.termora.plugins.oss
 
+import app.termora.account.AccountOwner
 import app.termora.protocol.ProtocolHostPanel
 import app.termora.protocol.ProtocolHostPanelExtension
 import app.termora.protocol.ProtocolProvider
@@ -13,7 +14,7 @@ class OSSProtocolHostPanelExtension private constructor() : ProtocolHostPanelExt
         return OSSProtocolProvider.instance
     }
 
-    override fun createProtocolHostPanel(): ProtocolHostPanel {
+    override fun createProtocolHostPanel(accountOwner: AccountOwner): ProtocolHostPanel {
         return OSSProtocolHostPanel()
     }
 }

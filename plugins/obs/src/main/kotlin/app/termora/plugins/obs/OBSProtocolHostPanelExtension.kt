@@ -1,5 +1,6 @@
 package app.termora.plugins.obs
 
+import app.termora.account.AccountOwner
 import app.termora.protocol.ProtocolHostPanel
 import app.termora.protocol.ProtocolHostPanelExtension
 import app.termora.protocol.ProtocolProvider
@@ -13,7 +14,7 @@ class OBSProtocolHostPanelExtension private constructor() : ProtocolHostPanelExt
         return OBSProtocolProvider.instance
     }
 
-    override fun createProtocolHostPanel(): ProtocolHostPanel {
+    override fun createProtocolHostPanel(accountOwner: AccountOwner): ProtocolHostPanel {
         return OBSProtocolHostPanel()
     }
 }
