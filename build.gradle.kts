@@ -141,10 +141,6 @@ application {
 
     args.add("-Dapp-version=${project.version}")
 
-    if (os.isLinux) {
-        args.add("-Dsun.java2d.opengl=true")
-    }
-
     applicationDefaultJvmArgs = args
     mainClass = "app.termora.MainKt"
 }
@@ -390,10 +386,6 @@ tasks.register<Exec>("jpackage") {
         options.add("-Dapple.awt.application.appearance=system")
         options.add("--add-opens java.desktop/sun.lwawt.macosx.concurrent=ALL-UNNAMED")
         options.add("--add-exports java.desktop/com.apple.eawt=ALL-UNNAMED")
-    }
-
-    if (os.isLinux) {
-        options.add("-Dsun.java2d.opengl=true")
     }
 
     val arguments = mutableListOf("${Jvm.current().javaHome}/bin/jpackage")
