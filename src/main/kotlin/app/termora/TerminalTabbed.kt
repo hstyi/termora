@@ -1,6 +1,7 @@
 package app.termora
 
 
+import app.termora.account.AccountManager
 import app.termora.actions.*
 import app.termora.database.DatabaseChangedExtension
 import app.termora.database.DatabaseManager
@@ -244,10 +245,15 @@ class TerminalTabbed(
         val edit = popupMenu.add(I18n.getString("termora.keymgr.edit"))
         edit.addActionListener(object : AnAction() {
             private val hostManager get() = HostManager.getInstance()
+            private val accountManager get() = AccountManager.getInstance()
+
             override fun actionPerformed(evt: AnActionEvent) {
                 if (tab is HostTerminalTab) {
                     val host = hostManager.getHost(tab.host.id) ?: return
-                    val dialog = NewHostDialogV2(evt.window, host)
+                    val dialog = NewHostDialogV2(
+                        evt.window, host,
+                        accountManager.getOwners().first { it.id == host.ownerId },
+                    )
                     dialog.setLocationRelativeTo(evt.window)
                     dialog.isVisible = true
 

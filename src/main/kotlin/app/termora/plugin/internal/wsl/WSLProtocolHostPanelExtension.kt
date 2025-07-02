@@ -1,5 +1,6 @@
 package app.termora.plugin.internal.wsl
 
+import app.termora.account.AccountOwner
 import app.termora.protocol.ProtocolHostPanel
 import app.termora.protocol.ProtocolHostPanelExtension
 import app.termora.protocol.ProtocolProvider
@@ -14,11 +15,11 @@ internal class WSLProtocolHostPanelExtension private constructor() : ProtocolHos
         return WSLProtocolProvider.instance
     }
 
-    override fun canCreateProtocolHostPanel(): Boolean {
+    override fun canCreateProtocolHostPanel(accountOwner: AccountOwner): Boolean {
         return WSLSupport.isSupported
     }
 
-    override fun createProtocolHostPanel(): ProtocolHostPanel {
+    override fun createProtocolHostPanel(accountOwner: AccountOwner): ProtocolHostPanel {
         return WSLProtocolHostPanel()
     }
 }

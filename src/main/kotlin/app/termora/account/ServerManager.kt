@@ -54,7 +54,7 @@ class ServerManager private constructor() {
         val loginResponse = callLogin(serverInfo, server, username, password, mfa)
 
         // call me
-        val meResponse = callMe(server, loginResponse.accessToken)
+        val meResponse = callMe(server.server, loginResponse.accessToken)
 
         // 解密
         val salt = "${serverInfo.salt}:${username}".toByteArray()
@@ -139,9 +139,9 @@ class ServerManager private constructor() {
     }
 
 
-    private fun callMe(server: Server, accessToken: String): MeResponse {
+    fun callMe(server: String, accessToken: String): MeResponse {
         val request = Request.Builder()
-            .url("${server.server}/v1/users/me")
+            .url("${server}/v1/users/me")
             .header("Authorization", "Bearer $accessToken")
             .build()
         val text = AccountHttp.execute(request = request)
@@ -149,13 +149,13 @@ class ServerManager private constructor() {
     }
 
     @Serializable
-    private data class ServerInfo(val salt: String)
+    data class ServerInfo(val salt: String)
 
     @Serializable
-    private data class LoginResponse(val accessToken: String, val refreshToken: String)
+    data class LoginResponse(val accessToken: String, val refreshToken: String)
 
     @Serializable
-    private data class MeResponse(
+    data class MeResponse(
         val id: String,
         val email: String,
         val publicKey: String,
@@ -167,5 +167,5 @@ class ServerManager private constructor() {
 
 
     @Serializable
-    private data class MeTeam(val id: String, val name: String, val role: TeamRole, val secretKey: String)
+    data class MeTeam(val id: String, val name: String, val role: TeamRole, val secretKey: String)
 }

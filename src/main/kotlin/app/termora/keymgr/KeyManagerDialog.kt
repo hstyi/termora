@@ -19,6 +19,7 @@ class KeyManagerDialog(
     owner: Window,
     private val selectMode: Boolean = false,
     size: Dimension = Dimension(UIManager.getInt("Dialog.width"), UIManager.getInt("Dialog.height")),
+    private val accountOwner: AccountOwner? = null,
 ) : DialogWrapper(owner) {
     var ok: Boolean = false
 
@@ -56,12 +57,40 @@ class KeyManagerDialog(
         tabbed.border = BorderFactory.createMatteBorder(1, 0, 0, 0, DynamicColor.BorderColor)
         tabbed.tabPlacement = JTabbedPane.TOP
 
+        if (accountOwner == null || accountOwner.type == OwnerType.User) {
+            tabbed.addTab(
+                I18n.getString("termora.keymgr.my-keys"),
+                Icons.user,
+                KeyManagerPanel(
+                    AccountOwner(
+                        accountManager.getAccountId(),
+                        accountManager.getEmail(),
+                        OwnerType.User
+                    )
+                )
+            )
+        }
 
-        tabbed.addTab(
-            I18n.getString("termora.keymgr.my-keys"),
-            Icons.user,
-            KeyManagerPanel(AccountOwner(accountManager.getAccountId(), accountManager.getEmail(), OwnerType.User))
-        )
+        if (accountOwner != null && accountManager.hasTeamFeature()) {
+            for (team in accountManager.getTeams()) {
+                if (team.id == accountOwner.id) {
+                    tabbed.addTab(
+                        team.name,
+                        Icons.cwmUsers,
+                        KeyManagerPanel(
+                            AccountOwner(
+                                team.id,
+                                team.name,
+                                OwnerType.Team
+                            )
+                        )
+                    )
+                    return tabbed
+                }
+            }
+        }
+
+
 
         if (accountManager.hasTeamFeature()) {
             for (team in accountManager.getTeams()) {

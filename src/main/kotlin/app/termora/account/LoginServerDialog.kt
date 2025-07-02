@@ -48,6 +48,7 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
         Server(I18n.getString("termora.settings.account.server-singapore"), "https://account.termora.app")
     private val chinaServer =
         Server(I18n.getString("termora.settings.account.server-china"), "https://account.termora.cn")
+    private val serverManager get() = ServerManager.getInstance()
 
     init {
         isModal = true
@@ -359,7 +360,7 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
 
         val loginJob = swingCoroutineScope.launch(Dispatchers.IO) {
             try {
-                ServerManager.getInstance().login(
+                serverManager.login(
                     server, usernameTextField.text,
                     String(passwordField.password), mfaTextField.text.trim()
                 )

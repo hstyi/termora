@@ -1,5 +1,6 @@
 package app.termora.plugins.webdav
 
+import app.termora.account.AccountOwner
 import app.termora.protocol.ProtocolHostPanel
 import app.termora.protocol.ProtocolHostPanelExtension
 import app.termora.protocol.ProtocolProvider
@@ -13,7 +14,7 @@ class WebDAVProtocolHostPanelExtension private constructor() : ProtocolHostPanel
         return WebDAVProtocolProvider.instance
     }
 
-    override fun createProtocolHostPanel(): ProtocolHostPanel {
+    override fun createProtocolHostPanel(accountOwner: AccountOwner): ProtocolHostPanel {
         return WebDAVProtocolHostPanel()
     }
 }

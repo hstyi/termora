@@ -1,6 +1,7 @@
 package app.termora.actions
 
 import app.termora.NewHostDialogV2
+import app.termora.account.AccountManager
 import app.termora.tree.HostTreeNode
 import javax.swing.tree.TreePath
 
@@ -13,6 +14,8 @@ class NewHostAction : AnAction() {
         const val NEW_HOST = "NewHostAction"
 
     }
+
+    private val accountManager get() = AccountManager.getInstance()
 
     override fun actionPerformed(evt: AnActionEvent) {
         val tree = evt.getData(DataProviders.Welcome.HostTree) ?: return
@@ -27,7 +30,7 @@ class NewHostAction : AnAction() {
         }
 
         val lastHost = lastNode.host
-        val dialog = NewHostDialogV2(evt.window)
+        val dialog = NewHostDialogV2(evt.window, accountOwner = accountManager.getOwners().first { it.id == lastHost.ownerId })
         dialog.setLocationRelativeTo(evt.window)
         dialog.isVisible = true
         val host = (dialog.host ?: return).copy(

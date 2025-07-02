@@ -1,6 +1,7 @@
 package app.termora.transfer
 
 import app.termora.*
+import app.termora.account.AccountManager
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.database.DatabaseChangedExtension
@@ -164,9 +165,13 @@ class TransportTabbed(
         // 编辑
         val edit = popupMenu.add(I18n.getString("termora.keymgr.edit"))
         edit.addActionListener(object : AnAction() {
+            private val accountManager get() = AccountManager.getInstance()
             override fun actionPerformed(evt: AnActionEvent) {
                 val window = evt.window
-                val dialog = NewHostDialogV2(window, panel.host)
+                val dialog = NewHostDialogV2(
+                    window,
+                    panel.host,
+                    accountOwner = accountManager.getOwners().first { it.id == panel.host.ownerId })
                 dialog.setLocationRelativeTo(window)
                 dialog.title = panel.host.name
                 dialog.isVisible = true

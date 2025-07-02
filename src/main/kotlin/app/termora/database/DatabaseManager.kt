@@ -11,7 +11,6 @@ import app.termora.highlight.KeywordHighlightManager
 import app.termora.keymap.KeymapManager
 import app.termora.keymgr.KeyManager
 import app.termora.macro.MacroManager
-import app.termora.plugin.ExtensionManager
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import app.termora.snippet.SnippetManager
 import app.termora.terminal.CursorStyle
@@ -23,6 +22,7 @@ import org.jetbrains.exposed.v1.core.statements.StatementType
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
@@ -32,11 +32,8 @@ import kotlin.reflect.KProperty
 
 class DatabaseManager private constructor() : Disposable {
     companion object {
+        val log: Logger = LoggerFactory.getLogger(DatabaseManager::class.java)
 
-        private const val DB_PASSWORD = "DB_PASSWORD"
-        private const val DB_SALT = "DB_SALT"
-
-        val log = LoggerFactory.getLogger(DatabaseManager::class.java)!!
         fun getInstance(): DatabaseManager {
             return ApplicationScope.forApplicationScope()
                 .getOrCreate(DatabaseManager::class) { DatabaseManager() }
@@ -51,14 +48,6 @@ class DatabaseManager private constructor() : Disposable {
     val appearance by lazy { Appearance(this) }
     val sftp by lazy { SFTP(this) }
 
-
-    @Volatile
-    internal var dbPassword = StringUtils.EMPTY
-        private set
-
-    @Volatile
-    internal var dbSalt = StringUtils.EMPTY
-        private set
 
     private val map = Collections.synchronizedMap<String, String?>(mutableMapOf())
     private val accountManager get() = AccountManager.getInstance()
@@ -100,11 +89,6 @@ class DatabaseManager private constructor() : Disposable {
 
         // 注册动态扩展
         registerDynamicExtensions()
-
-        for (extension in ExtensionManager.getInstance().getExtensions(DatabaseReadyExtension::class.java)) {
-            extension.ready(this)
-        }
-
 
     }
 
@@ -308,6 +292,7 @@ class DatabaseManager private constructor() : Disposable {
                 DataEntity.update({ DataEntity.id eq id }) {
                     it[DataEntity.deleted] = true
                     // 如果是本地用户，那么删除是不需要同步的，云端用户才需要同步
+                    // 云端用户也会判断，如果来源 Sync 那么默认同步了
                     it[DataEntity.synced] = accountManager.isLocally()
                     it[DataEntity.data] = StringUtils.EMPTY
                 }
@@ -367,7 +352,6 @@ class DatabaseManager private constructor() : Disposable {
 
 
     private inner class AccountDataTransferExtension : AccountExtension {
-        private val hostManager get() = HostManager.getInstance()
         override fun onAccountChanged(oldAccount: Account, newAccount: Account) {
             if (oldAccount.isLocally && newAccount.isLocally) {
                 return
@@ -481,19 +465,17 @@ class DatabaseManager private constructor() : Disposable {
                 return
             }
 
+            // 如果团队变更，那么删除所有旧的团队数据，静默删除
             if (oldAccount.id == newAccount.id) {
-                return
-            }
-
-            for (team in oldAccount.teams) {
-                // 如果被踢出团队，那么移除该团队的所有资产
-                if (newAccount.teams.none { it.id == team.id }) {
-                    lock.withLock {
-                        transaction(database) {
-                            DataEntity.deleteWhere {
-                                DataEntity.ownerId.eq(team.id) and (DataEntity.ownerType.eq(
-                                    OwnerType.Team.name
-                                ))
+                if (oldAccount.teams != newAccount.teams) {
+                    for (team in oldAccount.teams) {
+                        lock.withLock {
+                            transaction(database) {
+                                DataEntity.deleteWhere {
+                                    DataEntity.ownerId.eq(team.id) and (DataEntity.ownerType.eq(
+                                        OwnerType.Team.name
+                                    ))
+                                }
                             }
                         }
                     }

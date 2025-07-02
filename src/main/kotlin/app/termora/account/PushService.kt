@@ -4,6 +4,7 @@ import app.termora.*
 import app.termora.Application.ohMyJson
 import app.termora.database.Data
 import app.termora.database.DatabaseChangedExtension
+import app.termora.database.OwnerType
 import app.termora.plugin.DispatchThread
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import kotlinx.coroutines.Dispatchers
@@ -106,7 +107,20 @@ class PushService private constructor() : SyncService(), Disposable, Application
             .delete()
             .build()
 
-        AccountHttp.execute(request = request)
+        try {
+            AccountHttp.execute(request = request)
+        } catch (e: Exception) {
+            if (e is ResponseException) {
+                if (e.code == 403) {
+                    // 如果是 Team 发现没有权限，那么很有可能是被提出团队
+                    if (data.ownerType == OwnerType.Team.name) {
+                        // 刷新用户
+                        accountManager.refreshAccount()
+                    }
+                }
+            }
+            throw e
+        }
 
         // 修改为已经同步
         updateData(data.id, synced = true)
@@ -153,6 +167,12 @@ class PushService private constructor() : SyncService(), Disposable, Application
             }
             // 标记为已经同步
             updateData(data.id, synced = true, version = data.version)
+
+            // 如果是 Team 发现没有权限，那么很有可能是被提出团队
+            if (data.ownerType == OwnerType.Team.name) {
+                // 刷新用户
+                accountManager.refreshAccount()
+            }
             return
         } else if (response.code == 409) { // 版本冲突，一般来说是云端版本大于本地版本
             val json = ohMyJson.decodeFromString<JsonObject>(text)

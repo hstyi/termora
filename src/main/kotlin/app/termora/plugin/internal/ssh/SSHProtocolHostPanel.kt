@@ -2,12 +2,13 @@ package app.termora.plugin.internal.ssh
 
 import app.termora.Disposer
 import app.termora.Host
+import app.termora.account.AccountOwner
 import app.termora.protocol.ProtocolHostPanel
 import java.awt.BorderLayout
 
-class SSHProtocolHostPanel : ProtocolHostPanel() {
+class SSHProtocolHostPanel(accountOwner: AccountOwner) : ProtocolHostPanel() {
 
-    private val pane = SSHHostOptionsPane()
+    private val pane = SSHHostOptionsPane(accountOwner)
 
     init {
         initView()

@@ -1,5 +1,6 @@
 package app.termora.plugins.s3
 
+import app.termora.account.AccountOwner
 import app.termora.protocol.ProtocolHostPanel
 import app.termora.protocol.ProtocolHostPanelExtension
 import app.termora.protocol.ProtocolProvider
@@ -13,7 +14,7 @@ class S3ProtocolHostPanelExtension private constructor() : ProtocolHostPanelExte
         return S3ProtocolProvider.instance
     }
 
-    override fun createProtocolHostPanel(): ProtocolHostPanel {
+    override fun createProtocolHostPanel(accountOwner: AccountOwner): ProtocolHostPanel {
         return S3ProtocolHostPanel()
     }
 }

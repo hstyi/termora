@@ -1,5 +1,6 @@
 package app.termora.plugin.internal.serial
 
+import app.termora.account.AccountOwner
 import app.termora.protocol.ProtocolHostPanel
 import app.termora.protocol.ProtocolHostPanelExtension
 import app.termora.protocol.ProtocolProvider
@@ -14,7 +15,7 @@ internal class SerialProtocolHostPanelExtension private constructor() : Protocol
         return SerialProtocolProvider.instance
     }
 
-    override fun createProtocolHostPanel(): ProtocolHostPanel {
+    override fun createProtocolHostPanel(accountOwner: AccountOwner): ProtocolHostPanel {
         return SerialProtocolHostPanel()
     }
 
