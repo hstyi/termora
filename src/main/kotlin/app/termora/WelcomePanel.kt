@@ -4,14 +4,9 @@ package app.termora
 import app.termora.actions.*
 import app.termora.database.DatabaseManager
 import app.termora.findeverywhere.FindEverywhereProvider
-import app.termora.findeverywhere.FindEverywhereProviderExtension
-import app.termora.findeverywhere.FindEverywhereResult
-import app.termora.plugin.internal.extension.DynamicExtensionHandler
-import app.termora.plugin.internal.ssh.SSHProtocolProvider
 import app.termora.terminal.DataKey
 import app.termora.tree.*
 import com.formdev.flatlaf.FlatClientProperties
-import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.formdev.flatlaf.extras.components.FlatButton
 import org.apache.commons.lang3.StringUtils
@@ -24,8 +19,7 @@ import java.awt.event.*
 import javax.swing.*
 import kotlin.math.max
 
-class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()), Disposable, TerminalTab,
-    DataProvider {
+class WelcomePanel() : JPanel(BorderLayout()), Disposable, TerminalTab, DataProvider {
 
     private val properties get() = DatabaseManager.getInstance().properties
     private val rootPanel = JPanel(BorderLayout())
@@ -52,6 +46,7 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
         val panel = JPanel(BorderLayout())
         panel.add(createSearchPanel(), BorderLayout.NORTH)
         panel.add(createHostPanel(), BorderLayout.CENTER)
+        bannerPanel.foreground = UIManager.getColor("TextField.placeholderForeground")
 
         if (!fullContent) {
             rootPanel.add(bannerPanel, BorderLayout.NORTH)
@@ -209,44 +204,6 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
             }
         })
 
-        DynamicExtensionHandler.getInstance()
-            .register(FindEverywhereProviderExtension::class.java, object : FindEverywhereProviderExtension {
-                private val provider = object : FindEverywhereProvider {
-                    override fun find(pattern: String, scope: Scope): List<FindEverywhereResult> {
-                        if (scope != windowScope) return emptyList()
-
-                        var filter = hostTreeModel.root.getAllChildren()
-                            .map { it.host }
-                            .filter { it.isFolder.not() }
-
-                        if (pattern.isNotBlank()) {
-                            filter = filter.filter {
-                                if (it.protocol == SSHProtocolProvider.PROTOCOL) {
-                                    it.name.contains(pattern, true) || it.host.contains(pattern, true)
-                                } else {
-                                    it.name.contains(pattern, true)
-                                }
-                            }
-                        }
-
-                        return filter.map { HostFindEverywhereResult(it) }
-                    }
-
-                    override fun group(): String {
-                        return I18n.getString("termora.find-everywhere.groups.open-new-hosts")
-                    }
-
-                    override fun order(): Int {
-                        return Integer.MIN_VALUE + 2
-                    }
-                }
-
-                override fun getFindEverywhereProvider(): FindEverywhereProvider {
-                    return provider
-                }
-
-            }).let { Disposer.register(this, it) }
-
     }
 
     private fun perform() {
@@ -300,40 +257,6 @@ class WelcomePanel(private val windowScope: WindowScope) : JPanel(BorderLayout()
 
     override fun dispose() {
         properties.putString("WelcomeFullContent", fullContent.toString())
-    }
-
-    private inner class HostFindEverywhereResult(val host: Host) : FindEverywhereResult {
-        private val showMoreInfo get() = EnableManager.getInstance().isShowMoreInfo()
-
-        override fun actionPerformed(e: ActionEvent) {
-            ActionManager.getInstance()
-                .getAction(OpenHostAction.OPEN_HOST)
-                ?.actionPerformed(OpenHostActionEvent(e.source, host, e))
-        }
-
-        override fun getIcon(isSelected: Boolean): Icon {
-            if (isSelected) {
-                if (!FlatLaf.isLafDark()) {
-                    return Icons.terminal.dark
-                }
-            }
-            return Icons.terminal
-        }
-
-        override fun getText(isSelected: Boolean): String {
-            if (showMoreInfo) {
-                val color = UIManager.getColor(if (isSelected) "textHighlightText" else "textInactiveText")
-                val moreInfo = when (host.protocol) {
-                    SSHProtocolProvider.PROTOCOL -> "${host.username}@${host.host}"
-                    "Serial" -> host.options.serialComm.port
-                    else -> StringUtils.EMPTY
-                }
-                if (moreInfo.isNotBlank()) {
-                    return "<html>${host.name}&nbsp;&nbsp;&nbsp;&nbsp;<font color=rgb(${color.red},${color.green},${color.blue})>${moreInfo}</font></html>"
-                }
-            }
-            return host.name
-        }
     }
 
     override fun <T : Any> getData(dataKey: DataKey<T>): T? {

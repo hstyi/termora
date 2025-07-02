@@ -23,7 +23,7 @@ class BannerPanel(fontSize: Int = 11, val beautiful: Boolean = false) : JCompone
         size = preferredSize
     }
 
-    override fun paintComponent(g: Graphics) {
+    public override fun paintComponent(g: Graphics) {
         if (g is Graphics2D) {
             g.setRenderingHints(
                 RenderingHints(
@@ -33,7 +33,7 @@ class BannerPanel(fontSize: Int = 11, val beautiful: Boolean = false) : JCompone
         }
 
         g.font = font
-        g.color = UIManager.getColor("TextField.placeholderForeground")
+        g.color = foreground ?: UIManager.getColor("TextField.placeholderForeground")
 
         val height = g.fontMetrics.height
         val descent = g.fontMetrics.descent
