@@ -1,7 +1,6 @@
 package app.termora.plugin.internal.ssh
 
 import app.termora.*
-import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProviders
 import app.termora.actions.TabReconnectAction
 import app.termora.addons.zmodem.ZModemPtyConnectorAdaptor
@@ -28,7 +27,6 @@ import org.apache.sshd.common.session.Session
 import org.apache.sshd.common.session.SessionListener
 import org.slf4j.LoggerFactory
 import java.nio.charset.StandardCharsets
-import java.util.*
 import javax.swing.Icon
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
@@ -47,9 +45,6 @@ class SSHTerminalTab(windowScope: WindowScope, host: Host) :
     private var sshClient: SshClient? = null
     private var sshSession: ClientSession? = null
     private var sshChannelShell: ChannelShell? = null
-    private val terminalTabbedManager
-        get() = AnActionEvent(getJComponent(), StringUtils.EMPTY, EventObject(getJComponent()))
-            .getData(DataProviders.TerminalTabbedManager)
 
     init {
         terminalPanel.dropFiles = false

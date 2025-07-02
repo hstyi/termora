@@ -32,6 +32,7 @@ class TerminalTabbed(
     private val windowScope: WindowScope,
     private val termoraToolBar: TermoraToolBar,
     private val tabbedPane: FlatTabbedPane,
+    private val layout: TermoraLayout,
 ) : JPanel(BorderLayout()), Disposable, TerminalTabbedManager, DataProvider {
     private val tabs = mutableListOf<TerminalTab>()
     private val customizeToolBarAWTEventListener = CustomizeToolBarAWTEventListener()
@@ -109,20 +110,6 @@ class TerminalTabbed(
                 showContextMenu(index, e)
             }
         })
-
-
-        // 点击
-        tabbedPane.addMouseListener(object : MouseAdapter() {
-            override fun mouseClicked(e: MouseEvent) {
-                if (SwingUtilities.isLeftMouseButton(e)) {
-                    val index = tabbedPane.indexAtLocation(e.x, e.y)
-                    if (index > 0) {
-                        tabbedPane.getComponentAt(index).requestFocusInWindow()
-                    }
-                }
-            }
-        })
-
 
         // 注册全局搜索
         DynamicExtensionHandler.getInstance()
@@ -206,11 +193,13 @@ class TerminalTabbed(
             // remove ele
             tabs.removeAt(index)
 
-            // 新的获取到焦点
-            tabs[tabbedPane.selectedIndex].onGrabFocus()
+            if (tabbedPane.tabCount > 0) {
+                // 新的获取到焦点
+                tabs[tabbedPane.selectedIndex].onGrabFocus()
 
-            // 新的真正获取焦点
-            tabbedPane.getComponentAt(tabbedPane.selectedIndex).requestFocusInWindow()
+                // 新的真正获取焦点
+                tabbedPane.getComponentAt(tabbedPane.selectedIndex).requestFocusInWindow()
+            }
 
             if (disposable) {
                 Disposer.dispose(tab)
@@ -494,6 +483,32 @@ class TerminalTabbed(
 
         override fun toString(): String {
             return title
+        }
+    }
+
+    override fun paint(g: Graphics) {
+        super.paint(g)
+    }
+
+    private val border = BorderFactory.createMatteBorder(1, 0, 0, 0, DynamicColor.BorderColor)
+    private val banner = BannerPanel(fontSize = 13).apply {
+        foreground = UIManager.getColor("textInactiveText")
+    }
+
+    override fun paintComponent(g: Graphics) {
+        super.paintComponent(g)
+
+        if (layout == TermoraLayout.Fence) {
+            if (g is Graphics2D) {
+                if (tabbedPane.tabCount < 1) {
+                    border.paintBorder(this, g, 0, tabbedPane.tabHeight, width, tabbedPane.tabHeight)
+                    banner.setBounds(0, 0, width, height)
+                    g.save()
+                    g.translate(0, 180)
+                    banner.paintComponent(g)
+                    g.restore()
+                }
+            }
         }
     }
 

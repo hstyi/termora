@@ -723,6 +723,11 @@ class DatabaseManager private constructor() : Disposable {
         var theme by StringPropertyDelegate("Light")
 
         /**
+         * 布局
+         */
+        var layout by StringPropertyDelegate(TermoraLayout.Screen.name)
+
+        /**
          * 跟随系统
          */
         var followSystem by BooleanPropertyDelegate(true)

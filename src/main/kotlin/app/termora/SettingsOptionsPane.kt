@@ -112,6 +112,7 @@ class SettingsOptionsPane : OptionsPane() {
     private inner class AppearanceOption : JPanel(BorderLayout()), Option {
         val themeManager = ThemeManager.getInstance()
         val themeComboBox = FlatComboBox<String>()
+        val layoutComboBox = FlatComboBox<TermoraLayout>()
         val languageComboBox = FlatComboBox<String>()
         val backgroundComBoBox = YesOrNoComboBox()
         val confirmTabCloseComBoBox = YesOrNoComboBox()
@@ -128,6 +129,38 @@ class SettingsOptionsPane : OptionsPane() {
         }
 
         private fun initView() {
+
+            layoutComboBox.addItem(TermoraLayout.Screen)
+            layoutComboBox.addItem(TermoraLayout.Fence)
+            layoutComboBox.renderer = object : DefaultListCellRenderer() {
+                override fun getListCellRendererComponent(
+                    list: JList<*>?,
+                    value: Any?,
+                    index: Int,
+                    isSelected: Boolean,
+                    cellHasFocus: Boolean
+                ): Component {
+                    var text = value
+                    if (value == TermoraLayout.Screen) {
+                        text = I18n.getString("termora.settings.appearance.layout.screen")
+                    } else if (value == TermoraLayout.Fence) {
+                        text = I18n.getString("termora.settings.appearance.layout.fence")
+                    }
+
+                    val c = super.getListCellRendererComponent(list, text, index, isSelected, cellHasFocus)
+                    icon = null
+
+                    if (value == TermoraLayout.Screen) {
+                        icon = if (isSelected) Icons.uiForm.dark else Icons.uiForm
+                    } else if (value == TermoraLayout.Fence) {
+                        icon = if (isSelected) Icons.dataColumn.dark else Icons.dataColumn
+                    }
+
+                    return c
+                }
+            }
+            layoutComboBox.selectedItem = runCatching { TermoraLayout.valueOf(appearance.layout) }
+                .getOrNull() ?: TermoraLayout.Layout
 
             backgroundComBoBox.isEnabled = SystemInfo.isWindows || SystemInfo.isMacOS
 
@@ -183,6 +216,17 @@ class SettingsOptionsPane : OptionsPane() {
                     SwingUtilities.invokeLater { themeManager.change(themeComboBox.selectedItem as String) }
                 }
             }
+
+            layoutComboBox.addItemListener(object : ItemListener {
+                override fun itemStateChanged(e: ItemEvent) {
+                    if (e.stateChange == ItemEvent.SELECTED) {
+                        appearance.layout = layoutComboBox.selectedItem?.toString() ?: return
+                        if (TermoraLayout.Layout.name != appearance.layout) {
+                            SwingUtilities.invokeLater { TermoraRestarter.getInstance().scheduleRestart(owner) }
+                        }
+                    }
+                }
+            })
 
             opacitySpinner.addChangeListener {
                 val opacity = opacitySpinner.value
@@ -307,7 +351,7 @@ class SettingsOptionsPane : OptionsPane() {
         private fun getFormPanel(): JPanel {
             val layout = FormLayout(
                 "left:pref, $FORM_MARGIN, default:grow, $FORM_MARGIN, default, default:grow",
-                "pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref"
+                "pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref"
             )
             val box = FlatToolBar()
             box.add(followSystemCheckBox)
@@ -328,6 +372,9 @@ class SettingsOptionsPane : OptionsPane() {
                     }
                 })).xy(5, rows).apply { rows += step }
 
+
+            builder.add("${I18n.getString("termora.settings.appearance.layout")}:").xy(1, rows)
+                .add(layoutComboBox).xy(3, rows).apply { rows += step }
 
             builder.add("${I18n.getString("termora.settings.appearance.opacity")}:").xy(1, rows)
                 .add(opacitySpinner).xy(3, rows).apply { rows += step }

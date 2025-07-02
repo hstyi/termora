@@ -2,6 +2,7 @@ package app.termora
 
 object Icons {
     val bulletList by lazy { DynamicIcon("icons/bulletList.svg", "icons/bulletList_dark.svg") }
+    val dataColumn by lazy { DynamicIcon("icons/dataColumn.svg", "icons/dataColumn_dark.svg") }
     val dbms by lazy { DynamicIcon("icons/dbms.svg", "icons/dbms_dark.svg") }
     val newUI by lazy { DynamicIcon("icons/newUI.svg", "icons/newUI.svg") }
     val up by lazy { DynamicIcon("icons/up.svg", "icons/up_dark.svg") }
