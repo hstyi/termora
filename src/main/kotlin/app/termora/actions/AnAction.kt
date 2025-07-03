@@ -1,5 +1,6 @@
 package app.termora.actions
 
+import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.action.BoundAction
 import java.awt.event.ActionEvent
 import javax.swing.Icon
@@ -20,7 +21,7 @@ abstract class AnAction : BoundAction {
         if (evt is AnActionEvent) {
             actionPerformed(evt)
         } else {
-            actionPerformed(AnActionEvent(evt.source, evt.actionCommand, evt))
+            actionPerformed(AnActionEvent(evt.source, StringUtils.defaultString(evt.actionCommand), evt))
         }
     }
 

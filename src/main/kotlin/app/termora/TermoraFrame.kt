@@ -82,8 +82,8 @@ class TermoraFrame : JFrame(), DataProvider {
                         if (scope != windowScope) return emptyList()
 
                         var filter = hostTreeModel.root.getAllChildren()
-                            .map { it.host }
                             .filter { it.isFolder.not() }
+                            .map { it.host }
 
                         if (pattern.isNotBlank()) {
                             filter = filter.filter {

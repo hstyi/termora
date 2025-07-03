@@ -38,9 +38,9 @@ class TerminalPanelFactory : Disposable {
     }
 
 
-    fun createTerminalPanel(terminal: Terminal, ptyConnector: PtyConnector): TerminalPanel {
+    fun createTerminalPanel(tab: TerminalTab?, terminal: Terminal, ptyConnector: PtyConnector): TerminalPanel {
         val writer = MyTerminalWriter(ptyConnector)
-        val terminalPanel = TerminalPanel(terminal, writer)
+        val terminalPanel = TerminalPanel(tab, terminal, writer)
 
         // processDeviceStatusReport
         terminal.getTerminalModel().setData(DataKey.TerminalWriter, writer)

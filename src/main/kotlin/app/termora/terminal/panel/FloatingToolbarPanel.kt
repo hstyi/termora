@@ -6,13 +6,10 @@ import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviders
 import app.termora.database.DatabaseManager
+import app.termora.plugin.ExtensionManager
 import app.termora.plugin.internal.ssh.SSHTerminalTab
-import app.termora.snippet.SnippetAction
-import app.termora.snippet.SnippetTreeDialog
 import app.termora.terminal.DataKey
-import app.termora.terminal.panel.vw.NvidiaSMIVisualWindow
-import app.termora.terminal.panel.vw.SystemInformationVisualWindow
-import app.termora.terminal.panel.vw.TransferVisualWindow
+import app.termora.terminal.panel.vw.VisualWindowManager
 import com.formdev.flatlaf.extras.components.FlatToolBar
 import com.formdev.flatlaf.ui.FlatRoundBorder
 import org.apache.commons.lang3.StringUtils
@@ -26,7 +23,7 @@ import javax.swing.SwingUtilities
 class FloatingToolbarPanel : FlatToolBar(), Disposable {
     private val floatingToolbarEnable get() = DatabaseManager.getInstance().terminal.floatingToolbar
     private var closed = false
-    private val anEvent get() = AnActionEvent(this, StringUtils.EMPTY, EventObject(this))
+    private val event get() = AnActionEvent(this, StringUtils.EMPTY, EventObject(this))
 
     companion object {
 
@@ -79,7 +76,6 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
             }
         }
 
-        initActions()
         initEvents()
     }
 
@@ -116,26 +112,36 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
         // Pin
         add(initPinActionButton())
 
-        // 服务器信息
-        add(initServerInfoActionButton())
+        val tab = event.getData(DataProviders.TerminalTab)
+        val terminalPanel = (tab as DataProvider?)?.getData(DataProviders.TerminalPanel)
+        if (terminalPanel != null) {
+            val extensions = ExtensionManager.getInstance()
+                .getExtensions(FloatingToolbarActionExtension::class.java)
+            for (extension in extensions) {
+                try {
+                    add(createButton(extension.createActionButton(terminalPanel, tab), terminalPanel, tab, extension))
+                } catch (_: UnsupportedOperationException) {
+                    continue
+                }
+            }
 
-        // Transfer
-        add(initTransferActionButton())
+            initReconnectActionButton(tab)
+        }
 
-        // Snippet
-        add(initSnippetActionButton())
-
-        // Nvidia 显卡信息
-        add(initNvidiaSMIActionButton())
-
-        // 重连
-        add(initReconnectActionButton())
 
         // 关闭
         add(initCloseActionButton())
     }
 
     private fun initEvents() {
+        // 初始化 Action
+        addPropertyChangeListener("ancestor", object : PropertyChangeListener {
+            override fun propertyChange(evt: PropertyChangeEvent) {
+                removePropertyChangeListener("ancestor", this)
+                initActions()
+            }
+        })
+
         // 被添加到组件后
         addPropertyChangeListener("ancestor", object : PropertyChangeListener {
             override fun propertyChange(evt: PropertyChangeEvent) {
@@ -143,11 +149,12 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
                 SwingUtilities.invokeLater { resumeVisualWindows() }
             }
         })
+
     }
 
     @Suppress("UNCHECKED_CAST")
     private fun resumeVisualWindows() {
-        val tab = anEvent.getData(DataProviders.TerminalTab) ?: return
+        val tab = event.getData(DataProviders.TerminalTab) ?: return
         if (tab !is SSHTerminalTab) return
         val terminalPanel = tab.getData(DataProviders.TerminalPanel) ?: return
         terminalPanel.resumeVisualWindows(tab.host.id, object : DataProvider {
@@ -160,106 +167,30 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
         })
     }
 
-
-    private fun initServerInfoActionButton(): JButton {
-        val btn = JButton(Icons.infoOutline)
-        btn.toolTipText = I18n.getString("termora.visual-window.system-information")
-        btn.addActionListener(object : AnAction() {
+    private fun createButton(
+        action: AnAction,
+        visualWindowManager: VisualWindowManager,
+        tab: TerminalTab,
+        extension: FloatingToolbarActionExtension
+    ): JButton {
+        val btn = JButton(object : AnAction(action.smallIcon) {
             override fun actionPerformed(evt: AnActionEvent) {
-                val tab = anEvent.getData(DataProviders.TerminalTab) ?: return
-                val terminalPanel = (tab as DataProvider?)?.getData(DataProviders.TerminalPanel) ?: return
-
-                if (tab !is SSHTerminalTab) {
-                    terminalPanel.toast(I18n.getString("termora.floating-toolbar.not-supported"))
-                    return
-                }
-
-                for (window in terminalPanel.getVisualWindows()) {
-                    if (window is SystemInformationVisualWindow) {
-                        terminalPanel.moveToFront(window)
-                        return
+                try {
+                    val clazz = extension.getVisualWindowClass(tab)
+                    for (window in visualWindowManager.getVisualWindows()) {
+                        if (clazz.isInstance(window)) {
+                            visualWindowManager.moveToFront(window)
+                            return
+                        }
                     }
+                    action.actionPerformed(evt)
+                } catch (_: UnsupportedOperationException) {
+                    action.actionPerformed(evt)
                 }
-
-                val visualWindowPanel = SystemInformationVisualWindow(tab, terminalPanel)
-                terminalPanel.addVisualWindow(visualWindowPanel)
-
             }
         })
-        return btn
-    }
-
-    private fun initTransferActionButton(): JButton {
-        val btn = JButton(Icons.folder)
-        btn.toolTipText = I18n.getString("termora.transport.sftp")
-        btn.addActionListener(object : AnAction() {
-            override fun actionPerformed(evt: AnActionEvent) {
-                val tab = anEvent.getData(DataProviders.TerminalTab) ?: return
-                val terminalPanel = (tab as DataProvider?)?.getData(DataProviders.TerminalPanel) ?: return
-
-                if (tab !is SSHTerminalTab) {
-                    terminalPanel.toast(I18n.getString("termora.floating-toolbar.not-supported"))
-                    return
-                }
-
-                for (window in terminalPanel.getVisualWindows()) {
-                    if (window is TransferVisualWindow) {
-                        terminalPanel.moveToFront(window)
-                        return
-                    }
-                }
-
-                val visualWindowPanel = TransferVisualWindow(tab, terminalPanel)
-                terminalPanel.addVisualWindow(visualWindowPanel)
-
-            }
-        })
-        return btn
-    }
-
-    private fun initSnippetActionButton(): JButton {
-        val btn = JButton(Icons.codeSpan)
-        btn.toolTipText = I18n.getString("termora.snippet.title")
-        btn.addActionListener(object : AnAction() {
-            override fun actionPerformed(evt: AnActionEvent) {
-                val tab = anEvent.getData(DataProviders.TerminalTab) ?: return
-                val writer = tab.getData(DataProviders.TerminalWriter) ?: return
-                val dialog = SnippetTreeDialog(evt.window)
-                dialog.setLocationRelativeTo(btn)
-                dialog.setLocation(dialog.x, btn.locationOnScreen.y + height + 2)
-                dialog.isVisible = true
-                val node = dialog.getSelectedNode() ?: return
-                SnippetAction.getInstance().runSnippet(node.data, writer)
-            }
-        })
-        return btn
-    }
-
-    private fun initNvidiaSMIActionButton(): JButton {
-        val btn = JButton(Icons.nvidia)
-        btn.toolTipText = I18n.getString("termora.visual-window.nvidia-smi")
-        btn.addActionListener(object : AnAction() {
-            override fun actionPerformed(evt: AnActionEvent) {
-                val tab = anEvent.getData(DataProviders.TerminalTab) ?: return
-                val terminalPanel = (tab as DataProvider?)?.getData(DataProviders.TerminalPanel) ?: return
-
-                if (tab !is SSHTerminalTab) {
-                    terminalPanel.toast(I18n.getString("termora.floating-toolbar.not-supported"))
-                    return
-                }
-
-                for (window in terminalPanel.getVisualWindows()) {
-                    if (window is NvidiaSMIVisualWindow) {
-                        terminalPanel.moveToFront(window)
-                        return
-                    }
-                }
-
-                val visualWindowPanel = NvidiaSMIVisualWindow(tab, terminalPanel)
-                terminalPanel.addVisualWindow(visualWindowPanel)
-
-            }
-        })
+        btn.text = StringUtils.EMPTY
+        btn.toolTipText = action.shortDescription
         return btn
     }
 
@@ -293,19 +224,16 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
         return btn
     }
 
-    private fun initReconnectActionButton(): JButton {
+    private fun initReconnectActionButton(tab: TerminalTab) {
+        if (tab.canReconnect().not()) return
         val btn = JButton(Icons.refresh)
         btn.toolTipText = I18n.getString("termora.tabbed.contextmenu.reconnect")
-
         btn.addActionListener(object : AnAction() {
             override fun actionPerformed(evt: AnActionEvent) {
-                val tab = anEvent.getData(DataProviders.TerminalTab) ?: return
-                if (tab.canReconnect()) {
-                    tab.reconnect()
-                }
+                tab.reconnect()
             }
         })
-        return btn
+        add(btn)
     }
 
 }

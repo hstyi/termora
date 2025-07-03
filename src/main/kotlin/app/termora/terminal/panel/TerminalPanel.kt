@@ -2,6 +2,7 @@ package app.termora.terminal.panel
 
 import app.termora.Disposable
 import app.termora.Disposer
+import app.termora.TerminalTab
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviderSupport
 import app.termora.actions.DataProviders
@@ -35,7 +36,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 
-class TerminalPanel(val terminal: Terminal, private val writer: TerminalWriter) :
+class TerminalPanel(val tab: TerminalTab?, val terminal: Terminal, private val writer: TerminalWriter) :
     JPanel(BorderLayout()), DataProvider, Disposable, VisualWindowManager {
 
     companion object {
@@ -554,7 +555,13 @@ class TerminalPanel(val terminal: Terminal, private val writer: TerminalWriter) 
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
     override fun <T : Any> getData(dataKey: DataKey<T>): T? {
+        if (dataKey == DataProviders.TerminalTab) {
+            if (tab != null) {
+                return tab as T
+            }
+        }
         return dataProviderSupport.getData(dataKey)
     }
 
