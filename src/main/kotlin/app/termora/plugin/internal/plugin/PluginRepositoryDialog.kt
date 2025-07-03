@@ -2,6 +2,7 @@ package app.termora.plugin.internal.plugin
 
 import app.termora.*
 import com.formdev.flatlaf.extras.components.FlatToolBar
+import com.formdev.flatlaf.util.SystemInfo
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Window
@@ -22,7 +23,6 @@ internal class PluginRepositoryDialog(owner: Window) : DialogWrapper(owner) {
         size = Dimension(UIManager.getInt("Dialog.width") - 200, UIManager.getInt("Dialog.height") - 150)
         isModal = true
         isResizable = false
-        controlsVisible = false
         title = "Custom Plugin Repository"
         list.fixedCellHeight = UIManager.getInt("Tree.rowHeight")
         for (url in PluginRepositoryManager.getInstance().getRepositories()) {
@@ -96,6 +96,21 @@ internal class PluginRepositoryDialog(owner: Window) : DialogWrapper(owner) {
         list.addListSelectionListener { deleteBtn.isEnabled = list.selectedIndex >= 0 }
 
         return panel
+    }
+
+    override fun addNotify() {
+        super.addNotify()
+
+        if (SystemInfo.isMacOS) {
+            NativeMacLibrary.setControlsVisible(
+                this,
+                false,
+                arrayOf(
+                    NativeMacLibrary.NSWindowButton.NSWindowZoomButton,
+                    NativeMacLibrary.NSWindowButton.NSWindowMiniaturizeButton
+                )
+            )
+        }
     }
 
     override fun createSouthPanel(): JComponent? {
