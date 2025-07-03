@@ -9,6 +9,12 @@ import java.awt.Window
 object NativeMacLibrary {
     private val log = LoggerFactory.getLogger(NativeMacLibrary::class.java)
 
+    enum class NSWindowButton {
+        NSWindowCloseButton,
+        NSWindowMiniaturizeButton,
+        NSWindowZoomButton,
+    }
+
     fun getNSWindow(window: Window): Long? {
         try {
             val peerField = Component::class.java.getDeclaredField("peer") ?: return null
@@ -31,13 +37,17 @@ object NativeMacLibrary {
         }
     }
 
-    fun setControlsVisible(window: Window, visible: Boolean) {
+    fun setControlsVisible(
+        window: Window,
+        visible: Boolean,
+        buttons: Array<NSWindowButton> = NSWindowButton.entries.toTypedArray()
+    ) {
         val nsWindow = ID(getNSWindow(window) ?: return)
         try {
             Foundation.executeOnMainThread(true, true) {
-                for (i in 0..2) {
-                    val button = Foundation.invoke(nsWindow, "standardWindowButton:", i)
-                    Foundation.invoke(button, "setHidden:", !visible)
+                for (button in buttons) {
+                    val button = Foundation.invoke(nsWindow, "standardWindowButton:", button.ordinal)
+                    Foundation.invoke(button, "setHidden:", visible.not())
                 }
             }
         } catch (e: Exception) {
