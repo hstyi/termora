@@ -23,7 +23,10 @@ abstract class PtyHostTerminalTab(
 
     private var readerJob: Job? = null
     private val ptyConnectorDelegate = PtyConnectorDelegate()
-    protected val terminalPanel = TerminalPanelFactory.getInstance().createTerminalPanel(terminal, ptyConnectorDelegate)
+    protected val terminalPanel = TerminalPanelFactory.getInstance().createTerminalPanel(
+        this,
+        terminal, ptyConnectorDelegate
+    )
     protected val ptyConnectorFactory get() = PtyConnectorFactory.getInstance()
 
     override fun start() {

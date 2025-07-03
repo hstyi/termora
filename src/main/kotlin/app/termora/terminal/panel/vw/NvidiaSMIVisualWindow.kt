@@ -10,6 +10,7 @@ import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
@@ -25,6 +26,7 @@ import java.io.StringReader
 import javax.swing.*
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.xpath.XPathFactory
+import kotlin.time.Duration.Companion.milliseconds
 
 class NvidiaSMIVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindowManager) :
     SSHVisualWindow(tab, "NVIDIA-SMI", visualWindowManager) {
@@ -264,7 +266,14 @@ class NvidiaSMIVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWind
 
 
         override suspend fun refresh(isFirst: Boolean) {
-            val session = tab.getData(SSHTerminalTab.SSHSession) ?: return
+            val session = suspend {
+                var c = tab.getData(SSHTerminalTab.SSHSession)
+                while (c == null) {
+                    delay(250.milliseconds)
+                    c = tab.getData(SSHTerminalTab.SSHSession)
+                }
+                c
+            }.invoke()
 
             val doc = try {
                 val (code, text) = SshClients.execChannel(session, "nvidia-smi -x -q")

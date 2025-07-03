@@ -37,7 +37,7 @@ record ExtensionProxy(Plugin plugin, Extension extension) implements InvocationH
                 }
                 throw new IllegalCallerException(target.getMessage(), target);
             }
-            throw e;
+            throw target;
         }
     }
 }

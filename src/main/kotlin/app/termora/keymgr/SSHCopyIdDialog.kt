@@ -40,7 +40,7 @@ class SSHCopyIdDialog(
         }
     }
     private val terminalPanel by lazy {
-        terminalPanelFactory.createTerminalPanel(terminal, PtyConnectorDelegate())
+        terminalPanelFactory.createTerminalPanel(null, terminal, PtyConnectorDelegate())
             .apply { enableFloatingToolbar = false }
     }
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
