@@ -18,7 +18,6 @@ import org.apache.commons.lang3.ArrayUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.commons.lang3.time.DateFormatUtils
-import org.apache.sshd.sftp.client.fs.SftpFileSystem
 import org.apache.sshd.sftp.client.fs.WithFileAttributes
 import org.jdesktop.swingx.JXBusyLabel
 import org.jdesktop.swingx.JXPanel
@@ -34,7 +33,6 @@ import java.awt.event.*
 import java.beans.PropertyChangeEvent
 import java.beans.PropertyChangeListener
 import java.io.File
-import java.io.OutputStream
 import java.nio.file.FileSystem
 import java.nio.file.FileSystems
 import java.nio.file.Files
@@ -1023,16 +1021,7 @@ class TransportPanel(
                 val target = source.parent.resolve(e.source.toString())
                 processPath(e.source.toString()) { source.moveTo(target) }
             } else if (actionCommand == TransportPopupMenu.ActionCommand.Rmrf) {
-                processPath(StringUtils.EMPTY) {
-                    val session = (_fileSystem as SftpFileSystem).clientSession
-                    for (path in files.map { it.first }) {
-                        session.executeRemoteCommand(
-                            "rm -rf '${path.absolutePathString()}'",
-                            OutputStream.nullOutputStream(),
-                            Charsets.UTF_8
-                        )
-                    }
-                }
+                transferManager.addTransfer(files, InternalTransferManager.TransferMode.Rmrf)
             } else if (actionCommand == TransportPopupMenu.ActionCommand.ChangePermissions) {
                 val c = e.source as TransportPopupMenu.ChangePermission
                 val path = files.first().first
