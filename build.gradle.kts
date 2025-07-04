@@ -137,10 +137,6 @@ application {
 
     args.add("-DTERMORA_PLUGIN_DIRECTORY=${layout.buildDirectory.get().asFile.absolutePath}${File.separator}plugins")
 
-    if (os.isLinux) {
-        args.add("-Dsun.java2d.opengl=true")
-    }
-
     applicationDefaultJvmArgs = args
     mainClass = "app.termora.MainKt"
 }
@@ -448,7 +444,6 @@ tasks.register<Exec>("jpackage") {
     }
 
     if (os.isLinux) {
-        options.add("-Dsun.java2d.opengl=true")
         if (isDeb) {
             options.add("-Djpackage.app-layout=deb")
         }
