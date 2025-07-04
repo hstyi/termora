@@ -437,6 +437,7 @@ tasks.register<Exec>("jpackage") {
         // NSWindow
         options.add("-Dapple.awt.application.appearance=system")
         options.add("--add-opens java.desktop/java.awt=ALL-UNNAMED")
+        options.add("--add-opens java.desktop/sun.font=ALL-UNNAMED")
         options.add("--add-opens java.desktop/sun.lwawt=ALL-UNNAMED")
         options.add("--add-opens java.desktop/sun.lwawt.macosx=ALL-UNNAMED")
         options.add("--add-opens java.desktop/sun.lwawt.macosx.concurrent=ALL-UNNAMED")
