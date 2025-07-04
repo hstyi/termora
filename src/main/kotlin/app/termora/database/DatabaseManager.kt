@@ -620,6 +620,11 @@ class DatabaseManager private constructor() : Disposable {
         var font by StringPropertyDelegate("JetBrains Mono")
 
         /**
+         * 回退字体
+         */
+        var fallbackFont by StringPropertyDelegate(StringUtils.EMPTY)
+
+        /**
          * 默认终端
          */
         var localShell by StringPropertyLazyDelegate { Application.getDefaultShell() }

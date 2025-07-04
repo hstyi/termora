@@ -15,7 +15,6 @@ import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatComboBox
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.extras.components.FlatToolBar
-import com.formdev.flatlaf.util.FontUtils
 import com.formdev.flatlaf.util.SystemInfo
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
@@ -29,7 +28,6 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.SystemUtils
 import java.awt.BorderLayout
 import java.awt.Component
-import java.awt.Dimension
 import java.awt.Toolkit
 import java.awt.event.ActionEvent
 import java.awt.event.ItemEvent
@@ -399,7 +397,8 @@ class SettingsOptionsPane : OptionsPane() {
         private val debugComboBox = YesOrNoComboBox()
         private val beepComboBox = YesOrNoComboBox()
         private val cursorBlinkComboBox = YesOrNoComboBox()
-        private val fontComboBox = FlatComboBox<String>()
+        private val fontComboBox = FontComboBox()
+        private val fallbackFontComboBox = FontComboBox()
         private val shellComboBox = FlatComboBox<String>()
         private val maxRowsTextField = IntSpinner(0, 0)
         private val fontSizeTextField = IntSpinner(0, 9, 99)
@@ -414,6 +413,13 @@ class SettingsOptionsPane : OptionsPane() {
             fontComboBox.addItemListener {
                 if (it.stateChange == ItemEvent.SELECTED) {
                     terminalSetting.font = fontComboBox.selectedItem as String
+                    fireFontChanged()
+                }
+            }
+
+            fallbackFontComboBox.addItemListener {
+                if (it.stateChange == ItemEvent.SELECTED) {
+                    terminalSetting.fallbackFont = fallbackFontComboBox.selectedItem as String
                     fireFontChanged()
                 }
             }
@@ -526,33 +532,6 @@ class SettingsOptionsPane : OptionsPane() {
                 }
             }
 
-            fontComboBox.renderer = object : DefaultListCellRenderer() {
-                init {
-                    preferredSize = Dimension(preferredSize.width, fontComboBox.preferredSize.height - 2)
-                    maximumSize = Dimension(preferredSize.width, preferredSize.height)
-                }
-
-                override fun getListCellRendererComponent(
-                    list: JList<*>?,
-                    value: Any?,
-                    index: Int,
-                    isSelected: Boolean,
-                    cellHasFocus: Boolean
-                ): Component {
-                    if (value is String) {
-                        return super.getListCellRendererComponent(
-                            list,
-                            "<html><font face='$value'>$value</font></html>",
-                            index,
-                            isSelected,
-                            cellHasFocus
-                        )
-                    }
-                    return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
-                }
-            }
-            fontComboBox.maximumSize = fontComboBox.preferredSize
-
             cursorStyleComboBox.addItem(CursorStyle.Block)
             cursorStyleComboBox.addItem(CursorStyle.Bar)
             cursorStyleComboBox.addItem(CursorStyle.Underline)
@@ -566,29 +545,18 @@ class SettingsOptionsPane : OptionsPane() {
             shellComboBox.selectedItem = terminalSetting.localShell
 
             fontComboBox.addItem(terminalSetting.font)
-            var fontsLoaded = false
+            val items = fontComboBox.getItems()
+            for (family in listOf("JetBrains Mono", "Source Code Pro", "Monospaced")) {
+                if (items.contains(family).not()) fontComboBox.addItem(family)
+            }
 
-            fontComboBox.addPopupMenuListener(object : PopupMenuListener {
-                override fun popupMenuWillBecomeVisible(e: PopupMenuEvent) {
-                    if (!fontsLoaded) {
-                        val selectedItem = fontComboBox.selectedItem
-                        fontComboBox.removeAllItems();
-                        fontComboBox.addItem("JetBrains Mono")
-                        fontComboBox.addItem("Source Code Pro")
-                        fontComboBox.addItem("Monospaced")
-                        FontUtils.getAvailableFontFamilyNames().forEach {
-                            fontComboBox.addItem(it)
-                        }
-                        fontComboBox.selectedItem = selectedItem
-                        fontsLoaded = true
-                    }
-                }
-
-                override fun popupMenuWillBecomeInvisible(e: PopupMenuEvent) {}
-                override fun popupMenuCanceled(e: PopupMenuEvent) {}
-            })
+            if (terminalSetting.fallbackFont.isNotBlank()) {
+                fallbackFontComboBox.addItem(StringUtils.EMPTY)
+            }
+            fallbackFontComboBox.addItem(terminalSetting.fallbackFont)
 
             fontComboBox.selectedItem = terminalSetting.font
+            fallbackFontComboBox.selectedItem = terminalSetting.fallbackFont
             debugComboBox.selectedItem = terminalSetting.debug
             beepComboBox.selectedItem = terminalSetting.beep
             hyperlinkComboBox.selectedItem = terminalSetting.hyperlink
@@ -627,7 +595,7 @@ class SettingsOptionsPane : OptionsPane() {
         private fun getCenterComponent(): JComponent {
             val layout = FormLayout(
                 "left:pref, $FORM_MARGIN, default:grow, $FORM_MARGIN, left:pref, $FORM_MARGIN, pref, default:grow",
-                "pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref"
+                "pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref"
             )
 
             val beepBtn = JButton(Icons.run)
@@ -643,6 +611,8 @@ class SettingsOptionsPane : OptionsPane() {
                 .add(fontComboBox).xy(3, rows)
                 .add("${I18n.getString("termora.settings.terminal.size")}:").xy(5, rows)
                 .add(fontSizeTextField).xy(7, rows).apply { rows += step }
+                .add("${I18n.getString("termora.settings.terminal.fallback-font")}:").xy(1, rows)
+                .add(fallbackFontComboBox).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.terminal.max-rows")}:").xy(1, rows)
                 .add(maxRowsTextField).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.terminal.debug")}:").xy(1, rows)

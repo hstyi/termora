@@ -5,6 +5,7 @@ import app.termora.assertEventDispatchThread
 import app.termora.database.DatabaseManager
 import app.termora.swingCoroutineScope
 import app.termora.terminal.*
+import com.formdev.flatlaf.util.SystemInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -23,9 +24,15 @@ class TerminalDisplay(
     private val terminalBlink: TerminalBlink
 ) : JComponent() {
 
+    enum class RendererFont {
+        Base,
+        Monospaced,
+        Fallback,
+    }
+
     companion object {
-        private val lru = object : LinkedHashMap<String, Boolean>() {
-            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Boolean>?): Boolean {
+        private val lru = object : LinkedHashMap<String, RendererFont>() {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, RendererFont>?): Boolean {
                 return size > 2048
             }
         }
@@ -40,6 +47,7 @@ class TerminalDisplay(
     private var boldFont = font.deriveFont(Font.BOLD)
     private var italicFont = font.deriveFont(Font.ITALIC)
     private var boldItalicFont = font.deriveFont(Font.ITALIC or Font.BOLD)
+    private var fallbackFont = getFallbackTerminalFont()
 
     /**
      * 正在输入的内容
@@ -179,15 +187,22 @@ class TerminalDisplay(
     }
 
     private fun checkFont() {
-        // 如果字体已经改变，那么这里刷新字体
-        if (font.family != DatabaseManager.getInstance().terminal.font
-            || font.size != DatabaseManager.getInstance().terminal.fontSize
+        val terminal = DatabaseManager.getInstance().terminal
+
+        if ((terminal.fallbackFont.isNotBlank() && fallbackFont == null) ||
+            (terminal.fallbackFont.isBlank() && fallbackFont != null) ||
+            (terminal.fallbackFont != fallbackFont?.family) ||
+            (font.size != terminal.fontSize)
         ) {
+            fallbackFont = getFallbackTerminalFont()
+        }
+
+        if (font.family != terminal.font || font.size != terminal.fontSize) {
             font = getTerminalFont()
-            monospacedFont = Font(Font.MONOSPACED, font.style, font.size)
             boldFont = font.deriveFont(Font.BOLD)
             italicFont = font.deriveFont(Font.ITALIC)
             boldItalicFont = font.deriveFont(Font.ITALIC or Font.BOLD)
+            monospacedFont = Font(Font.MONOSPACED, font.style, font.size)
         }
     }
 
@@ -395,7 +410,7 @@ class TerminalDisplay(
     fun getDisplayFont(text: String, style: TextStyle): Font {
         assertEventDispatchThread()
 
-        var font = if (style.bold && style.italic) {
+        val displayFont = if (style.bold && style.italic) {
             boldItalicFont
         } else if (style.italic) {
             italicFont
@@ -405,16 +420,37 @@ class TerminalDisplay(
             font
         }
 
+        var font = displayFont
+
         val key = "${font.fontName}:${font.style}:${font.size}:${text}"
         if (lru.containsKey(key)) {
-            if (!lru.getValue(key)) {
-                font = monospacedFont
+            val c = lru.getValue(key)
+            font = when (c) {
+                RendererFont.Base -> font
+                RendererFont.Fallback -> fallbackFont ?: monospacedFont
+                else -> monospacedFont
             }
         } else {
-            if ((font.canDisplayUpTo(text) != -1).also { lru[key] = !it }) {
-                font = monospacedFont
+            // >=0 表示不支持
+            if (FontCanDisplay.canDisplayUpTo(font, text) != -1) {
+                val fallbackTerminalFont = fallbackFont ?: monospacedFont
+                font = if (fallbackTerminalFont.fontName == monospacedFont.fontName) {
+                    monospacedFont
+                } else if (FontCanDisplay.canDisplayUpTo(fallbackTerminalFont, text) != -1) {
+                    monospacedFont
+                } else {
+                    fallbackTerminalFont
+                }
             }
         }
+
+        // macOS 比较特殊，因为它可以自动选择 PingFang，而 PingFang 在 macOS 效果最好（前提是回退字体可用的情况下）
+        if (SystemInfo.isMacOS) {
+            if (font == monospacedFont) {
+                font = displayFont
+            }
+        }
+
 
 
         return font
@@ -438,11 +474,17 @@ class TerminalDisplay(
 
 
     private fun getTerminalFont(): Font {
-        return Font(
-            DatabaseManager.getInstance().terminal.font,
-            Font.PLAIN,
-            DatabaseManager.getInstance().terminal.fontSize
-        )
+        val terminal = DatabaseManager.getInstance().terminal
+        return Font(terminal.font, Font.PLAIN, terminal.fontSize)
+    }
+
+    private fun getFallbackTerminalFont(): Font? {
+        val terminal = DatabaseManager.getInstance().terminal
+        return if (terminal.fallbackFont.isBlank()) {
+            null
+        } else {
+            Font(terminal.fallbackFont, Font.PLAIN, terminal.fontSize)
+        }
     }
 
     fun toast(text: String, duration: Duration) {
@@ -508,5 +550,40 @@ class TerminalDisplay(
         }
     }
 
+
+    private object FontCanDisplay {
+        fun canDisplayUpTo(font: Font, str: String): Int {
+
+            if (SystemInfo.isWindows || SystemInfo.isLinux) {
+                return font.canDisplayUpTo(str)
+            }
+
+            val getFontMethod = Font::class.java.getDeclaredMethod("getFont2D")
+            getFontMethod.isAccessible = true
+            val font2d = getFontMethod.invoke(font)
+            val getMapperMethod = font2d.javaClass.getDeclaredMethod("getMapper")
+            getMapperMethod.isAccessible = true
+            val mapper = getMapperMethod.invoke(font2d)
+            val charToGlyphMethod = mapper.javaClass.getDeclaredMethod("charToGlyph", Char::class.java)
+
+            val len = str.length
+            var i = 0
+            while (i < len) {
+                val c = str[i]
+                val glyph = charToGlyphMethod.invoke(mapper, c) as Int
+                if (glyph >= 0) {
+                    i++
+                    continue
+                }
+                if (!Character.isHighSurrogate(c)
+                    || (charToGlyphMethod.invoke(mapper, str.codePointAt(i)) as Int) < 0
+                ) {
+                    return i
+                }
+                i += 2
+            }
+            return -1
+        }
+    }
 
 }
