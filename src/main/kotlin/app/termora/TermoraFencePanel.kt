@@ -36,8 +36,7 @@ class TermoraFencePanel(
 
         splitPane.leftComponent = leftTreePanel
         splitPane.rightComponent = terminalTabbed
-        splitPane.dividerSize = 1
-        splitPane.isEnabled = false
+        splitPane.dividerSize = 0
         splitPane.dividerLocation = enableManager.getFlag("Termora.Fence.dividerLocation", 220)
 
         leftTreePanel.preferredSize = Dimension(180, -1)
