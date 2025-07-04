@@ -107,7 +107,7 @@ class KeymapManager private constructor() : Disposable {
                 id = keymap.id,
                 ownerId = accountId,
                 ownerType = OwnerType.User.name,
-                type = DataType.KeywordHighlight.name,
+                type = DataType.Keymap.name,
                 data = keymap.toJSON(),
             )
         )

@@ -130,7 +130,7 @@ class KeymapPanel : JPanel(BorderLayout()) {
                 )
                 if (!text.isNullOrBlank()) {
                     if (text != keymap.name) {
-                        keymapManager.removeKeymap(keymap.name)
+                        keymapManager.removeKeymap(keymap.id)
                         val newKeymap = cloneKeymap(text, keymap)
                         keymapManager.addKeymap(newKeymap)
                         keymapModel.removeElementAt(index)
@@ -152,7 +152,7 @@ class KeymapPanel : JPanel(BorderLayout()) {
                         messageType = JOptionPane.WARNING_MESSAGE
                     ) == JOptionPane.YES_OPTION
                 ) {
-                    keymapManager.removeKeymap(keymap.name)
+                    keymapManager.removeKeymap(keymap.id)
                     keymapModel.removeElementAt(index)
                 }
             }
