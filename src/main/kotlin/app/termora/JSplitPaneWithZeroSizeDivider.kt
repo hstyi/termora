@@ -94,6 +94,7 @@ class JSplitPaneWithZeroSizeDivider(
             synchronized(treeLock) {
                 for (c in components) {
                     if (c == divider) {
+                        c.isVisible = splitPane.leftComponent.isVisible
                         c.setBounds(
                             splitPane.dividerLocation - w,
                             topOffset.get(),
@@ -109,8 +110,10 @@ class JSplitPaneWithZeroSizeDivider(
 
         override fun paint(g: Graphics) {
             super.paint(g)
-            g.color = UIManager.getColor("controlShadow")
-            g.fillRect(splitPane.dividerLocation, 0, 1, topOffset.get())
+            if (divider.isVisible) {
+                g.color = UIManager.getColor("controlShadow")
+                g.fillRect(splitPane.dividerLocation, 0, 1, topOffset.get())
+            }
         }
     }
 
