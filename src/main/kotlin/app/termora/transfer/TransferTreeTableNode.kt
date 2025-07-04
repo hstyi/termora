@@ -77,13 +77,15 @@ class TransferTreeTableNode(transfer: Transfer) : DefaultMutableTreeTableNode(tr
 
     private fun formatPath(path: Path, target: Boolean): String {
         if (target) {
-            if (transfer is DeleteTransfer) {
-                return I18n.getString("termora.transport.sftp.status.deleting")
-            } else if (transfer is ChangePermissionTransfer) {
-                val permissions = (transfer as ChangePermissionTransfer).permissions
-                // @formatter:off
-                return "${I18n.getString("termora.transport.table.permissions")} -> ${PosixFilePermissions.toString(permissions)}"
-                // @formatter:on
+            when (transfer) {
+                is DeleteTransfer -> return I18n.getString("termora.transport.sftp.status.deleting")
+                is CommandTransfer -> return (transfer as CommandTransfer).command
+                is ChangePermissionTransfer -> {
+                    val permissions = (transfer as ChangePermissionTransfer).permissions
+                    // @formatter:off
+                    return "${I18n.getString("termora.transport.table.permissions")} -> ${PosixFilePermissions.toString(permissions)}"
+                    // @formatter:on
+                }
             }
         }
 
@@ -95,7 +97,7 @@ class TransferTreeTableNode(transfer: Transfer) : DefaultMutableTreeTableNode(tr
     }
 
     private fun formatStatus(state: State): String {
-        if (transfer is DeleteTransfer && state == State.Processing) {
+        if ((transfer is DeleteTransfer || transfer is CommandTransfer) && state == State.Processing) {
             return I18n.getString("termora.transport.sftp.status.deleting")
         }
 

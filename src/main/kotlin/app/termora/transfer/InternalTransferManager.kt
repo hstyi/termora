@@ -9,6 +9,7 @@ interface InternalTransferManager {
         Delete,
         Transfer,
         ChangePermission,
+        Rmrf,
     }
 
     /**

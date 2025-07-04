@@ -11,6 +11,7 @@ import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.time.DateFormatUtils
+import org.apache.sshd.sftp.client.fs.SftpPath
 import org.slf4j.LoggerFactory
 import java.awt.Component
 import java.awt.Dimension
@@ -31,6 +32,7 @@ import kotlin.collections.ArrayDeque
 import kotlin.collections.List
 import kotlin.collections.Set
 import kotlin.collections.isNotEmpty
+import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
 import kotlin.io.path.name
 import kotlin.io.path.pathString
@@ -267,8 +269,8 @@ class DefaultInternalTransferManager(
 
         val isDirectory = pair.second.isDirectory
         val path = pair.first
-        if (isDirectory.not()) {
-            val transfer = createTransfer(path, workdir.resolve(path.name), false, StringUtils.EMPTY, mode, action)
+        if (isDirectory.not() || mode == TransferMode.Rmrf) {
+            val transfer = createTransfer(path, workdir.resolve(path.name), isDirectory, StringUtils.EMPTY, mode, action)
             return if (transferManager.addTransfer(transfer)) FileVisitResult.CONTINUE else FileVisitResult.TERMINATE
         }
 
@@ -363,39 +365,49 @@ class DefaultInternalTransferManager(
         action:TransferAction,
         permissions: Set<PosixFilePermission>? = null
     ): Transfer {
-        if (mode == TransferMode.Delete) {
-            return DeleteTransfer(
-                parentId,
-                source,
-                isDirectory,
-                if (isDirectory) 1 else Files.size(source)
-            )
-        } else if (mode == TransferMode.ChangePermission) {
-            if (permissions == null) throw IllegalStateException()
-            return ChangePermissionTransfer(
-                parentId,
-                target,
-                isDirectory = isDirectory,
-                permissions = permissions,
-                size = if (isDirectory) 1 else Files.size(target)
-            )
-        }
-
-        if (isDirectory) {
-            return DirectoryTransfer(
+        when {
+            mode == TransferMode.Delete -> {
+                return DeleteTransfer(
+                    parentId,
+                    source,
+                    isDirectory,
+                    if (isDirectory) 1 else Files.size(source)
+                )
+            }
+            mode == TransferMode.Rmrf -> {
+                return CommandTransfer(
+                    parentId,
+                    source as SftpPath,
+                    isDirectory,
+                    if (isDirectory) 1 else Files.size(source),
+                    "rm -rf ${source.absolutePathString()}",
+                )
+            }
+            mode == TransferMode.ChangePermission -> {
+                if (permissions == null) throw IllegalStateException()
+                return ChangePermissionTransfer(
+                    parentId,
+                    target,
+                    isDirectory = isDirectory,
+                    permissions = permissions,
+                    size = if (isDirectory) 1 else Files.size(target)
+                )
+            }
+            isDirectory -> {
+                return DirectoryTransfer(
+                    parentId = parentId,
+                    source = source,
+                    target = target,
+                )
+            }
+            else -> return FileTransfer(
                 parentId = parentId,
                 source = source,
                 target = target,
+                action = action,
+                size = Files.size(source)
             )
         }
-
-        return FileTransfer(
-            parentId = parentId,
-            source = source,
-            target = target,
-            action = action,
-            size = Files.size(source)
-        )
     }
 
 
