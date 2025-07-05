@@ -78,6 +78,7 @@ object Icons {
     val import by lazy { DynamicIcon("icons/import.svg", "icons/import_dark.svg") }
     val export by lazy { DynamicIcon("icons/export.svg", "icons/export_dark.svg") }
     val terminal by lazy { DynamicIcon("icons/terminal.svg", "icons/terminal_dark.svg") }
+    val telnet by lazy { DynamicIcon("icons/telnet.svg", "icons/telnet_dark.svg") }
     val ssh by lazy { DynamicIcon("icons/ssh.svg", "icons/ssh_dark.svg") }
     val ftp by lazy { DynamicIcon("icons/ftp.svg", "icons/ftp_dark.svg") }
     val minio by lazy { DynamicIcon("icons/minio.svg", "icons/minio_dark.svg") }

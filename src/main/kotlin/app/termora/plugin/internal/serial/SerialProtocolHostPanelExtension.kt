@@ -19,4 +19,7 @@ internal class SerialProtocolHostPanelExtension private constructor() : Protocol
         return SerialProtocolHostPanel()
     }
 
+    override fun ordered(): Long {
+        return 5
+    }
 }

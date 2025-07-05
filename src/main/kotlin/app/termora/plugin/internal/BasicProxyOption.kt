@@ -10,7 +10,10 @@ import java.awt.Component
 import java.awt.event.ItemEvent
 import javax.swing.*
 
-class BasicProxyOption(private val proxyTypes: List<ProxyType> = listOf(ProxyType.HTTP, ProxyType.SOCKS5)) :
+class BasicProxyOption(
+    private val proxyTypes: List<ProxyType> = listOf(ProxyType.HTTP, ProxyType.SOCKS5),
+    private val authenticationTypes: List<AuthenticationType> = listOf(AuthenticationType.Password),
+) :
     JPanel(BorderLayout()), Option {
     private val formMargin = "7dlu"
 
@@ -67,7 +70,9 @@ class BasicProxyOption(private val proxyTypes: List<ProxyType> = listOf(ProxyTyp
         }
 
         proxyAuthenticationTypeComboBox.addItem(AuthenticationType.No)
-        proxyAuthenticationTypeComboBox.addItem(AuthenticationType.Password)
+        for (type in authenticationTypes) {
+            proxyAuthenticationTypeComboBox.addItem(type)
+        }
 
         proxyUsernameTextField.text = "root"
 

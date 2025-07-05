@@ -1,26 +1,25 @@
-package app.termora.plugin.internal.ssh
+package app.termora.plugin.internal.telnet
 
 import app.termora.account.AccountOwner
 import app.termora.protocol.ProtocolHostPanel
 import app.termora.protocol.ProtocolHostPanelExtension
 import app.termora.protocol.ProtocolProvider
 
-internal class SSHProtocolHostPanelExtension private constructor() : ProtocolHostPanelExtension {
+internal class TelnetProtocolHostPanelExtension private constructor() : ProtocolHostPanelExtension {
     companion object {
-        val instance by lazy { SSHProtocolHostPanelExtension() }
+        val instance = TelnetProtocolHostPanelExtension()
 
     }
 
     override fun getProtocolProvider(): ProtocolProvider {
-        return SSHProtocolProvider.instance
+        return TelnetProtocolProvider.instance
     }
 
     override fun createProtocolHostPanel(accountOwner: AccountOwner): ProtocolHostPanel {
-        return SSHProtocolHostPanel(accountOwner)
+        return TelnetProtocolHostPanel(accountOwner)
     }
 
     override fun ordered(): Long {
-        return 0
+        return 4
     }
-
 }
