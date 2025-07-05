@@ -1,5 +1,6 @@
 package app.termora.plugin.internal.ssh
 
+import app.termora.TerminalTabbedContextMenuExtension
 import app.termora.plugin.Extension
 import app.termora.plugin.InternalPlugin
 import app.termora.protocol.ProtocolHostPanelExtension
@@ -9,6 +10,8 @@ internal class SSHInternalPlugin : InternalPlugin() {
     init {
         support.addExtension(ProtocolProviderExtension::class.java) { SSHProtocolProviderExtension.instance }
         support.addExtension(ProtocolHostPanelExtension::class.java) { SSHProtocolHostPanelExtension.instance }
+        support.addExtension(TerminalTabbedContextMenuExtension::class.java) { SftpCommandTerminalTabbedContextMenuExtension.instance }
+        support.addExtension(TerminalTabbedContextMenuExtension::class.java) { CloneSessionTerminalTabbedContextMenuExtension.instance }
     }
 
     override fun getName(): String {

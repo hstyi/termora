@@ -38,7 +38,7 @@ import kotlin.reflect.cast
 import kotlin.time.Duration.Companion.milliseconds
 
 
-class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindowManager) :
+internal class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindowManager) :
     SSHVisualWindow(tab, "Transfer", visualWindowManager) {
 
     companion object {

@@ -1,6 +1,6 @@
 package app.termora.transfer.internal.sftp
 
-import app.termora.SshClients
+import app.termora.plugin.internal.ssh.SshClients
 import app.termora.protocol.PathHandler
 import app.termora.protocol.PathHandlerRequest
 import app.termora.protocol.TransferProtocolProvider

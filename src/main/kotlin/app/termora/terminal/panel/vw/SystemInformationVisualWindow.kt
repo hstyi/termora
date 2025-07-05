@@ -1,7 +1,11 @@
 package app.termora.terminal.panel.vw
 
-import app.termora.*
+import app.termora.Disposer
+import app.termora.DynamicColor
+import app.termora.I18n
+import app.termora.formatBytes
 import app.termora.plugin.internal.ssh.SSHTerminalTab
+import app.termora.plugin.internal.ssh.SshClients
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import kotlinx.coroutines.Dispatchers
@@ -16,7 +20,7 @@ import javax.swing.table.DefaultTableCellRenderer
 import javax.swing.table.DefaultTableModel
 
 
-class SystemInformationVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindowManager) :
+internal class SystemInformationVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindowManager) :
     SSHVisualWindow(tab, "SystemInformation", visualWindowManager) {
 
     companion object {

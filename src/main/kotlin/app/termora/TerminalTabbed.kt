@@ -9,10 +9,8 @@ import app.termora.findeverywhere.BasicFilterFindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereProvider
 import app.termora.findeverywhere.FindEverywhereProviderExtension
 import app.termora.findeverywhere.FindEverywhereResult
+import app.termora.plugin.ExtensionManager
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
-import app.termora.plugin.internal.sftppty.SFTPPtyProtocolProvider
-import app.termora.plugin.internal.sftppty.SFTPPtyTerminalTab
-import app.termora.plugin.internal.ssh.SSHProtocolProvider
 import app.termora.terminal.DataKey
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
@@ -24,7 +22,6 @@ import java.awt.event.ActionEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.beans.PropertyChangeListener
-import java.util.*
 import javax.swing.*
 import javax.swing.JTabbedPane.SCROLL_TAB_LAYOUT
 import kotlin.math.min
@@ -211,6 +208,15 @@ class TerminalTabbed(
     private fun showContextMenu(tabIndex: Int, e: MouseEvent) {
         val c = tabbedPane.getComponentAt(tabIndex) as JComponent
         val tab = tabs[tabIndex]
+        val extensions = ExtensionManager.getInstance().getExtensions(TerminalTabbedContextMenuExtension::class.java)
+        val menuItems = mutableListOf<JMenuItem>()
+        for (extension in extensions) {
+            try {
+                menuItems.add(extension.createJMenuItem(windowScope, tab))
+            } catch (_: UnsupportedOperationException) {
+                continue
+            }
+        }
 
         val popupMenu = FlatPopupMenu()
 
@@ -232,7 +238,7 @@ class TerminalTabbed(
         }
 
         // 克隆
-        val clone = popupMenu.add(I18n.getString("termora.tabbed.contextmenu.clone"))
+        val clone = popupMenu.add(I18n.getString("termora.copy"))
         clone.addActionListener { evt ->
             if (tab is HostTerminalTab) {
                 actionManager
@@ -284,14 +290,10 @@ class TerminalTabbed(
             }
         })
 
-        if (tab is HostTerminalTab) {
-            val openHostAction = actionManager.getAction(OpenHostAction.OPEN_HOST)
-            if (openHostAction != null) {
-                if (tab.host.protocol == SSHProtocolProvider.PROTOCOL || tab.host.protocol == SFTPPtyProtocolProvider.PROTOCOL) {
-                    popupMenu.addSeparator()
-                    val sftpCommand = popupMenu.add(I18n.getString("termora.tabbed.contextmenu.sftp-command"))
-                    sftpCommand.addActionListener { openSFTPPtyTab(tab, openHostAction, it) }
-                }
+        if (menuItems.isNotEmpty()) {
+            popupMenu.addSeparator()
+            for (item in menuItems) {
+                popupMenu.add(item)
             }
         }
 
@@ -382,36 +384,6 @@ class TerminalTabbed(
         }
     }
 
-
-    private fun openSFTPPtyTab(tab: HostTerminalTab, openHostAction: Action, evt: EventObject) {
-        if (!SFTPPtyTerminalTab.canSupports) {
-            OptionPane.showMessageDialog(
-                SwingUtilities.getWindowAncestor(this),
-                I18n.getString("termora.tabbed.contextmenu.sftp-not-install"),
-                messageType = JOptionPane.ERROR_MESSAGE
-            )
-            return
-        }
-
-        var host = tab.host
-
-        if (host.protocol == SSHProtocolProvider.PROTOCOL) {
-            val envs = tab.host.options.envs().toMutableMap()
-            val currentDir = tab.getData(DataProviders.Terminal)?.getTerminalModel()
-                ?.getData(DataKey.CurrentDir, StringUtils.EMPTY) ?: StringUtils.EMPTY
-
-            if (currentDir.isNotBlank()) {
-                envs["CurrentDir"] = currentDir
-            }
-
-            host = host.copy(
-                protocol = SFTPPtyProtocolProvider.PROTOCOL,
-                options = host.options.copy(env = envs.toPropertiesString())
-            )
-        }
-
-        openHostAction.actionPerformed(OpenHostActionEvent(this, host, evt))
-    }
 
     /**
      * 对着 ToolBar 右键
