@@ -169,14 +169,6 @@ class TermoraFrame : JFrame(), DataProvider {
             rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_ICON, false)
             rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_TITLE, false)
             rootPane.putClientProperty(FlatClientProperties.TITLE_BAR_HEIGHT, height)
-        } else if (SystemInfo.isMacOS) {
-            rootPane.putClientProperty("apple.awt.windowTitleVisible", false)
-            rootPane.putClientProperty("apple.awt.fullWindowContent", true)
-            rootPane.putClientProperty("apple.awt.transparentTitleBar", true)
-            rootPane.putClientProperty(
-                FlatClientProperties.MACOS_WINDOW_BUTTONS_SPACING,
-                FlatClientProperties.MACOS_WINDOW_BUTTONS_SPACING_MEDIUM
-            )
         }
 
         if (SystemInfo.isWindows || SystemInfo.isLinux) {
