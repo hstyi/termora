@@ -18,4 +18,8 @@ internal class LocalProtocolHostPanelExtension private constructor() : ProtocolH
     override fun createProtocolHostPanel(accountOwner: AccountOwner): ProtocolHostPanel {
         return LocalProtocolHostPanel()
     }
+
+    override fun ordered(): Long {
+        return 1
+    }
 }

@@ -10,7 +10,6 @@ interface ProtocolHostPanelExtension : Extension {
         val extensions
             get() = ExtensionManager.getInstance()
                 .getExtensions(ProtocolHostPanelExtension::class.java)
-                .sortedBy { it.getProtocolProvider().ordered() }
     }
 
     /**

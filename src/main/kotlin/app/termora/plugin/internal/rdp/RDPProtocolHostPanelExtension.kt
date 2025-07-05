@@ -18,4 +18,8 @@ internal class RDPProtocolHostPanelExtension private constructor() : ProtocolHos
     override fun createProtocolHostPanel(accountOwner: AccountOwner): ProtocolHostPanel {
         return RDPProtocolHostPanel()
     }
+
+    override fun ordered(): Long {
+        return 2
+    }
 }
