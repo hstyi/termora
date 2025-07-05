@@ -3,10 +3,8 @@ package app.termora.plugin.internal.local
 import app.termora.*
 import app.termora.actions.DataProvider
 import app.termora.protocol.GenericProtocolProvider
-import app.termora.protocol.ProtocolTestRequest
-import app.termora.protocol.ProtocolTester
 
-internal class LocalProtocolProvider private constructor() : GenericProtocolProvider, ProtocolTester {
+internal class LocalProtocolProvider private constructor() : GenericProtocolProvider {
     companion object {
         val instance by lazy { LocalProtocolProvider() }
         const val PROTOCOL = "local"
@@ -20,9 +18,6 @@ internal class LocalProtocolProvider private constructor() : GenericProtocolProv
         return Icons.powershell
     }
 
-    override fun canTestConnection(requester: ProtocolTestRequest): Boolean {
-        return true
-    }
 
     override fun createTerminalTab(dataProvider: DataProvider, windowScope: WindowScope, host: Host): TerminalTab {
         return LocalTerminalTab(windowScope, host)
