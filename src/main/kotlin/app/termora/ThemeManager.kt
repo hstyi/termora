@@ -10,7 +10,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import java.util.function.Consumer
-import javax.swing.PopupFactory
 import javax.swing.SwingUtilities
 import javax.swing.UIManager
 
@@ -118,11 +117,7 @@ internal class ThemeManager private constructor() {
 
     private fun immediateChange(classname: String) {
         try {
-
-            val oldPopupFactory = PopupFactory.getSharedInstance()
             UIManager.setLookAndFeel(classname)
-            PopupFactory.setSharedInstance(oldPopupFactory)
-
         } catch (ex: Exception) {
             log.error(ex.message, ex)
         }

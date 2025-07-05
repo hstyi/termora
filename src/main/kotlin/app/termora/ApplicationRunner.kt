@@ -173,7 +173,6 @@ class ApplicationRunner {
     private fun setupLaf() {
 
         System.setProperty(FlatSystemProperties.USE_WINDOW_DECORATIONS, "${SystemInfo.isLinux || SystemInfo.isWindows}")
-        System.setProperty(FlatSystemProperties.USE_ROUNDED_POPUP_BORDER, "false")
 
         if (SystemInfo.isLinux) {
             JFrame.setDefaultLookAndFeelDecorated(true)
@@ -197,12 +196,12 @@ class ApplicationRunner {
 
         themeManager.change(theme, true)
 
-
-        FlatInspector.install("ctrl shift X")
+        if (Application.isBetaVersion()) {
+            FlatInspector.install("ctrl shift X")
+        }
 
         UIManager.put(FlatClientProperties.FULL_WINDOW_CONTENT, true)
         UIManager.put(FlatClientProperties.USE_WINDOW_DECORATIONS, false)
-        UIManager.put("TitlePane.useWindowDecorations", false)
 
         UIManager.put("Component.arc", 5)
         UIManager.put("TextComponent.arc", UIManager.getInt("Component.arc"))
@@ -212,7 +211,6 @@ class ApplicationRunner {
 
         UIManager.put("Dialog.width", 650)
         UIManager.put("Dialog.height", 550)
-
 
         if (SystemInfo.isMacOS) {
             UIManager.put("TabbedPane.tabHeight", UIManager.getInt("TitleBar.height"))
@@ -231,15 +229,21 @@ class ApplicationRunner {
         UIManager.put("Table.rowHeight", 24)
         UIManager.put("Table.focusCellHighlightBorder", FlatTableCellBorder.Default())
         UIManager.put("Table.focusSelectedCellHighlightBorder", FlatTableCellBorder.Default())
-        UIManager.put("Table.selectionArc", UIManager.getInt("Component.arc"))
 
         UIManager.put("Tree.rowHeight", 24)
         UIManager.put("Tree.background", DynamicColor("window"))
-        UIManager.put("Tree.selectionArc", UIManager.getInt("Component.arc"))
         UIManager.put("Tree.showCellFocusIndicator", false)
         UIManager.put("Tree.repaintWholeRow", true)
 
-        UIManager.put("List.selectionArc", UIManager.getInt("Component.arc"))
+        // Linux 更多的是尖锐风格
+        if (SystemInfo.isMacOS || SystemInfo.isWindows) {
+            UIManager.put("Tree.selectionArc", UIManager.getInt("Component.arc"))
+            UIManager.put("List.selectionArc", UIManager.getInt("Component.arc"))
+            UIManager.put("ComboBox.selectionArc", UIManager.getInt("Component.arc"))
+            UIManager.put("Table.selectionArc", UIManager.getInt("Component.arc"))
+            UIManager.put("MenuBar.selectionArc", UIManager.getInt("Component.arc"))
+            UIManager.put("MenuItem.selectionArc", UIManager.getInt("Component.arc"))
+        }
 
     }
 
