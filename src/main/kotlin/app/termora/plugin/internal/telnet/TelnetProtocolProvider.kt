@@ -3,9 +3,8 @@ package app.termora.plugin.internal.telnet
 import app.termora.*
 import app.termora.actions.DataProvider
 import app.termora.protocol.GenericProtocolProvider
-import app.termora.protocol.ProtocolTester
 
-internal class TelnetProtocolProvider private constructor() : GenericProtocolProvider, ProtocolTester {
+internal class TelnetProtocolProvider private constructor() : GenericProtocolProvider {
     companion object {
         val instance by lazy { TelnetProtocolProvider() }
         const val PROTOCOL = "Telnet"

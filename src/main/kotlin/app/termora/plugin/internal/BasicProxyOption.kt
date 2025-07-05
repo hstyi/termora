@@ -24,6 +24,10 @@ class BasicProxyOption(
     val proxyPortTextField = PortSpinner(1080)
     val proxyAuthenticationTypeComboBox = FlatComboBox<AuthenticationType>()
 
+    constructor(proxyTypes: List<ProxyType> = listOf(ProxyType.HTTP, ProxyType.SOCKS5)) : this(
+        proxyTypes,
+        listOf(AuthenticationType.Password)
+    )
 
     init {
         initView()
