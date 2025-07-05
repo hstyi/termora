@@ -39,7 +39,7 @@ open class TelnetHostOptionsPane(private val accountOwner: AccountOwner) : Optio
         val name = generalOption.nameTextField.text
         val protocol = TelnetProtocolProvider.PROTOCOL
         val host = generalOption.hostTextField.text
-        val port = (generalOption.portTextField.value ?: 22) as Int
+        val port = (generalOption.portTextField.value ?: 23) as Int
         var authentication = Authentication.No
         var proxy = Proxy.Companion.No
         val authenticationType = generalOption.authenticationTypeComboBox.selectedItem as AuthenticationType
@@ -186,7 +186,7 @@ open class TelnetHostOptionsPane(private val accountOwner: AccountOwner) : Optio
     }
 
     protected inner class GeneralOption : JPanel(BorderLayout()), Option {
-        val portTextField = PortSpinner()
+        val portTextField = PortSpinner(23)
         val nameTextField = OutlineTextField(128)
         val usernameTextField = OutlineTextField(128)
         val hostTextField = OutlineTextField(255)
