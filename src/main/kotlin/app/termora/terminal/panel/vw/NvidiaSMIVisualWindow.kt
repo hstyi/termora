@@ -3,8 +3,8 @@ package app.termora.terminal.panel.vw
 import app.termora.Disposer
 import app.termora.I18n
 import app.termora.Icons
-import app.termora.SshClients
 import app.termora.plugin.internal.ssh.SSHTerminalTab
+import app.termora.plugin.internal.ssh.SshClients
 import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
@@ -28,7 +28,7 @@ import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.xpath.XPathFactory
 import kotlin.time.Duration.Companion.milliseconds
 
-class NvidiaSMIVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindowManager) :
+internal class NvidiaSMIVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindowManager) :
     SSHVisualWindow(tab, "NVIDIA-SMI", visualWindowManager) {
 
     companion object {

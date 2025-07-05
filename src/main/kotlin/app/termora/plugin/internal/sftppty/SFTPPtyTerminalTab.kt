@@ -4,6 +4,7 @@ import app.termora.*
 import app.termora.database.DatabaseManager
 import app.termora.keymgr.KeyManager
 import app.termora.keymgr.OhKeyPairKeyPairProvider
+import app.termora.plugin.internal.ssh.SshClients
 import app.termora.terminal.*
 import com.formdev.flatlaf.util.SystemInfo
 import org.apache.commons.io.Charsets

@@ -1,5 +1,6 @@
-package app.termora
+package app.termora.plugin.internal.ssh
 
+import app.termora.*
 import app.termora.keyboardinteractive.TerminalUserInteraction
 import app.termora.keymgr.OhKeyPairKeyPairProvider
 import app.termora.terminal.TerminalSize
@@ -29,7 +30,6 @@ import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.client.session.ClientSessionImpl
 import org.apache.sshd.client.session.SessionFactory
 import org.apache.sshd.common.AttributeRepository
-import org.apache.sshd.common.SshConstants
 import org.apache.sshd.common.SshException
 import org.apache.sshd.common.channel.ChannelFactory
 import org.apache.sshd.common.channel.PtyChannelConfiguration
@@ -63,7 +63,7 @@ import org.eclipse.jgit.internal.transport.sshd.proxy.AbstractClientProxyConnect
 import org.eclipse.jgit.internal.transport.sshd.proxy.HttpClientConnector
 import org.eclipse.jgit.internal.transport.sshd.proxy.Socks5ClientConnector
 import org.eclipse.jgit.transport.CredentialsProvider
-import org.eclipse.jgit.transport.SshConstants.IDENTITY_AGENT
+import org.eclipse.jgit.transport.SshConstants
 import org.eclipse.jgit.transport.sshd.IdentityPasswordProvider
 import org.eclipse.jgit.transport.sshd.agent.ConnectorFactory
 import org.slf4j.LoggerFactory
@@ -89,7 +89,7 @@ object SshClients {
     val HOST_KEY = AttributeRepository.AttributeKey<Host>()
 
     private val timeout = Duration.ofSeconds(30)
-    private val hostManager get() = HostManager.getInstance()
+    private val hostManager get() = HostManager.Companion.getInstance()
     private val log by lazy { LoggerFactory.getLogger(SshClients::class.java) }
 
     /**
@@ -166,7 +166,7 @@ object SshClients {
         }
 
         val jumpHosts = mutableListOf<Host>()
-        val hosts = HostManager.getInstance().hosts().associateBy { it.id }
+        val hosts = HostManager.Companion.getInstance().hosts().associateBy { it.id }
         for (jumpHostId in h.options.jumpHosts) {
             val e = hosts[jumpHostId]
             if (e == null) {
@@ -235,16 +235,16 @@ object SshClients {
             if (SystemInfo.isMacOS) {
                 val file = FileUtils.getFile(Application.getBaseDataDir(), "config", "ssh-agent.sock")
                 if (file.exists()) {
-                    entry.setProperty(IDENTITY_AGENT, file.absolutePath)
+                    entry.setProperty(SshConstants.IDENTITY_AGENT, file.absolutePath)
                 }
             }
-            if (entry.getProperty(IDENTITY_AGENT).isNullOrBlank()) {
+            if (entry.getProperty(SshConstants.IDENTITY_AGENT).isNullOrBlank()) {
                 if (host.authentication.password.isNotBlank())
-                    entry.setProperty(IDENTITY_AGENT, host.authentication.password)
+                    entry.setProperty(SshConstants.IDENTITY_AGENT, host.authentication.password)
                 else if (SystemInfo.isWindows)
-                    entry.setProperty(IDENTITY_AGENT, PageantConnector.DESCRIPTOR.identityAgent)
+                    entry.setProperty(SshConstants.IDENTITY_AGENT, PageantConnector.DESCRIPTOR.identityAgent)
                 else
-                    entry.setProperty(IDENTITY_AGENT, UnixDomainSocketConnector.DESCRIPTOR.identityAgent)
+                    entry.setProperty(SshConstants.IDENTITY_AGENT, UnixDomainSocketConnector.DESCRIPTOR.identityAgent)
             }
         }
 
@@ -272,7 +272,7 @@ object SshClients {
                 throw SshException("Authentication failed")
             }
         } catch (e: Exception) {
-            if (e !is SshException || e.disconnectCode != SshConstants.SSH2_DISCONNECT_NO_MORE_AUTH_METHODS_AVAILABLE) throw e
+            if (e !is SshException || e.disconnectCode != org.apache.sshd.common.SshConstants.SSH2_DISCONNECT_NO_MORE_AUTH_METHODS_AVAILABLE) throw e
             val owner = client.properties["owner"] as Window? ?: throw e
             val askUserInfo = ask(host, entry, owner) ?: throw e
             if (askUserInfo.authentication.type == AuthenticationType.No) throw e
@@ -383,7 +383,7 @@ object SshClients {
 
         val channelFactories = mutableListOf<ChannelFactory>()
         channelFactories.addAll(ClientBuilder.DEFAULT_CHANNEL_FACTORIES)
-        channelFactories.add(X11ChannelFactory.INSTANCE)
+        channelFactories.add(X11ChannelFactory.Companion.INSTANCE)
         builder.channelFactories(channelFactories)
 
         val sshClient = builder.build() as JGitSshClient
@@ -726,4 +726,3 @@ object SshClients {
     }
 
 }
-
