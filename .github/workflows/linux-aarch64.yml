@@ -38,7 +38,7 @@ jobs:
           docker run --rm -v ~/.gradle:/root/.gradle -v $(pwd):/app -w /app debianjbr ./gradlew clean
           
           # tar.gz and AppImage
-          docker run --rm --device /dev/fuse -v ~/.gradle:/root/.gradle -v $(pwd):/app -w /app debianjbr ./gradlew :dist
+          docker run --rm --device /dev/fuse --cap-add SYS_ADMIN --security-opt apparmor:unconfined -v ~/.gradle:/root/.gradle -v $(pwd):/app -w /app debianjbr ./gradlew :dist
           sudo mv build/distributions/*.tar.gz distributions/
           sudo mv build/distributions/*.AppImage distributions/
 
