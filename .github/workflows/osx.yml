@@ -1,19 +1,27 @@
-name: macOS aarch64
+name: macOS
 
-on:
-  release:
-    types: [ released ]
+on: [ push, pull_request ]
+
+env:
+  TERMORA_MAC_SIGN: ${{ github.event_name == 'push' && github.repository == 'TermoraDev/termora' }}
+  TERMORA_MAC_SIGN_USER_NAME: ${{ secrets.TERMORA_MAC_SIGN_USER_NAME }}
+  # 只有发布版本时才需要公证
+  TERMORA_MAC_NOTARY: "${{ startsWith(github.event.head_commit.message, 'release: ') && github.repository == 'TermoraDev/termora' }}"
+  TERMORA_MAC_NOTARY_KEYCHAIN_PROFILE: ${{ secrets.TERMORA_MAC_NOTARY_KEYCHAIN_PROFILE }}
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ macos-15, macos-13 ]
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Install the Apple certificate
-        if: github.event_name == 'push' && github.repository == 'TermoraDev/termora' && env.BUILD_CERTIFICATE_BASE64 != ''
+        if: "startsWith(github.event.head_commit.message, 'release: ') && github.repository == 'TermoraDev/termora' && env.BUILD_CERTIFICATE_BASE64 != ''"
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
@@ -45,8 +53,8 @@ jobs:
         run: |
           xcrun notarytool store-credentials "$STORE_CREDENTIALS" --apple-id "$APPLE_ID" --team-id "$TEAM_ID" --password "$APPLE_PASSWORD"
 
-      # download jdk
-      - run: wget -q -O $RUNNER_TEMP/java_package.tar.gz https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-21.0.7-osx-aarch64-b1034.51.tar.gz
+      - name: Download Java
+        run: wget -q -O $RUNNER_TEMP/java_package.tar.gz https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-21.0.7-osx-aarch64-b1034.51.tar.gz
 
       # install jdk
       - name: Installing Java
@@ -66,26 +74,22 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-gradle-
 
-      # test build
-      - run: |
-          ./gradlew classes -x test --no-daemon
-          ./gradlew clean --no-daemon
+      - name: Compile
+        shell: bash
+        run: ./gradlew :check-license && ./gradlew classes -x test
 
-      # dist
-      - name: Dist
-        env:
-          TERMORA_MAC_SIGN: ${{ github.event_name == 'push' && github.repository == 'TermoraDev/termora' }}
-          TERMORA_MAC_SIGN_USER_NAME: ${{ secrets.TERMORA_MAC_SIGN_USER_NAME }}
-          # 只有发布版本时才需要公证
-          TERMORA_MAC_NOTARY: "${{ startsWith(github.event.head_commit.message, 'release: ') && github.repository == 'TermoraDev/termora' }}"
-          TERMORA_MAC_NOTARY_KEYCHAIN_PROFILE: ${{ secrets.TERMORA_MAC_NOTARY_KEYCHAIN_PROFILE }}
-        run: |
-          ./gradlew dist --no-daemon
+      - name: JLink
+        shell: bash
+        run: ./gradlew :jar :copy-dependencies :plugins:migration:build :jlink
+
+      - name: Package
+        shell: bash
+        run: ./gradlew :jpackage && ./gradlew :dist
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: termora-osx-aarch64
+          name: termora-osx-${{ runner.arch }}
           path: |
             build/distributions/*.zip
             build/distributions/*.dmg

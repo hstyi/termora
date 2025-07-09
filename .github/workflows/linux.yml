@@ -33,6 +33,7 @@ jobs:
           docker run --rm -v $HOME/.gradle:/root/.gradle -v "$(pwd)":/app -w /app "$@"
           EOF
           chmod +x docker-run.sh
+
       - name: Compile
         shell: bash
         run: ./docker-run.sh debianjbr bash -c './gradlew :check-license && ./gradlew classes -x test'
