@@ -10,13 +10,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # deb
-      - run: |
-          docker build -t debianjbr src/test/resources/deb/
-          docker run --rm -v ~/.gradle:/root/.gradle -v $(pwd):/app -w /app debianjbr ./gradlew :dist -Dtype=deb
-          mkdir distributions
-          mv build/distributions/*.deb distributions/
-
       # download jdk
       - run: wget -q -O $RUNNER_TEMP/java_package.tar.gz https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-21.0.7-linux-x64-b1034.51.tar.gz
 
@@ -50,13 +43,20 @@ jobs:
       - run: |
           ./gradlew dist --no-daemon
           mkdir distributions
-          mv build/distributions/*.tar.gz distributions/
-          mv build/distributions/*.AppImage distributions/
+          sudo mv build/distributions/*.tar.gz distributions/
+          sudo mv build/distributions/*.AppImage distributions/
+
+      # deb
+      - run: |
+          docker build -t debianjbr src/test/resources/deb/
+          docker run --rm -v ~/.gradle:/root/.gradle -v $(pwd):/app -w /app debianjbr ./gradlew :dist -Dtype=deb
+          sudo mv build/distributions/*.deb distributions/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: termora-linux-x86-64
           path: |
-            build/distributions/*.tar.gz
-            build/distributions/*.AppImage
+            distributions/*.tar.gz
+            distributions/*.AppImage
+            distributions/*.deb

@@ -42,11 +42,21 @@ jobs:
       # dist
       - run: |
           ./gradlew dist --no-daemon
+          mkdir distributions
+          sudo mv build/distributions/*.tar.gz distributions/
+          sudo mv build/distributions/*.AppImage distributions/
+
+      # deb
+      - run: |
+          docker build -t debianjbr src/test/resources/deb/
+          docker run --rm -v ~/.gradle:/root/.gradle -v $(pwd):/app -w /app debianjbr ./gradlew :dist -Dtype=deb
+          sudo mv build/distributions/*.deb distributions/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: termora-linux-aarch64
+          name: termora-linux-x86-64
           path: |
-            build/distributions/*.tar.gz
-            build/distributions/*.AppImage
+            distributions/*.tar.gz
+            distributions/*.AppImage
+            distributions/*.deb
