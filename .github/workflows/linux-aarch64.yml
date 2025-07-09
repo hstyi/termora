@@ -34,25 +34,25 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-gradle-
 
-      # test build
-      - run: |
+      # compile
+      - name: Compile
+        run: |
           ./gradlew classes -x test --no-daemon
           ./gradlew clean --no-daemon
 
       # dist
-      - run: |
-          ./gradlew dist --no-daemon
+      - name: Dist
+        run: |
           mkdir distributions
-          sudo mv build/distributions/*.tar.gz distributions/
-          sudo mv build/distributions/*.AppImage distributions/
-
-      # deb
-      - run: |
-          ./gradlew --stop
-          ./gradlew clean
           docker build -t debianjbr src/test/resources/deb/
           docker run --rm -v ~/.gradle:/root/.gradle -v $(pwd):/app -w /app debianjbr ./gradlew :dist -Dtype=deb
           sudo mv build/distributions/*.deb distributions/
+          
+          ./gradlew clean --no-daemon
+          
+          docker run --rm -v ~/.gradle:/root/.gradle -v $(pwd):/app -w /app debianjbr ./gradlew :dist
+          sudo mv build/distributions/*.tar.gz distributions/
+          sudo mv build/distributions/*.AppImage distributions/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
