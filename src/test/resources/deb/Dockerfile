@@ -18,17 +18,3 @@ RUN ARCH=$(dpkg --print-architecture) && \
 ENV JAVA_HOME=/opt/jbr
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
-
-ARG USER_ID=1001
-ARG GROUP_ID=1001
-
-RUN groupadd -g ${GROUP_ID} builduser && \
-    useradd -m -u ${USER_ID} -g ${GROUP_ID} builduser
-
-RUN mkdir -p /home/builduser/.gradle && \
-    chown -R builduser:builduser /home/builduser/.gradle
-
-ENV GRADLE_USER_HOME=/home/builduser/.gradle
-ENV HOME=/home/builduser
-
-USER builduser
