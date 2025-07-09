@@ -18,9 +18,9 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-${{ runner.arch }}-gradlex-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-gradlexyz-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-gradlex-
+            ${{ runner.os }}-${{ runner.arch }}-gradlexyz-
 
       - name: Build Docker image
         run: |
@@ -33,7 +33,7 @@ jobs:
           DOCKER_PARAMS="docker run --rm -v $HOME/.gradle:/root/.gradle -v $(pwd):/app -w /app"
           
           # Compile
-          $DOCKER_PARAMS debianjbr bash -c './gradlew :check-license'
+          $DOCKER_PARAMS debianjbr bash -c './gradlew :check-license && ./gradlew classes -x test'
           
           # Jlink
           $DOCKER_PARAMS debianjbr bash -c './gradlew :jar :copy-dependencies :plugins:migration:build :jlink'
@@ -43,6 +43,9 @@ jobs:
           
           # Package AppImage and tar.gz
           $DOCKER_PARAMS --device /dev/fuse --cap-add SYS_ADMIN --security-opt apparmor:unconfined debianjbr bash -c 'rm -rf build/jpackage && ./gradlew :jpackage && ./gradlew :dist'
+
+          # Make ~/.gradle world-writable
+          chmod -R 777 ~/.gradle
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
