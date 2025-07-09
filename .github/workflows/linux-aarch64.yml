@@ -48,6 +48,8 @@ jobs:
 
       # deb
       - run: |
+          ./gradlew --stop
+          ./gradlew clean
           docker build -t debianjbr src/test/resources/deb/
           docker run --rm -v ~/.gradle:/root/.gradle -v $(pwd):/app -w /app debianjbr ./gradlew :dist -Dtype=deb
           sudo mv build/distributions/*.deb distributions/
