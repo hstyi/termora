@@ -1,6 +1,6 @@
 FROM debian:12.11
 
-RUN apt-get update && apt-get install -y curl tar zip binutils fakeroot wget libfuse2 fuse
+RUN apt-get update && apt-get install -y curl tar zip binutils fakeroot wget libfuse2 fuse libglib2.0-0
 
 RUN ARCH=$(dpkg --print-architecture) && \
     if [ "$ARCH" = "amd64" ]; then \
