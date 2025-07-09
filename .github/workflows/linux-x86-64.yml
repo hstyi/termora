@@ -37,19 +37,22 @@ jobs:
       # compile
       - name: Compile
         run: |
-          ./gradlew classes -x test --no-daemon
-          ./gradlew clean --no-daemon
+          docker build -t debianjbr src/test/resources/deb/
+          docker run --rm -v ~/.gradle:/root/.gradle -v $(pwd):/app -w /app debianjbr ./gradlew classes -x test
 
       # dist
       - name: Dist
         run: |
           mkdir distributions
-          docker build -t debianjbr src/test/resources/deb/
+          
+          # deb
           docker run --rm -v ~/.gradle:/root/.gradle -v $(pwd):/app -w /app debianjbr ./gradlew :dist -Dtype=deb
           sudo mv build/distributions/*.deb distributions/
           
-          ./gradlew clean --no-daemon
+          # clean
+          docker run --rm -v ~/.gradle:/root/.gradle -v $(pwd):/app -w /app debianjbr ./gradlew clean
           
+          # tar.gz and AppImage
           docker run --rm -v ~/.gradle:/root/.gradle -v $(pwd):/app -w /app debianjbr ./gradlew :dist
           sudo mv build/distributions/*.tar.gz distributions/
           sudo mv build/distributions/*.AppImage distributions/
