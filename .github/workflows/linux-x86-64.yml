@@ -13,6 +13,7 @@ jobs:
       # deb
       - run: |
           docker build -t debianjbr src/test/resources/deb/
+          docker run --rm -v ~/.gradle:/root/.gradle -v $(pwd):/app -w /app debianjbr ./gradlew :dist -Dtype=deb
           mkdir distributions
           mv build/distributions/*.deb distributions/
 
