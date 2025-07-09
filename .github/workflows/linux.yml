@@ -20,7 +20,7 @@ jobs:
             ~/.gradle/wrapper
           key: ${{ runner.os }}-${{ runner.arch }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-gradle-
+            ${{ runner.os }}-${{ runner.arch }}-gradlex-
 
       - name: Docker build
         run: docker build -t debianjbr src/test/resources/deb/
