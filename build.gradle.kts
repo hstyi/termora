@@ -185,7 +185,7 @@ tasks.register<Copy>("copy-dependencies") {
 
     // 对 JNA 和 PTY4J 的本地库提取
     // 提取出来是为了单独签名，不然无法通过公证
-    if (os.isMacOsX && macOSSign) {
+    if (os.isMacOsX) {
         doLast {
             val archName = if (arch.isArm) "aarch64" else "x86_64"
             val dylib = dir.get().dir("dylib").asFile
@@ -623,7 +623,7 @@ fun packOnMac(distributionDir: Directory, finalFilenameWithoutExtension: String,
     // @formatter:on
 
     // sign dmg
-    if (macOSSign) signMacOSLocalFile(dmgFile)
+    signMacOSLocalFile(dmgFile)
 
     // 找到 .app
     val imageFile = layout.buildDirectory.dir("jpackage/images/").get().asFile
@@ -636,7 +636,7 @@ fun packOnMac(distributionDir: Directory, finalFilenameWithoutExtension: String,
     // @formatter:on
 
     // sign zip
-    if (macOSSign) signMacOSLocalFile(zipFile)
+    signMacOSLocalFile(zipFile)
 
     // 公证
     if (macOSNotary) {
