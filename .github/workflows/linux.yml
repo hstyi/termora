@@ -29,7 +29,7 @@ jobs:
         shell: bash
         run: |
           
-          DOCKER_PARAMS="docker run --rm -v $HOME/.gradle:/home/gradle/.gradle -e HOME=/home/gradle -e GRADLE_USER_HOME=/home/gradle/.gradle -v $(pwd):/app -w /app -u $(id -u):$(id -g)"
+          DOCKER_PARAMS="docker run --rm -v $HOME/.gradle:/root/.gradle -v $(pwd):/app -w /app -u 1000:1000"
           
           # Compile
           $DOCKER_PARAMS debianjbr bash -c './gradlew :check-license'
