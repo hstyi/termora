@@ -27,7 +27,9 @@ jobs:
         run: |
           docker build -t debianjbr src/test/resources/deb/
           
-          DOCKER_PARAMS="docker run --rm -v $HOME/.gradle:/root/.gradle -v $(pwd):/app -w /app"
+          HOST_UID=$(id -u)
+          HOST_GID=$(id -g)
+          DOCKER_PARAMS="docker run --rm -v $HOME/.gradle:/root/.gradle -v $(pwd):/app -w /app -u $(id -u):$(id -g)"
           
           # Compile
           $DOCKER_PARAMS debianjbr bash -c './gradlew clean :check-license'
@@ -44,7 +46,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: termora-linux-${{ matrix.os }}
+          name: termora-linux-${{ runner.arch }}
           path: |
             build/distributions/*.tar.gz
             build/distributions/*.AppImage
