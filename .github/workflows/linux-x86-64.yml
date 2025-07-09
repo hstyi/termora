@@ -10,6 +10,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      # deb
+      - run: |
+          docker build -t debianjbr src/test/resources/deb/
+          mkdir distributions
+          mv build/distributions/*.deb distributions/
+
       # download jdk
       - run: wget -q -O $RUNNER_TEMP/java_package.tar.gz https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-21.0.7-linux-x64-b1034.51.tar.gz
 
@@ -42,6 +48,9 @@ jobs:
       # dist
       - run: |
           ./gradlew dist --no-daemon
+          mkdir distributions
+          mv build/distributions/*.tar.gz distributions/
+          mv build/distributions/*.AppImage distributions/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
