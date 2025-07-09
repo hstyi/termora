@@ -2,9 +2,6 @@ name: Linux
 
 on: [ push, pull_request ]
 
-env:
-  DOCKER_PARAMS: docker run --rm -v $HOME/.gradle:/root/.gradle -v $(pwd):/app -w /app
-
 jobs:
   build:
     runs-on: ${{ matrix.os }}
