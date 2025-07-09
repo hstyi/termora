@@ -19,28 +19,25 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-gradle-
 
-      # compile
-      - name: Compile
+      - name: Package
+        shell: bash
         run: |
+          
           docker build -t debianjbr src/test/resources/deb/
-          docker run --rm -v ~/.gradle:/root/.gradle -v $(pwd):/app -w /app debianjbr ./gradlew classes -x test
-
-      # dist
-      - name: Dist
-        run: |
-          mkdir distributions
           
-          # deb
-          docker run --rm -v ~/.gradle:/root/.gradle -v $(pwd):/app -w /app debianjbr ./gradlew :dist -Dtype=deb
-          sudo mv build/distributions/*.deb distributions/
+          DOCKER_PARAMS="docker run --rm -v $HOME/.gradle:/root/.gradle -v $(pwd):/app -w /app"
           
-          # clean
-          docker run --rm -v ~/.gradle:/root/.gradle -v $(pwd):/app -w /app debianjbr ./gradlew clean
+          # Compile
+          $DOCKER_PARAMS debianjbr bash -c './gradlew clean :check-license'
           
-          # tar.gz and AppImage
-          docker run --rm --device /dev/fuse --cap-add SYS_ADMIN --security-opt apparmor:unconfined -v ~/.gradle:/root/.gradle -v $(pwd):/app -w /app debianjbr ./gradlew :dist
-          sudo mv build/distributions/*.tar.gz distributions/
-          sudo mv build/distributions/*.AppImage distributions/
+          # Jlink
+          $DOCKER_PARAMS debianjbr bash -c './gradlew :jar :copy-dependencies :plugins:migration:build :jlink'
+          
+          # Package Deb
+          $DOCKER_PARAMS -e TERMORA_TYPE=deb debianjbr bash -c './gradlew :jpackage && ./gradlew :dist'
+          
+          # Package AppImage and tar.gz
+          $DOCKER_PARAMS --device /dev/fuse --cap-add SYS_ADMIN --security-opt apparmor:unconfined debianjbr bash -c 'rm -rf build/jpackage && ./gradlew :jpackage && ./gradlew :dist'
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
