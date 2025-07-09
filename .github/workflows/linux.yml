@@ -22,14 +22,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-gradlex-
 
-      - name: Docker build
-        run: docker build -t debianjbr src/test/resources/deb/
+      - name: Build Docker image
+        run: |
+          docker build -t debianjbr \
+            --build-arg USER_ID=$(id -u) \
+            --build-arg GROUP_ID=$(id -g) \
+            src/test/resources/deb/
 
       - name: Package
         shell: bash
         run: |
           
-          DOCKER_PARAMS="docker run --rm -v $HOME/.gradle:/opt/.gradle -e GRADLE_USER_HOME=/opt/.gradle -v $(pwd):/app -w /app -u $(id -u):$(id -g)"
+          DOCKER_PARAMS="docker run --rm -v $HOME/.gradle:/home/builduser/.gradle -e GRADLE_USER_HOME=/home/builduser/.gradle -v $(pwd):/app -w /app"
           
           # Compile
           $DOCKER_PARAMS debianjbr bash -c './gradlew :check-license'
