@@ -28,21 +28,29 @@ jobs:
       - name: Build Docker image
         run: docker build -t debianjbr src/test/resources/deb/
 
+      - name: Create docker-run.sh helper script
+        shell: bash
+        run: |
+          cat <<'EOF' > docker-run.sh
+          #!/bin/bash
+          docker run --rm -v $HOME/.gradle:/root/.gradle -v "$(pwd)":/app -w /app "$@"
+          EOF
+          chmod +x docker-run.sh
       - name: Compile
         shell: bash
-        run: $DOCKER_PARAMS debianjbr bash -c './gradlew :check-license && ./gradlew classes -x test'
+        run: ./docker-run.sh debianjbr bash -c './gradlew :check-license && ./gradlew classes -x test'
 
       - name: JLink
         shell: bash
-        run: $DOCKER_PARAMS debianjbr bash -c './gradlew :jar :copy-dependencies :plugins:migration:build :jlink'
+        run: ./docker-run.sh debianjbr bash -c './gradlew :jar :copy-dependencies :plugins:migration:build :jlink'
 
       - name: Package Deb
         shell: bash
-        run: $DOCKER_PARAMS -e TERMORA_TYPE=deb debianjbr bash -c './gradlew :jpackage && ./gradlew :dist'
+        run: ./docker-run.sh -e TERMORA_TYPE=deb debianjbr bash -c './gradlew :jpackage && ./gradlew :dist'
 
       - name: Package AppImage
         shell: bash
-        run: $DOCKER_PARAMS --device /dev/fuse --cap-add SYS_ADMIN --security-opt apparmor:unconfined debianjbr bash -c 'rm -rf build/jpackage && ./gradlew :jpackage && ./gradlew :dist'
+        run: ./docker-run.sh --device /dev/fuse --cap-add SYS_ADMIN --security-opt apparmor:unconfined debianjbr bash -c 'rm -rf build/jpackage && ./gradlew :jpackage && ./gradlew :dist'
 
       - name: Make ~/.gradle world-writable
         shell: bash
