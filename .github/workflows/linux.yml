@@ -2,6 +2,9 @@ name: Linux
 
 on: [ push, pull_request ]
 
+env:
+  DOCKER_PARAMS: docker run --rm -v $HOME/.gradle:/root/.gradle -v $(pwd):/app -w /app
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -23,29 +26,27 @@ jobs:
             ${{ runner.os }}-${{ runner.arch }}-gradlexyz-
 
       - name: Build Docker image
-        run: |
-          docker build -t debianjbr src/test/resources/deb/
+        run: docker build -t debianjbr src/test/resources/deb/
 
-      - name: Package
+      - name: Compile
         shell: bash
-        run: |
-          
-          DOCKER_PARAMS="docker run --rm -v $HOME/.gradle:/root/.gradle -v $(pwd):/app -w /app"
-          
-          # Compile
-          $DOCKER_PARAMS debianjbr bash -c './gradlew :check-license && ./gradlew classes -x test'
-          
-          # Jlink
-          $DOCKER_PARAMS debianjbr bash -c './gradlew :jar :copy-dependencies :plugins:migration:build :jlink'
-          
-          # Package Deb
-          $DOCKER_PARAMS -e TERMORA_TYPE=deb debianjbr bash -c './gradlew :jpackage && ./gradlew :dist'
-          
-          # Package AppImage and tar.gz
-          $DOCKER_PARAMS --device /dev/fuse --cap-add SYS_ADMIN --security-opt apparmor:unconfined debianjbr bash -c 'rm -rf build/jpackage && ./gradlew :jpackage && ./gradlew :dist'
+        run: $DOCKER_PARAMS debianjbr bash -c './gradlew :check-license && ./gradlew classes -x test'
 
-          # Make ~/.gradle world-writable
-          chmod -R 777 ~/.gradle
+      - name: JLink
+        shell: bash
+        run: $DOCKER_PARAMS debianjbr bash -c './gradlew :jar :copy-dependencies :plugins:migration:build :jlink'
+
+      - name: Package Deb
+        shell: bash
+        run: $DOCKER_PARAMS -e TERMORA_TYPE=deb debianjbr bash -c './gradlew :jpackage && ./gradlew :dist'
+
+      - name: Package AppImage
+        shell: bash
+        run: $DOCKER_PARAMS --device /dev/fuse --cap-add SYS_ADMIN --security-opt apparmor:unconfined debianjbr bash -c 'rm -rf build/jpackage && ./gradlew :jpackage && ./gradlew :dist'
+
+      - name: Make ~/.gradle world-writable
+        shell: bash
+        run: sudo chmod -R 777 ~/.gradle
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
