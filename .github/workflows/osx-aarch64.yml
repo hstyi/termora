@@ -1,6 +1,8 @@
 name: macOS aarch64
 
-on: [ push, pull_request ]
+on:
+  release:
+    types: [ released ]
 
 jobs:
   build:

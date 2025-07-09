@@ -1,6 +1,8 @@
 name: Windows x86-64
 
-on: [ push, pull_request ]
+on:
+  release:
+    types: [ released ]
 
 jobs:
   build:
