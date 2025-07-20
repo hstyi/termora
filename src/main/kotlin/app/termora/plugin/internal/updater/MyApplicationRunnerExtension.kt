@@ -6,7 +6,6 @@ import kotlinx.coroutines.launch
 import org.semver4j.Semver
 import org.slf4j.LoggerFactory
 import java.awt.KeyboardFocusManager
-import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 internal class MyApplicationRunnerExtension private constructor() : ApplicationRunnerExtension {
@@ -23,13 +22,7 @@ internal class MyApplicationRunnerExtension private constructor() : ApplicationR
     override fun ready() {
         swingCoroutineScope.launch {
             try {
-
-                if (Application.isBetaVersion()) {
-                    delay(3.seconds)
-                } else {
-                    delay(3.minutes)
-                }
-
+                delay(3.seconds)
                 scheduleUpdate()
             } catch (e: Exception) {
                 log.error(e.message, e)
@@ -40,7 +33,6 @@ internal class MyApplicationRunnerExtension private constructor() : ApplicationR
 
     private fun scheduleUpdate() {
         if (disabledUpdater) return
-
 
         val latestVersion = updaterManager.fetchLatestVersion()
         if (latestVersion.isSelf) {
