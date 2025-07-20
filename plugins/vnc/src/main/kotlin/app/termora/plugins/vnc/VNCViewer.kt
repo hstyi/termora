@@ -1,6 +1,7 @@
 package app.termora.plugins.vnc
 
 import app.termora.*
+import com.glavsoft.rfb.ClipboardController
 import com.glavsoft.rfb.client.KeyEventMessage
 import com.glavsoft.rfb.encoding.EncodingType
 import com.glavsoft.rfb.protocol.Protocol
@@ -14,13 +15,13 @@ import com.glavsoft.viewer.swing.ClipboardControllerImpl
 import com.glavsoft.viewer.swing.Surface
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
+import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import java.awt.AWTEvent
 import java.awt.BorderLayout
 import java.awt.Graphics
 import java.awt.event.AWTEventListener
 import java.awt.event.ActionEvent
-import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.net.InetSocketAddress
 import java.net.Proxy
@@ -35,6 +36,7 @@ class VNCViewer(private val host: Host) : JPanel(BorderLayout()), Disposable {
     private var surface: Surface? = null
     private var protocol: Protocol? = null
     private var uiSettings: UiSettings? = null
+    private var clipboardController: ClipboardController? = null
 
     private val layeredPane = LayeredPane()
     private val toolbar = MyToolbar()
@@ -108,8 +110,13 @@ class VNCViewer(private val host: Host) : JPanel(BorderLayout()), Disposable {
         uiSettings.addListener(surface)
         protocolSettings.addListener(surface)
 
+        val encoding = StringUtils.defaultIfBlank(host.options.encoding, "ISO-8859-1")
+        val clipboardController = ClipboardControllerImpl(protocol, encoding).also { this.clipboardController = it }
+
         protocol.handshake()
-        protocol.startNormalHandling({ disconnect() }, surface, ClipboardControllerImpl(protocol, "GBK"))
+        protocol.startNormalHandling({ disconnect() }, surface, clipboardController)
+
+        executorService.execute(clipboardController)
 
         withContext(Dispatchers.Swing) {
             scrollPane.setViewportView(surface)
@@ -118,7 +125,9 @@ class VNCViewer(private val host: Host) : JPanel(BorderLayout()), Disposable {
 
     private fun disconnect() {
         socket?.close()
+        clipboardController?.setEnabled(false)
 
+        clipboardController = null
         protocol = null
         surface = null
         socket = null
@@ -197,16 +206,6 @@ class VNCViewer(private val host: Host) : JPanel(BorderLayout()), Disposable {
                     protocol.sendMessage(KeyEventMessage(Keymap.K_DELETE, false))
                     protocol.sendMessage(KeyEventMessage(Keymap.K_ALT_LEFT, false))
                     protocol.sendMessage(KeyEventMessage(Keymap.K_CTRL_LEFT, false))
-                }
-            })
-
-            addMouseListener(object : MouseAdapter() {
-                override fun mouseEntered(e: MouseEvent) {
-                    println("Enter")
-                }
-
-                override fun mouseExited(e: MouseEvent) {
-                    println("Exit")
                 }
             })
 

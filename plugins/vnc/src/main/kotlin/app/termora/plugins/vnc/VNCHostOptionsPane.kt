@@ -2,11 +2,13 @@ package app.termora.plugins.vnc
 
 import app.termora.*
 import app.termora.plugin.internal.BasicProxyOption
+import app.termora.plugin.internal.BasicTerminalOption
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatComboBox
 import com.formdev.flatlaf.ui.FlatTextBorder
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
+import org.apache.commons.lang3.StringUtils
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.KeyboardFocusManager
@@ -19,12 +21,29 @@ import javax.swing.*
 internal open class VNCHostOptionsPane : OptionsPane() {
     protected val generalOption = GeneralOption()
     protected val proxyOption = BasicProxyOption(authenticationTypes = emptyList())
+    private val terminalOption = object : BasicTerminalOption() {
+        override fun getTitle(): String {
+            return "VNC"
+        }
+
+        override fun getIcon(isSelected: Boolean): Icon {
+            return VNCProtocolProvider.instance.getIcon()
+        }
+    }.apply {
+        showAltModifierComboBox = false
+        showCharsetComboBox = true
+        init()
+
+        charsetComboBox.selectedItem = "ISO-8859-1"
+
+    }
+
     protected val owner: Window get() = SwingUtilities.getWindowAncestor(this)
 
     init {
         addOption(generalOption)
         addOption(proxyOption)
-
+        addOption(terminalOption)
     }
 
 
@@ -65,6 +84,9 @@ internal open class VNCHostOptionsPane : OptionsPane() {
             proxy = proxy,
             sort = System.currentTimeMillis(),
             remark = generalOption.remarkTextArea.text,
+            options = Options.Default.copy(
+                encoding = terminalOption.charsetComboBox.selectedItem?.toString() ?: "ISO-8859-1"
+            )
         )
     }
 
@@ -77,6 +99,8 @@ internal open class VNCHostOptionsPane : OptionsPane() {
         if (host.authentication.type == AuthenticationType.Password) {
             generalOption.passwordTextField.text = host.authentication.password
         }
+
+        terminalOption.charsetComboBox.selectedItem = StringUtils.defaultIfBlank(host.options.encoding, "ISO-8859-1")
 
         proxyOption.proxyTypeComboBox.selectedItem = host.proxy.type
         proxyOption.proxyHostTextField.text = host.proxy.host

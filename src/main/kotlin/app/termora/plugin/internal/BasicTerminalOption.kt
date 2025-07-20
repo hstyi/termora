@@ -18,7 +18,7 @@ import java.awt.KeyboardFocusManager
 import java.nio.charset.Charset
 import javax.swing.*
 
-class BasicTerminalOption() : JPanel(BorderLayout()), Option {
+open class BasicTerminalOption() : JPanel(BorderLayout()), Option {
 
     var showCharsetComboBox: Boolean = false
     var showStartupCommandTextField: Boolean = false
