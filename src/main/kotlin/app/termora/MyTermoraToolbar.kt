@@ -2,7 +2,6 @@ package app.termora
 
 import app.termora.actions.StateAction
 import app.termora.findeverywhere.FindEverywhereAction
-import app.termora.plugin.internal.update.AppUpdateAction
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
 import com.formdev.flatlaf.extras.components.FlatToolBar
@@ -84,9 +83,6 @@ internal class MyTermoraToolbar(private val windowScope: WindowScope, private va
 
         add(Box.createHorizontalGlue())
 
-        // update
-        add(redirectUpdateAction(disposable))
-
         for (action in model.getActions()) {
             if (action.visible.not()) continue
             val action = actionManager.getAction(action.id) ?: continue
@@ -120,34 +116,6 @@ internal class MyTermoraToolbar(private val windowScope: WindowScope, private va
         val spacing = Box.createHorizontalStrut(right)
         spacing.name = "spacing"
         toolbar.add(spacing)
-    }
-
-    private fun redirectUpdateAction(disposable: Disposable): AbstractButton {
-        val action = AppUpdateAction.getInstance()
-        val button = JButton(action.smallIcon)
-        button.toolTipText = (action.getValue(Action.SHORT_DESCRIPTION) as? String)
-            ?: action.getValue(Action.NAME) as? String
-        button.isVisible = action.isEnabled
-        button.addActionListener(object : AbstractAction() {
-            override fun actionPerformed(e: ActionEvent) {
-                action.actionPerformed(e)
-            }
-        })
-
-        val listener = object : PropertyChangeListener, Disposable {
-            override fun propertyChange(evt: PropertyChangeEvent) {
-                button.isVisible = action.isEnabled
-            }
-
-            override fun dispose() {
-                action.removePropertyChangeListener(this)
-            }
-        }
-
-        action.addPropertyChangeListener(listener)
-        Disposer.register(disposable, listener)
-
-        return button
     }
 
     private fun redirectAction(action: Action, disposable: Disposable): AbstractButton {

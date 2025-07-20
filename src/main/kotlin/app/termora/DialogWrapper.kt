@@ -127,12 +127,19 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
     }
 
     protected open fun createSouthPanel(): JComponent? {
+        val westSourcePanel = createWestSourcePanel()
         val box = Box.createHorizontalBox()
+
+        if (westSourcePanel != null) {
+            box.add(westSourcePanel)
+        } else {
+            box.add(Box.createHorizontalGlue())
+        }
+
         box.border = BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(1, 0, 0, 0, DynamicColor.BorderColor),
             BorderFactory.createEmptyBorder(8, 12, 8, 12)
         )
-        box.add(Box.createHorizontalGlue())
 
         val actions = createActions()
         for (i in actions.size - 1 downTo 0) {
@@ -143,6 +150,10 @@ abstract class DialogWrapper(owner: Window?) : JDialog(owner) {
         }
 
         return box
+    }
+
+    protected open fun createWestSourcePanel(): JComponent? {
+        return null
     }
 
     protected open fun createActions(): List<AbstractAction> {
