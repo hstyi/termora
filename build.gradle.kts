@@ -668,7 +668,7 @@ fun packOnLinux(distributionDir: Directory, finalFilenameWithoutExtension: Strin
             commandLine(
                 "wget",
                 "-O", appimagetool.absolutePath,
-                "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-${if (arch.isArm) "aarch64" else "x86_64"}.AppImage"
+                "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-${if (arch.isArm) "aarch64" else "x86_64"}.AppImage"
             )
             workingDir = distributionDir.asFile
         }
