@@ -229,7 +229,8 @@ tasks.register<Copy>("copy-dependencies") {
                 exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/dragonflybsd-*") }
                 exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/aix-*") }
             } else if ("${pty4j.name}-${pty4j.version}" == file.nameWithoutExtension) {
-                val targetDir = FileUtils.getFile(dylib, pty4j.name, if (os.isWindows) "win32" else "linux")
+                val osName = if (os.isWindows) "win32" else if (os.isMacOsX) "darwin" else "linux"
+                val targetDir = FileUtils.getFile(dylib, pty4j.name, osName)
                 FileUtils.forceMkdir(targetDir)
                 val myArchName = if (arch.isArm) "aarch64" else "x86-64"
                 if (os.isWindows) {
@@ -548,7 +549,16 @@ fun packOnWindows(distributionDir: Directory, finalFilenameWithoutExtension: Str
             "/DMyAppVersion=${appVersion}",
             "/DMyOutputDir=${distributionDir.asFile.absolutePath}",
             "/DMySetupIconFile=${FileUtils.getFile(projectDir, "src", "main", "resources", "icons", "termora.ico")}",
-            "/DMyWizardSmallImageFile=${FileUtils.getFile(projectDir, "src", "main", "resources", "icons", "termora_128x128.bmp")}",
+            "/DMyWizardSmallImageFile=${
+                FileUtils.getFile(
+                    projectDir,
+                    "src",
+                    "main",
+                    "resources",
+                    "icons",
+                    "termora_128x128.bmp"
+                )
+            }",
             "/DMySourceDir=${FileUtils.getFile(dir, projectName).absolutePath}",
             "/F${finalFilenameWithoutExtension}",
             FileUtils.getFile(projectDir, "src", "main", "resources", "termora.iss")
