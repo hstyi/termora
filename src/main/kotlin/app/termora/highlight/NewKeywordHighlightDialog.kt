@@ -23,6 +23,7 @@ import java.awt.event.MouseEvent
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import javax.swing.*
+import kotlin.math.max
 
 class NewKeywordHighlightDialog(
     owner: Window,
@@ -95,7 +96,7 @@ class NewKeywordHighlightDialog(
 
         init()
         pack()
-        size = Dimension(UIManager.getInt("Dialog.width") - 200, height)
+        size = Dimension(UIManager.getInt("Dialog.width") - 200, max(height, preferredSize.height))
         setLocationRelativeTo(null)
 
     }
@@ -121,13 +122,15 @@ class NewKeywordHighlightDialog(
         lineThroughCheckBox.addActionListener { repaintKeywordHighlightView() }
 
         textColorRevert.addActionListener {
-            textColor.color = Color(colorPalette.getColor(TerminalColor.Basic.FOREGROUND))
-            textColor.colorIndex = 0
+            textColor.color = null
+            textColor.background = Color(colorPalette.getColor(TerminalColor.Basic.FOREGROUND))
+            textColor.colorIndex = -1
             repaintKeywordHighlightView()
         }
         backgroundColorRevert.addActionListener {
-            backgroundColor.color = Color(colorPalette.getColor(TerminalColor.Basic.BACKGROUND))
-            backgroundColor.colorIndex = 0
+            backgroundColor.color = null
+            backgroundColor.background = Color(colorPalette.getColor(TerminalColor.Basic.BACKGROUND))
+            backgroundColor.colorIndex = -1
             repaintKeywordHighlightView()
         }
 
@@ -145,8 +148,22 @@ class NewKeywordHighlightDialog(
         keywordHighlightView.italic = italicCheckBox.isSelected
         keywordHighlightView.underline = underlineCheckBox.isSelected
         keywordHighlightView.lineThrough = lineThroughCheckBox.isSelected
-        keywordHighlightView.textColor = textColor.color
-        keywordHighlightView.backgroundColor = backgroundColor.color
+
+        if (textColor.color == null && textColor.colorIndex == -1) {
+            keywordHighlightView.textColor = Color(colorPalette.getColor(TerminalColor.Basic.FOREGROUND))
+        } else if (textColor.color != null) {
+            keywordHighlightView.textColor = textColor.color
+        } else {
+            keywordHighlightView.textColor = Color(colorPalette.getXTerm256Color(textColor.colorIndex))
+        }
+
+        if (backgroundColor.color == null && backgroundColor.colorIndex == -1) {
+            keywordHighlightView.backgroundColor = Color(colorPalette.getColor(TerminalColor.Basic.BACKGROUND))
+        } else if (backgroundColor.color != null) {
+            keywordHighlightView.backgroundColor = backgroundColor.color
+        } else {
+            keywordHighlightView.backgroundColor = Color(colorPalette.getXTerm256Color(backgroundColor.colorIndex))
+        }
         keywordHighlightView.repaint()
     }
 
@@ -192,7 +209,8 @@ class NewKeywordHighlightDialog(
         val owner = this
         val arc = UIManager.getInt("Component.arc")
         val lineBorder = FlatLineBorder(Insets(1, 1, 1, 1), DynamicColor.BorderColor, 1f, arc)
-        val colorPanel = ColorPanel(color)
+        val colorPanel = ColorPanel()
+        colorPanel.background = color
         colorPanel.preferredSize = keywordTextField.preferredSize
         colorPanel.border = lineBorder
         colorPanel.addMouseListener(object : MouseAdapter() {
@@ -200,10 +218,19 @@ class NewKeywordHighlightDialog(
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     val dialog = ChooseColorTemplateDialog(owner, title)
                     dialog.setLocationRelativeTo(owner)
-                    dialog.defaultColor = colorPanel.color
+                    dialog.defaultColor = colorPanel.color ?: Color.orange
                     dialog.isVisible = true
-                    colorPanel.color = dialog.color ?: return
-                    colorPanel.colorIndex = dialog.colorIndex
+                    if (dialog.ok.not()) return
+
+                    colorPanel.colorIndex = -1
+                    colorPanel.color = null
+                    if (dialog.colorIndex in 1..16) {
+                        colorPanel.colorIndex = dialog.colorIndex
+                        colorPanel.background = Color(colorPalette.getXTerm256Color(dialog.colorIndex))
+                    } else {
+                        colorPanel.color = dialog.color
+                    }
+                    repaintKeywordHighlightView()
                 }
             }
         })
@@ -218,13 +245,22 @@ class NewKeywordHighlightDialog(
         }
 
 
+        val newTextColor = if (textColor.color != null) textColor.color?.toRGB() ?: 0
+        else if (textColor.colorIndex == -1) 0
+        else textColor.colorIndex
+
+
+        val newBackgroundColor = if (backgroundColor.color != null) backgroundColor.color?.toRGB() ?: 0
+        else if (backgroundColor.colorIndex == -1) 0
+        else backgroundColor.colorIndex
+
         keywordHighlight = KeywordHighlight(
             keyword = keywordTextField.text,
             description = descriptionTextField.text,
             matchCase = matchCaseBtn.isSelected,
             regex = regexBtn.isSelected,
-            textColor = if (textColor.colorIndex != -1) textColor.colorIndex else textColor.color.toRGB(),
-            backgroundColor = if (backgroundColor.colorIndex != -1) backgroundColor.colorIndex else backgroundColor.color.toRGB(),
+            textColor = newTextColor,
+            backgroundColor = newBackgroundColor,
             bold = boldCheckBox.isSelected,
             italic = italicCheckBox.isSelected,
             lineThrough = lineThroughCheckBox.isSelected,

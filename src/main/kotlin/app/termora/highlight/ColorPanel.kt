@@ -3,8 +3,8 @@ package app.termora.highlight
 import java.awt.Color
 import javax.swing.JPanel
 
-class ColorPanel : JPanel {
-    var color: Color = Color.WHITE
+class ColorPanel : JPanel() {
+    var color: Color? = null
         set(value) {
             background = value
             val old = field
@@ -13,7 +13,4 @@ class ColorPanel : JPanel {
         }
     var colorIndex = -1
 
-    constructor(color: Color) : super() {
-        this.color = color
-    }
 }

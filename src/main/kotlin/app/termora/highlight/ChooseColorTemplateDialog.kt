@@ -1,6 +1,8 @@
 package app.termora.highlight
 
 import app.termora.DialogWrapper
+import app.termora.Disposable
+import app.termora.Disposer
 import app.termora.TerminalFactory
 import com.formdev.flatlaf.util.SystemInfo
 import java.awt.*
@@ -15,8 +17,9 @@ class ChooseColorTemplateDialog(owner: Window, title: String) : DialogWrapper(ow
     var colorIndex = -1
     var defaultColor: Color = Color.white
 
+    var ok = false
+
     init {
-        size = Dimension(UIManager.getInt("Dialog.width"), UIManager.getInt("Dialog.height"))
         isModal = true
         super.setTitle(title)
         controlsVisible = false
@@ -30,11 +33,12 @@ class ChooseColorTemplateDialog(owner: Window, title: String) : DialogWrapper(ow
 
     override fun createCenterPanel(): JComponent {
         val panel = JPanel(GridLayout(2, 8, 4, 4))
-        val colorPalette = TerminalFactory.getInstance()
-            .createTerminal().getTerminalModel().getColorPalette()
+        val terminal = TerminalFactory.getInstance().createTerminal()
+        val colorPalette = terminal.getTerminalModel().getColorPalette()
         for (i in 1..16) {
             val c = JPanel()
             c.preferredSize = Dimension(24, 24)
+            c.minimumSize = c.preferredSize
             c.background = Color(colorPalette.getXTerm256Color(i))
             c.addMouseListener(object : MouseAdapter() {
                 override fun mouseClicked(e: MouseEvent) {
@@ -67,11 +71,22 @@ class ChooseColorTemplateDialog(owner: Window, title: String) : DialogWrapper(ow
         cPanel.add(panel, BorderLayout.CENTER)
         cPanel.add(customBtn, BorderLayout.SOUTH)
         cPanel.border = BorderFactory.createEmptyBorder(if (SystemInfo.isLinux) 6 else 0, 12, 12, 12)
+
+        Disposer.register(disposable, object : Disposable {
+            override fun dispose() {
+                terminal.close()
+            }
+        })
         return cPanel
     }
 
 
     override fun createSouthPanel(): JComponent? {
         return null
+    }
+
+    override fun doOKAction() {
+        ok = true
+        super.doOKAction()
     }
 }

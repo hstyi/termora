@@ -285,29 +285,27 @@ class KeywordHighlightPanel(private val accountOwner: AccountOwner) : JPanel(Bor
                     dialog.keywordTextField.text = keywordHighlight.keyword
                     dialog.descriptionTextField.text = keywordHighlight.description
 
-                    if (keywordHighlight.textColor <= 16) {
+                    if (keywordHighlight.textColor in 0..16) {
                         if (keywordHighlight.textColor == 0) {
-                            dialog.textColor.color = Color(colorPalette.getColor(TerminalColor.Basic.FOREGROUND))
+                            dialog.textColor.background = Color(colorPalette.getColor(TerminalColor.Basic.FOREGROUND))
+                            dialog.textColor.colorIndex = -1
                         } else {
                             dialog.textColor.color = Color(colorPalette.getXTerm256Color(keywordHighlight.textColor))
+                            dialog.textColor.colorIndex = keywordHighlight.textColor
                         }
-                        dialog.textColor.colorIndex = keywordHighlight.textColor
                     } else {
                         dialog.textColor.color = Color(keywordHighlight.textColor)
-                        dialog.textColor.colorIndex = -1
                     }
 
-                    if (keywordHighlight.backgroundColor <= 16) {
+                    if (keywordHighlight.backgroundColor in 0..16) {
                         if (keywordHighlight.backgroundColor == 0) {
-                            dialog.backgroundColor.color = Color(colorPalette.getColor(TerminalColor.Basic.BACKGROUND))
+                            dialog.backgroundColor.background = Color(colorPalette.getColor(TerminalColor.Basic.BACKGROUND))
+                            dialog.backgroundColor.colorIndex = -1
                         } else {
                             dialog.backgroundColor.color =
                                 Color(colorPalette.getXTerm256Color(keywordHighlight.backgroundColor))
+                            dialog.backgroundColor.colorIndex = keywordHighlight.backgroundColor
                         }
-                        dialog.backgroundColor.colorIndex = keywordHighlight.backgroundColor
-                    } else {
-                        dialog.backgroundColor.color = Color(keywordHighlight.backgroundColor)
-                        dialog.backgroundColor.colorIndex = -1
                     }
 
                     dialog.boldCheckBox.isSelected = keywordHighlight.bold
