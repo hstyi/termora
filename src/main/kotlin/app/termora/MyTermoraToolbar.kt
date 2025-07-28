@@ -81,6 +81,10 @@ internal class MyTermoraToolbar(private val windowScope: WindowScope, private va
             }
         }))
 
+        if (SystemInfo.isLinux || SystemInfo.isWindows) {
+            add(Box.createHorizontalStrut(24))
+        }
+
         add(Box.createHorizontalGlue())
 
         for (action in model.getActions()) {
