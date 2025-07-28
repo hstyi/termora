@@ -82,23 +82,41 @@ internal class RDPProtocolProvider private constructor() : GenericProtocolProvid
             }
         }
 
-        val file = FileUtils.getFile(Application.getTemporaryDir(), randomUUID() + ".rdp")
-        file.outputStream().use { IOUtils.write(sb.toString(), it, Charsets.UTF_8) }
-
         if (host.authentication.type == AuthenticationType.Password) {
-            val systemClipboard = windowScope.window.toolkit.systemClipboard
             val password = host.authentication.password
-            systemClipboard.setContents(StringSelection(password), null)
-            // clear password
-            swingCoroutineScope.launch(Dispatchers.IO) {
-                delay(30.seconds)
-                if (systemClipboard.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
-                    if (systemClipboard.getData(DataFlavor.stringFlavor) == password) {
-                        systemClipboard.setContents(StringSelection(StringUtils.EMPTY), null)
+            var ep = StringUtils.EMPTY
+
+            if (SystemInfo.isWindows) {
+                val cmd = "ConvertTo-SecureString '${password}' -AsPlainText -Force | ConvertFrom-SecureString"
+                val process = ProcessBuilder("powershell.exe", "-Command", cmd).start()
+                if (process.waitFor() == 0) {
+                    ep = String(process.inputStream.readAllBytes())
+                }
+            }
+
+            if (ep.isNotBlank()) {
+                sb.append("password 51:b:").append(ep).appendLine()
+            }
+
+            // 如果获取加密密码失败，那么依然要走剪切板
+            if (ep.isBlank() || SystemInfo.isMacOS) {
+                val systemClipboard = windowScope.window.toolkit.systemClipboard
+                systemClipboard.setContents(StringSelection(password), null)
+                // clear password
+                swingCoroutineScope.launch(Dispatchers.IO) {
+                    delay(30.seconds)
+                    if (systemClipboard.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
+                        if (systemClipboard.getData(DataFlavor.stringFlavor) == password) {
+                            systemClipboard.setContents(StringSelection(StringUtils.EMPTY), null)
+                        }
                     }
                 }
             }
         }
+
+
+        val file = FileUtils.getFile(Application.getTemporaryDir(), randomUUID() + ".rdp")
+        file.outputStream().use { IOUtils.write(sb.toString(), it, Charsets.UTF_8) }
 
         if (SystemInfo.isMacOS) {
             ProcessBuilder("open", file.absolutePath).start()
