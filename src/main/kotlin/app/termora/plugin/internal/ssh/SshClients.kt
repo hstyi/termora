@@ -88,7 +88,6 @@ object SshClients {
 
     val HOST_KEY = AttributeRepository.AttributeKey<Host>()
 
-    private val timeout = Duration.ofSeconds(30)
     private val hostManager get() = HostManager.Companion.getInstance()
     private val log by lazy { LoggerFactory.getLogger(SshClients::class.java) }
 
@@ -101,6 +100,7 @@ object SshClients {
         session: ClientSession,
     ): ChannelShell {
 
+        val timeout = Duration.ofSeconds(host.options.extras["timeout"]?.toLongOrNull() ?: 60)
 
         val configuration = PtyChannelConfiguration()
         configuration.ptyColumns = size.cols
@@ -136,6 +136,7 @@ object SshClients {
         command: String
     ): Pair<Int, String> {
 
+        val timeout = Duration.ofSeconds(60)
         val baos = ByteArrayOutputStream()
         val channel = session.createExecChannel(command)
         channel.out = baos
@@ -248,6 +249,7 @@ object SshClients {
             }
         }
 
+        val timeout = Duration.ofSeconds(host.options.extras["timeout"]?.toLongOrNull() ?: 60)
         val session = client.connect(entry).verify(timeout).session
         if (host.authentication.type == AuthenticationType.Password) {
             if (StringUtils.isNotBlank(host.authentication.password))

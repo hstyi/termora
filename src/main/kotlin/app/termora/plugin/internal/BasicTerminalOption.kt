@@ -23,6 +23,7 @@ open class BasicTerminalOption() : JPanel(BorderLayout()), Option {
     var showCharsetComboBox: Boolean = false
     var showStartupCommandTextField: Boolean = false
     var showHeartbeatIntervalTextField: Boolean = false
+    var showTimeoutTextField: Boolean = false
     var showEnvironmentTextArea: Boolean = false
     var showLoginScripts: Boolean = false
     var showBackspaceComboBox: Boolean = false
@@ -34,6 +35,7 @@ open class BasicTerminalOption() : JPanel(BorderLayout()), Option {
     val charsetComboBox = JComboBox<String>()
     val startupCommandTextField = OutlineTextField()
     val heartbeatIntervalTextField = IntSpinner(60, minimum = 3, maximum = Int.MAX_VALUE)
+    val timeoutTextField = IntSpinner(60, minimum = 10, maximum = Int.MAX_VALUE)
     val environmentTextArea = FixedLengthTextArea(2048)
     val loginScripts = mutableListOf<LoginScript>()
     val backspaceComboBox = JComboBox<Backspace>()
@@ -173,7 +175,7 @@ open class BasicTerminalOption() : JPanel(BorderLayout()), Option {
     private fun getCenterComponent(): JComponent {
         val layout = FormLayout(
             "left:pref, $FORM_MARGIN, default:grow",
-            "pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref"
+            "pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref"
         )
 
         val accountOwner = this.accountOwner
@@ -210,6 +212,11 @@ open class BasicTerminalOption() : JPanel(BorderLayout()), Option {
                 .add(characterAtATimeTextField).xy(3, rows).apply { rows += step }
         }
 
+        if (showTimeoutTextField) {
+            builder.add("${I18n.getString("termora.new-host.terminal.timeout")}:").xy(1, rows)
+                .add(timeoutTextField).xy(3, rows).apply { rows += step }
+        }
+
         if (showHeartbeatIntervalTextField) {
             builder.add("${I18n.getString("termora.new-host.terminal.heartbeat-interval")}:").xy(1, rows)
                 .add(heartbeatIntervalTextField).xy(3, rows).apply { rows += step }
@@ -220,13 +227,11 @@ open class BasicTerminalOption() : JPanel(BorderLayout()), Option {
                 .add(startupCommandTextField).xy(3, rows).apply { rows += step }
         }
 
-
         if (showEnvironmentTextArea) {
             builder.add("${I18n.getString("termora.new-host.terminal.env")}:").xy(1, rows)
                 .add(JScrollPane(environmentTextArea).apply { border = FlatTextBorder() }).xy(3, rows)
                 .apply { rows += step }
         }
-
 
         return builder.build()
     }

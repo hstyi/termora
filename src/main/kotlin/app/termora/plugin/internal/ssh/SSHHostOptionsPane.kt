@@ -38,6 +38,7 @@ internal class SSHHostOptionsPane(private val accountOwner: AccountOwner) : Opti
         showEnvironmentTextArea = true
         showStartupCommandTextField = true
         showHeartbeatIntervalTextField = true
+        showTimeoutTextField = true
         showHighlightSet = true
         accountOwner = this@SSHHostOptionsPane.accountOwner
         init()
@@ -113,6 +114,7 @@ internal class SSHHostOptionsPane(private val accountOwner: AccountOwner) : Opti
                     ?: AltKeyModifier.EightBit.name),
                 "keywordHighlightSetId" to ((terminalOption.highlightSetComboBox.selectedItem as? KeywordHighlight)?.id
                     ?: "-1"),
+                "timeout" to (terminalOption.timeoutTextField.value ?: 60).toString()
             )
         )
 
@@ -161,6 +163,10 @@ internal class SSHHostOptionsPane(private val accountOwner: AccountOwner) : Opti
         val altModifier = host.options.extras["altModifier"] ?: AltKeyModifier.EightBit.name
         terminalOption.altModifierComboBox.selectedItem = runCatching { AltKeyModifier.valueOf(altModifier) }
             .getOrNull() ?: AltKeyModifier.EightBit
+
+
+        val timeout = host.options.extras["timeout"] ?: "60"
+        terminalOption.timeoutTextField.value = timeout.toIntOrNull() ?: 60
 
 
         val keywordHighlightSetId = host.options.extras["keywordHighlightSetId"]
