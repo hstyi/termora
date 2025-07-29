@@ -33,7 +33,7 @@ open class BasicTerminalOption() : JPanel(BorderLayout()), Option {
 
     val charsetComboBox = JComboBox<String>()
     val startupCommandTextField = OutlineTextField()
-    val heartbeatIntervalTextField = IntSpinner(30, minimum = 3, maximum = Int.MAX_VALUE)
+    val heartbeatIntervalTextField = IntSpinner(60, minimum = 3, maximum = Int.MAX_VALUE)
     val environmentTextArea = FixedLengthTextArea(2048)
     val loginScripts = mutableListOf<LoginScript>()
     val backspaceComboBox = JComboBox<Backspace>()
