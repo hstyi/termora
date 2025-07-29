@@ -650,6 +650,7 @@ class SettingsOptionsPane : OptionsPane() {
         private val browseEditCommandBtn = JButton(Icons.folder)
         private val pinTabComboBox = YesOrNoComboBox()
         private val preserveModificationTimeComboBox = YesOrNoComboBox()
+        private val doubleClickComboBox = OutlineComboBox<String>()
         private val sftp get() = database.sftp
 
         init {
@@ -697,6 +698,13 @@ class SettingsOptionsPane : OptionsPane() {
                     }
                 }
 
+            })
+
+            doubleClickComboBox.addItemListener(object : ItemListener {
+                override fun itemStateChanged(e: ItemEvent) {
+                    if (e.stateChange != ItemEvent.SELECTED) return
+                    sftp.dbClickBehavior = doubleClickComboBox.selectedItem as String
+                }
             })
 
             preserveModificationTimeComboBox.addItemListener {
@@ -780,6 +788,26 @@ class SettingsOptionsPane : OptionsPane() {
             sftpCommandField.text = sftp.sftpCommand
             pinTabComboBox.selectedItem = sftp.pinTab
             preserveModificationTimeComboBox.selectedItem = sftp.preserveModificationTime
+
+            doubleClickComboBox.renderer = object : DefaultListCellRenderer() {
+                override fun getListCellRendererComponent(
+                    list: JList<*>?,
+                    value: Any?,
+                    index: Int,
+                    isSelected: Boolean,
+                    cellHasFocus: Boolean
+                ): Component? {
+                    var text = value?.toString()
+                    if (value == "Edit") text = I18n.getString("termora.keymgr.edit")
+                    if (value == "Transfer") text = getTitle()
+                    return super.getListCellRendererComponent(list, text, index, isSelected, cellHasFocus)
+                }
+            }
+
+            doubleClickComboBox.addItem("Transfer")
+            doubleClickComboBox.addItem("Edit")
+
+            doubleClickComboBox.selectedItem = sftp.dbClickBehavior
         }
 
         override fun getIcon(isSelected: Boolean): Icon {
@@ -813,6 +841,8 @@ class SettingsOptionsPane : OptionsPane() {
             builder.add(editCommandField).xy(3, rows).apply { rows += 2 }
             builder.add("${I18n.getString("termora.tabbed.contextmenu.sftp-command")}:").xy(1, rows)
             builder.add(sftpCommandField).xy(3, rows).apply { rows += 2 }
+            builder.add("${I18n.getString("termora.settings.sftp.db-click-behavior")}:").xy(1, rows)
+            builder.add(doubleClickComboBox).xy(3, rows).apply { rows += 2 }
             builder.add("${I18n.getString("termora.settings.sftp.default-directory")}:").xy(1, rows)
             builder.add(defaultDirectoryField).xy(3, rows).apply { rows += 2 }
             builder.add(box).xyw(1, rows, 3).apply { rows += 2 }

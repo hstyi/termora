@@ -763,6 +763,12 @@ class DatabaseManager private constructor() : Disposable {
          */
         var editCommand by StringPropertyDelegate(StringUtils.EMPTY)
 
+        /**
+         * 双击行为
+         *
+         * Transfer、Edit
+         */
+        var dbClickBehavior by StringPropertyDelegate("Transfer")
 
         /**
          * sftp command

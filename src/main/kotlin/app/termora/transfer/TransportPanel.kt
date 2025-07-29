@@ -430,6 +430,7 @@ internal class TransportPanel(
         })
 
         table.addMouseListener(object : MouseAdapter() {
+            private val sftp get() = DatabaseManager.getInstance().sftp
             override fun mouseClicked(e: MouseEvent) {
                 if (SwingUtilities.isLeftMouseButton(e) && e.clickCount % 2 == 0) {
                     var row = table.selectedRow
@@ -438,10 +439,18 @@ internal class TransportPanel(
                     val attributes = model.getAttributes(row)
                     if (attributes.isDirectory) {
                         enterSelectionFolder()
+                    } else if (sftp.dbClickBehavior == "Edit") {
+                        val path = model.getPath(row)
+                        val target = Application.createSubTemporaryDir().resolve(path.name)
+                        val transferId = internalTransferManager.addHighTransfer(path, target)
+                        editTransferListener.addListenTransfer(transferId)
                     } else {
                         val paths = listOf(model.getPath(row) to attributes)
                         if (loader.isOpened() && internalTransferManager.canTransfer(paths.map { it.first })) {
-                            internalTransferManager.addTransfer(paths, InternalTransferManager.TransferMode.Transfer)
+                            internalTransferManager.addTransfer(
+                                paths,
+                                InternalTransferManager.TransferMode.Transfer
+                            )
                         }
                     }
                 } else if (SwingUtilities.isRightMouseButton(e)) {
