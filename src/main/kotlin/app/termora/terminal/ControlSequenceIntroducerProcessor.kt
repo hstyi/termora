@@ -332,14 +332,15 @@ class ControlSequenceIntroducerProcessor(terminal: Terminal, reader: TerminalRea
                 var top = sr.getOrElse(0) { 1 }
                 var bottom = sr.getOrElse(1) { terminalModel.getRows() }
 
-                if (bottom <= top || top < 1) {
+                if (bottom <= top) {
                     if (log.isWarnEnabled) {
                         log.warn("Set Scrolling Region Error. top: $top , bottom: $bottom")
                     }
-
-                    top = 1
-                    bottom = terminalModel.getRows()
                 }
+
+                top = max(1, top)
+                bottom = min(terminalModel.getRows(), bottom)
+
 
                 // 设置滚动区域
                 terminal.getTerminalModel().setData(
