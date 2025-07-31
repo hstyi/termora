@@ -52,7 +52,7 @@ class NewHostTree : SimpleTree(), Disposable {
 
     companion object {
         private val log = LoggerFactory.getLogger(NewHostTree::class.java)
-        private val CSV_HEADERS = arrayOf("Folders", "Label", "Hostname", "Port", "Username", "Protocol")
+        private val CSV_HEADERS = arrayOf("Folders", "Label", "Protocol", "Hostname", "Port", "Username", "Password")
 
         init {
             // 基本信息
@@ -577,26 +577,29 @@ class NewHostTree : SimpleTree(), Disposable {
                         printer.printRecord(
                             "Projects/Dev",
                             "Web Server",
+                            SSHProtocolProvider.PROTOCOL,
                             "192.168.1.1",
                             "22",
                             "root",
-                            SSHProtocolProvider.PROTOCOL
+                            StringUtils.EMPTY,
                         )
                         printer.printRecord(
                             "Projects/Prod",
                             "Web Server",
+                            SSHProtocolProvider.PROTOCOL,
                             "serverhost.com",
                             "2222",
                             "root",
-                            SSHProtocolProvider.PROTOCOL
+                            StringUtils.EMPTY,
                         )
                         printer.printRecord(
                             StringUtils.EMPTY,
                             "Web Server",
+                            SSHProtocolProvider.PROTOCOL,
                             "serverhost.com",
                             "2222",
                             "user",
-                            SSHProtocolProvider.PROTOCOL
+                            StringUtils.EMPTY,
                         )
                     }
                     OptionPane.openFileInFolder(
@@ -683,10 +686,11 @@ class NewHostTree : SimpleTree(), Disposable {
                 printer.printRecord(
                     groups.joinToString("/"),
                     label,
+                    SSHProtocolProvider.PROTOCOL,
                     target,
                     port,
                     StringUtils.EMPTY,
-                    SSHProtocolProvider.PROTOCOL
+                    StringUtils.EMPTY,
                 )
             }
         }
@@ -703,10 +707,11 @@ class NewHostTree : SimpleTree(), Disposable {
                 printer.printRecord(
                     StringUtils.EMPTY,
                     StringUtils.defaultString(entry.host),
+                    SSHProtocolProvider.PROTOCOL,
                     StringUtils.defaultString(entry.hostName),
                     if (entry.port == 0) 22 else entry.port,
                     StringUtils.defaultString(entry.username),
-                    SSHProtocolProvider.PROTOCOL
+                    StringUtils.EMPTY,
                 )
             }
         }
@@ -746,10 +751,11 @@ class NewHostTree : SimpleTree(), Disposable {
                 printer.printRecord(
                     folders.joinToString("/"),
                     label,
+                    SSHProtocolProvider.PROTOCOL,
                     hostname,
                     port.toString(),
                     username,
-                    SSHProtocolProvider.PROTOCOL
+                    StringUtils.EMPTY,
                 )
             }
         }
@@ -776,10 +782,11 @@ class NewHostTree : SimpleTree(), Disposable {
                 printer.printRecord(
                     StringUtils.EMPTY,
                     label,
+                    SSHProtocolProvider.PROTOCOL,
                     hostname,
                     port.toString(),
                     username,
-                    SSHProtocolProvider.PROTOCOL
+                    StringUtils.EMPTY,
                 )
             }
         }
@@ -819,7 +826,15 @@ class NewHostTree : SimpleTree(), Disposable {
                     if (segments.first() != "#109#0") continue
                     val hostname = segments.getOrNull(1) ?: StringUtils.EMPTY
                     val port = segments.getOrNull(2) ?: 22
-                    printer.printRecord(folders, key, hostname, port, StringUtils.EMPTY, SSHProtocolProvider.PROTOCOL)
+                    printer.printRecord(
+                        folders,
+                        key,
+                        SSHProtocolProvider.PROTOCOL,
+                        hostname,
+                        port,
+                        StringUtils.EMPTY,
+                        StringUtils.EMPTY
+                    )
                 }
             }
         }
@@ -848,7 +863,15 @@ class NewHostTree : SimpleTree(), Disposable {
                 val label = file.nameWithoutExtension
                 val port = ini.get("CONNECTION", "Port")?.toIntOrNull() ?: 22
                 val username = ini.get("CONNECTION:AUTHENTICATION", "UserName") ?: StringUtils.EMPTY
-                printer.printRecord(folders, label, hostname, port, username, SSHProtocolProvider.PROTOCOL)
+                printer.printRecord(
+                    folders,
+                    label,
+                    SSHProtocolProvider.PROTOCOL,
+                    hostname,
+                    port,
+                    username,
+                    StringUtils.EMPTY
+                )
             }
         }
 
@@ -885,10 +908,11 @@ class NewHostTree : SimpleTree(), Disposable {
                     printer.printRecord(
                         folders,
                         StringUtils.defaultIfBlank(label, host),
+                        SSHProtocolProvider.PROTOCOL,
                         host,
                         port,
                         username,
-                        SSHProtocolProvider.PROTOCOL
+                        StringUtils.EMPTY,
                     )
                 } catch (e: Exception) {
                     if (log.isErrorEnabled) {
@@ -940,10 +964,11 @@ class NewHostTree : SimpleTree(), Disposable {
                 printer.printRecord(
                     folderNames.joinToString("/"),
                     StringUtils.defaultIfBlank(title, hostname),
+                    SSHProtocolProvider.PROTOCOL,
                     hostname,
                     port,
                     username,
-                    SSHProtocolProvider.PROTOCOL
+                    StringUtils.EMPTY,
                 )
             }
 
@@ -975,6 +1000,7 @@ class NewHostTree : SimpleTree(), Disposable {
             val hostname = map["Hostname"] ?: StringUtils.EMPTY
             val port = map["Port"]?.toIntOrNull() ?: 22
             val username = map["Username"] ?: StringUtils.EMPTY
+            val password = map["Password"] ?: StringUtils.EMPTY
             val protocol = map["Protocol"] ?: "SSH"
             // 仅支持 SSH、RDP 协议
             if (StringUtils.equalsAnyIgnoreCase(protocol, "SSH", "RDP").not()) continue
@@ -1016,6 +1042,15 @@ class NewHostTree : SimpleTree(), Disposable {
                     parentId = p?.host?.id ?: folderNode.id,
                 )
             )
+
+            if (password.isNotBlank()) {
+                n.host = n.host.copy(
+                    authentication = Authentication.No.copy(
+                        type = AuthenticationType.Password,
+                        password = password,
+                    )
+                )
+            }
 
             if (p == null) {
                 nodes.add(n)
