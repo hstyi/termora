@@ -533,7 +533,7 @@ class AuraLaf : FlatPropertiesLaf("Aura", Properties().apply {
             TerminalColor.Bright.WHITE -> 0xffffff
 
             TerminalColor.Basic.SELECTION_BACKGROUND,
-            TerminalColor.Cursor.BACKGROUND -> 0xedecee
+            TerminalColor.Cursor.BACKGROUND -> 0xacacac
 
             else -> Int.MAX_VALUE
         }
