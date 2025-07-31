@@ -82,7 +82,7 @@ class NewKeywordHighlightDialog(
             FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON
         )
 
-        matchCaseBtn.toolTipText = "Match case"
+        matchCaseBtn.toolTipText = I18n.getString("termora.match-case")
 
 
         val box = FlatToolBar()
