@@ -667,6 +667,11 @@ class DatabaseManager private constructor() : Disposable {
         var selectCopy by BooleanPropertyDelegate(false)
 
         /**
+         * 右键点击：Copy、CopyAndPaste
+         */
+        var rightClick by StringPropertyDelegate("Copy")
+
+        /**
          * 光标样式
          */
         var cursor by CursorStylePropertyDelegate(CursorStyle.Block)

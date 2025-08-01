@@ -3,6 +3,7 @@ package app.termora.terminal.panel
 import app.termora.actions.AnActionEvent
 import app.termora.actions.TerminalCopyAction
 import app.termora.actions.TerminalPasteAction
+import app.termora.database.DatabaseManager
 import app.termora.terminal.*
 import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.action.ActionManager
@@ -27,6 +28,7 @@ class TerminalPanelMouseSelectionAdapter(private val terminalPanel: TerminalPane
     private val isSelectCopy get() = terminalModel.getData(TerminalPanel.SelectCopy, false)
     private val selectionModel get() = terminal.getSelectionModel()
     private val wordBreakIterator = BreakIterator.getWordInstance()
+    private val rightClickMode get() = DatabaseManager.getInstance().terminal.rightClick
 
     companion object {
         private val log = LoggerFactory.getLogger(TerminalPanelMouseSelectionAdapter::class.java)
@@ -50,7 +52,7 @@ class TerminalPanelMouseSelectionAdapter(private val terminalPanel: TerminalPane
 
         if (SwingUtilities.isRightMouseButton(e)) {
             // 如果有选中并且开启了选中复制，那么右键直接是粘贴
-            if (selectionModel.hasSelection() && !isSelectCopy) {
+            if (selectionModel.hasSelection() && isSelectCopy.not()) {
                 triggerCopyAction(
                     KeyEvent(
                         e.component,
@@ -61,6 +63,20 @@ class TerminalPanelMouseSelectionAdapter(private val terminalPanel: TerminalPane
                         'C'
                     )
                 )
+
+                if (rightClickMode == "CopyAndPaste") {
+                    triggerPasteAction(
+                        KeyEvent(
+                            e.component,
+                            KeyEvent.KEY_PRESSED,
+                            e.`when`,
+                            e.modifiersEx,
+                            KeyEvent.VK_V,
+                            'V'
+                        )
+                    )
+                }
+
             } else {
                 // paste
                 triggerPasteAction(

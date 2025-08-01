@@ -404,6 +404,7 @@ class SettingsOptionsPane : OptionsPane() {
         private val fontSizeTextField = IntSpinner(0, 9, 99)
         private val terminalSetting get() = DatabaseManager.getInstance().terminal
         private val selectCopyComboBox = YesOrNoComboBox()
+        private val rightClickComboBox = OutlineComboBox<String>()
         private val autoCloseTabComboBox = YesOrNoComboBox()
         private val floatingToolbarComboBox = YesOrNoComboBox()
         private val hyperlinkComboBox = YesOrNoComboBox()
@@ -414,6 +415,12 @@ class SettingsOptionsPane : OptionsPane() {
                 if (it.stateChange == ItemEvent.SELECTED) {
                     terminalSetting.font = fontComboBox.selectedItem as String
                     fireFontChanged()
+                }
+            }
+
+            rightClickComboBox.addItemListener {
+                if (it.stateChange == ItemEvent.SELECTED) {
+                    terminalSetting.rightClick = rightClickComboBox.selectedItem as String
                 }
             }
 
@@ -518,6 +525,10 @@ class SettingsOptionsPane : OptionsPane() {
             fontSizeTextField.value = terminalSetting.fontSize
             maxRowsTextField.value = terminalSetting.maxRows
 
+            rightClickComboBox.addItem("Copy")
+            rightClickComboBox.addItem("CopyAndPaste")
+
+            rightClickComboBox.selectedItem = terminalSetting.rightClick
 
             cursorStyleComboBox.renderer = object : DefaultListCellRenderer() {
                 override fun getListCellRendererComponent(
@@ -528,6 +539,24 @@ class SettingsOptionsPane : OptionsPane() {
                     cellHasFocus: Boolean
                 ): Component {
                     val text = if (value == CursorStyle.Block) "▋" else if (value == CursorStyle.Underline) "▁" else "▏"
+                    return super.getListCellRendererComponent(list, text, index, isSelected, cellHasFocus)
+                }
+            }
+
+            rightClickComboBox.renderer = object : DefaultListCellRenderer() {
+                override fun getListCellRendererComponent(
+                    list: JList<*>?,
+                    value: Any?,
+                    index: Int,
+                    isSelected: Boolean,
+                    cellHasFocus: Boolean
+                ): Component {
+                    var text = value?.toString()
+                    if (value == "Copy") {
+                        text = I18n.getString("termora.settings.terminal.right-click.copy")
+                    } else if (value == "CopyAndPaste") {
+                        text = I18n.getString("termora.settings.terminal.right-click.copy-and-paste")
+                    }
                     return super.getListCellRendererComponent(list, text, index, isSelected, cellHasFocus)
                 }
             }
@@ -595,7 +624,7 @@ class SettingsOptionsPane : OptionsPane() {
         private fun getCenterComponent(): JComponent {
             val layout = FormLayout(
                 "left:pref, $FORM_MARGIN, default:grow, $FORM_MARGIN, left:pref, $FORM_MARGIN, pref, default:grow",
-                "pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref"
+                "pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref"
             )
 
             val beepBtn = JButton(Icons.run)
@@ -624,6 +653,8 @@ class SettingsOptionsPane : OptionsPane() {
                 .add(hyperlinkComboBox).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.terminal.select-copy")}:").xy(1, rows)
                 .add(selectCopyComboBox).xy(3, rows).apply { rows += step }
+                .add("${I18n.getString("termora.settings.terminal.right-click")}:").xy(1, rows)
+                .add(rightClickComboBox).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.terminal.cursor-style")}:").xy(1, rows)
                 .add(cursorStyleComboBox).xy(3, rows).apply { rows += step }
                 .add("${I18n.getString("termora.settings.terminal.cursor-blink")}:").xy(1, rows)
