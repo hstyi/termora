@@ -1,9 +1,6 @@
 package app.termora.plugin.internal.telnet
 
-import app.termora.Host
-import app.termora.ProxyType
-import app.termora.PtyHostTerminalTab
-import app.termora.WindowScope
+import app.termora.*
 import app.termora.terminal.ControlCharacters
 import app.termora.terminal.KeyEncoderImpl
 import app.termora.terminal.PtyConnector
@@ -69,6 +66,10 @@ class TelnetTerminalTab(
 
 
         return ptyConnectorFactory.decorate(TelnetStreamPtyConnector(telnet, telnet.charset, characterMode))
+    }
+
+    override fun createReconnectTerminalTab(): TerminalTab {
+        return TelnetTerminalTab(windowScope, host)
     }
 
 

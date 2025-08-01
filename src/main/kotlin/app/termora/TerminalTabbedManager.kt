@@ -8,4 +8,5 @@ interface TerminalTabbedManager {
     fun setSelectedTerminalTab(tab: TerminalTab)
     fun closeTerminalTab(tab: TerminalTab, disposable: Boolean = true)
     fun refreshTerminalTabs()
+    fun indexOfTerminalTab(tab: TerminalTab): Int
 }

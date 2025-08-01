@@ -1,9 +1,6 @@
 package app.termora.tlog
 
-import app.termora.Host
-import app.termora.Icons
-import app.termora.PtyHostTerminalTab
-import app.termora.WindowScope
+import app.termora.*
 import app.termora.terminal.PtyConnector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -69,6 +66,10 @@ class LogViewerTerminalTab(
 
     override fun canReconnect(): Boolean {
         return false
+    }
+
+    override fun createReconnectTerminalTab(): TerminalTab {
+        throw UnsupportedOperationException()
     }
 
     override fun canClone(): Boolean {

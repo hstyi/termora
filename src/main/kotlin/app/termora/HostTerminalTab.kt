@@ -27,7 +27,7 @@ abstract class HostTerminalTab(
     protected val terminalTabbedManager
         get() = AnActionEvent(getJComponent(), StringUtils.EMPTY, EventObject(getJComponent()))
             .getData(DataProviders.TerminalTabbedManager)
-    protected val coroutineScope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Swing) }
+    protected val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Swing)
     protected val terminalModel get() = terminal.getTerminalModel()
     protected var unread = false
         set(value) {

@@ -1,9 +1,6 @@
 package app.termora.plugin.internal.wsl
 
-import app.termora.Host
-import app.termora.PtyConnectorFactory
-import app.termora.PtyHostTerminalTab
-import app.termora.WindowScope
+import app.termora.*
 import app.termora.terminal.PtyConnector
 import org.apache.commons.io.Charsets
 import org.apache.commons.io.FileUtils
@@ -49,6 +46,10 @@ class WSLHostTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
         )
 
         return ptyConnector
+    }
+
+    override fun createReconnectTerminalTab(): TerminalTab {
+        return WSLHostTerminalTab(windowScope, host)
     }
 
 

@@ -54,6 +54,10 @@ class SSHTerminalTab(
         return mutex.isLocked.not()
     }
 
+    override fun createReconnectTerminalTab(): TerminalTab {
+        return SSHTerminalTab(windowScope, host)
+    }
+
     override suspend fun openPtyConnector(): PtyConnector {
         if (mutex.tryLock()) {
             try {
@@ -209,17 +213,6 @@ class SSHTerminalTab(
             return handler as T?
         }
         return super.getData(dataKey)
-    }
-
-    override fun reconnect() {
-        stop()
-
-        // 重新连接时就等于重新打开了一个标签，handler 重置
-        handler.client = null
-        handler.session = null
-        handler.client = null
-
-        start()
     }
 
     override fun stop() {

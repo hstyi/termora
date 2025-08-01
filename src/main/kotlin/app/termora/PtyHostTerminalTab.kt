@@ -173,9 +173,20 @@ abstract class PtyHostTerminalTab(
     }
 
     override fun reconnect() {
-        stop()
-        start()
+        val manager = terminalTabbedManager ?: return
+        val index = manager.indexOfTerminalTab(this)
+        if (index < 0) return
+
+        val tab = createReconnectTerminalTab()
+        manager.addTerminalTab(index, tab, true)
+        manager.closeTerminalTab(this, true)
+
+        if (tab is HostTerminalTab) {
+            tab.start()
+        }
     }
+
+    protected abstract fun createReconnectTerminalTab(): TerminalTab
 
     override fun getJComponent(): JComponent {
         return terminalPanel

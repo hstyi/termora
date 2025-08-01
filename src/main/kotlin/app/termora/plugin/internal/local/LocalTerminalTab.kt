@@ -62,6 +62,9 @@ class LocalTerminalTab(windowScope: WindowScope, host: Host) :
         ) == JOptionPane.OK_OPTION
     }
 
+    override fun createReconnectTerminalTab(): TerminalTab {
+        return LocalTerminalTab(windowScope, host)
+    }
 
     private fun getPtyProcessConnector(): PtyProcessConnector? {
         var p = getPtyConnector() as PtyConnector?

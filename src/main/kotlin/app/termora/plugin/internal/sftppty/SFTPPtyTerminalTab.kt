@@ -185,6 +185,10 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
         return Icons.fileFormat
     }
 
+    override fun createReconnectTerminalTab(): TerminalTab {
+        return SFTPPtyTerminalTab(windowScope, host)
+    }
+
     override fun sendStartupCommand(ptyConnector: PtyConnector, bytes: ByteArray) {
         // Nothing
     }

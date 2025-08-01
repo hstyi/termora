@@ -367,6 +367,10 @@ class TerminalTabbed(
         }
     }
 
+    override fun indexOfTerminalTab(tab: TerminalTab):Int {
+        return tabbedPane.indexOfComponent(tab.getJComponent())
+    }
+
     private inner class SwitchFindEverywhereResult(
         private val title: String,
         private val icon: Icon?,
