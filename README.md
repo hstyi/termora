@@ -82,6 +82,7 @@ Termora is developed using [**Kotlin/JVM**](https://kotlinlang.org/) and partial
 - 🧾 [Latest Release](https://github.com/TermoraDev/termora/releases/latest)
 - 🍺 **Homebrew**: `brew install --cask termora`
 - 🔨 **WinGet**: `winget install termora`
+- <img width="14" height="14" src="https://apps.microsoft.com/assets/icons/logo-16x16.png" alt="microsoft logo"/> <b>Microsoft Store</b>: <a href="https://apps.microsoft.com/store/detail/9NRZBHG43SB9?cid=DevShareMCLPCS">Visit Termora in the Microsoft Store</a>
 
 
 
