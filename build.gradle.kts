@@ -7,11 +7,8 @@ import org.jetbrains.kotlin.org.apache.commons.io.FileUtils
 import org.jetbrains.kotlin.org.apache.commons.io.filefilter.FileFilterUtils
 import org.jetbrains.kotlin.org.apache.commons.lang3.StringUtils
 import org.jetbrains.kotlin.org.apache.commons.lang3.time.DateFormatUtils
-import java.io.FileNotFoundException
 import java.nio.file.Files
 import java.util.*
-import java.util.concurrent.Executors
-import java.util.concurrent.Future
 
 plugins {
     java
@@ -37,6 +34,7 @@ val isAppx = os.isWindows && makeAppx.isNotBlank() && System.getenv("TERMORA_TYP
 val macOSSignUsername = System.getenv("TERMORA_MAC_SIGN_USER_NAME") ?: StringUtils.EMPTY
 val macOSSign = os.isMacOsX && macOSSignUsername.isNotBlank()
         && System.getenv("TERMORA_MAC_SIGN").toBoolean()
+val macOSInstallSignUsername = System.getenv("TERMORA_MAC_INSTALL_SIGN_USER_NAME") ?: StringUtils.EMPTY
 
 // macOS 公证信息
 val macOSNotaryKeychainProfile = System.getenv("TERMORA_MAC_NOTARY_KEYCHAIN_PROFILE") ?: StringUtils.EMPTY
@@ -429,7 +427,7 @@ tasks.register<Exec>("jpackage") {
 
     arguments.add("--type")
     if (os.isMacOsX) {
-        arguments.add("dmg")
+        arguments.add("app-image")
     } else if (os.isWindows) {
         arguments.add("app-image")
     } else if (os.isLinux) {
@@ -442,7 +440,7 @@ tasks.register<Exec>("jpackage") {
         throw UnsupportedOperationException()
     }
 
-    if (os.isMacOsX && macOSSign) {
+    if (macOSSign) {
         arguments.add("--mac-sign")
         arguments.add("--mac-signing-key-user-name")
         arguments.add(macOSSignUsername)
@@ -571,69 +569,31 @@ fun packOnWindows(distributionDir: Directory, finalFilenameWithoutExtension: Str
  * 对于 macOS 先对 jpackage 构建的 dmg 重命名 -> 签名 -> 公证，另外还会创建一个 zip 包
  */
 fun packOnMac(distributionDir: Directory, finalFilenameWithoutExtension: String, projectName: String) {
-    val pool = Executors.newCachedThreadPool()
-    val jobs = mutableListOf<Future<*>>()
-
     val dmgFile = distributionDir.file("${finalFilenameWithoutExtension}.dmg").asFile
-    val zipFile = distributionDir.file("${finalFilenameWithoutExtension}.zip").asFile
+    val appFile = distributionDir.file("${projectName}.app").asFile
 
-    // rename
-    // @formatter:off
-    exec { commandLine("mv", distributionDir.file("${projectName}-${appVersion}.dmg").asFile.absolutePath, dmgFile.absolutePath,) }
-    // @formatter:on
+    // dmg
+    exec {
+        commandLine(
+            "create-dmg",
+            "--volname", "$projectName Installer",
+            "--window-pos", "300", "100",
+            "--window-size", "500", "300",
+            "--icon-size", "80",
+            "--icon", appFile.name, "130", "110",
+            "--hide-extension", appFile.name,
+            "--app-drop-link", "370", "110",
+            dmgFile.absolutePath, appFile.absolutePath,
+        )
+        workingDir = distributionDir.asFile
+    }
 
-    // sign dmg
+    // 签名
     signMacOSLocalFile(dmgFile)
-
-    if (macOSNotary) {
-        // dmg
-        pool.submit {
-            // 公证
-            notaryMacOSLocalFile(dmgFile)
-            // 盖章
-            stapleMacOSLocalFile(dmgFile)
-        }.apply { jobs.add(this) }
-    }
-
-    // 找到 .app
-    val imageFile = layout.buildDirectory.dir("jpackage/images/").get().asFile
-    val appFile = imageFile.listFiles()?.firstOrNull()?.listFiles()?.firstOrNull()
-        ?: throw FileNotFoundException("${projectName}.app")
-
-    val cfg = FileUtils.getFile(appFile, "Contents", "app", "${projectName}.cfg")
-    cfg.appendText("java-options=-Djpackage.app-layout=AppStore")
-    // zip
-    // @formatter:off
-    exec { commandLine("ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", appFile.absolutePath, zipFile.absolutePath) }
-    // @formatter:on
-    // sign zip
-    signMacOSLocalFile(zipFile)
-
-    if (macOSNotary) {
-        // zip
-        pool.submit {
-            // 对 zip 公证
-            notaryMacOSLocalFile(zipFile)
-            // 对 .app 盖章
-            stapleMacOSLocalFile(appFile)
-            // 删除旧的 zip ，旧的 zip 仅仅是为了公证
-            FileUtils.deleteQuietly(zipFile)
-            // 再对盖完章的 app 打成 zip 包
-            // @formatter:off
-            exec { commandLine("ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", appFile.absolutePath, zipFile.absolutePath) }
-            // @formatter:on
-            // 再对 zip 签名
-            signMacOSLocalFile(zipFile)
-        }.apply { jobs.add(this) }
-    }
-
-    // 等待公证完毕
-    if (macOSNotary) {
-        jobs.forEach { it.get() }
-    }
-
-    // shutdown
-    pool.shutdown()
+    // 公证
+    notaryMacOSLocalFile(dmgFile)
+    // 盖章
+    stapleMacOSLocalFile(dmgFile)
 }
 
 /**

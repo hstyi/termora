@@ -93,13 +93,6 @@ jobs:
         shell: bash
         run: ./gradlew :jpackage && ./gradlew :dist
 
-      - name: Upload zip artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: termora-osx-zip-${{ runner.arch }}
-          path: |
-            build/distributions/*.zip
-
       - name: Upload dmg artifact
         uses: actions/upload-artifact@v4
         with:
