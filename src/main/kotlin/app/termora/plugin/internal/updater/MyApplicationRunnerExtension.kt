@@ -15,7 +15,7 @@ internal class MyApplicationRunnerExtension private constructor() : ApplicationR
         private val log = LoggerFactory.getLogger(MyApplicationRunnerExtension::class.java)
     }
 
-    private val disabledUpdater get() = Application.getLayout() == AppLayout.Appx
+    private val disabledUpdater get() = Application.getLayout() == AppLayout.Appx || Application.getLayout() == AppLayout.AppStore
     private val updaterManager get() = UpdaterManager.getInstance()
 
 

@@ -12,6 +12,7 @@ enum class AppLayout {
      * macOS
      */
     App,
+    AppStore,
 
     /**
      * Linux

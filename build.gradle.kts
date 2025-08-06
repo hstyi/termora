@@ -571,6 +571,9 @@ fun packOnWindows(distributionDir: Directory, finalFilenameWithoutExtension: Str
  * 对于 macOS 先对 jpackage 构建的 dmg 重命名 -> 签名 -> 公证，另外还会创建一个 zip 包
  */
 fun packOnMac(distributionDir: Directory, finalFilenameWithoutExtension: String, projectName: String) {
+    val pool = Executors.newCachedThreadPool()
+    val jobs = mutableListOf<Future<*>>()
+
     val dmgFile = distributionDir.file("${finalFilenameWithoutExtension}.dmg").asFile
     val zipFile = distributionDir.file("${finalFilenameWithoutExtension}.zip").asFile
 
@@ -582,24 +585,31 @@ fun packOnMac(distributionDir: Directory, finalFilenameWithoutExtension: String,
     // sign dmg
     signMacOSLocalFile(dmgFile)
 
+    if (macOSNotary) {
+        // dmg
+        pool.submit {
+            // 公证
+            notaryMacOSLocalFile(dmgFile)
+            // 盖章
+            stapleMacOSLocalFile(dmgFile)
+        }.apply { jobs.add(this) }
+    }
+
     // 找到 .app
     val imageFile = layout.buildDirectory.dir("jpackage/images/").get().asFile
     val appFile = imageFile.listFiles()?.firstOrNull()?.listFiles()?.firstOrNull()
         ?: throw FileNotFoundException("${projectName}.app")
 
+    val cfg = FileUtils.getFile(appFile, "Contents", "app", "${projectName}.cfg")
+    cfg.appendText("java-options=-Djpackage.app-layout=AppStore")
     // zip
     // @formatter:off
     exec { commandLine("ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", appFile.absolutePath, zipFile.absolutePath) }
     // @formatter:on
-
     // sign zip
     signMacOSLocalFile(zipFile)
 
-    // 公证
     if (macOSNotary) {
-        val pool = Executors.newCachedThreadPool()
-        val jobs = mutableListOf<Future<*>>()
-
         // zip
         pool.submit {
             // 对 zip 公证
@@ -615,22 +625,15 @@ fun packOnMac(distributionDir: Directory, finalFilenameWithoutExtension: String,
             // 再对 zip 签名
             signMacOSLocalFile(zipFile)
         }.apply { jobs.add(this) }
-
-        // dmg
-        pool.submit {
-            // 公证
-            notaryMacOSLocalFile(dmgFile)
-            // 盖章
-            stapleMacOSLocalFile(dmgFile)
-        }.apply { jobs.add(this) }
-
-        // join ...
-        jobs.forEach { it.get() }
-
-        // shutdown
-        pool.shutdown()
     }
 
+    // 等待公证完毕
+    if (macOSNotary) {
+        jobs.forEach { it.get() }
+    }
+
+    // shutdown
+    pool.shutdown()
 }
 
 /**
