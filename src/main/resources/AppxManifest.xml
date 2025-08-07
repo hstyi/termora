@@ -6,7 +6,7 @@
 
     <Identity Name="TermoraDev.Termora"
               Publisher="CN=C804E131-4368-4BF7-9E7F-95C681AD0AAC"
-              Version="@version@.0"
+              Version="@version@.@betaVersion@"
               ProcessorArchitecture="@architecture@"/>
 
     <Properties>

@@ -32,6 +32,7 @@ val appVersion = project.version.toString().split("-")[0]
 val makeAppx = if (os.isWindows) StringUtils.defaultString(System.getenv("MAKEAPPX_PATH")) else StringUtils.EMPTY
 val isDeb = os.isLinux && System.getenv("TERMORA_TYPE") == "deb"
 val isAppx = os.isWindows && makeAppx.isNotBlank() && System.getenv("TERMORA_TYPE") == "appx"
+val isBeta = project.version.toString().contains("beta", ignoreCase = true)
 
 // macOS 签名信息
 val macOSSignUsername = System.getenv("TERMORA_MAC_SIGN_USER_NAME") ?: StringUtils.EMPTY
@@ -173,10 +174,12 @@ publishing {
 }
 
 tasks.processResources {
+    val betaVersion = project.version.toString().substringAfterLast('.')
     filesMatching("**/AppxManifest.xml") {
         filter<ReplaceTokens>(
             "tokens" to mapOf(
                 "version" to appVersion,
+                "betaVersion" to if (isBeta) betaVersion else "0",
                 "architecture" to if (arch.isArm64) "arm64" else "x64",
                 "projectDir" to project.projectDir.absolutePath,
             )
