@@ -1,9 +1,7 @@
 package app.termora.terminal.panel.vw
 
 import app.termora.*
-import app.termora.actions.AnAction
-import app.termora.actions.AnActionEvent
-import app.termora.actions.DataProviders
+import app.termora.actions.*
 import app.termora.plugin.internal.badge.Badge
 import app.termora.plugin.internal.ssh.SSHTerminalTab
 import app.termora.plugin.internal.ssh.SSHTerminalTab.Companion.SSHSession
@@ -39,7 +37,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 
 internal class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: VisualWindowManager) :
-    SSHVisualWindow(tab, "Transfer", visualWindowManager) {
+    SSHVisualWindow(tab, "Transfer", visualWindowManager), DataProvider {
 
     companion object {
         private val log = LoggerFactory.getLogger(TransferVisualWindow::class.java)
@@ -65,7 +63,7 @@ internal class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
     private val downloadBtn = JButton(Icons.download)
     private val badgePresentation = Badge.getInstance(tab.windowScope)
         .addBadge(downloadBtn).apply { visible = false }
-
+    private val support = DataProviderSupport()
 
     init {
         initViews()
@@ -82,6 +80,8 @@ internal class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
 
 
         add(panel, BorderLayout.CENTER)
+
+        support.addData(TransportViewer.MyTransferManager, transferManager)
     }
 
     private fun initEvents() {
@@ -238,6 +238,10 @@ internal class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
         executorService.shutdownNow()
         connectingPanel.busyLabel.isBusy = false
         super.dispose()
+    }
+
+    override fun <T : Any> getData(dataKey: DataKey<T>): T? {
+        return support.getData(dataKey)
     }
 
     override fun toolbarButtons(): List<Pair<JButton, Position>> {

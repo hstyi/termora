@@ -1,12 +1,10 @@
 package app.termora.transfer
 
-import app.termora.Application
-import app.termora.ApplicationScope
-import app.termora.I18n
-import app.termora.OptionPane
+import app.termora.*
 import app.termora.plugin.ExtensionManager
 import app.termora.transfer.TransportPanel.Companion.isLocallyFileSystem
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
+import kotlinx.coroutines.launch
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.sshd.sftp.client.fs.SftpFileSystem
@@ -149,7 +147,12 @@ internal class TransportPopupMenu(
     }
 
     private fun initEvents() {
-        transferMenu.addActionListener { fireActionPerformed(it, ActionCommand.Transfer) }
+        transferMenu.addActionListener {
+            swingCoroutineScope.launch {
+                fireActionPerformed(it, ActionCommand.Transfer)
+            }
+        }
+
         deleteMenu.addActionListener {
             if (OptionPane.showConfirmDialog(
                     owner,
