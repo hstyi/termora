@@ -3,14 +3,16 @@ package app.termora
 import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProvider
 import app.termora.actions.DataProviders
-import app.termora.terminal.*
+import app.termora.terminal.ControlCharacters
+import app.termora.terminal.DataKey
+import app.termora.terminal.DataListener
+import app.termora.terminal.Terminal
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.swing.Swing
 import org.apache.commons.lang3.StringUtils
-import java.beans.PropertyChangeEvent
 import java.util.*
 import javax.swing.Icon
 
@@ -29,11 +31,6 @@ abstract class HostTerminalTab(
             .getData(DataProviders.TerminalTabbedManager)
     protected val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Swing)
     protected val terminalModel get() = terminal.getTerminalModel()
-    protected var unread = false
-        set(value) {
-            field = value
-            firePropertyChange(PropertyChangeEvent(this, "icon", null, null))
-        }
 
 
     /*    visualTerminal    */
@@ -45,15 +42,6 @@ abstract class HostTerminalTab(
         terminal.getTerminalModel().setData(Host, host)
         terminal.getTerminalModel().addDataListener(object : DataListener {
             override fun onChanged(key: DataKey<*>, data: Any) {
-                if (key == VisualTerminal.Written) {
-                    if (hasFocus || unread) {
-                        return
-                    }
-                    // 如果当前选中的不是这个 Tab，那么设置成未读
-                    if (terminalTabbedManager?.getSelectedTerminalTab() != this@HostTerminalTab) {
-                        unread = true
-                    }
-                }
             }
         })
     }
@@ -75,8 +63,6 @@ abstract class HostTerminalTab(
 
     override fun onGrabFocus() {
         super.onGrabFocus()
-        if (!unread) return
-        unread = false
     }
 
     @Suppress("UNCHECKED_CAST")

@@ -31,7 +31,7 @@ class LocalTerminalTab(windowScope: WindowScope, host: Host) :
     }
 
     override fun getIcon(): Icon {
-        return if (unread) Icons.terminalUnread else Icons.terminal
+        return Icons.terminal
     }
 
     override fun willBeClose(): Boolean {

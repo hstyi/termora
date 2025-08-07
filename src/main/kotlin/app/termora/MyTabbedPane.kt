@@ -2,19 +2,20 @@ package app.termora
 
 import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProviders
+import app.termora.actions.SwitchTabAction
+import app.termora.keymap.KeyShortcut
+import app.termora.keymap.KeymapManager
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
+import com.formdev.flatlaf.ui.FlatTabbedPaneUI
 import org.apache.commons.lang3.StringUtils
 import java.awt.*
 import java.awt.event.*
 import java.awt.image.BufferedImage
 import java.util.*
-import javax.swing.ImageIcon
-import javax.swing.JDialog
-import javax.swing.JLabel
-import javax.swing.SwingUtilities
+import javax.swing.*
 import kotlin.math.abs
 
-class MyTabbedPane : FlatTabbedPane() {
+class MyTabbedPane : FlatTabbedPane(), Disposable {
 
     private val dragMouseAdaptor = DragMouseAdaptor()
     private val terminalTabbedManager
@@ -23,6 +24,14 @@ class MyTabbedPane : FlatTabbedPane() {
     private val owner
         get() = AnActionEvent(this, StringUtils.EMPTY, EventObject(this))
             .getData(DataProviders.TermoraFrame) as TermoraFrame
+    private val keymap get() = KeymapManager.getInstance().getActiveKeymap()
+    private var isSwitchTabMode = false
+        set(value) {
+            field = value
+            repaint()
+        }
+
+    private val isScreen get() = TermoraLayout.Layout == TermoraLayout.Screen
 
     init {
         isFocusable = false
@@ -38,6 +47,16 @@ class MyTabbedPane : FlatTabbedPane() {
     private fun initEvents() {
         addMouseListener(dragMouseAdaptor)
         addMouseMotionListener(dragMouseAdaptor)
+
+        val awtEventListener = MyAWTEventListener()
+        toolkit.addAWTEventListener(awtEventListener, AWTEvent.KEY_EVENT_MASK or AWTEvent.WINDOW_EVENT_MASK)
+
+        Disposer.register(this, object : Disposable {
+            override fun dispose() {
+                toolkit.removeAWTEventListener(awtEventListener)
+            }
+        })
+
     }
 
     override fun processMouseEvent(e: MouseEvent) {
@@ -70,6 +89,29 @@ class MyTabbedPane : FlatTabbedPane() {
         firePropertyChange("selectedIndex", oldIndex, index)
     }
 
+    override fun updateUI() {
+        super.updateUI()
+        setUI(MyMyTabbedPaneUI())
+    }
+
+    private inner class MyAWTEventListener : AWTEventListener {
+        override fun eventDispatched(event: AWTEvent) {
+            if (event is KeyEvent) {
+                if (isSwitchTabMode) isSwitchTabMode = false
+                val shortcuts = keymap.getShortcut(SwitchTabAction.SWITCH_TAB)
+                if (shortcuts.isEmpty()) return
+                val shortcut = shortcuts.first() as KeyShortcut
+                val modifiers = KeyStroke.getKeyStroke(event.keyCode, event.modifiersEx).modifiers
+                if (shortcut.keyStroke.modifiers != modifiers) return
+                if (SwingUtilities.getWindowAncestor(event.component) != owner) return
+                if (isSwitchTabMode.not()) isSwitchTabMode = true
+            } else if (event is WindowEvent) {
+                if (event.id == WindowEvent.WINDOW_LOST_FOCUS || event.id == WindowEvent.WINDOW_DEACTIVATED) {
+                    if (isSwitchTabMode) isSwitchTabMode = false
+                }
+            }
+        }
+    }
 
     private inner class DragMouseAdaptor : MouseAdapter(), KeyEventDispatcher {
         private var mousePressedPoint = Point()
@@ -267,5 +309,81 @@ class MyTabbedPane : FlatTabbedPane() {
         }
     }
 
+    private inner class MyMyTabbedPaneUI : FlatTabbedPaneUI() {
+        override fun paintIcon(
+            g: Graphics,
+            tabPlacement: Int,
+            tabIndex: Int,
+            icon: Icon,
+            iconRect: Rectangle?,
+            isSelected: Boolean
+        ) {
+            super.paintIcon(g, tabPlacement, tabIndex, MyIcon(icon, tabIndex, isSelected), iconRect, isSelected)
+        }
+
+
+        override fun createMoreTabsButton(): JButton {
+            return MyMoreTabsButton()
+        }
+
+        private inner class MyMoreTabsButton : FlatMoreTabsButton() {
+            override fun createTabMenuItem(tabIndex: Int): JMenuItem? {
+                val item = super.createTabMenuItem(tabIndex)
+                if (tabIndex == 0 && isScreen) {
+                    item.text = Application.getName()
+                }
+                return item
+            }
+        }
+    }
+
+
+    override fun getIconAt(index: Int): Icon? {
+        if (isSwitchTabMode) {
+            return MyIcon(super.getIconAt(index), index, selectedIndex == index)
+        }
+        return super.getIconAt(index)
+    }
+
+    private inner class MyIcon(private val icon: Icon, private val tabIndex: Int, private val isSelected: Boolean) :
+        Icon {
+        override fun paintIcon(c: Component, g: Graphics, x: Int, y: Int) {
+            if (isScreen && tabIndex == 0) {
+                icon.paintIcon(c, g, x, y)
+                return
+            }
+
+            if (isSwitchTabMode.not()) {
+                icon.paintIcon(c, g, x, y)
+                return
+            }
+
+            if (g !is Graphics2D) return
+
+            g.save()
+            setupAntialiasing(g)
+
+            val fm = g.getFontMetrics(g.font)
+            val text = "${tabIndex + 1}"
+            val textWidth = fm.stringWidth(text)
+            val textHeight = fm.ascent
+
+            val centerX = x + (icon.iconWidth - textWidth) / 2
+            val centerY = y + (icon.iconHeight + textHeight) / 2 - 1
+
+            g.color = c.getForeground()
+            g.drawString(text, centerX, centerY)
+
+            g.restore()
+        }
+
+        override fun getIconWidth(): Int {
+            return icon.iconWidth
+        }
+
+        override fun getIconHeight(): Int {
+            return icon.iconHeight
+        }
+    }
 
 }

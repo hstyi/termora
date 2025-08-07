@@ -226,7 +226,7 @@ class SSHTerminalTab(
     }
 
     override fun getIcon(): Icon {
-        return if (unread) Icons.terminalUnread else Icons.terminal
+        return Icons.terminal
     }
 
     override fun beforeClose() {

@@ -164,6 +164,8 @@ class TermoraFrame : JFrame(), DataProvider {
 
             }).let { Disposer.register(windowScope, it) }
 
+        Disposer.register(windowScope, tabbedPane)
+
     }
 
     private fun initView() {

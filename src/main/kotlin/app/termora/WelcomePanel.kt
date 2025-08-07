@@ -224,7 +224,7 @@ class WelcomePanel() : JPanel(BorderLayout()), Disposable, TerminalTab, DataProv
 
 
     override fun getTitle(): String {
-        return I18n.getString("termora.title")
+        return StringUtils.EMPTY
     }
 
     override fun getIcon(): Icon {

@@ -337,13 +337,7 @@ class TerminalTabbed(
         val c = tab.getJComponent()
         val title = (c.getClientProperty(titleProperty) ?: tab.getTitle()).toString()
 
-        tabbedPane.insertTab(
-            title,
-            tab.getIcon(),
-            c,
-            StringUtils.EMPTY,
-            index
-        )
+        tabbedPane.insertTab(title, tab.getIcon(), c, StringUtils.EMPTY, index)
 
         // 设置标题
         c.putClientProperty(titleProperty, title)
