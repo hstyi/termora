@@ -14,7 +14,7 @@ class MyTransportEditFileExtension private constructor() : TransportEditFileExte
 
     override fun edit(owner: Window, path: Path): Disposable {
         val disposable = Disposer.newDisposable()
-        SwingUtilities.invokeLater { EditorDialog(path, owner, disposable).isVisible = true }
+        SwingUtilities.invokeLater { EditorFrame(path, owner, disposable).isVisible = true }
         return disposable
     }
 }

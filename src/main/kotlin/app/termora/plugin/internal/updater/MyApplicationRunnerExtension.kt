@@ -1,8 +1,11 @@
 package app.termora.plugin.internal.updater
 
 import app.termora.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.swing.Swing
+import kotlinx.coroutines.withContext
 import org.semver4j.Semver
 import org.slf4j.LoggerFactory
 import java.awt.KeyboardFocusManager
@@ -20,7 +23,7 @@ internal class MyApplicationRunnerExtension private constructor() : ApplicationR
 
 
     override fun ready() {
-        swingCoroutineScope.launch {
+        swingCoroutineScope.launch(Dispatchers.IO) {
             try {
                 delay(3.seconds)
                 scheduleUpdate()
@@ -31,7 +34,7 @@ internal class MyApplicationRunnerExtension private constructor() : ApplicationR
     }
 
 
-    private fun scheduleUpdate() {
+    private suspend fun scheduleUpdate() {
         if (disabledUpdater) return
 
         val latestVersion = updaterManager.fetchLatestVersion()
@@ -45,13 +48,15 @@ internal class MyApplicationRunnerExtension private constructor() : ApplicationR
             return
         }
 
-        val owner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusedWindow
-            ?: TermoraFrameManager.getInstance().getWindows().firstOrNull()
-        if (owner == null) return
-
-        val dialog = UpdaterDialog(owner, latestVersion)
-        dialog.isModal = true
-        dialog.isVisible = true
+        withContext(Dispatchers.Swing) {
+            val owner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusedWindow
+                ?: TermoraFrameManager.getInstance().getWindows().firstOrNull()
+            if (owner != null) {
+                val dialog = UpdaterDialog(owner, latestVersion)
+                dialog.isModal = true
+                dialog.isVisible = true
+            }
+        }
 
     }
 }

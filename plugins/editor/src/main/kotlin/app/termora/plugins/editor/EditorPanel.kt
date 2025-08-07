@@ -35,7 +35,7 @@ import javax.swing.event.DocumentEvent
 import kotlin.math.max
 import kotlin.math.min
 
-class EditorPanel(private val window: JDialog, private val file: File) : JPanel(BorderLayout()) {
+class EditorPanel(private val window: JFrame, private val file: File) : JPanel(BorderLayout()) {
 
     companion object {
         private val log = LoggerFactory.getLogger(EditorPanel::class.java)
