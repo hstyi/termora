@@ -83,15 +83,14 @@ class SSHTerminalTab(
         }
 
         val loading = coroutineScope.launch(Dispatchers.Swing) {
+            val braille = "⡿⣟⣯⣷⣾⣽⣻⢿".reversed().toCharArray()
+//            val braille = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏".toCharArray()
             var c = 0
             while (isActive) {
-                if (++c > 6) c = 1
-                terminal.write("${ControlCharacters.ESC}[1;32m")
-                terminal.write(".".repeat(c))
-                terminal.write(" ".repeat(6 - c))
-                terminal.write("${ControlCharacters.ESC}[0m")
-                delay(350.milliseconds)
-                terminal.write("${ControlCharacters.BS}".repeat(6))
+                if (++c >= braille.size) c = 0
+                terminal.write("${braille[c]}")
+                delay(100.milliseconds)
+                terminal.write("${ControlCharacters.BS}")
             }
         }
 
