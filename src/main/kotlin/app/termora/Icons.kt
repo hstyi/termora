@@ -17,6 +17,7 @@ object Icons {
     val openInNewWindow by lazy { DynamicIcon("icons/openInNewWindow.svg", "icons/openInNewWindow_dark.svg") }
     val openInToolWindow by lazy { DynamicIcon("icons/openInToolWindow.svg", "icons/openInToolWindow_dark.svg") }
     val searchHistory by lazy { DynamicIcon("icons/searchHistory.svg", "icons/searchHistory_dark.svg") }
+    val search by lazy { DynamicIcon("icons/search.svg", "icons/search_dark.svg") }
     val inspectionsEye by lazy { DynamicIcon("icons/inspectionsEye.svg", "icons/inspectionsEye_dark.svg") }
     val eye by lazy { DynamicIcon("icons/eye.svg", "icons/eye_dark.svg") }
     val eyeClose by lazy { DynamicIcon("icons/eyeClose.svg", "icons/eyeClose_dark.svg") }

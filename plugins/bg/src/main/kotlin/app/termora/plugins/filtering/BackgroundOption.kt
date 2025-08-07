@@ -1,4 +1,4 @@
-package app.termora.plugins.bg
+package app.termora.plugins.filtering
 
 import app.termora.*
 import app.termora.OptionsPane.Companion.FORM_MARGIN

@@ -56,7 +56,6 @@ class TerminalPanel(val tab: TerminalTab?, val terminal: Terminal, private val w
         }
 
     private val disposable = Disposer.newDisposable()
-    private val myOwner get() = SwingUtilities.getWindowAncestor(this)
     private val properties get() = DatabaseManager.getInstance().properties
     private val terminalBlink = TerminalBlink(terminal)
     private val terminalFindPanel = TerminalFindPanel(this, terminal)

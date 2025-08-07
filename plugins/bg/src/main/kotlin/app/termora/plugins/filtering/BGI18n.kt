@@ -1,4 +1,4 @@
-package app.termora.plugins.bg
+package app.termora.plugins.filtering
 
 import app.termora.AbstractI18n
 import org.slf4j.Logger

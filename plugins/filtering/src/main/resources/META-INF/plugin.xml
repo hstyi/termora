@@ -1,0 +1,23 @@
+<termora-plugin>
+
+    <id>filtering</id>
+
+    <name>Filtering Terminal</name>
+
+    <version>${projectVersion}</version>
+
+    <entry>app.termora.plugins.filtering.FilteringPlugin</entry>
+
+    <termora-version since=">=${rootProjectVersion}" until=""/>
+
+
+    <descriptions>
+        <description>Dynamically filter terminal content</description>
+        <description language="zh_CN">动态过滤终端内容</description>
+        <description language="zh_TW">動態過濾終端內容</description>
+    </descriptions>
+
+    <vendor url="https://github.com/TermoraDev">TermoraDev</vendor>
+
+
+</termora-plugin>

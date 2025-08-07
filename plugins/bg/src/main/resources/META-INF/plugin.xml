@@ -6,7 +6,7 @@
 
     <version>${projectVersion}</version>
 
-    <entry>app.termora.plugins.bg.BGPlugin</entry>
+    <entry>app.termora.plugins.filtering.BGPlugin</entry>
 
     <termora-version since=">=${rootProjectVersion}" until=""/>
 
