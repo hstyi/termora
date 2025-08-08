@@ -18,4 +18,8 @@ object Appearance {
         set(value) {
             enableManager.setFlag("Plugins.bg.interval", value)
         }
+
+    var fillMode: String
+        get() = enableManager.getFlag("Plugins.bg.fillMode", FillMode.STRETCH.name)
+        set(value) = enableManager.setFlag("Plugins.bg.fillMode", value)
 }

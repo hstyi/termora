@@ -10,6 +10,8 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.slf4j.LoggerFactory
 import java.awt.BorderLayout
+import java.awt.Component
+import java.awt.event.ItemEvent
 import java.io.File
 import java.nio.file.StandardCopyOption
 import javax.swing.*
@@ -23,6 +25,7 @@ class BackgroundOption : JPanel(BorderLayout()), OptionsPane.PluginOption {
     private val owner get() = SwingUtilities.getWindowAncestor(this)
 
     val backgroundImageTextField = OutlineTextField()
+    val fillModeComboBox = OutlineComboBox<FillMode>()
     val intervalSpinner = NumberSpinner(360, minimum = 30, maximum = 86400)
 
     private val backgroundButton = JButton(Icons.folder)
@@ -35,6 +38,38 @@ class BackgroundOption : JPanel(BorderLayout()), OptionsPane.PluginOption {
     }
 
     private fun initView() {
+
+        fillModeComboBox.addItem(FillMode.STRETCH)
+        fillModeComboBox.addItem(FillMode.FIT)
+        fillModeComboBox.addItem(FillMode.CENTER)
+        fillModeComboBox.addItem(FillMode.TILE)
+
+        fillModeComboBox.selectedItem = runCatching { FillMode.valueOf(Appearance.fillMode) }
+            .getOrNull() ?: FillMode.STRETCH
+
+        fillModeComboBox.renderer = object : DefaultListCellRenderer() {
+            override fun getListCellRendererComponent(
+                list: JList<*>?,
+                value: Any?,
+                index: Int,
+                isSelected: Boolean,
+                cellHasFocus: Boolean
+            ): Component? {
+                var text = value?.toString()
+
+                if (value == FillMode.STRETCH) {
+                    text = BGI18n.getString("termora.plugins.bg.fill-mode.stretch")
+                } else if (value == FillMode.FIT) {
+                    text = BGI18n.getString("termora.plugins.bg.fill-mode.fit")
+                } else if (value == FillMode.CENTER) {
+                    text = BGI18n.getString("termora.plugins.bg.fill-mode.center")
+                } else if (value == FillMode.TILE) {
+                    text = BGI18n.getString("termora.plugins.bg.fill-mode.tile")
+                }
+
+                return super.getListCellRendererComponent(list, text, index, isSelected, cellHasFocus)
+            }
+        }
 
         backgroundImageTextField.isEditable = false
         backgroundImageTextField.trailingComponent = backgroundButton
@@ -78,6 +113,15 @@ class BackgroundOption : JPanel(BorderLayout()), OptionsPane.PluginOption {
             val value = intervalSpinner.value
             if (value is Int) {
                 Appearance.interval = value
+            }
+        }
+
+        fillModeComboBox.addItemListener {
+            if (it.stateChange == ItemEvent.SELECTED) {
+                Appearance.fillMode = fillModeComboBox.selectedItem?.toString() ?: FillMode.STRETCH.name
+                for (frame in TermoraFrameManager.getInstance().getWindows()) {
+                    SwingUtilities.invokeLater { SwingUtilities.updateComponentTreeUI(frame) }
+                }
             }
         }
     }
@@ -124,7 +168,7 @@ class BackgroundOption : JPanel(BorderLayout()), OptionsPane.PluginOption {
     private fun getFormPanel(): JPanel {
         val layout = FormLayout(
             "left:pref, $FORM_MARGIN, default:grow, $FORM_MARGIN, default",
-            "pref, $FORM_MARGIN, pref"
+            "pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref"
         )
 
         var rows = 1
@@ -136,6 +180,10 @@ class BackgroundOption : JPanel(BorderLayout()), OptionsPane.PluginOption {
         builder.add("${BGI18n.getString("termora.plugins.bg.background-image")}:").xy(1, rows)
             .add(backgroundImageTextField).xy(3, rows)
             .add(bgClearBox).xy(5, rows)
+            .apply { rows += step }
+
+        builder.add("${BGI18n.getString("termora.plugins.bg.fill-mode")}:").xy(1, rows)
+            .add(fillModeComboBox).xy(3, rows)
             .apply { rows += step }
 
         builder.add("${BGI18n.getString("termora.plugins.bg.interval")}:").xy(1, rows)
