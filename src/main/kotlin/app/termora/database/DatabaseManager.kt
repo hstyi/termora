@@ -722,6 +722,11 @@ class DatabaseManager private constructor() : Disposable {
         var layout by StringPropertyDelegate(TermoraLayout.Screen.name)
 
         /**
+         * 标签序号
+         */
+        var tabOrder by StringPropertyDelegate(TabOrder.Hide.name)
+
+        /**
          * 跟随系统
          */
         var followSystem by BooleanPropertyDelegate(true)

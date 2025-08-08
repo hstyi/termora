@@ -8,7 +8,7 @@ object DataProviders {
     val Terminal = DataKey(app.termora.terminal.Terminal::class)
     val TerminalWriter get() = DataKey.TerminalWriter
 
-    val TabbedPane = DataKey(app.termora.MyTabbedPane::class)
+    internal val TabbedPane = DataKey(app.termora.MyTabbedPane::class)
     val TerminalTabbed = DataKey(app.termora.TerminalTabbed::class)
     val TerminalTab = DataKey(app.termora.TerminalTab::class)
     val TerminalTabbedManager = DataKey(app.termora.TerminalTabbedManager::class)

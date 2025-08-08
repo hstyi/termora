@@ -114,6 +114,7 @@ class SettingsOptionsPane : OptionsPane() {
         val languageComboBox = FlatComboBox<String>()
         val backgroundComBoBox = YesOrNoComboBox()
         val confirmTabCloseComBoBox = YesOrNoComboBox()
+        val tabOrderComboBox = FlatComboBox<TabOrder>()
         val followSystemCheckBox = JCheckBox(I18n.getString("termora.settings.appearance.follow-system"))
         val preferredThemeBtn = JButton(Icons.settings)
         val opacitySpinner = NumberSpinner(100, 0, 100)
@@ -127,6 +128,12 @@ class SettingsOptionsPane : OptionsPane() {
         }
 
         private fun initView() {
+
+            tabOrderComboBox.addItem(TabOrder.Hide)
+            tabOrderComboBox.addItem(TabOrder.AsNeed)
+            tabOrderComboBox.addItem(TabOrder.Always)
+            tabOrderComboBox.selectedItem = runCatching { TabOrder.valueOf(appearance.tabOrder) }
+                .getOrNull() ?: TabOrder.Hide
 
             layoutComboBox.addItem(TermoraLayout.Screen)
             layoutComboBox.addItem(TermoraLayout.Fence)
@@ -222,6 +229,14 @@ class SettingsOptionsPane : OptionsPane() {
                         if (TermoraLayout.Layout.name != appearance.layout) {
                             SwingUtilities.invokeLater { TermoraRestarter.getInstance().scheduleRestart(owner) }
                         }
+                    }
+                }
+            })
+
+            tabOrderComboBox.addItemListener(object : ItemListener {
+                override fun itemStateChanged(e: ItemEvent) {
+                    if (e.stateChange == ItemEvent.SELECTED) {
+                        appearance.tabOrder = tabOrderComboBox.selectedItem?.toString() ?: return
                     }
                 }
             })
@@ -349,7 +364,7 @@ class SettingsOptionsPane : OptionsPane() {
         private fun getFormPanel(): JPanel {
             val layout = FormLayout(
                 "left:pref, $FORM_MARGIN, default:grow, $FORM_MARGIN, default, default:grow",
-                "pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref"
+                "pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref"
             )
             val box = FlatToolBar()
             box.add(followSystemCheckBox)
@@ -379,6 +394,9 @@ class SettingsOptionsPane : OptionsPane() {
 
             builder.add("${I18n.getString("termora.settings.appearance.background-running")}:").xy(1, rows)
                 .add(backgroundComBoBox).xy(3, rows).apply { rows += step }
+
+            builder.add("${I18n.getString("termora.settings.appearance.tab-order")}:").xy(1, rows)
+                .add(tabOrderComboBox).xy(3, rows).apply { rows += step }
 
             val confirmTabCloseBox = Box.createHorizontalBox()
             confirmTabCloseBox.add(JLabel("${I18n.getString("termora.settings.appearance.confirm-tab-close")}:"))

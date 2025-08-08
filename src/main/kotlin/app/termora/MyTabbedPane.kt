@@ -3,6 +3,7 @@ package app.termora
 import app.termora.actions.AnActionEvent
 import app.termora.actions.DataProviders
 import app.termora.actions.SwitchTabAction
+import app.termora.database.DatabaseManager
 import app.termora.keymap.KeyShortcut
 import app.termora.keymap.KeymapManager
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
@@ -15,7 +16,7 @@ import java.util.*
 import javax.swing.*
 import kotlin.math.abs
 
-class MyTabbedPane : FlatTabbedPane(), Disposable {
+internal class MyTabbedPane : FlatTabbedPane(), Disposable {
 
     private val dragMouseAdaptor = DragMouseAdaptor()
     private val terminalTabbedManager
@@ -25,13 +26,29 @@ class MyTabbedPane : FlatTabbedPane(), Disposable {
         get() = AnActionEvent(this, StringUtils.EMPTY, EventObject(this))
             .getData(DataProviders.TermoraFrame) as TermoraFrame
     private val keymap get() = KeymapManager.getInstance().getActiveKeymap()
+    private val tabOrder get() = DatabaseManager.getInstance().appearance.tabOrder
+    private val isScreen get() = TermoraLayout.Layout == TermoraLayout.Screen
     private var isSwitchTabMode = false
         set(value) {
-            field = value
-            repaint()
+            if (tabOrder == TabOrder.Always.name) {
+                if (field.not()) {
+                    field = true
+                    repaint()
+                }
+                return
+            } else if (tabOrder == TabOrder.Hide.name) {
+                if (field) {
+                    field = false
+                    repaint()
+                }
+                return
+            } else if (tabOrder == TabOrder.AsNeed.name) {
+                if (field != value) {
+                    field = value
+                    repaint()
+                }
+            }
         }
-
-    private val isScreen get() = TermoraLayout.Layout == TermoraLayout.Screen
 
     init {
         isFocusable = false
@@ -108,6 +125,9 @@ class MyTabbedPane : FlatTabbedPane(), Disposable {
             } else if (event is WindowEvent) {
                 if (event.id == WindowEvent.WINDOW_LOST_FOCUS || event.id == WindowEvent.WINDOW_DEACTIVATED) {
                     if (isSwitchTabMode) isSwitchTabMode = false
+                } else if (event.id == WindowEvent.WINDOW_GAINED_FOCUS || event.id == WindowEvent.WINDOW_ACTIVATED) {
+                    // 触发一次刷新
+                    isSwitchTabMode = isSwitchTabMode
                 }
             }
         }
