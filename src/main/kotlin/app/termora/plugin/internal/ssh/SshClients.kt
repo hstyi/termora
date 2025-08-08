@@ -56,7 +56,6 @@ import org.apache.sshd.server.forward.AcceptAllForwardingFilter
 import org.apache.sshd.server.forward.RejectAllForwardingFilter
 import org.eclipse.jgit.internal.transport.sshd.JGitClientSession
 import org.eclipse.jgit.internal.transport.sshd.JGitSshClient
-import org.eclipse.jgit.internal.transport.sshd.agent.JGitSshAgentFactory
 import org.eclipse.jgit.internal.transport.sshd.agent.connector.PageantConnector
 import org.eclipse.jgit.internal.transport.sshd.agent.connector.UnixDomainSocketConnector
 import org.eclipse.jgit.internal.transport.sshd.proxy.AbstractClientProxyConnector
@@ -112,6 +111,8 @@ object SshClients {
         env.putAll(host.options.envs())
 
         val channel = session.createShellChannel(configuration, env)
+        channel.isAgentForwarding = host.options.extras["forwardAgent"]?.toBoolean() == true
+
         if (host.options.enableX11Forwarding) {
             if (channel is app.termora.x11.ChannelShell) {
                 channel.xForwarding = true
@@ -386,7 +387,7 @@ object SshClients {
 
         val channelFactories = mutableListOf<ChannelFactory>()
         channelFactories.addAll(ClientBuilder.DEFAULT_CHANNEL_FACTORIES)
-        channelFactories.add(X11ChannelFactory.Companion.INSTANCE)
+        channelFactories.add(X11ChannelFactory.INSTANCE)
         builder.channelFactories(channelFactories)
 
         val sshClient = builder.build() as JGitSshClient
@@ -395,12 +396,14 @@ object SshClients {
         // JGit 会尝试读取本地的私钥或缓存的私钥
         sshClient.keyIdentityProvider = KeyIdentityProvider { mutableListOf() }
 
+        // https://github.com/TermoraDev/termora/issues/1001
+        if (host.authentication.type == AuthenticationType.SSHAgent || host.options.extras["forwardAgent"]?.toBoolean() == true) {
+            // ssh-agent
+            sshClient.agentFactory = SshAgentFactory(ConnectorFactory.getDefault(), null)
+        }
+
         // 设置优先级
         if (host.authentication.type == AuthenticationType.PublicKey || host.authentication.type == AuthenticationType.SSHAgent) {
-            if (host.authentication.type == AuthenticationType.SSHAgent) {
-                // ssh-agent
-                sshClient.agentFactory = JGitSshAgentFactory(ConnectorFactory.getDefault(), null)
-            }
             CoreModuleProperties.PREFERRED_AUTHS.set(
                 sshClient,
                 listOf(

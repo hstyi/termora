@@ -114,7 +114,8 @@ internal class SSHHostOptionsPane(private val accountOwner: AccountOwner) : Opti
                     ?: AltKeyModifier.EightBit.name),
                 "keywordHighlightSetId" to ((terminalOption.highlightSetComboBox.selectedItem as? KeywordHighlight)?.id
                     ?: "-1"),
-                "timeout" to (terminalOption.timeoutTextField.value ?: 60).toString()
+                "timeout" to (terminalOption.timeoutTextField.value ?: 60).toString(),
+                "forwardAgent" to tunnelingOption.forwardAgentCheckBox.isSelected.toString(),
             )
         )
 
@@ -182,6 +183,7 @@ internal class SSHHostOptionsPane(private val accountOwner: AccountOwner) : Opti
         tunnelingOption.tunnelings.addAll(host.tunnelings)
         tunnelingOption.x11ForwardingCheckBox.isSelected = host.options.enableX11Forwarding
         tunnelingOption.x11ServerTextField.text = StringUtils.defaultIfBlank(host.options.x11Forwarding, "localhost:0")
+        tunnelingOption.forwardAgentCheckBox.isSelected = host.options.extras["forwardAgent"]?.toBoolean() ?: false
 
         if (host.options.jumpHosts.isNotEmpty()) {
             val hosts = HostManager.getInstance().hosts().associateBy { it.id }
@@ -570,9 +572,10 @@ internal class SSHHostOptionsPane(private val accountOwner: AccountOwner) : Opti
         }
     }
 
-    protected inner class TunnelingOption : JPanel(BorderLayout()), Option {
+    private inner class TunnelingOption : JPanel(BorderLayout()), Option {
         val tunnelings = mutableListOf<Tunneling>()
         val x11ForwardingCheckBox = JCheckBox("X DISPLAY:")
+        val forwardAgentCheckBox = JCheckBox("Enable ForwardAgent")
         val x11ServerTextField = OutlineTextField(255)
 
         private val model = object : DefaultTableModel() {
@@ -649,6 +652,7 @@ internal class SSHHostOptionsPane(private val accountOwner: AccountOwner) : Opti
             box.add(deleteBtn)
 
             x11ForwardingCheckBox.isFocusable = false
+            forwardAgentCheckBox.isFocusable = false
 
             if (x11ServerTextField.text.isBlank()) {
                 x11ServerTextField.text = "localhost:0"
@@ -662,6 +666,13 @@ internal class SSHHostOptionsPane(private val accountOwner: AccountOwner) : Opti
             x11Forwarding.add(x11ForwardingCheckBox)
             x11Forwarding.add(x11ServerTextField)
 
+            val forwardAgent = Box.createHorizontalBox()
+            forwardAgent.border = BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder("ForwardAgent"),
+                BorderFactory.createEmptyBorder(4, 4, 4, 4)
+            )
+            forwardAgent.add(forwardAgentCheckBox)
+
             x11ServerTextField.isEnabled = x11ForwardingCheckBox.isSelected
 
             val panel = JPanel(BorderLayout())
@@ -670,8 +681,13 @@ internal class SSHHostOptionsPane(private val accountOwner: AccountOwner) : Opti
             panel.add(box, BorderLayout.SOUTH)
             panel.border = BorderFactory.createEmptyBorder(0, 0, 8, 0)
 
+            val forwardingBox = Box.createHorizontalBox()
+            forwardingBox.add(x11Forwarding)
+            forwardingBox.add(Box.createHorizontalStrut(4))
+            forwardingBox.add(forwardAgent)
+
             add(panel, BorderLayout.CENTER)
-            add(x11Forwarding, BorderLayout.SOUTH)
+            add(forwardingBox, BorderLayout.SOUTH)
 
         }
 
