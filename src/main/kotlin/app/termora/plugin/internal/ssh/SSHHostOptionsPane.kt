@@ -668,7 +668,7 @@ internal class SSHHostOptionsPane(private val accountOwner: AccountOwner) : Opti
 
             val forwardAgent = Box.createHorizontalBox()
             forwardAgent.border = BorderFactory.createCompoundBorder(
-                BorderFactory.createTitledBorder("ForwardAgent"),
+                BorderFactory.createTitledBorder("Agent Forwarding"),
                 BorderFactory.createEmptyBorder(4, 4, 4, 4)
             )
             forwardAgent.add(forwardAgentCheckBox)
