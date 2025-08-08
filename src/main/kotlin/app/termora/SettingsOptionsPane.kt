@@ -21,6 +21,7 @@ import com.jgoodies.forms.layout.FormLayout
 import com.jthemedetecor.OsThemeDetector
 import com.sun.jna.LastErrorException
 import com.sun.jna.Native
+import com.sun.jna.platform.WindowUtils
 import com.sun.jna.platform.win32.Shell32
 import com.sun.jna.platform.win32.ShlObj
 import com.sun.jna.platform.win32.WinDef
@@ -169,7 +170,8 @@ class SettingsOptionsPane : OptionsPane() {
 
             backgroundComBoBox.isEnabled = SystemInfo.isWindows || SystemInfo.isMacOS
 
-            opacitySpinner.isEnabled = SystemInfo.isMacOS || SystemInfo.isWindows
+            opacitySpinner.isEnabled = (SystemInfo.isMacOS || SystemInfo.isWindows)
+                    || (SystemInfo.isLinux && WindowUtils.isWindowAlphaSupported())
             opacitySpinner.model = object : SpinnerNumberModel(appearance.opacity, 0.1, 1.0, 0.1) {
                 override fun getNextValue(): Any {
                     return super.getNextValue() ?: maximum

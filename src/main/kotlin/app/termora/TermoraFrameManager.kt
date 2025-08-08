@@ -5,6 +5,7 @@ import app.termora.plugin.ExtensionManager
 import com.formdev.flatlaf.ui.FlatNativeWindowsLibrary
 import com.formdev.flatlaf.util.SystemInfo
 import com.sun.jna.Pointer
+import com.sun.jna.platform.WindowUtils
 import com.sun.jna.platform.win32.User32
 import com.sun.jna.platform.win32.WinDef
 import com.sun.jna.platform.win32.WinUser.*
@@ -206,7 +207,7 @@ class TermoraFrameManager : Disposable {
     }
 
     fun setOpacity(opacity: Double) {
-        if (opacity < 0 || opacity > 1 || SystemInfo.isLinux) return
+        if (opacity < 0 || opacity > 1) return
         for (window in getWindows()) {
             setOpacity(window, opacity)
         }
@@ -227,6 +228,8 @@ class TermoraFrameManager : Disposable {
                 User32.INSTANCE.SetWindowLong(hwnd, GWL_EXSTYLE, exStyle or WS_EX_LAYERED)
             }
             User32.INSTANCE.SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA)
+        } else if (SystemInfo.isLinux && WindowUtils.isWindowAlphaSupported()) {
+            WindowUtils.setWindowAlpha(window, opacity.toFloat())
         }
     }
 
