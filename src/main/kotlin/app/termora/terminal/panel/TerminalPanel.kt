@@ -185,8 +185,9 @@ class TerminalPanel(val tab: TerminalTab?, val terminal: Terminal, private val w
         this.addMouseMotionListener(mouseAdapter)
 
         // 超链接
-        val hyperlinkAdapter = TerminalPanelMouseHyperlinkAdapter(this, terminal)
+        val hyperlinkAdapter = TerminalPanelMouseHyperlinkAdapter(this, terminalDisplay, terminal)
         this.addMouseListener(hyperlinkAdapter)
+        this.addMouseMotionListener(hyperlinkAdapter)
 
         // 鼠标跟踪
         val trackingAdapter = TerminalPanelMouseTrackingAdapter(this, terminal, writer)
