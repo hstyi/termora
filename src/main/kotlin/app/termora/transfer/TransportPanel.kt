@@ -1164,7 +1164,9 @@ internal class TransportPanel(
 
         private fun edit() {
             for (path in files.map { it.first }) {
-                val target = Application.createSubTemporaryDir().resolve(path.name)
+                var name = path.name
+                if (SystemInfo.isWindows) name = name.replace(":", "-")
+                val target = Application.createSubTemporaryDir().resolve(name)
                 val transferId = internalTransferManager.addHighTransfer(path, target)
                 editTransferListener.addListenTransfer(transferId)
             }

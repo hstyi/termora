@@ -2,6 +2,7 @@ package app.termora.transfer
 
 import app.termora.*
 import app.termora.transfer.InternalTransferManager.TransferMode
+import app.termora.transfer.TransportPanel.Companion.isWindowsFileSystem
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
 import kotlinx.coroutines.CoroutineScope
@@ -95,8 +96,12 @@ internal class DefaultInternalTransferManager(
                 val context = AskTransferContext(TransferAction.Overwrite, false)
                 for (pair in paths) {
                     if (mode == TransferMode.Transfer && context.applyAll.not()) {
+                        var name = pair.first.name
+                        if (targetWorkdir.fileSystem.isWindowsFileSystem()) {
+                            name = name.replace(":", "-")
+                        }
                         val action = withContext(Dispatchers.Swing) {
-                            getTransferAction(context, targetWorkdir.resolve(pair.first.name), pair.second)
+                            getTransferAction(context, targetWorkdir.resolve(name), pair.second)
                         }
                         if (action == null) {
                             break
@@ -272,8 +277,11 @@ internal class DefaultInternalTransferManager(
         val isDirectory = pair.second.isDirectory
         val path = pair.first
         if (isDirectory.not() || mode == TransferMode.Rmrf) {
-            val transfer =
-                createTransfer(path, workdir.resolve(path.name), isDirectory, StringUtils.EMPTY, mode, action)
+            var name = path.name
+            if (workdir.fileSystem.isWindowsFileSystem()) {
+                name = name.replace(":", "-")
+            }
+            val transfer = createTransfer(path, workdir.resolve(name), isDirectory, StringUtils.EMPTY, mode, action)
             return if (transferManager.addTransfer(transfer)) FileVisitResult.CONTINUE else FileVisitResult.TERMINATE
         }
 
