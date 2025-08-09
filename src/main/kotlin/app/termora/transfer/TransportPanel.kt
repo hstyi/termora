@@ -106,6 +106,7 @@ internal class TransportPanel(
     private val loadingPanel = LoadingPanel()
     private val model = TransportTableModel()
     private val table = JTable(model)
+    private val tableScrollPane = JScrollPane(table)
     private val sorter = TableRowSorter(table.model)
     private var hasParent = false
     private val panel get() = this
@@ -211,7 +212,7 @@ internal class TransportPanel(
 
 
         table.setDefaultRenderer(Any::class.java, MyDefaultTableCellRenderer())
-        val scrollPane = JScrollPane(table)
+        val scrollPane = tableScrollPane
         scrollPane.apply { border = BorderFactory.createMatteBorder(1, 0, 0, 0, DynamicColor.BorderColor) }
 
         layeredPane.add(scrollPane, JLayeredPane.DEFAULT_LAYER as Any)
@@ -241,7 +242,11 @@ internal class TransportPanel(
 
         Disposer.register(this, editTransferListener)
 
-        refreshBtn.addActionListener { reload(requestFocus = true) }
+        refreshBtn.addActionListener {
+            val filename = getSelectFilename()
+            if (filename != null) registerSelectRow(filename)
+            reload(requestFocus = true)
+        }
 
         prevBtn.addActionListener { navigator.back() }
         nextBtn.addActionListener { navigator.forward() }
@@ -303,10 +308,15 @@ internal class TransportPanel(
                     if (target.fileSystem != loader.getSyncTransportSupport().getFileSystem()) return
                 }
                 if (target.pathString == workdir?.pathString || target.parent.pathString == workdir?.pathString) {
-                    if (loading) {
-                        registerNextReloadCallback { reload(requestFocus = false) }
-                    } else {
+                    val c = {
+                        val filename = getSelectFilename()
+                        if (filename != null) registerSelectRow(filename)
                         reload(requestFocus = false)
+                    }
+                    if (loading) {
+                        registerNextReloadCallback { c.invoke() }
+                    } else {
+                        c.invoke()
                     }
                 }
             }
@@ -658,6 +668,9 @@ internal class TransportPanel(
     }
 
     fun registerSelectRow(name: String) {
+        val verticalValue = tableScrollPane.verticalScrollBar.value
+        val horizontalValue = tableScrollPane.horizontalScrollBar.value
+
         registerNextReloadCallback {
             for (i in 0 until model.rowCount) {
                 if (model.getAttributes(i).name == name) {
@@ -665,10 +678,20 @@ internal class TransportPanel(
                     table.clearSelection()
                     table.setRowSelectionInterval(c, c)
                     table.scrollRectToVisible(table.getCellRect(c, TransportTableModel.COLUMN_NAME, true))
+                    tableScrollPane.verticalScrollBar.value = verticalValue
+                    tableScrollPane.horizontalScrollBar.value = horizontalValue
                     break
                 }
             }
         }
+    }
+
+    fun getSelectFilename(): String? {
+        val row = table.selectedRow
+        if (row < 0) return null
+        val c = sorter.convertRowIndexToModel(row)
+        if (c < 0) return null
+        return model.getAttributes(c).name
     }
 
     private fun registerNextReloadCallback(block: () -> Unit) {
@@ -1083,6 +1106,8 @@ internal class TransportPanel(
             } else if (actionCommand == TransportPopupMenu.ActionCommand.Delete) {
                 transfer(InternalTransferManager.TransferMode.Delete)
             } else if (actionCommand == TransportPopupMenu.ActionCommand.Refresh) {
+                val filename = getSelectFilename()
+                if (filename != null) registerSelectRow(filename)
                 reload(requestFocus = true)
             } else if (actionCommand == TransportPopupMenu.ActionCommand.Edit) {
                 edit()
