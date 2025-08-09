@@ -9,6 +9,7 @@ internal class FramePlugin : InternalPlugin() {
     init {
         support.addExtension(DatabasePropertiesChangedExtension::class.java) { KeymapRefresher.getInstance() }
         support.addExtension(DatabaseChangedExtension::class.java) { KeymapRefresher.getInstance() }
+        support.addExtension(ApplicationRunnerExtension::class.java) { ApplePressAndHoldEnabledApplicationRunnerExtension.instance }
     }
 
     override fun getName(): String {
