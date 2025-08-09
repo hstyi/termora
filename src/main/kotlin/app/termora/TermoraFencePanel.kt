@@ -72,10 +72,12 @@ class TermoraFencePanel(
         leftTreePanel.addComponentListener(object : ComponentAdapter() {
             override fun componentHidden(e: ComponentEvent) {
                 toolbar.isVisible = true
+                enableManager.setFlag("Termora.Fence.colspan", true)
             }
 
             override fun componentShown(e: ComponentEvent) {
                 toolbar.isVisible = false
+                enableManager.setFlag("Termora.Fence.colspan", false)
             }
         })
 
@@ -86,6 +88,16 @@ class TermoraFencePanel(
                 toolkit.menuShortcutKeyMaskEx or KeyEvent.SHIFT_DOWN_MASK
             ), "toggle"
         )
+
+        splitPane.addPropertyChangeListener("dividerLocation") {
+            if (leftTreePanel.isVisible)
+                enableManager.setFlag("Termora.Fence.dividerLocation", max(splitPane.dividerLocation, 10))
+        }
+
+        if (enableManager.getFlag("Termora.Fence.colspan", false)) {
+            toggle()
+        }
+
     }
 
     private inner class LeftTreePanel : JPanel(BorderLayout()), Disposable {
@@ -144,18 +156,18 @@ class TermoraFencePanel(
             }
 
             override fun actionPerformed(evt: AnActionEvent) {
-                if (leftTreePanel.isVisible) dividerLocation = splitPane.dividerLocation
-                leftTreePanel.isVisible = leftTreePanel.isVisible.not()
-                if (leftTreePanel.isVisible) splitPane.dividerLocation = dividerLocation
+                toggle()
             }
         }
     }
 
-
-    override fun dispose() {
-        if (leftTreePanel.isVisible)
-            enableManager.setFlag("Termora.Fence.dividerLocation", max(splitPane.dividerLocation, 10))
+    private fun toggle() {
+        if (leftTreePanel.isVisible) dividerLocation = splitPane.dividerLocation
+        leftTreePanel.isVisible = leftTreePanel.isVisible.not()
+        if (leftTreePanel.isVisible) splitPane.dividerLocation = dividerLocation
+        mySplitPane.doLayout()
     }
+
 
     fun getHostTree(): NewHostTree {
         return leftTreePanel.hostTree
