@@ -1,9 +1,6 @@
 package app.termora.actions
 
-import app.termora.ApplicationScope
-import app.termora.I18n
-import app.termora.Icons
-import app.termora.SettingsDialog
+import app.termora.*
 import com.formdev.flatlaf.extras.FlatDesktop
 import org.apache.commons.lang3.StringUtils
 import java.awt.KeyboardFocusManager
@@ -32,13 +29,13 @@ class SettingsAction private constructor() : AnAction(
     private val action get() = this
 
     init {
-        FlatDesktop.setPreferencesHandler {
-            val owner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
-            // Doorman 的情况下不允许打开
-            if (owner != null && ApplicationScope.windowScopes().isNotEmpty()) {
-                actionPerformed(ActionEvent(owner, ActionEvent.ACTION_PERFORMED, StringUtils.EMPTY))
+        FlatDesktop.setPreferencesHandler(object : Runnable {
+            override fun run() {
+                val focusedWindow = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusedWindow ?: return
+                if (focusedWindow !is TermoraFrame) return
+                actionPerformed(ActionEvent(focusedWindow, ActionEvent.ACTION_PERFORMED, StringUtils.EMPTY))
             }
-        }
+        })
     }
 
     override fun actionPerformed(evt: AnActionEvent) {
