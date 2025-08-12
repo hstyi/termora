@@ -24,6 +24,7 @@ import org.eclipse.jgit.internal.transport.sshd.agent.connector.WinPipeConnector
 import java.awt.*
 import java.awt.event.*
 import javax.swing.*
+import javax.swing.event.DocumentEvent
 import javax.swing.table.DefaultTableCellRenderer
 import javax.swing.table.DefaultTableModel
 
@@ -46,6 +47,7 @@ internal class SSHHostOptionsPane(private val accountOwner: AccountOwner) : Opti
     private val jumpHostsOption = JumpHostsOption()
     private val sftpOption = SFTPOption()
     private val owner: Window get() = SwingUtilities.getWindowAncestor(this)
+    private var setHostMode = false
 
     init {
         addOption(generalOption)
@@ -135,6 +137,7 @@ internal class SSHHostOptionsPane(private val accountOwner: AccountOwner) : Opti
     }
 
     fun setHost(host: Host) {
+        setHostMode = true
         generalOption.portTextField.value = host.port
         generalOption.nameTextField.text = host.name
         generalOption.usernameTextField.text = host.username
@@ -298,6 +301,8 @@ internal class SSHHostOptionsPane(private val accountOwner: AccountOwner) : Opti
         val remarkTextArea = FixedLengthTextArea(512)
         val authenticationTypeComboBox = FlatComboBox<AuthenticationType>()
 
+        private var hostFocused = false
+
         init {
             initView()
             initEvents()
@@ -403,6 +408,26 @@ internal class SSHHostOptionsPane(private val accountOwner: AccountOwner) : Opti
                 override fun componentResized(e: ComponentEvent) {
                     SwingUtilities.invokeLater { nameTextField.requestFocusInWindow() }
                     removeComponentListener(this)
+                }
+            })
+
+            hostTextField.addFocusListener(object : FocusAdapter() {
+                override fun focusGained(e: FocusEvent) {
+                    hostTextField.removeFocusListener(this)
+                    hostFocused = true
+                }
+            })
+
+            nameTextField.document.addDocumentListener(object : DocumentAdaptor() {
+                override fun changedUpdate(e: DocumentEvent) {
+                    if (nameTextField.hasFocus().not()) return
+
+                    if (hostFocused || setHostMode) {
+                        nameTextField.document.removeDocumentListener(this)
+                        return
+                    }
+
+                    hostTextField.text = nameTextField.text
                 }
             })
         }
