@@ -233,9 +233,10 @@ tasks.register<Copy>("copy-dependencies") {
                 exec { commandLine("zip", "-d", file.absolutePath, "com/sun/jna/aix-*") }
             } else if ("${pty4j.name}-${pty4j.version}" == file.nameWithoutExtension) {
                 val osName = if (os.isWindows) "win32" else if (os.isMacOsX) "darwin" else "linux"
-                val targetDir = FileUtils.getFile(dylib, pty4j.name, osName)
-                FileUtils.forceMkdir(targetDir)
                 val myArchName = if (arch.isArm) "aarch64" else "x86-64"
+                val targetDir = if (os.isMacOsX) FileUtils.getFile(dylib, pty4j.name, osName)
+                else FileUtils.getFile(dylib, pty4j.name, osName, myArchName)
+                FileUtils.forceMkdir(targetDir)
                 if (os.isWindows) {
                     // @formatter:off
                     exec { commandLine("unzip", "-j" , "-o", file.absolutePath, "resources/*win/${myArchName}/*", "-d", targetDir.absolutePath) }
