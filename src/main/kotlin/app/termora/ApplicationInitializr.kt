@@ -9,6 +9,7 @@ import org.apache.commons.lang3.SystemUtils
 import org.apache.commons.lang3.math.NumberUtils
 import org.slf4j.LoggerFactory
 import org.tinylog.configuration.Configuration
+import java.awt.Toolkit
 import java.io.File
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
@@ -35,8 +36,18 @@ class ApplicationInitializr {
         // 检查是否单例
         checkSingleton()
 
-        if (SystemUtils.IS_OS_MAC_OSX) {
+        if (SystemInfo.isMacOS) {
             System.setProperty("apple.awt.application.name", Application.getName())
+        }
+
+        if (SystemInfo.isLinux) {
+            // https://stackoverflow.com/questions/10593075
+            runCatching {
+                val toolkit = Toolkit.getDefaultToolkit()
+                val awtAppClassNameField = toolkit.javaClass.getDeclaredField("awtAppClassName")
+                awtAppClassNameField.setAccessible(true)
+                awtAppClassNameField.set(toolkit, Application.getName())
+            }
         }
 
         // 启动

@@ -384,6 +384,7 @@ tasks.register<Exec>("jpackage") {
     }
 
     if (os.isLinux) {
+        options.add("--add-opens=java.desktop/sun.awt.X11=ALL-UNNAMED")
         if (isDeb) {
             options.add("-Djpackage.app-layout=deb")
         }
@@ -681,17 +682,24 @@ fun packOnLinux(distributionDir: Directory, finalFilenameWithoutExtension: Strin
         exec { commandLine("chmod", "+x", appimagetool.absolutePath) }
     }
 
-
     // Desktop file
     val termoraName = project.name.uppercaseFirstChar()
+
+    // copy icon
+    FileUtils.copyFile(
+        File("${projectDir.absolutePath}/src/main/resources/icons/termora_256x256.png"),
+        distributionDir.file(termoraName + File.separator + termoraName + ".png").asFile
+    )
+
     val desktopFile = distributionDir.file(termoraName + File.separator + termoraName + ".desktop").asFile
     desktopFile.writeText(
         """[Desktop Entry]
 Type=Application
 Name=${termoraName}
 Comment=Terminal emulator and SSH client
-Icon=/lib/${termoraName}
+Icon=${termoraName}
 Categories=Development;
+StartupWMClass=${termoraName}
 Terminal=false
 """.trimIndent()
     )
