@@ -126,7 +126,7 @@ class PullService private constructor() : SyncService(), Disposable, Application
         while (true) {
             val request = Request.Builder()
                 .get()
-                .url("${accountManager.getServer()}/v1/data/changes?since=${since}&after=${after}&limit=${limit}")
+                .url("${accountManager.getServer()}/v1/data/changes?since=${nextSince}&after=${after}&limit=${limit}")
                 .build()
             val text = AccountHttp.execute(request = request)
             val response = ohMyJson.decodeFromString<DataChangesResponse>(text)
