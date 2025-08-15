@@ -198,10 +198,12 @@ class NewHostTree : SimpleTree(), Disposable {
         val sshMenu = importMenu.add(".ssh/config")
         val mobaXtermMenu = importMenu.add("MobaXterm")
 
-
+        // 为了避免误导，如果是 SSH 右键时显示 SFTP
+        val sftpText = if (SSHProtocolProvider.PROTOCOL.equals(lastHost.protocol, true))
+            "SFTP" else I18n.getString("termora.transport.sftp")
         val open = popupMenu.add(I18n.getString("termora.welcome.contextmenu.connect"))
         val openWith = popupMenu.add(JMenu(I18n.getString("termora.welcome.contextmenu.connect-with"))) as JMenu
-        val openWithSFTP = openWith.add(I18n.getString("termora.transport.sftp"))
+        val openWithSFTP = openWith.add(sftpText)
         val openWithSFTPCommand = openWith.add(I18n.getString("termora.tabbed.contextmenu.sftp-command"))
         val openInNewWindow = popupMenu.add(I18n.getString("termora.welcome.contextmenu.open-in-new-window"))
         popupMenu.addSeparator()
