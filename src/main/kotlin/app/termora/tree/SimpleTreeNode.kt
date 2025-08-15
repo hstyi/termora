@@ -2,6 +2,7 @@ package app.termora.tree
 
 import javax.swing.Icon
 import javax.swing.tree.DefaultMutableTreeNode
+import javax.swing.tree.TreeNode
 
 abstract class SimpleTreeNode<T>(data: T) : DefaultMutableTreeNode(data) {
     @Suppress("UNCHECKED_CAST")
@@ -35,4 +36,15 @@ abstract class SimpleTreeNode<T>(data: T) : DefaultMutableTreeNode(data) {
         return children
     }
 
+    open fun getParents(): List<SimpleTreeNode<T>> {
+        val parents = mutableListOf<SimpleTreeNode<T>>()
+        var p = parent as TreeNode?
+        while (p != null) {
+            if (p is SimpleTreeNode<T>) {
+                parents.add(p)
+            }
+            p = p.parent
+        }
+        return parents
+    }
 }

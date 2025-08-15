@@ -3,6 +3,8 @@ package app.termora.tree
 import app.termora.*
 import app.termora.Application.ohMyJson
 import app.termora.account.AccountManager
+import app.termora.actions.AnAction
+import app.termora.actions.AnActionEvent
 import app.termora.actions.OpenHostAction
 import app.termora.database.DatabaseChangedExtension
 import app.termora.database.DatabaseManager
@@ -32,6 +34,10 @@ import org.jdesktop.swingx.action.ActionManager
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Element
 import org.w3c.dom.NodeList
+import java.awt.datatransfer.DataFlavor
+import java.awt.datatransfer.StringSelection
+import java.awt.datatransfer.Transferable
+import java.awt.datatransfer.UnsupportedFlavorException
 import java.awt.event.*
 import java.io.*
 import java.util.*
@@ -135,6 +141,41 @@ class NewHostTree : SimpleTree(), Disposable {
                         for (node in getSelectionSimpleTreeNodes(true)) {
                             openHostAction?.actionPerformed(OpenHostActionEvent(e.source, node.host, e))
                         }
+                    }
+                }
+            }
+        })
+
+        actionMap.put("copy", object : AnAction() {
+            override fun actionPerformed(evt: AnActionEvent) {
+                toolkit.systemClipboard.setContents(StringSelection(StringUtils.EMPTY), null)
+                val nodes = getSelectionSimpleTreeNodes(false).toMutableList()
+                nodes.removeIf { e -> e.getParents().any { nodes.contains(it) } }
+                if (nodes.isEmpty() || nodes.any { it is TeamTreeNode }) return
+                if (nodes.any { it.id == "0" || it.id.isBlank() }) return
+                toolkit.systemClipboard.setContents(NodesTransferable(nodes), null)
+            }
+        })
+
+        actionMap.put("paste", object : AnAction() {
+            override fun actionPerformed(evt: AnActionEvent) {
+                val lastNode = getLastSelectedPathNode() ?: return
+                val folder = if (lastNode.isFolder) lastNode.parent ?: simpleTreeModel.root
+                    else lastNode.parent ?: return
+
+                if (toolkit.systemClipboard.isDataFlavorAvailable(NodesTransferable.FLAVOR).not()) return
+                val nodes = (toolkit.systemClipboard.getData(NodesTransferable.FLAVOR) as? List<*>)
+                    ?.filterIsInstance<HostTreeNode>() ?: return
+
+                for (node in nodes) {
+                    val newNode = copyNode(node, folder.id)
+                    // 复制的是文件夹，就在最后面
+                    if (newNode.isFolder) {
+                        simpleTreeModel.insertNodeInto(newNode, folder, folder.folderCount)
+                    } else if (lastNode.isFolder) { // 用户选的节点是文件夹，那就在最后一个child下面
+                        simpleTreeModel.insertNodeInto(newNode, folder, folder.childCount)
+                    } else { // 用户选的是主机并且复制的是主机
+                        simpleTreeModel.insertNodeInto(newNode, folder, folder.getIndex(lastNode) + 1)
                     }
                 }
             }
@@ -390,6 +431,20 @@ class NewHostTree : SimpleTree(), Disposable {
             }
 
         })
+
+        val mnemonics = mapOf(
+            refresh to KeyEvent.VK_R,
+            newMenu to KeyEvent.VK_W,
+            newFolder to KeyEvent.VK_F,
+            rename to KeyEvent.VK_M,
+            remove to KeyEvent.VK_D,
+            property to KeyEvent.VK_I,
+        )
+
+        for ((item, mnemonic) in mnemonics) {
+            item.text = "${item.text}(${KeyEvent.getKeyText(mnemonic)})"
+            item.setMnemonic(mnemonic)
+        }
 
         popupMenu.show(this, evt.x, evt.y)
     }
@@ -1077,5 +1132,23 @@ class NewHostTree : SimpleTree(), Disposable {
         electerm,
     }
 
+    private class NodesTransferable(val nodes: List<HostTreeNode>) : Transferable {
+        companion object {
+            val FLAVOR = DataFlavor("termora/host-tree", "Termora host tree transfers")
+        }
+
+        override fun getTransferDataFlavors(): Array<out DataFlavor> {
+            return arrayOf(FLAVOR)
+        }
+
+        override fun isDataFlavorSupported(flavor: DataFlavor?): Boolean {
+            return flavor == FLAVOR
+        }
+
+        override fun getTransferData(flavor: DataFlavor?): Any {
+            return if (flavor == FLAVOR) nodes else throw UnsupportedFlavorException(flavor)
+        }
+
+    }
 
 }
