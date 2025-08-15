@@ -103,9 +103,20 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
         commands.add("Compression=yes")
 
         // HostKeyAlgorithms 让 SFTP 命令的顺序和 sshd 的一致 这样可以避免 known_hosts 文件不一致问题
-        val hostKeyAlgorithms = ClientBuilder.setUpDefaultSignatureFactories(true).joinToString(",") { it.name }
+        val hostKeyAlgorithms = ClientBuilder.setUpDefaultSignatureFactories(true).map { it.name }.toMutableList()
+        val localHostKeyAlgorithms = getLocalSSHHostKeyAlgorithms()
+        // 删除本地 ssh 不存在的算法
+        hostKeyAlgorithms.removeIf { localHostKeyAlgorithms.contains(it).not() }
+
+        // 把本地支持的再添加进去
+        for (algorithm in localHostKeyAlgorithms) {
+            if (hostKeyAlgorithms.contains(algorithm).not()) {
+                hostKeyAlgorithms.add(algorithm)
+            }
+        }
+
         commands.add("-o")
-        commands.add("HostKeyAlgorithms=${hostKeyAlgorithms}")
+        commands.add("HostKeyAlgorithms=${hostKeyAlgorithms.joinToString(",")}")
 
         // 不使用配置文件
         commands.add("-F")
@@ -141,6 +152,15 @@ class SFTPPtyTerminalTab(windowScope: WindowScope, host: Host) : PtyHostTerminal
         )
 
         return ptyConnector
+    }
+
+    private fun getLocalSSHHostKeyAlgorithms(): Set<String> {
+        val pb = ProcessBuilder("ssh", "-Q", "key")
+        val process = pb.start()
+        if (process.waitFor() != 0) {
+            return emptySet()
+        }
+        return String(process.inputStream.readAllBytes()).lines().filter { it.isNotBlank() }.toSet()
     }
 
     private fun setAuthentication(commands: MutableList<String>, host: Host) {
