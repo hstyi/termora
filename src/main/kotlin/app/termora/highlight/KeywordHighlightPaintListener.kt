@@ -101,6 +101,16 @@ internal class KeywordHighlightPaintListener private constructor() : TerminalPai
         // -1 表示不使用高亮集
         if (keywordHighlightSetId == "-1") return
 
+        try {
+            doFind(offset, count, terminal, keywordHighlightSetId)
+        } catch (e: Exception) {
+            if (log.isDebugEnabled) {
+                log.debug(e.message, e)
+            }
+        }
+    }
+
+    private fun doFind(offset: Int, count: Int, terminal: Terminal, keywordHighlightSetId: String) {
         for (highlight in keywordHighlights) {
             if (highlight.enabled.not()) continue
             if (highlight.type != KeywordHighlightType.Highlight) continue
@@ -151,7 +161,6 @@ internal class KeywordHighlightPaintListener private constructor() : TerminalPai
             }
 
         }
-
     }
 
     override fun after(
