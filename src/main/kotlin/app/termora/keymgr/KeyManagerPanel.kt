@@ -262,8 +262,8 @@ class KeyManagerPanel(private val accountOwner: AccountOwner) : JPanel(BorderLay
 
         OptionPane.openFileInFolder(
             SwingUtilities.getWindowAncestor(this),
-            file, I18n.getString("termora.settings.sync.export-done-open-folder"),
-            I18n.getString("termora.settings.sync.export-done")
+            file, I18n.getString("termora.keymgr.export-done-open-folder"),
+            I18n.getString("termora.keymgr.export-done")
         )
     }
 
