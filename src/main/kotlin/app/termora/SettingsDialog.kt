@@ -1,6 +1,7 @@
 package app.termora
 
 import app.termora.database.DatabaseManager
+import com.formdev.flatlaf.util.UIScale
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Window
@@ -14,7 +15,10 @@ internal class SettingsDialog(owner: Window) : DialogWrapper(owner) {
     private val properties get() = DatabaseManager.getInstance().properties
 
     init {
-        size = Dimension(UIManager.getInt("Dialog.width"), UIManager.getInt("Dialog.height"))
+        size = Dimension(
+            UIScale.scale(UIManager.getInt("Dialog.width")),
+            UIScale.scale(UIManager.getInt("Dialog.height"))
+        )
         isModal = true
         title = I18n.getString("termora.setting")
         setLocationRelativeTo(null)
