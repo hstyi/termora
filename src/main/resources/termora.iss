@@ -34,6 +34,7 @@ DisableProgramGroupPage=yes
 ;PrivilegesRequired=lowest
 OutputDir={#MyOutputDir}
 OutputBaseFilename={#MyAppName}-{#MyAppVersion}
+Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=classic
 ;WizardStyle=modern

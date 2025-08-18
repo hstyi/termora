@@ -404,18 +404,6 @@ tasks.register<Exec>("jpackage") {
     arguments.addAll(listOf("--copyright", "TermoraDev"))
     arguments.addAll(listOf("--app-content", "$buildDir/plugins"))
 
-    if (os.isWindows) {
-        arguments.addAll(
-            listOf(
-                "--description",
-                "${project.name.uppercaseFirstChar()}: A terminal emulator and SSH client"
-            )
-        )
-    } else {
-        arguments.addAll(listOf("--description", "A terminal emulator and SSH client."))
-    }
-
-
     if (os.isMacOsX) {
         arguments.addAll(listOf("--mac-package-name", project.name.uppercaseFirstChar()))
         arguments.addAll(listOf("--mac-app-category", "developer-tools"))
