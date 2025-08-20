@@ -430,6 +430,7 @@ object SshClients {
         CoreModuleProperties.HEARTBEAT_INTERVAL.set(sshClient, Duration.ofSeconds(heartbeatInterval.toLong()))
         CoreModuleProperties.ALLOW_DHG1_KEX_FALLBACK.set(sshClient, true)
         CoreModuleProperties.IO_CONNECT_TIMEOUT.set(sshClient, timeout)
+        CoreModuleProperties.FORWARD_REQUEST_TIMEOUT.set(sshClient, timeout)
 
         sshClient.setKeyPasswordProviderFactory { IdentityPasswordProvider(CredentialsProvider.getDefault()) }
 
