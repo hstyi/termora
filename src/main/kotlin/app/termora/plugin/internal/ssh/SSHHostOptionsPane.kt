@@ -8,6 +8,7 @@ import app.termora.keymgr.KeyManagerDialog
 import app.termora.plugin.internal.AltKeyModifier
 import app.termora.plugin.internal.BasicProxyOption
 import app.termora.plugin.internal.BasicTerminalOption
+import app.termora.plugin.internal.telnet.TelnetHostOptionsPane.Backspace
 import app.termora.tree.Filter
 import app.termora.tree.HostTreeNode
 import app.termora.tree.NewHostTreeDialog
@@ -36,6 +37,7 @@ internal class SSHHostOptionsPane(private val accountOwner: AccountOwner) : Opti
     private val terminalOption = BasicTerminalOption().apply {
         showCharsetComboBox = true
         showLoginScripts = true
+        showBackspaceComboBox = true
         showEnvironmentTextArea = true
         showStartupCommandTextField = true
         showHeartbeatIntervalTextField = true
@@ -112,6 +114,7 @@ internal class SSHHostOptionsPane(private val accountOwner: AccountOwner) : Opti
             x11Forwarding = tunnelingOption.x11ServerTextField.text,
             loginScripts = terminalOption.loginScripts,
             extras = mutableMapOf(
+                "backspace" to (terminalOption.backspaceComboBox.selectedItem as Backspace).name,
                 "altModifier" to (terminalOption.altModifierComboBox.selectedItem?.toString()
                     ?: AltKeyModifier.EightBit.name),
                 "keywordHighlightSetId" to ((terminalOption.highlightSetComboBox.selectedItem as? KeywordHighlight)?.id
@@ -168,6 +171,9 @@ internal class SSHHostOptionsPane(private val accountOwner: AccountOwner) : Opti
         terminalOption.altModifierComboBox.selectedItem = runCatching { AltKeyModifier.valueOf(altModifier) }
             .getOrNull() ?: AltKeyModifier.EightBit
 
+
+        terminalOption.backspaceComboBox.selectedItem =
+            Backspace.valueOf(host.options.extras["backspace"] ?: Backspace.Delete.name)
 
         val timeout = host.options.extras["timeout"] ?: "60"
         terminalOption.timeoutTextField.value = timeout.toIntOrNull() ?: 60

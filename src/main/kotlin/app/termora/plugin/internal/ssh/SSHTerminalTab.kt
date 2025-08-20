@@ -7,9 +7,8 @@ import app.termora.addons.zmodem.ZModemPtyConnectorAdaptor
 import app.termora.database.DatabaseManager
 import app.termora.keymap.KeyShortcut
 import app.termora.keymap.KeymapManager
-import app.termora.terminal.ControlCharacters
-import app.termora.terminal.DataKey
-import app.termora.terminal.PtyConnector
+import app.termora.plugin.internal.telnet.TelnetHostOptionsPane
+import app.termora.terminal.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.sync.Mutex
@@ -20,6 +19,7 @@ import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.common.future.CloseFuture
 import org.apache.sshd.common.future.SshFutureListener
 import org.slf4j.LoggerFactory
+import java.awt.event.KeyEvent
 import java.nio.charset.StandardCharsets
 import javax.swing.Icon
 import javax.swing.JComponent
@@ -110,7 +110,18 @@ class SSHTerminalTab(
             // clear screen
             terminal.clearScreen()
             // show cursor
-            terminalModel.setData(DataKey.Companion.ShowCursor, true)
+            terminalModel.setData(DataKey.ShowCursor, true)
+
+            val encoder = terminal.getKeyEncoder()
+            if (encoder is KeyEncoderImpl) {
+                val backspace = host.options.extras["backspace"]
+                if (backspace == TelnetHostOptionsPane.Backspace.Backspace.name) {
+                    encoder.putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_BACK_SPACE), String(byteArrayOf(0x08)))
+                } else if (backspace == TelnetHostOptionsPane.Backspace.VT220.name) {
+                    encoder.putCode(TerminalKeyEvent(keyCode = KeyEvent.VK_BACK_SPACE), "${ControlCharacters.ESC}[3~")
+                }
+            }
+
         }
 
         return ptyConnectorFactory.decorate(
