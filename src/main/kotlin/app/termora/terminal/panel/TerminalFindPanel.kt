@@ -172,7 +172,7 @@ class TerminalFindPanel(
             }
         } else {
             if (index - 1 <= 0) {
-                index = 0
+                index = kinds.size - 1
             } else {
                 index--
             }
