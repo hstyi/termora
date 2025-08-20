@@ -520,9 +520,13 @@ class ControlSequenceIntroducerProcessor(terminal: Terminal, reader: TerminalRea
 
         val writer = terminalModel.getData(DataKey.TerminalWriter)
 
-        // VT102_RESPONSE
-        val bytes = "${ControlCharacters.ESC}[?6c".toByteArray(writer.getCharset())
-        writer.write(TerminalWriter.WriteRequest.fromBytes(bytes))
+        if (args.startsWith('>')) {
+            val bytes = "${ControlCharacters.ESC}[>0;276;0c".toByteArray(writer.getCharset())
+            writer.write(TerminalWriter.WriteRequest.fromBytes(bytes))
+        } else {
+            val bytes = "${ControlCharacters.ESC}[?1;2c".toByteArray(writer.getCharset())
+            writer.write(TerminalWriter.WriteRequest.fromBytes(bytes))
+        }
 
     }
 

@@ -139,6 +139,7 @@ object AccountHttp {
                     }
 
                 } catch (e: Exception) {
+                    if (cidr == "localhost" || cidr == "127.0.0.1") continue
                     if (log.isDebugEnabled) {
                         log.debug(e.message, e)
                     }
