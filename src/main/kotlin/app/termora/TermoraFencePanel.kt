@@ -2,6 +2,7 @@ package app.termora
 
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
+import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import app.termora.tree.NewHostTree
 import com.formdev.flatlaf.extras.components.FlatTabbedPane
 import com.formdev.flatlaf.extras.components.FlatToolBar
@@ -9,11 +10,9 @@ import com.formdev.flatlaf.util.SystemInfo
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Font
-import java.awt.event.ComponentAdapter
-import java.awt.event.ComponentEvent
-import java.awt.event.KeyEvent
-import java.awt.event.MouseAdapter
+import java.awt.event.*
 import javax.swing.*
+import javax.swing.tree.TreePath
 import kotlin.math.max
 
 
@@ -98,6 +97,39 @@ class TermoraFencePanel(
             toggle()
         }
 
+
+        DynamicExtensionHandler.getInstance()
+            .register(TerminalTabbedContextMenuExtension::class.java, object : TerminalTabbedContextMenuExtension {
+                override fun createJMenuItem(
+                    windowScope: WindowScope,
+                    tab: TerminalTab
+                ): JMenuItem {
+                    if (tab !is HostTerminalTab) throw UnsupportedOperationException()
+                    if (tab.host.isTemporary) throw UnsupportedOperationException()
+                    if (tab.host.id == "local") throw UnsupportedOperationException()
+
+                    val item = JMenuItem(I18n.getString("termora.tabbed.contextmenu.select-host"))
+                    item.addActionListener(object : AbstractAction() {
+                        override fun actionPerformed(e: ActionEvent) {
+                            val tree = getHostTree()
+                            for (node in tree.simpleTreeModel.root.getAllChildren()) {
+                                if (node.id == tab.host.id) {
+                                    tree.selectionPath = TreePath(tree.simpleTreeModel.getPathToRoot(node))
+                                    tree.requestFocusInWindow()
+                                    break
+                                }
+                            }
+                        }
+                    })
+
+                    return item
+                }
+
+                override fun ordered(): Long {
+                    return Long.MAX_VALUE
+                }
+
+            }).let { Disposer.register(this, it) }
     }
 
     private inner class LeftTreePanel : JPanel(BorderLayout()), Disposable {

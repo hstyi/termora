@@ -69,4 +69,7 @@ class SftpCommandTerminalTabbedContextMenuExtension private constructor() : Term
         openHostAction.actionPerformed(OpenHostActionEvent(evt.source, host, evt))
     }
 
+    override fun ordered(): Long {
+        return 1
+    }
 }
