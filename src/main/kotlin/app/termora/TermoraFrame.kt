@@ -212,7 +212,7 @@ class TermoraFrame : JFrame(), DataProvider {
         }
 
         if (layout == TermoraLayout.Fence) {
-            val fencePanel = TermoraFencePanel(terminalTabbed, tabbedPane, moveMouseAdapter)
+            val fencePanel = TermoraFencePanel(windowScope, terminalTabbed, tabbedPane, moveMouseAdapter)
             add(fencePanel, BorderLayout.CENTER)
             dataProviderSupport.addData(DataProviders.Welcome.HostTree, fencePanel.getHostTree())
             Disposer.register(windowScope, fencePanel)

@@ -17,6 +17,7 @@ import kotlin.math.max
 
 
 class TermoraFencePanel(
+    private val ws: WindowScope,
     private val terminalTabbed: TerminalTabbed,
     private val tabbed: FlatTabbedPane,
     private val moveMouseAdapter: MouseAdapter,
@@ -104,6 +105,7 @@ class TermoraFencePanel(
                     windowScope: WindowScope,
                     tab: TerminalTab
                 ): JMenuItem {
+                    if (windowScope != ws) throw UnsupportedOperationException()
                     if (tab !is HostTerminalTab) throw UnsupportedOperationException()
                     if (tab.host.isTemporary) throw UnsupportedOperationException()
                     if (tab.host.id == "local") throw UnsupportedOperationException()
