@@ -4,6 +4,7 @@ import app.termora.*
 import app.termora.plugin.ExtensionManager
 import app.termora.transfer.TransportPanel.Companion.isLocallyFileSystem
 import com.formdev.flatlaf.extras.components.FlatPopupMenu
+import com.formdev.flatlaf.util.SystemInfo
 import kotlinx.coroutines.launch
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
@@ -41,7 +42,14 @@ internal class TransportPopupMenu(
     private val copyPathMenu = JMenuItem(I18n.getString("termora.transport.table.contextmenu.copy-path"))
     private val copyMenu = JMenuItem(I18n.getString("termora.copy"))
     private val pasteMenu = JMenuItem(I18n.getString("termora.paste"))
-    private val openInFinderMenu = JMenuItem(I18n.getString("termora.transport.table.contextmenu.open-in-folder"))
+    private val openInFinderMenu = JMenuItem(
+        I18n.getString(
+            "termora.transport.table.contextmenu.open-in-folder",
+            if (SystemInfo.isMacOS) I18n.getString("termora.finder")
+            else if (SystemInfo.isWindows) I18n.getString("termora.explorer")
+            else I18n.getString("termora.folder")
+        )
+    )
     private val renameMenu = JMenuItem(I18n.getString("termora.transport.table.contextmenu.rename"))
     private val deleteMenu = JMenuItem(I18n.getString("termora.transport.table.contextmenu.delete"))
 
