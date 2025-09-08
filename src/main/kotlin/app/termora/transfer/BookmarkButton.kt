@@ -66,6 +66,8 @@ class BookmarkButton : JButton(Icons.bookmarks) {
         })
 
         isBookmark = false
+
+        toolTipText = I18n.getString("termora.transport.bookmarks")
     }
 
     private fun showBookmarks(e: MouseEvent) {

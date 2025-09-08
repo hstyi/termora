@@ -63,7 +63,7 @@ import kotlin.io.path.*
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
-internal class TransportPanel(
+internal open class TransportPanel(
     private val internalTransferManager: InternalTransferManager,
     val host: Host,
     val loader: TransportSupportLoader,
@@ -131,10 +131,10 @@ internal class TransportPanel(
      * 工作目录
      */
     override var workdir: Path? = null
-        private set
+        protected set
 
     override var loading = false
-        private set(value) {
+        protected set(value) {
             val oldValue = field
             field = value
             if (oldValue != value) {
@@ -164,6 +164,14 @@ internal class TransportPanel(
         toolbar.add(parentBtn)
         toolbar.add(eyeBtn)
         toolbar.add(refreshBtn)
+
+        prevBtn.toolTipText = I18n.getString("termora.transport.toolbar.prev")
+        homeBtn.toolTipText = I18n.getString("termora.transport.toolbar.home")
+        nextBtn.toolTipText = I18n.getString("termora.transport.toolbar.next")
+
+        parentBtn.toolTipText = I18n.getString("termora.transport.toolbar.parent")
+        eyeBtn.toolTipText = I18n.getString("termora.transport.toolbar.show-hide")
+        refreshBtn.toolTipText = I18n.getString("termora.transport.toolbar.refresh")
 
         sorter.maxSortKeys = 1
         table.setRowSorter(sorter)
@@ -411,7 +419,7 @@ internal class TransportPanel(
             }
         })
 
-        addPropertyChangeListener("workdir") { evt -> reload() }
+        addPropertyChangeListener("workdir") { _ -> reload() }
 
         reload()
     }
@@ -522,7 +530,8 @@ internal class TransportPanel(
                         ) == JOptionPane.YES_OPTION
                     ) {
                         // 直接执行删除操作
-                        val future = internalTransferManager.addTransfer(validFiles, InternalTransferManager.TransferMode.Delete)
+                        val future =
+                            internalTransferManager.addTransfer(validFiles, InternalTransferManager.TransferMode.Delete)
                         mountFuture(future)
                     }
                 }
@@ -916,11 +925,16 @@ internal class TransportPanel(
         }
     }
 
-    private fun showContextmenu(rows: Array<Int>, e: MouseEvent) {
+    protected open fun showContextmenu(rows: Array<Int>, e: MouseEvent) {
         val files = rows.map { model.getPath(it) to model.getAttributes(it) }
         val popupMenu = TransportPopupMenu(owner, model, internalTransferManager, loader, files)
         popupMenu.addActionListener(PopupMenuActionListener(files))
+        customizeContextmenu(rows, e, popupMenu)
         popupMenu.show(table, e.x, e.y)
+    }
+
+    protected open fun customizeContextmenu(rows: Array<Int>, e: MouseEvent, popupMenu: TransportPopupMenu) {
+
     }
 
     override fun <T : Any> getData(dataKey: DataKey<T>): T? {
