@@ -30,6 +30,8 @@ import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import javax.swing.*
+import javax.swing.event.PopupMenuEvent
+import javax.swing.event.PopupMenuListener
 import kotlin.io.path.absolutePathString
 import kotlin.math.max
 import kotlin.reflect.cast
@@ -58,12 +60,24 @@ internal class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
     private val connectFailedPanel = ConnectFailedPanel()
     private val transferManager = TransferTableModel(coroutineScope)
     private val disposable = Disposer.newDisposable()
+    private val focusedWindow get() = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusedWindow
     private val owner get() = SwingUtilities.getWindowAncestor(this)
     private val questionBtn = JButton(Icons.questionMark)
     private val downloadBtn = JButton(Icons.download)
     private val badgePresentation = Badge.getInstance(tab.windowScope)
         .addBadge(downloadBtn).apply { visible = false }
     private val support = DataProviderSupport()
+    private var isShowPopupMenu = false
+
+    override var isStickHover: Boolean
+        get() = super.isStickHover
+        set(value) {
+            if (isShowPopupMenu || owner != focusedWindow) {
+                super.isStickHover = true
+            } else {
+                super.isStickHover = value
+            }
+        }
 
     init {
         initViews()
@@ -135,6 +149,8 @@ internal class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
             }
         })
 
+        questionBtn.toolTipText = I18n.getString("termora.visual-window.transport.question")
+
         // 立即连接
         connect()
     }
@@ -151,7 +167,7 @@ internal class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
                 val support = DefaultTransportSupport(fileSystem, fileSystem.defaultDir)
                 withContext(Dispatchers.Swing) {
                     val internalTransferManager = MyInternalTransferManager()
-                    val transportPanel = TransportPanel(
+                    val transportPanel = object : TransportPanel(
                         internalTransferManager, tab.host,
                         object : TransportSupportLoader {
                             override suspend fun getTransportSupport(): TransportSupport {
@@ -165,7 +181,27 @@ internal class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
                             override fun isLoaded(): Boolean {
                                 return true
                             }
-                        })
+                        }) {
+                        override fun customizeContextmenu(
+                            rows: Array<Int>,
+                            e: MouseEvent,
+                            popupMenu: TransportPopupMenu
+                        ) {
+                            popupMenu.addPopupMenuListener(object : PopupMenuListener {
+                                override fun popupMenuWillBecomeVisible(e: PopupMenuEvent?) {
+                                    isShowPopupMenu = true
+                                }
+
+                                override fun popupMenuWillBecomeInvisible(e: PopupMenuEvent?) {
+                                    isShowPopupMenu = false
+                                }
+
+                                override fun popupMenuCanceled(e: PopupMenuEvent?) {
+                                    isShowPopupMenu = false
+                                }
+                            })
+                        }
+                    }
                     internalTransferManager.setTransferPanel(transportPanel)
                     Disposer.register(transportPanel, object : Disposable {
                         override fun dispose() {
@@ -238,6 +274,10 @@ internal class TransferVisualWindow(tab: SSHTerminalTab, visualWindowManager: Vi
         executorService.shutdownNow()
         connectingPanel.busyLabel.isBusy = false
         super.dispose()
+    }
+
+    override fun reassemble() {
+        super.reassemble()
     }
 
     override fun <T : Any> getData(dataKey: DataKey<T>): T? {

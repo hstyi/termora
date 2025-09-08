@@ -36,6 +36,7 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
     private var dialog: VisualWindowDialog? = null
     private var oldBounds = Rectangle()
     private var toggleWindowBtn = JButton(Icons.openInNewWindow)
+    private val closeBtn = JButton(Icons.close)
     private var isAlwaysTop
         get() = properties.getString("VisualWindow.${id}.dialog.isAlwaysTop", "false").toBoolean()
         set(value) = properties.putString("VisualWindow.${id}.dialog.isAlwaysTop", value.toString())
@@ -47,8 +48,8 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
         }
     }
 
-    protected var isStickHover = false
-        private set(value) {
+    protected open var isStickHover = false
+        set(value) {
             if (value == field) return
             field = value
             reassemble()
@@ -92,6 +93,8 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
         oldBounds = bounds
         alwaysTopBtn.isSelected = isAlwaysTop
         alwaysTopBtn.isVisible = false
+
+        closeBtn.toolTipText = I18n.getString("termora.tabbed.contextmenu.close")
     }
 
     protected open fun toolbarButtons(): List<Pair<JButton, Position>> {
@@ -134,6 +137,7 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
         addMouseListener(object : MouseAdapter() {})
 
         toggleWindowBtn.addActionListener { toggleWindow() }
+        toggleWindowBtn.toolTipText = I18n.getString("termora.visual-window.toggle-window")
 
         addPropertyChangeListener("isWindow") {
             if (isWindow) {
@@ -165,6 +169,8 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
                 dialog?.isAlwaysOnTop = isAlwaysTop
             }
         }
+
+        closeBtn.addActionListener { if (beforeClose()) Disposer.dispose(visualWindow) }
     }
 
     private fun initToolBar() {
@@ -180,7 +186,7 @@ open class VisualWindowPanel(protected val id: String, protected val visualWindo
         buttons.filter { it.second == Position.Right }.forEach { toolbar.add(it.first) }
 
         toolbar.add(toggleWindowBtn)
-        toolbar.add(JButton(Icons.close).apply { addActionListener { if (beforeClose()) Disposer.dispose(visualWindow) } })
+        toolbar.add(closeBtn)
         toolbar.border = BorderFactory.createMatteBorder(0, 0, 1, 0, DynamicColor.BorderColor)
         add(toolbar, BorderLayout.NORTH)
     }
