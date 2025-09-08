@@ -16,8 +16,8 @@ import app.termora.snippet.SnippetManager
 import app.termora.terminal.CursorStyle
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
-import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.StatementType
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
