@@ -8,6 +8,8 @@ import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.session.ClientSession
+import org.apache.sshd.core.CoreModuleProperties
+import org.apache.sshd.sftp.SftpModuleProperties
 import org.apache.sshd.sftp.client.SftpClientFactory
 
 internal class SFTPTransferProtocolProvider : TransferProtocolProvider {
@@ -32,6 +34,11 @@ internal class SFTPTransferProtocolProvider : TransferProtocolProvider {
             client = if (owner == null) SshClients.openClient(requester.host)
             else SshClients.openClient(requester.host, owner)
             session = SshClients.openSession(requester.host, client)
+
+            CoreModuleProperties.IO_CONNECT_TIMEOUT.get(client).ifPresent { e ->
+                SftpModuleProperties.SFTP_CHANNEL_OPEN_TIMEOUT.set(session, e)
+            }
+
             val fileSystem = SftpClientFactory.instance().createSftpFileSystem(session)
 
             val host = requester.host
