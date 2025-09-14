@@ -32,7 +32,7 @@ class MacroManager private constructor() {
 
         val accountId = AccountManager.getInstance().getAccountId()
 
-        database.save(
+        database.saveAndIncrementVersion(
             Data(
                 id = macro.id,
                 ownerId = accountId,
