@@ -1,16 +1,20 @@
 package app.termora.terminal
 
+import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.math.max
 import kotlin.math.min
 
 open class SelectionModelImpl(private val terminal: Terminal) : SelectionModel {
+
     private var startPosition = Position.unknown
     private var endPosition = Position.unknown
     private var block = false
     private val document = terminal.getDocument()
 
     internal companion object {
+        private val log = LoggerFactory.getLogger(SelectionModelImpl::class.java)
+
         fun isPointInsideArea(start: Position, end: Position, x: Int, y: Int, cols: Int): Boolean {
             val top = min(start.y, end.y)
             val bottom = max(start.y, end.y)
@@ -49,7 +53,13 @@ open class SelectionModelImpl(private val terminal: Terminal) : SelectionModel {
                 }
 
                 // 设置新的选择区域
-                setSelection(startPosition, endPosition)
+                try {
+                    setSelection(startPosition, endPosition)
+                } catch (e: Exception) {
+                    if (log.isTraceEnabled) {
+                        log.trace(e.message)
+                    }
+                }
 
             }
 
