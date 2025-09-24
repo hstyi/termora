@@ -1,9 +1,6 @@
 package app.termora.plugins.editor
 
-import app.termora.DocumentAdaptor
-import app.termora.DynamicColor
-import app.termora.EnableManager
-import app.termora.Icons
+import app.termora.*
 import app.termora.database.DatabaseManager
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.components.FlatTextField
@@ -39,6 +36,10 @@ class EditorPanel(private val window: JFrame, private val file: File) : JPanel(B
 
     companion object {
         private val log = LoggerFactory.getLogger(EditorPanel::class.java)
+        private val saveIcon = DynamicIcon(
+            "icons/save.svg", "icons/save_dark.svg",
+            loader = EditorPlugin::class.java.classLoader
+        )
     }
 
     private var text = file.readText(Charsets.UTF_8)
@@ -54,6 +55,7 @@ class EditorPanel(private val window: JFrame, private val file: File) : JPanel(B
     private val prevBtn = JButton(Icons.up)
     private val context = SearchContext()
     private val softWrapBtn = JToggleButton(Icons.softWrap)
+    private val saveBtn = JButton(saveIcon)
     private val scrollUpBtn = JButton(Icons.scrollUp)
     private val scrollEndBtn = JButton(Icons.scrollDown)
     private val prettyBtn = JButton(Icons.reformatCode)
@@ -141,10 +143,17 @@ class EditorPanel(private val window: JFrame, private val file: File) : JPanel(B
         )
 
         toolbar.orientation = VERTICAL
+        toolbar.add(saveBtn)
         toolbar.add(scrollUpBtn)
         toolbar.add(prettyBtn)
         toolbar.add(softWrapBtn)
         toolbar.add(scrollEndBtn)
+
+        saveBtn.toolTipText = EditorI18n.getString("termora.plugins.editor.save")
+        scrollUpBtn.toolTipText = EditorI18n.getString("termora.plugins.editor.first-line")
+        scrollEndBtn.toolTipText = EditorI18n.getString("termora.plugins.editor.last-line")
+        softWrapBtn.toolTipText = EditorI18n.getString("termora.plugins.editor.soft-wrap")
+        prettyBtn.toolTipText = EditorI18n.getString("termora.plugins.editor.format")
 
         val viewPanel = JPanel(BorderLayout())
         viewPanel.add(scrollPane, BorderLayout.CENTER)
@@ -210,6 +219,8 @@ class EditorPanel(private val window: JFrame, private val file: File) : JPanel(B
                 window.title = file.name
             }
         })
+
+        saveBtn.addActionListener(textArea.actionMap.get("Save"))
 
         textArea.actionMap.put("Format", object : AbstractAction() {
             override fun actionPerformed(e: ActionEvent) {
