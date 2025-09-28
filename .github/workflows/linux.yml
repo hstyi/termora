@@ -3,8 +3,8 @@ name: Linux
 on: [ push, pull_request ]
 
 env:
-  JBR_MAJOR: 21.0.7
-  JBR_PATCH: b1038.58
+  JBR_MAJOR: 21.0.8
+  JBR_PATCH: b1138.52
 
 jobs:
   build:
