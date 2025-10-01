@@ -2,6 +2,7 @@ package app.termora.keymgr
 
 import app.termora.AES.decodeBase64
 import app.termora.RSA
+import org.apache.sshd.common.config.keys.impl.ECDSAPublicKeyEntryDecoder
 import org.apache.sshd.common.keyprovider.AbstractResourceKeyPairProvider
 import org.apache.sshd.common.session.SessionContext
 import org.apache.sshd.common.util.security.eddsa.Ed25519PublicKeyDecoder
@@ -25,6 +26,8 @@ class OhKeyPairKeyPairProvider(private val id: String) : AbstractResourceKeyPair
                 when (ohKeyPair.type) {
                     "RSA" -> RSA.generatePublic(ohKeyPair.publicKey.decodeBase64())
                     "ED25519" -> Ed25519PublicKeyDecoder.INSTANCE.generatePublicKey((X509EncodedKeySpec(ohKeyPair.publicKey.decodeBase64())))
+                    "ECDSA-SHA2-NISTP256","ECDSA-SHA2-NISTP384","ECDSA-SHA2-NISTP521" ->
+                        ECDSAPublicKeyEntryDecoder.INSTANCE.generatePublicKey(X509EncodedKeySpec(ohKeyPair.publicKey.decodeBase64()))
                     else -> throw UnsupportedOperationException("${ohKeyPair.type} is not supported")
                 }
             } as PublicKey
@@ -33,6 +36,8 @@ class OhKeyPairKeyPairProvider(private val id: String) : AbstractResourceKeyPair
                 when (ohKeyPair.type) {
                     "RSA" -> RSA.generatePrivate(ohKeyPair.privateKey.decodeBase64())
                     "ED25519" -> Ed25519PublicKeyDecoder.INSTANCE.generatePrivateKey(PKCS8EncodedKeySpec(ohKeyPair.privateKey.decodeBase64()))
+                    "ECDSA-SHA2-NISTP256","ECDSA-SHA2-NISTP384","ECDSA-SHA2-NISTP521" ->
+                        ECDSAPublicKeyEntryDecoder.INSTANCE.generatePrivateKey(PKCS8EncodedKeySpec(ohKeyPair.privateKey.decodeBase64()))
                     else -> throw UnsupportedOperationException("${ohKeyPair.type} is not supported")
                 }
             } as PrivateKey

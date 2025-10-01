@@ -287,6 +287,9 @@ class KeyManagerPanel(private val accountOwner: AccountOwner) : JPanel(BorderLay
 
             typeComboBox.addItem("RSA")
             typeComboBox.addItem("ED25519")
+            typeComboBox.addItem("ECDSA-SHA2-NISTP256")
+            typeComboBox.addItem("ECDSA-SHA2-NISTP384")
+            typeComboBox.addItem("ECDSA-SHA2-NISTP521")
 
             // 默认 RSA
             lengthComboBox.addItem(1024)
@@ -396,6 +399,12 @@ class KeyManagerPanel(private val accountOwner: AccountOwner) : JPanel(BorderLay
                         lengthComboBox.addItem(1024 * 4)
                         lengthComboBox.addItem(1024 * 8)
                         lengthComboBox.selectedItem = 1024 * 2
+                    } else if (typeComboBox.selectedItem == "ECDSA-SHA2-NISTP256") {
+                        lengthComboBox.addItem(256)
+                    } else if (typeComboBox.selectedItem == "ECDSA-SHA2-NISTP384") {
+                        lengthComboBox.addItem(384)
+                    } else if (typeComboBox.selectedItem == "ECDSA-SHA2-NISTP521") {
+                        lengthComboBox.addItem(521)
                     }
                 }
             }
@@ -413,6 +422,17 @@ class KeyManagerPanel(private val accountOwner: AccountOwner) : JPanel(BorderLay
             super.doCancelAction()
         }
 
+        private fun genKeyPair(): KeyPair {
+            val keyType = when (typeComboBox.selectedItem) {
+                "ED25519" -> KeyPairProvider.SSH_ED25519
+                "ECDSA-SHA2-NISTP256" -> KeyPairProvider.ECDSA_SHA2_NISTP256
+                "ECDSA-SHA2-NISTP384" -> KeyPairProvider.ECDSA_SHA2_NISTP384
+                "ECDSA-SHA2-NISTP521" -> KeyPairProvider.ECDSA_SHA2_NISTP521
+                else -> KeyPairProvider.SSH_RSA
+            }
+            return KeyUtils.generateKeyPair(keyType, lengthComboBox.selectedItem as Int)
+        }
+
         override fun doOKAction() {
 
             if (ohKeyPair == OhKeyPair.empty) {
@@ -422,9 +442,7 @@ class KeyManagerPanel(private val accountOwner: AccountOwner) : JPanel(BorderLay
                     return
                 }
 
-                val keyType = if (typeComboBox.selectedItem == "RSA")
-                    KeyPairProvider.SSH_RSA else KeyPairProvider.SSH_ED25519
-                val keyPair = KeyUtils.generateKeyPair(keyType, lengthComboBox.selectedItem as Int)
+                val keyPair = genKeyPair()
                 ohKeyPair = OhKeyPair(
                     id = randomUUID(),
                     name = nameTextField.text,

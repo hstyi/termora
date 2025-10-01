@@ -15,6 +15,19 @@ class KeyUtilsTest {
         assertEquals(KeyUtils.getKeySize(KeyUtils.generateKeyPair("ssh-rsa", 1024).public), 1024)
     }
 
+
+    @Test
+    fun test_ECDSA() {
+        assertEquals(KeyUtils.getKeySize(KeyUtils.generateKeyPair(KeyPairProvider.ECDSA_SHA2_NISTP256, 256).private), 256)
+        assertEquals(KeyUtils.getKeySize(KeyUtils.generateKeyPair(KeyPairProvider.ECDSA_SHA2_NISTP256, 256).public), 256)
+
+        assertEquals(KeyUtils.getKeySize(KeyUtils.generateKeyPair(KeyPairProvider.ECDSA_SHA2_NISTP384, 384).private), 384)
+        assertEquals(KeyUtils.getKeySize(KeyUtils.generateKeyPair(KeyPairProvider.ECDSA_SHA2_NISTP384, 384).public), 384)
+
+        assertEquals(KeyUtils.getKeySize(KeyUtils.generateKeyPair(KeyPairProvider.ECDSA_SHA2_NISTP521, 521).private), 521)
+        assertEquals(KeyUtils.getKeySize(KeyUtils.generateKeyPair(KeyPairProvider.ECDSA_SHA2_NISTP521, 521).public), 521)
+    }
+
     @Test
     fun test_ed25519() {
         val keyPair = KeyUtils.generateKeyPair(KeyPairProvider.SSH_ED25519, 256)
