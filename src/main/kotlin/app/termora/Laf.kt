@@ -874,6 +874,8 @@ class NordDarkLaf : FlatPropertiesLaf("Nord Dark", Properties().apply {
             TerminalColor.Basic.SELECTION_BACKGROUND,
             TerminalColor.Cursor.BACKGROUND -> 0xeceff4
 
+            TerminalColor.Basic.SELECTION_FOREGROUND -> 0x3b4252
+
             TerminalColor.Basic.FOREGROUND -> 0xd8dee9
 
 
