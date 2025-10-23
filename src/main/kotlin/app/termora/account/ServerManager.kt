@@ -1,7 +1,10 @@
 package app.termora.account
 
-import app.termora.*
+import app.termora.AES
 import app.termora.Application.ohMyJson
+import app.termora.ApplicationScope
+import app.termora.PBKDF2
+import app.termora.RSA
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -9,7 +12,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.apache.commons.codec.binary.Base64
-import org.apache.commons.codec.digest.DigestUtils
 import java.util.concurrent.atomic.AtomicBoolean
 
 class ServerManager private constructor() {
@@ -28,7 +30,7 @@ class ServerManager private constructor() {
     /**
      * 登录，不报错就是登录成功
      */
-    fun login(server: Server, username: String, password: String, mfa: String) {
+    fun login(server: Server, refreshToken: String, password: String) {
 
         if (accountManager.isLocally().not()) {
             throw IllegalStateException("Already logged in")
@@ -39,25 +41,25 @@ class ServerManager private constructor() {
         }
 
         try {
-            doLogin(server, username, password, mfa)
+            doLogin(server, refreshToken, password)
         } finally {
             isLoggingIn.compareAndSet(true, false)
         }
 
     }
 
-    private fun doLogin(server: Server, username: String, password: String, mfa: String) {
+    private fun doLogin(server: Server, refreshToken: String, password: String) {
         // 服务器信息
         val serverInfo = getServerInfo(server)
 
         // call login
-        val loginResponse = callLogin(serverInfo, server, username, password, mfa)
+        val loginResponse = callToken(server, refreshToken)
 
         // call me
         val meResponse = callMe(server.server, loginResponse.accessToken)
 
         // 解密
-        val salt = "${serverInfo.salt}:${username}".toByteArray()
+        val salt = "${serverInfo.salt}:${meResponse.email}".toByteArray()
         val privateKeySecureKey = PBKDF2.hash(salt, password.toCharArray(), 1024, 256)
         val privateKeySecureIv = PBKDF2.hash(salt, password.toCharArray(), 1024, 128)
         val privateKeyEncoded = AES.CBC.decrypt(
@@ -106,29 +108,19 @@ class ServerManager private constructor() {
         return ohMyJson.decodeFromString<ServerInfo>(AccountHttp.execute(request = request))
     }
 
-    private fun callLogin(
-        serverInfo: ServerInfo,
+    private fun callToken(
         server: Server,
-        username: String,
-        password: String,
-        mfa: String
+        refreshToken: String,
     ): LoginResponse {
-
-        val passwordHex = DigestUtils.sha256Hex("${serverInfo.salt}:${username}:${password}")
-        val requestBody = ohMyJson.encodeToString(mapOf("email" to username, "password" to passwordHex, "mfa" to mfa))
+        val body = ohMyJson.encodeToString(mapOf("refreshToken" to refreshToken))
             .toRequestBody("application/json".toMediaType())
-
-        val request = Request.Builder()
-            .url("${server.server}/v1/login")
-            .post(requestBody)
+        val request = Request.Builder().url("${server.server}/v1/token")
+            .header("Authorization", "Bearer $refreshToken")
+            .post(body)
             .build()
 
         val response = AccountHttp.client.newCall(request).execute()
-        val text = response.use { response.body.use { it?.string() } }
-
-        if (text == null) {
-            throw ResponseException(response.code, response)
-        }
+        val text = response.use { response.body.use { it.string() } }
 
         if (response.isSuccessful.not()) {
             val message = ohMyJson.parseToJsonElement(text).jsonObject["message"]?.jsonPrimitive?.content

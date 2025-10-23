@@ -9,12 +9,6 @@ import app.termora.database.DatabaseManager
 import com.formdev.flatlaf.FlatClientProperties
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
-import kotlinx.coroutines.*
-import kotlinx.coroutines.swing.Swing
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.boolean
-import kotlinx.serialization.json.jsonPrimitive
-import okhttp3.Request
 import org.apache.commons.lang3.StringUtils
 import org.jdesktop.swingx.JXHyperlink
 import org.slf4j.LoggerFactory
@@ -24,12 +18,10 @@ import java.awt.Window
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import java.net.URI
-import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.*
 import javax.swing.event.ListDataEvent
 import javax.swing.event.ListDataListener
 import kotlin.math.max
-import kotlin.time.Duration.Companion.milliseconds
 
 class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
     companion object {
@@ -37,18 +29,14 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
     }
 
     private val serverComboBox = OutlineComboBox<Server>()
-    private val usernameTextField = OutlineTextField(128)
-    private val passwordField = OutlinePasswordField()
-    private val mfaTextField = OutlineTextField(128)
     private val okAction = OkAction(I18n.getString("termora.settings.account.login"))
     private val cancelAction = super.createCancelAction()
     private val cancelButton = super.createJButtonForAction(cancelAction)
-    private val isLoggingIn = AtomicBoolean(false)
     private val singaporeServer =
         Server(I18n.getString("termora.settings.account.server-singapore"), "https://account.termora.app")
     private val chinaServer =
         Server(I18n.getString("termora.settings.account.server-china"), "https://account.termora.cn")
-    private val serverManager get() = ServerManager.getInstance()
+    var server: Server? = null
 
     init {
         isModal = true
@@ -60,12 +48,10 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
         size = Dimension(max(preferredSize.width, UIManager.getInt("Dialog.width") - 250), preferredSize.height)
         setLocationRelativeTo(owner)
 
-        passwordField.putClientProperty(FlatClientProperties.STYLE, mapOf("showCapsLock" to true))
 
         addWindowListener(object : WindowAdapter() {
             override fun windowOpened(e: WindowEvent) {
                 removeWindowListener(this)
-                usernameTextField.requestFocus()
             }
         })
     }
@@ -73,7 +59,7 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
     override fun createCenterPanel(): JComponent {
         val layout = FormLayout(
             "left:pref, $FORM_MARGIN, default:grow, $FORM_MARGIN, pref",
-            "pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN"
+            "pref, $FORM_MARGIN"
         )
 
         var rows = 1
@@ -90,7 +76,6 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
             serverComboBox.addItem(Server(server.name, server.server))
         }
 
-        mfaTextField.placeholderText = I18n.getString("termora.settings.account.mfa")
 
         serverComboBox.renderer = object : DefaultListCellRenderer() {
             override fun getListCellRendererComponent(
@@ -153,40 +138,6 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
             }
         }
 
-        val registerAction = object : AnAction(I18n.getString("termora.settings.account.register")) {
-            override fun actionPerformed(evt: AnActionEvent) {
-                val server = serverComboBox.selectedItem as Server?
-                if (server == null) {
-                    serverComboBox.outline = FlatClientProperties.OUTLINE_ERROR
-                    serverComboBox.requestFocusInWindow()
-                    return
-                }
-
-                try {
-                    val text = AccountHttp.execute(
-                        AccountHttp.client, Request.Builder()
-                            .get().url("${server.server}/v1/client/system").build()
-                    )
-                    val json = runCatching { ohMyJson.decodeFromString<JsonObject>(text) }.getOrNull()
-                    val allowRegister = json?.get("register")?.jsonPrimitive?.boolean ?: false
-                    if (allowRegister.not()) {
-                        throw IllegalStateException(I18n.getString("termora.settings.account.not-support-register"))
-                    }
-                    Application.browse(URI.create("${server.server}/v1/client/redirect?to=register&from=${Application.getName()}"))
-                } catch (e: Exception) {
-                    if (log.isErrorEnabled) {
-                        log.error(e.message, e)
-                    }
-                    OptionPane.showMessageDialog(
-                        dialog,
-                        e.message ?: I18n.getString("termora.settings.account.not-support-register"),
-                        messageType = JOptionPane.ERROR_MESSAGE
-                    )
-                }
-            }
-        }
-
-
         fun refreshButton() {
             if (serverComboBox.selectedItem == singaporeServer || serverComboBox.selectedItem == chinaServer || serverComboBox.itemCount < 1) {
                 newAction.name = I18n.getString("termora.welcome.contextmenu.new")
@@ -214,21 +165,11 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
 
         })
 
-        val registerLink = JXHyperlink(registerAction)
-        registerLink.isFocusable = false
-
 
         return FormBuilder.create().layout(layout).debug(false).padding("0dlu, $FORM_MARGIN, 0dlu, $FORM_MARGIN")
             .add("${I18n.getString("termora.settings.account.server")}:").xy(1, rows)
             .add(serverComboBox).xy(3, rows)
             .add(newServer).xy(5, rows).apply { rows += step }
-            .add("${I18n.getString("termora.settings.account")}:").xy(1, rows)
-            .add(usernameTextField).xy(3, rows)
-            .add(registerLink).xy(5, rows).apply { rows += step }
-            .add("${I18n.getString("termora.new-host.general.password")}:").xy(1, rows)
-            .add(passwordField).xy(3, rows).apply { rows += step }
-            .add("MFA:").xy(1, rows)
-            .add(mfaTextField).xy(3, rows).apply { rows += step }
             .build()
     }
 
@@ -315,95 +256,21 @@ class LoginServerDialog(owner: Window) : DialogWrapper(owner) {
     }
 
     override fun doOKAction() {
-        if (isLoggingIn.get()) return
 
-        val server = serverComboBox.selectedItem as? Server
+        server = serverComboBox.selectedItem as? Server
         if (server == null) {
             serverComboBox.outline = FlatClientProperties.OUTLINE_ERROR
             serverComboBox.requestFocusInWindow()
             return
         }
 
-        if (usernameTextField.text.isBlank()) {
-            usernameTextField.outline = FlatClientProperties.OUTLINE_ERROR
-            usernameTextField.requestFocusInWindow()
-            return
-        } else if (passwordField.password.isEmpty()) {
-            passwordField.outline = FlatClientProperties.OUTLINE_ERROR
-            passwordField.requestFocusInWindow()
-            return
-        }
-
-        if (isLoggingIn.compareAndSet(false, true)) {
-            okAction.isEnabled = false
-            usernameTextField.isEnabled = false
-            passwordField.isEnabled = false
-            mfaTextField.isEnabled = false
-            serverComboBox.isEnabled = false
-            cancelButton.isVisible = false
-            onLogin(server)
-            return
-        }
 
         super.doOKAction()
     }
 
-    private fun onLogin(server: Server) {
-        val job = swingCoroutineScope.launch(Dispatchers.IO) {
-            var c = 0
-            while (isActive) {
-                if (++c > 3) c = 0
-                okAction.name = I18n.getString("termora.settings.account.login") + ".".repeat(c)
-                delay(350.milliseconds)
-            }
-        }
-
-        val loginJob = swingCoroutineScope.launch(Dispatchers.IO) {
-            try {
-                serverManager.login(
-                    server, usernameTextField.text,
-                    String(passwordField.password), mfaTextField.text.trim()
-                )
-                withContext(Dispatchers.Swing) {
-                    super.doOKAction()
-                }
-            } catch (e: Exception) {
-                if (log.isErrorEnabled) log.error(e.message, e)
-                withContext(Dispatchers.Swing) {
-                    OptionPane.showMessageDialog(
-                        this@LoginServerDialog,
-                        StringUtils.defaultIfBlank(
-                            e.message ?: StringUtils.EMPTY,
-                            I18n.getString("termora.settings.account.login-failed")
-                        ),
-                        messageType = JOptionPane.ERROR_MESSAGE,
-                    )
-                }
-            } finally {
-                job.cancel()
-                withContext(Dispatchers.Swing) {
-                    okAction.name = I18n.getString("termora.settings.account.login")
-                    okAction.isEnabled = true
-                    usernameTextField.isEnabled = true
-                    passwordField.isEnabled = true
-                    serverComboBox.isEnabled = true
-                    cancelButton.isVisible = true
-                    mfaTextField.isEnabled = true
-                }
-                isLoggingIn.compareAndSet(true, false)
-            }
-        }
-
-        Disposer.register(disposable, object : Disposable {
-            override fun dispose() {
-                if (loginJob.isActive)
-                    loginJob.cancel()
-            }
-        })
-    }
 
     override fun doCancelAction() {
-        if (isLoggingIn.get()) return
+        server = null
         super.doCancelAction()
     }
 }

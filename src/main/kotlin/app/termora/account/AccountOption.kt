@@ -1,6 +1,7 @@
 package app.termora.account
 
 import app.termora.*
+import app.termora.Application.ohMyJson
 import app.termora.OptionsPane.Companion.FORM_MARGIN
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
@@ -8,21 +9,36 @@ import app.termora.database.DatabaseManager
 import app.termora.plugin.internal.extension.DynamicExtensionHandler
 import com.jgoodies.forms.builder.FormBuilder
 import com.jgoodies.forms.layout.FormLayout
+import com.sun.net.httpserver.HttpServer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+import org.apache.commons.codec.binary.Hex
+import org.apache.commons.io.IOUtils
+import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.time.DateFormatUtils
+import org.jdesktop.swingx.JXBusyLabel
 import org.jdesktop.swingx.JXHyperlink
+import org.slf4j.LoggerFactory
 import java.awt.BorderLayout
+import java.awt.CardLayout
+import java.net.InetSocketAddress
 import java.net.URI
+import java.net.URLEncoder
 import java.util.*
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 import javax.swing.*
 import kotlin.time.Duration.Companion.milliseconds
 
 
 class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
+    companion object {
+        private val log = LoggerFactory.getLogger(AccountOption::class.java)
+    }
 
     private val owner get() = SwingUtilities.getWindowAncestor(this)
     private val databaseManager get() = DatabaseManager.getInstance()
@@ -30,18 +46,31 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
     private val accountProperties get() = AccountProperties.getInstance()
     private val userInfoPanel = JPanel(BorderLayout())
     private val lastSynchronizationOnLabel = JLabel()
+    private val serverManager get() = ServerManager.getInstance()
+    private val cardLayout = CardLayout()
+    private val contentPanel = JPanel(cardLayout)
+    private val loginPanel = JPanel(BorderLayout())
+    private val busyLabel = JXBusyLabel()
+    private var httpServer: HttpServer? = null
 
     init {
         initView()
         initEvents()
     }
 
-
     private fun initView() {
         refreshUserInfoPanel()
-        add(userInfoPanel, BorderLayout.CENTER)
-    }
+        refreshLoginPanel()
 
+        contentPanel.add(userInfoPanel, "UserInfo")
+        contentPanel.add(loginPanel, "Login")
+
+        cardLayout.show(contentPanel, "UserInfo")
+
+        add(contentPanel, BorderLayout.CENTER)
+
+
+    }
 
     private fun initEvents() {
         // 服务器签名发生变更
@@ -145,6 +174,29 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
             .build()
     }
 
+    private fun getLoginComponent(): JComponent {
+        val layout = FormLayout(
+            "default:grow",
+            "pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref, $FORM_MARGIN, pref"
+        )
+
+        val cancelBtn = JXHyperlink(object : AnAction(I18n.getString("termora.cancel")) {
+            override fun actionPerformed(evt: AnActionEvent) {
+                httpServer?.stop(0)
+                cardLayout.show(contentPanel, "UserInfo")
+            }
+        })
+
+        val tipLabel = JLabel(I18n.getString("termora.settings.account.wait-login"))
+        tipLabel.foreground = UIManager.getColor("TextField.placeholderForeground")
+
+        return FormBuilder.create().layout(layout).debug(false).padding("10dlu,0,0,0")
+            .add(busyLabel).xy(1, 1, "center, fill")
+            .add(tipLabel).xy(1, 3, "center, fill")
+            .add(cancelBtn).xy(1, 5, "center, fill")
+            .build()
+    }
+
     private fun createActionPanel(isFreePlan: Boolean): JComponent {
         val actionBox = Box.createHorizontalBox()
         actionBox.add(Box.createHorizontalGlue())
@@ -219,16 +271,151 @@ class AccountOption : JPanel(BorderLayout()), OptionsPane.Option, Disposable {
         return actionBox
     }
 
+    private fun showLoginPanel() {
+        refreshLoginPanel()
+        busyLabel.isBusy = true
+        cardLayout.show(contentPanel, "Login")
+    }
+
     private fun onLogin() {
+        httpServer?.stop(0)
+
         val dialog = LoginServerDialog(owner)
         dialog.isVisible = true
+        val server = dialog.server ?: return
+
+        showLoginPanel()
+
+        onLogin(server)
     }
+
+
+    private fun onLogin(server: Server) {
+
+        val httpServer = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+            .apply { httpServer = this }
+        val future = processLogin(server, httpServer)
+
+        val loginJob = swingCoroutineScope.launch(Dispatchers.IO) {
+            try {
+                val loginResult = future.get(5, TimeUnit.MINUTES)
+                serverManager.login(server, loginResult.refreshToken, loginResult.password)
+            } catch (e: Exception) {
+                if (log.isErrorEnabled) log.error(e.message, e)
+                withContext(Dispatchers.Swing) {
+                    OptionPane.showMessageDialog(
+                        owner,
+                        StringUtils.defaultIfBlank(
+                            e.message ?: StringUtils.EMPTY,
+                            I18n.getString("termora.settings.account.login-failed")
+                        ),
+                        messageType = JOptionPane.ERROR_MESSAGE,
+                    )
+                }
+            } finally {
+                withContext(Dispatchers.Swing) { cardLayout.show(contentPanel, "UserInfo") }
+                httpServer.stop(0)
+            }
+        }
+
+        Disposer.register(this, object : Disposable {
+            override fun dispose() {
+                loginJob.cancel()
+                httpServer.stop(0)
+            }
+        })
+    }
+
+    override fun dispose() {
+        busyLabel.isBusy = false
+        super.dispose()
+    }
+
+    private fun processLogin(server: Server, httpServer: HttpServer): CompletableFuture<LoginResult> {
+        val keypair = RSA.generateKeyPair(2048)
+        val future = CompletableFuture<LoginResult>()
+
+        httpServer.createContext("/callback") { exchange ->
+            val method = exchange.requestMethod
+            if (method.equals("OPTIONS", ignoreCase = true)) {
+                exchange.responseHeaders.add("Access-Control-Allow-Origin", "*")
+                exchange.responseHeaders.add("Access-Control-Allow-Methods", "POST, OPTIONS")
+                exchange.responseHeaders.add("Access-Control-Allow-Headers", "Content-Type")
+                exchange.sendResponseHeaders(204, -1)
+            } else {
+                var loginResult: LoginResult? = null
+
+                if (method.equals("POST", ignoreCase = true)) {
+                    try {
+                        val text = String(exchange.requestBody.readAllBytes())
+                        loginResult = ohMyJson.decodeFromString<LoginResult>(text)
+
+                        val secretKey = RSA.decrypt(keypair.private, Hex.decodeHex(loginResult.secretKey))
+                        val secretIv = RSA.decrypt(keypair.private, Hex.decodeHex(loginResult.secretIv))
+                        val password = AES.CBC.decrypt(secretKey, secretIv, Hex.decodeHex(loginResult.password))
+                        val refreshToken = AES.CBC.decrypt(
+                            secretKey, secretIv, Hex.decodeHex(loginResult.refreshToken)
+                        )
+                        loginResult = loginResult.copy(
+                            password = String(password),
+                            refreshToken = String(refreshToken)
+                        )
+                    } catch (e: Exception) {
+                        if (log.isErrorEnabled) {
+                            log.error(e.message, e)
+                        }
+                    }
+                }
+
+                val response = "OK".toByteArray()
+                exchange.responseHeaders.add("Access-Control-Allow-Origin", "*")
+                exchange.sendResponseHeaders(200, response.size.toLong())
+                exchange.responseBody.use { it.write(response) }
+
+                if (loginResult != null) {
+                    future.complete(loginResult)
+                }
+            }
+            IOUtils.closeQuietly { exchange.close() }
+        }
+        httpServer.start()
+
+        val sb = StringBuilder()
+        val redirect = StringBuilder()
+        redirect.append("/device?callback=").append("http://127.0.0.1:${httpServer.address.port}/callback")
+        redirect.append("&from=device&publicKey=").append(keypair.public.encoded.toHexString())
+        redirect.append("&format=hex&device=termora&device-version=").append(Application.getVersion())
+
+        sb.append(server.server)
+        sb.append("/v1/client/redirect?to=login&from=device")
+        sb.append("&redirect=").append(URLEncoder.encode(redirect.toString(), Charsets.UTF_8))
+
+        Application.browse(URI.create(sb.toString()))
+
+        return future
+    }
+
+    @Serializable
+    private data class LoginResult(
+        val password: String,
+        val refreshToken: String,
+        val secretKey: String,
+        val secretIv: String,
+    )
+
 
     private fun refreshUserInfoPanel() {
         userInfoPanel.removeAll()
         userInfoPanel.add(getCenterComponent(), BorderLayout.CENTER)
         userInfoPanel.revalidate()
         userInfoPanel.repaint()
+    }
+
+    private fun refreshLoginPanel() {
+        loginPanel.removeAll()
+        loginPanel.add(getLoginComponent(), BorderLayout.CENTER)
+        loginPanel.revalidate()
+        loginPanel.repaint()
     }
 
     override fun getIcon(isSelected: Boolean): Icon {
