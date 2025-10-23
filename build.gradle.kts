@@ -339,6 +339,7 @@ tasks.register<Exec>("jlink") {
         "java.security.jgss",
         "jdk.crypto.ec",
         "jdk.unsupported",
+        "jdk.httpserver",
     )
 
     commandLine(
