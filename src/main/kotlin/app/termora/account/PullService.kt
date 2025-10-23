@@ -67,7 +67,6 @@ class PullService private constructor() : SyncService(), Disposable, Application
     private var lastChangeHash = StringUtils.EMPTY
 
     private fun pullChanges() {
-        if (isFreePlan) return
         val hash: String
 
         try {
