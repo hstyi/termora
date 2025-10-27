@@ -70,7 +70,7 @@ flatlafextras = { group = "com.formdev", name = "flatlaf-extras", version.ref = 
 flatlafswingx = { module = "com.formdev:flatlaf-swingx", version.ref = "flatlaf" }
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }
 testcontainers = { module = "org.testcontainers:testcontainers" }
-testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter" }
+testcontainers-junit-jupiter = { module = "org.testcontainers:testcontainers-junit-jupiter" }
 swingx = { module = "org.swinglabs.swingx:swingx-all", version.ref = "swingx" }
 jgoodies-forms = { module = "com.jgoodies:jgoodies-forms", version.ref = "jgoodies-forms" }
 jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
