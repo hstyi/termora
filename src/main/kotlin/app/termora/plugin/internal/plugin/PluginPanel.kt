@@ -185,6 +185,13 @@ class PluginPanel(val descriptor: PluginPluginDescriptor) : JPanel(), Disposable
                 }
             }
 
+            MixpanelService.getInstance().push(
+                "uninstall-plugin", mapOf(
+                    "pluginName" to descriptor.plugin.getName(),
+                    "pluginVersion" to descriptor.version.toString(),
+                )
+            )
+
             // 询问是否重启
             TermoraRestarter.getInstance().scheduleRestart(owner)
         } else {
@@ -226,6 +233,13 @@ class PluginPanel(val descriptor: PluginPluginDescriptor) : JPanel(), Disposable
                         }
                     }
                 }, button == updateButton)
+
+                MixpanelService.getInstance().push(
+                    "${if (button == installButton) "install" else "update"}-plugin", mapOf(
+                        "pluginName" to descriptor.plugin.getName(),
+                        "pluginVersion" to descriptor.version.toString(),
+                    )
+                )
 
                 withContext(Dispatchers.Swing) {
                     installed.add(descriptor.id)
