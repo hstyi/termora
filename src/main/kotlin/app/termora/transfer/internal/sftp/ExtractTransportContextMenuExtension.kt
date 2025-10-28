@@ -1,13 +1,13 @@
 package app.termora.transfer.internal.sftp
 
 import app.termora.I18n
-import app.termora.WindowScope
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
 import app.termora.randomUUID
 import app.termora.transfer.*
 import org.apache.commons.lang3.StringUtils
 import org.apache.sshd.sftp.client.fs.SftpFileSystem
+import java.awt.Window
 import java.nio.file.FileSystem
 import java.nio.file.Path
 import javax.swing.JMenu
@@ -21,7 +21,7 @@ internal class ExtractTransportContextMenuExtension private constructor() : Tran
     }
 
     override fun createJMenuItem(
-        windowScope: WindowScope,
+        window: Window,
         fileSystem: FileSystem?,
         popupMenu: TransportPopupMenu,
         files: List<Pair<Path, TransportTableModel.Attributes>>

@@ -1,7 +1,7 @@
 package app.termora.transfer
 
-import app.termora.WindowScope
 import app.termora.plugin.Extension
+import java.awt.Window
 import java.nio.file.FileSystem
 import java.nio.file.Path
 import javax.swing.JMenuItem
@@ -14,7 +14,7 @@ internal interface TransportContextMenuExtension : Extension {
      * @param fileSystem 为 null 表示可能已经断线，处于不可用状态
      */
     fun createJMenuItem(
-        windowScope: WindowScope,
+        window: Window,
         fileSystem: FileSystem?,
         popupMenu: TransportPopupMenu,
         files: List<Pair<Path, TransportTableModel.Attributes>>

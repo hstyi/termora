@@ -108,7 +108,7 @@ internal class TransportPopupMenu(
         for (extension in extensionManager.getExtensions(TransportContextMenuExtension::class.java)) {
             try {
                 val menu = extension.createJMenuItem(
-                    ApplicationScope.forWindowScope(owner),
+                    owner,
                     fileSystem,
                     this,
                     files
