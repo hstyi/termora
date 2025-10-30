@@ -29,8 +29,10 @@ class KeymapPanel : JPanel(BorderLayout()) {
     private val copyBtn = JButton(Icons.copy)
     private val renameBtn = JButton(Icons.edit)
     private val deleteBtn = JButton(Icons.delete)
+    private val infoBtn = JButton(Icons.questionMark)
     private val database get() = DatabaseManager.getInstance()
     private val allowKeyCodes = mutableSetOf<Int>()
+    private val owner get() = SwingUtilities.getWindowAncestor(this)
 
     init {
         initView()
@@ -89,8 +91,8 @@ class KeymapPanel : JPanel(BorderLayout()) {
         box.add(copyBtn)
         box.add(renameBtn)
         box.add(deleteBtn)
+        box.add(infoBtn)
         box.add(Box.createHorizontalGlue())
-        box.border = BorderFactory.createEmptyBorder(0, 0, 6, 0)
 
         add(box, BorderLayout.NORTH)
         add(scrollPane, BorderLayout.CENTER)
@@ -104,6 +106,12 @@ class KeymapPanel : JPanel(BorderLayout()) {
                 recordKeyShortcut(row, e)
             }
         })
+
+        infoBtn.addActionListener {
+            val color = UIManager.getColor("TextField.placeholderForeground")
+            val msg = I18n.getString("termora.settings.keymap.question", color.red, color.green, color.blue)
+            OptionPane.showMessageDialog(owner, msg)
+        }
 
         copyBtn.addActionListener {
             val keymap = getCurrentKeymap()
