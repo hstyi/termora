@@ -30,6 +30,7 @@ class SMBProtocolProvider private constructor() : TransferProtocolProvider {
         val client = SMBClient()
         val host = requester.host
         val connection = client.connect(host.host, host.port)
+        val domain = host.options.extras["smb.domain"] ?: StringUtils.EMPTY
         val session = when (host.username) {
             "Guest" -> connection.authenticate(AuthenticationContext.guest())
             "Anonymous" -> connection.authenticate(AuthenticationContext.anonymous())
@@ -37,7 +38,7 @@ class SMBProtocolProvider private constructor() : TransferProtocolProvider {
                 AuthenticationContext(
                     host.username,
                     host.authentication.password.toCharArray(),
-                    null
+                    domain.ifBlank { null }
                 )
             )
         }

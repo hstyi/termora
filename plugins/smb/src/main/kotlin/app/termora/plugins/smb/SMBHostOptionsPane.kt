@@ -42,6 +42,7 @@ class SMBHostOptionsPane : OptionsPane() {
             sftpDefaultDirectory = sftpOption.defaultDirectoryField.text,
             extras = mutableMapOf(
                 "smb.share" to generalOption.shareTextField.text,
+                "smb.domain" to generalOption.domainTextField.text,
             )
         )
 
@@ -66,6 +67,7 @@ class SMBHostOptionsPane : OptionsPane() {
         generalOption.remarkTextArea.text = host.remark
         generalOption.passwordTextField.text = host.authentication.password
         generalOption.shareTextField.text = host.options.extras["smb.share"] ?: StringUtils.EMPTY
+        generalOption.domainTextField.text = host.options.extras["smb.domain"] ?: StringUtils.EMPTY
 
         sftpOption.defaultDirectoryField.text = host.options.sftpDefaultDirectory
     }
@@ -114,6 +116,7 @@ class SMBHostOptionsPane : OptionsPane() {
         val nameTextField = OutlineTextField(128)
         val shareTextField = OutlineTextField(256)
         val usernameTextField = OutlineComboBox<String>()
+        val domainTextField = OutlineTextField(128)
         val hostTextField = OutlineTextField(255)
         val passwordTextField = OutlinePasswordField(255)
         val remarkTextArea = FixedLengthTextArea(512)
@@ -188,7 +191,9 @@ class SMBHostOptionsPane : OptionsPane() {
                 .add(portTextField).xy(7, rows).apply { rows += step }
 
                 .add("${I18n.getString("termora.new-host.general.username")}:").xy(1, rows)
-                .add(usernameTextField).xyw(3, rows, 5).apply { rows += step }
+                .add(usernameTextField).xy(3, rows)
+                .add("${SMBI18n.getString("termora.plugins.smb.domain")}:").xy(5, rows)
+                .add(domainTextField).xy(7, rows).apply { rows += step }
 
                 .add("${I18n.getString("termora.new-host.general.password")}:").xy(1, rows)
                 .add(passwordTextField).xyw(3, rows, 5).apply { rows += step }
