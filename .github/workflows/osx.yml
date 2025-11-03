@@ -9,14 +9,14 @@ env:
   TERMORA_MAC_NOTARY: "${{ startsWith(github.event.head_commit.message, 'release: ') && github.repository == 'TermoraDev/termora' }}"
   TERMORA_MAC_NOTARY_KEYCHAIN_PROFILE: ${{ secrets.TERMORA_MAC_NOTARY_KEYCHAIN_PROFILE }}
   JBR_MAJOR: 21.0.8
-  JBR_PATCH: b1138.52
+  JBR_PATCH: b1163.69
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ macos-15, macos-13 ]
+        os: [ macos-15-intel, macos-latest ]
     steps:
       - uses: actions/checkout@v4
         with:
