@@ -233,7 +233,7 @@ class TerminalTabbed(
             if (tab is HostTerminalTab) {
                 actionManager
                     .getAction(OpenHostAction.OPEN_HOST)
-                    .actionPerformed(OpenHostActionEvent(this, tab.host, evt))
+                    .actionPerformed(OpenHostActionEvent(this, tab.host, evt, tabIndex + 1))
             }
         }
 
@@ -361,7 +361,7 @@ class TerminalTabbed(
         }
     }
 
-    override fun indexOfTerminalTab(tab: TerminalTab):Int {
+    override fun indexOfTerminalTab(tab: TerminalTab): Int {
         return tabbedPane.indexOfComponent(tab.getJComponent())
     }
 
