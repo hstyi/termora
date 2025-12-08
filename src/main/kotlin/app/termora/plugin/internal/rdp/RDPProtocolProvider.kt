@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.Strings
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
 import java.net.URI
@@ -64,7 +65,13 @@ internal class RDPProtocolProvider private constructor() : GenericProtocolProvid
         }
 
         val sb = StringBuilder()
-        sb.append("full address:s:").append(host.host).append(':').append(host.port).appendLine()
+        sb.append("full address:s:")
+        if (Strings.CI.contains(host.host, ":")) {
+            sb.append('[').append(host.host).append(']')
+        } else {
+            sb.append(host.host)
+        }
+        sb.append(':').append(host.port).appendLine()
         sb.append("username:s:").append(host.username).appendLine()
         val desktop = host.options.extras["desktop"]
         if (desktop.isNullOrBlank().not()) {
