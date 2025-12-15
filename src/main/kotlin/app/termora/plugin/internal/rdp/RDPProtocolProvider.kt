@@ -68,7 +68,9 @@ internal class RDPProtocolProvider private constructor() : GenericProtocolProvid
         val sb = StringBuilder()
         sb.append("full address:s:")
         if (SystemUtils.IS_OS_WINDOWS && Strings.CI.contains(host.host, ":")) {
-            sb.append('[').append(host.host).append(']')
+            var newHost = Strings.CI.removeStart(host.host, "[")
+            newHost = Strings.CI.removeEnd(newHost, "]")
+            sb.append('[').append(newHost).append(']')
         } else {
             sb.append(host.host)
         }
