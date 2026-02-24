@@ -2,8 +2,10 @@ package app.termora.keymgr
 
 import app.termora.*
 import app.termora.account.AccountOwner
+import app.termora.account.TeamRole
 import app.termora.actions.AnAction
 import app.termora.actions.AnActionEvent
+import app.termora.database.OwnerType
 import app.termora.plugin.internal.ssh.SSHProtocolProvider
 import app.termora.tree.Filter
 import app.termora.tree.HostTreeNode
@@ -56,6 +58,7 @@ class KeyManagerPanel(private val accountOwner: AccountOwner) : JPanel(BorderLay
     init {
         initView()
         initEvents()
+        preventImportantData()
     }
 
 
@@ -89,15 +92,19 @@ class KeyManagerPanel(private val accountOwner: AccountOwner) : JPanel(BorderLay
         add(JScrollPane(keyPairTable).apply {
             border = BorderFactory.createMatteBorder(1, 1, 1, 1, DynamicColor.BorderColor)
         }, BorderLayout.CENTER)
-        add(
-            FormBuilder.create().layout(layout).padding(EmptyBorder(0, 12, 0, 0))
-                .add(generateBtn).xy(1, rows).apply { rows += step }
-                .add(editBtn).xy(1, rows).apply { rows += step }
-                .add(importBtn).xy(1, rows).apply { rows += step }
-                .add(exportBtn).xy(1, rows).apply { rows += step }
-                .add(deleteBtn).xy(1, rows).apply { rows += step }
-                .add(sshCopyIdBtn).xy(1, rows).apply { rows += step }
-                .build(), BorderLayout.EAST)
+
+        if (accountOwner.type == OwnerType.User || (accountOwner.type == OwnerType.Team && accountOwner.role != TeamRole.Visitor.name)) {
+            add(
+                FormBuilder.create().layout(layout).padding(EmptyBorder(0, 12, 0, 0))
+                    .add(generateBtn).xy(1, rows).apply { rows += step }
+                    .add(editBtn).xy(1, rows).apply { rows += step }
+                    .add(importBtn).xy(1, rows).apply { rows += step }
+                    .add(exportBtn).xy(1, rows).apply { rows += step }
+                    .add(deleteBtn).xy(1, rows).apply { rows += step }
+                    .add(sshCopyIdBtn).xy(1, rows).apply { rows += step }
+                    .build(), BorderLayout.EAST)
+        }
+
         border = BorderFactory.createEmptyBorder(12, 12, 12, 12)
 
     }
@@ -196,6 +203,17 @@ class KeyManagerPanel(private val accountOwner: AccountOwner) : JPanel(BorderLay
             editBtn.isEnabled = exportBtn.isEnabled
             deleteBtn.isEnabled = exportBtn.isEnabled
             sshCopyIdBtn.isEnabled = exportBtn.isEnabled
+        }
+    }
+
+    private fun preventImportantData() {
+        if (accountOwner.isVisitorMode()) {
+            generateBtn.isVisible = false
+            editBtn.isVisible = false
+            deleteBtn.isVisible = false
+            importBtn.isVisible = false
+            exportBtn.isVisible = false
+            sshCopyIdBtn.isVisible = false
         }
     }
 
