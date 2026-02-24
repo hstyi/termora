@@ -44,6 +44,10 @@ val macOSNotaryKeychainProfile = System.getenv("TERMORA_MAC_NOTARY_KEYCHAIN_PROF
 val macOSNotary = macOSSign && macOSNotaryKeychainProfile.isNotBlank()
         && System.getenv("TERMORA_MAC_NOTARY").toBoolean()
 
+fun exec(action: ExecSpec.() -> Unit) {
+    providers.exec(action).result.get().assertNormalExitValue()
+}
+
 allprojects {
     repositories {
         mavenCentral()
@@ -768,7 +772,7 @@ fun stapleMacOSLocalFile(file: File) {
 
 kotlin {
     jvmToolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
 
