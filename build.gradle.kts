@@ -581,9 +581,8 @@ fun packOnMac(distributionDir: Directory, finalFilenameWithoutExtension: String,
     signMacOSLocalFile(dmgFile)
 
     // 找到 .app
-    val imageFile = layout.buildDirectory.dir("jpackage/images/").get().asFile
-    val appFile = imageFile.listFiles()?.firstOrNull()?.listFiles()?.firstOrNull()
-        ?: throw FileNotFoundException("${projectName}.app")
+    val imageFile = layout.buildDirectory.dir("jpackage/image/").get().asFile
+    val appFile = imageFile.listFiles()?.firstOrNull() ?: throw FileNotFoundException("${projectName}.app")
 
     // zip
     // @formatter:off
