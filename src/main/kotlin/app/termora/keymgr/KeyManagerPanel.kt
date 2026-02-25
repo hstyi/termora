@@ -632,17 +632,30 @@ class KeyManagerPanel(private val accountOwner: AccountOwner) : JPanel(BorderLay
                 val keyPair = provider.loadKeys(null).firstOrNull()
                     ?: throw IllegalStateException("Failed to load the key file")
                 val keyType = KeyUtils.getKeyType(keyPair)
-                if (keyType != KeyPairProvider.SSH_RSA && keyType != KeyPairProvider.SSH_ED25519) {
-                    throw UnsupportedOperationException("Key type:${keyType}. Only RSA/ED25519 keys are supported.")
+                if (keyType != KeyPairProvider.SSH_RSA
+                    && keyType != KeyPairProvider.SSH_ED25519
+                    && keyType != KeyPairProvider.ECDSA_SHA2_NISTP256
+                    && keyType != KeyPairProvider.ECDSA_SHA2_NISTP384
+                    && keyType != KeyPairProvider.ECDSA_SHA2_NISTP521
+                ) {
+                    throw UnsupportedOperationException("Key type:${keyType}. Only RSA/ED25519/ECDSA keys are supported.")
                 }
 
                 nameTextField.text = StringUtils.defaultIfBlank(nameTextField.text, file.name)
                 fileTextField.text = file.absolutePath
+
                 if (keyType == KeyPairProvider.SSH_RSA) {
                     typeComboBox.addItem("RSA")
-                } else {
+                } else if (keyType == KeyPairProvider.SSH_ED25519) {
                     typeComboBox.addItem("ED25519")
+                }else if (keyType == KeyPairProvider.ECDSA_SHA2_NISTP256) {
+                    typeComboBox.addItem("ECDSA-SHA2-NISTP256")
+                }else if (keyType == KeyPairProvider.ECDSA_SHA2_NISTP384) {
+                    typeComboBox.addItem("ECDSA-SHA2-NISTP384")
+                }else {
+                    typeComboBox.addItem("ECDSA-SHA2-NISTP521")
                 }
+
                 lengthComboBox.addItem(KeyUtils.getKeySize(keyPair.private))
 
                 ohKeyPair = OhKeyPair(
