@@ -139,6 +139,11 @@ application {
         args.add("-Dapple.awt.application.appearance=system")
     }
 
+    if (os.isLinux) {
+        // https://blog.jetbrains.com/platform/2026/02/wayland-by-default-in-2026-1-eap/
+        args.add("-Dawt.toolkit.name=XToolkit")
+    }
+
     args.add("-DTERMORA_PLUGIN_DIRECTORY=${layout.buildDirectory.get().asFile.absolutePath}${File.separator}plugins")
 
     applicationDefaultJvmArgs = args
