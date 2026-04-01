@@ -169,4 +169,5 @@ object Icons {
     val moreHorizontal by lazy { DynamicIcon("icons/moreHorizontal.svg", "icons/moreHorizontal_dark.svg") }
     val springCloudFileSet by lazy { DynamicIcon("icons/springCloudFileSet.svg", "icons/springCloudFileSet_dark.svg") }
     val dav by lazy { DynamicIcon("icons/dav.svg", "icons/dav_dark.svg") }
+    val history by lazy { DynamicIcon("icons/history.svg", "icons/history_dark.svg") }
 }

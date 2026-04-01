@@ -766,6 +766,13 @@ class TerminalPanel(val tab: TerminalTab?, val terminal: Terminal, private val w
                         this
                     )
                 )
+            } else if (name == "CommandHistory") {
+                addVisualWindow(
+                    CommandHistoryVisualWindow(
+                        dataProvider.getData(DataProviders.TerminalTab) as HostTerminalTab,
+                        this
+                    )
+                )
             }
         }
     }

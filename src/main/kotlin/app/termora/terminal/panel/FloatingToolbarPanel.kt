@@ -7,6 +7,7 @@ import app.termora.actions.DataProvider
 import app.termora.actions.DataProviders
 import app.termora.database.DatabaseManager
 import app.termora.plugin.ExtensionManager
+import app.termora.plugin.internal.local.LocalTerminalTab
 import app.termora.plugin.internal.ssh.SSHTerminalTab
 import app.termora.terminal.DataKey
 import app.termora.terminal.panel.vw.VisualWindowManager
@@ -155,16 +156,17 @@ class FloatingToolbarPanel : FlatToolBar(), Disposable {
     @Suppress("UNCHECKED_CAST")
     private fun resumeVisualWindows() {
         val tab = event.getData(DataProviders.TerminalTab) ?: return
-        if (tab !is SSHTerminalTab) return
-        val terminalPanel = tab.getData(DataProviders.TerminalPanel) ?: return
-        terminalPanel.resumeVisualWindows(tab.host.id, object : DataProvider {
-            override fun <T : Any> getData(dataKey: DataKey<T>): T? {
-                if (dataKey == DataProviders.TerminalTab) {
-                    return tab as T
+        if (tab is SSHTerminalTab || tab is LocalTerminalTab) {
+            val terminalPanel = tab.getData(DataProviders.TerminalPanel) ?: return
+            terminalPanel.resumeVisualWindows(tab.host.id, object : DataProvider {
+                override fun <T : Any> getData(dataKey: DataKey<T>): T? {
+                    if (dataKey == DataProviders.TerminalTab) {
+                        return tab as T
+                    }
+                    return super.getData(dataKey)
                 }
-                return super.getData(dataKey)
-            }
-        })
+            })
+        }
     }
 
     private fun createButton(

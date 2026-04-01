@@ -3,10 +3,7 @@ package app.termora.terminal.panel.vw
 import app.termora.plugin.Extension
 import app.termora.plugin.InternalPlugin
 import app.termora.terminal.panel.FloatingToolbarActionExtension
-import app.termora.terminal.panel.vw.extensions.NvidiaVisualWindowActionExtension
-import app.termora.terminal.panel.vw.extensions.ServerInfoVisualWindowActionExtension
-import app.termora.terminal.panel.vw.extensions.SnippetVisualWindowActionExtension
-import app.termora.terminal.panel.vw.extensions.TransferVisualWindowActionExtension
+import app.termora.terminal.panel.vw.extensions.*
 
 internal class FloatingToolbarPlugin : InternalPlugin() {
     init {
@@ -14,6 +11,7 @@ internal class FloatingToolbarPlugin : InternalPlugin() {
         support.addExtension(FloatingToolbarActionExtension::class.java) { ServerInfoVisualWindowActionExtension.instance }
         support.addExtension(FloatingToolbarActionExtension::class.java) { SnippetVisualWindowActionExtension.instance }
         support.addExtension(FloatingToolbarActionExtension::class.java) { NvidiaVisualWindowActionExtension.instance }
+        support.addExtension(FloatingToolbarActionExtension::class.java) { HistoryCommandVisualWindowActionExtension.instance }
     }
 
     override fun getName(): String {
