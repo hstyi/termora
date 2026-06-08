@@ -1,92 +1,101 @@
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 
-fun exec(action: ExecSpec.() -> Unit) {
-    providers.exec(action).result.get().assertNormalExitValue()
+val os: OperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
+val pluginName = project.name
+val pluginVersion = project.version.toString()
+val rootProjectVersion = rootProject.version.toString()
+val pluginsDirectory = rootProject.layout.buildDirectory.dir("plugins")
+val pluginDirectory = pluginsDirectory.map { it.dir(pluginName) }
+val pluginDataDirectory = layout.buildDirectory.dir("data")
+val runtimeClasspathConfiguration = configurations.named("runtimeClasspath")
+val compileClasspathConfiguration = configurations.named("compileClasspath")
+val compileOnlyConfiguration = configurations.named("compileOnly")
+val runtimeCompileOnly = configurations.create("runtimeCompileOnly") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    extendsFrom(compileOnlyConfiguration.get())
 }
+val pluginXmlProperties = mapOf(
+    "projectName" to pluginName,
+    "projectVersion" to pluginVersion,
+    "rootProjectVersion" to rootProjectVersion,
+)
 
-tasks.withType<Jar> {
+tasks.withType<Jar>().configureEach {
 
     manifest {
         attributes(
-            "Implementation-Title" to project.name,
-            "Implementation-Version" to project.version,
+            "Implementation-Title" to pluginName,
+            "Implementation-Version" to pluginVersion,
         )
     }
 
-    from("${rootProject.projectDir}/plugins/LICENSE") {
+    from(rootProject.layout.projectDirectory.file("plugins/LICENSE")) {
         into("META-INF")
     }
 
-    from("${rootProject.projectDir}/plugins/THIRDPARTY") {
+    from(rootProject.layout.projectDirectory.file("plugins/THIRDPARTY")) {
         into("META-INF")
     }
 
     // archiveBaseName.set("${project.name}-${rootProject.version}")
-    destinationDirectory.set(file("${rootProject.layout.buildDirectory.get().asFile.absolutePath}/plugins/${project.name}"))
+    destinationDirectory.set(pluginDirectory)
 }
 
 tasks.named<Copy>("processResources") {
     filesMatching("META-INF/plugin.xml") {
-        expand(
-            "projectName" to project.name,
-            "projectVersion" to project.version,
-            "rootProjectVersion" to rootProject.version,
-        )
+        expand(pluginXmlProperties)
     }
 }
 
 tasks.register<Copy>("copy-dependencies") {
-    from(configurations.getByName("runtimeClasspath").filterNot {
-        it.name.startsWith("kotlin-stdlib") || it.name.startsWith("annotations")
-    })
-    into("${rootProject.layout.buildDirectory.get().asFile.absolutePath}/plugins/${project.name}")
+    from(runtimeClasspathConfiguration) {
+        exclude {
+            it.file.name.startsWith("kotlin-stdlib") || it.file.name.startsWith("annotations")
+        }
+    }
+    into(pluginDirectory)
 }
 
 tasks.named("build") {
     dependsOn("copy-dependencies")
 }
 
-tasks.register("run-plugin") {
+tasks.register<JavaExec>("run-plugin") {
     dependsOn("build")
 
-    doLast {
-        val os: OperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
+    setExecutable("${System.getProperty("java.home")}/bin/java")
+    mainClass.set("app.termora.MainKt")
+    classpath = files(compileClasspathConfiguration, runtimeClasspathConfiguration, runtimeCompileOnly)
+    workingDir = rootProject.layout.projectDirectory.asFile
 
-        val runtimeCompileOnly by configurations.creating { extendsFrom(configurations.getByName("compileOnly")) }
-        val mainClass = "app.termora.MainKt"
-        val executable = System.getProperty("java.home") + "/bin/java"
-        val classpath = (configurations.getByName("compileClasspath") + configurations.getByName("runtimeClasspath")
-                + runtimeCompileOnly).joinToString(if (os.isWindows) ";" else ":")
-        val commands = mutableListOf<String>(executable)
-        commands.add("-Dapp-version=${rootProject.version}")
-        commands.add("--add-exports java.base/sun.nio.ch=ALL-UNNAMED")
-        if (os.isMacOsX) {
-            // NSWindow
-            commands.add("--add-opens java.desktop/java.awt=ALL-UNNAMED")
-            commands.add("--add-opens java.desktop/sun.lwawt=ALL-UNNAMED")
-            commands.add("--add-opens java.desktop/sun.lwawt.macosx=ALL-UNNAMED")
-            commands.add("--add-opens java.desktop/sun.lwawt.macosx.concurrent=ALL-UNNAMED")
-            commands.add("--add-exports java.desktop/com.apple.eawt=ALL-UNNAMED")
-            commands.add("-Dapple.awt.application.appearance=system")
-        }
-        commands.addAll(listOf("-cp", classpath, mainClass))
+    systemProperty("app-version", rootProjectVersion)
+    jvmArgs("--add-exports=java.base/sun.nio.ch=ALL-UNNAMED")
+    if (os.isMacOsX) {
+        // NSWindow
+        jvmArgs(
+            "--add-opens=java.desktop/java.awt=ALL-UNNAMED",
+            "--add-opens=java.desktop/sun.lwawt=ALL-UNNAMED",
+            "--add-opens=java.desktop/sun.lwawt.macosx=ALL-UNNAMED",
+            "--add-opens=java.desktop/sun.lwawt.macosx.concurrent=ALL-UNNAMED",
+            "--add-exports=java.desktop/com.apple.eawt=ALL-UNNAMED",
+        )
+        systemProperty("apple.awt.application.appearance", "system")
+    }
 
-        exec {
-            commandLine = commands
-            environment(
-                "TERMORA_PLUGIN_DIRECTORY" to file("${rootProject.layout.buildDirectory.get().asFile.absolutePath}/plugins/"),
-                "TERMORA_BASE_DATA_DIR" to "${layout.buildDirectory.get().asFile.absolutePath}/data",
-            )
-        }
+    doFirst {
+        environment(
+            "TERMORA_PLUGIN_DIRECTORY" to pluginsDirectory.get().asFile.absolutePath,
+            "TERMORA_BASE_DATA_DIR" to pluginDataDirectory.get().asFile.absolutePath,
+        )
     }
 }
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    failOnNoDiscoveredTests.set(false)
 }
 
-tasks.named("clean") {
-    doLast {
-        file("${rootProject.layout.buildDirectory.get().asFile.absolutePath}/plugins/${project.name}").deleteRecursively()
-    }
+tasks.named<Delete>("clean") {
+    delete(pluginDirectory)
 }
