@@ -4,6 +4,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <qpty/qptyprocess.h>
+#include <qssh/qsshclient.h>
 #include <qtermwidget/qtermwidget.h>
 
 int main(int argc, char *argv[]) {
@@ -11,7 +12,7 @@ int main(int argc, char *argv[]) {
     auto *widget = new QWidget;
     auto *layout = new QVBoxLayout;
     widget->setLayout(layout);
-
+    new QSshClient();
     auto terminal = QTermWidget(); ///< 展示 shell 输出并编码终端输入。
     // 后声明进程，使退出事件循环后先回收 shell，再释放终端视图。
     auto process = QPtyProcess(); ///< 当前窗口唯一的本地 PTY 会话。

@@ -8,7 +8,8 @@
     },
     {
       "name": "libssh",
-      "default-features": false
+      "default-features": false,
+      "features": ["server"]
     },
     {
       "name": "winpty",
