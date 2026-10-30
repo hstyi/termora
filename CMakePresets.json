@@ -1,0 +1,56 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/cmake-build-${hostSystemName}-debug",
+      "environment": {
+        "VCPKG_BINARY_SOURCES": "clear"
+      },
+      "cacheVariables": {
+        "BUILD_TESTING": "ON",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_MANIFEST_MODE": "ON",
+        "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg/vcpkg_installed/${hostSystemName}",
+        "VCPKG_MANIFEST_DIR": "${sourceDir}/vcpkg",
+        "VCPKG_USE_LEGACY_APPLOCAL": "ON"
+      }
+    },
+    {
+      "name": "Release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/cmake-build-${hostSystemName}-release",
+      "environment": {
+        "VCPKG_BINARY_SOURCES": "clear"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE": "ON",
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_MANIFEST_MODE": "ON",
+        "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg/vcpkg_installed/${hostSystemName}",
+        "VCPKG_MANIFEST_DIR": "${sourceDir}/vcpkg",
+        "VCPKG_USE_LEGACY_APPLOCAL": "ON"
+      }
+    },
+    {
+      "name": "MinSizeRel",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/cmake-build-${hostSystemName}-minsizerel",
+      "environment": {
+        "VCPKG_BINARY_SOURCES": "clear"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "MinSizeRel",
+        "CMAKE_INTERPROCEDURAL_OPTIMIZATION_MINSIZEREL": "ON",
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_MANIFEST_MODE": "ON",
+        "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg/vcpkg_installed/${hostSystemName}",
+        "VCPKG_MANIFEST_DIR": "${sourceDir}/vcpkg",
+        "VCPKG_USE_LEGACY_APPLOCAL": "ON"
+      }
+    }
+  ]
+}

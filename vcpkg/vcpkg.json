@@ -1,0 +1,30 @@
+{
+  "name": "termora",
+  "version-string": "1.0.0",
+  "dependencies": [
+    {
+      "name": "kf5syntaxhighlighting",
+      "default-features": false
+    },
+    {
+      "name": "libssh",
+      "default-features": false
+    },
+    {
+      "name": "winpty",
+      "platform": "windows"
+    },
+    "qt5-svg",
+    "qt5-base",
+    "qt5-tools",
+    "qtkeychain",
+    "sqlite3",
+    "sqlitecpp",
+    "spdlog",
+    "efsw",
+    "reproc",
+    "gtest",
+    "pcre2",
+    "asio"
+  ]
+}

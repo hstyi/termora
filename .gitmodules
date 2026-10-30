@@ -1,0 +1,6 @@
+[submodule "thirdparty/ghostty"]
+	path = thirdparty/ghostty
+	url = https://github.com/ghostty-org/ghostty.git
+[submodule "thirdparty/qwindowkit"]
+	path = thirdparty/qwindowkit
+	url = https://github.com/stdware/qwindowkit.git

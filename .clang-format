@@ -1,0 +1,94 @@
+# 以 LLVM 风格为基础，其余配置项在此基础上覆盖。
+BasedOnStyle: LLVM
+# 对文件应用 C/C++ 语言的格式化规则。
+Language: Cpp
+# 按 C++20 语法解析源代码。
+Standard: c++20
+
+# 始终使用空格缩进，不使用制表符。
+UseTab: Never
+# 每一级代码块缩进 4 个空格。
+IndentWidth: 4
+# 将制表符的显示宽度视为 4 列。
+TabWidth: 4
+# 换行后的延续行额外缩进 4 个空格。
+ContinuationIndentWidth: 4
+# 每行最多 120 列，超过时尽量自动换行。
+ColumnLimit: 120
+
+# 左花括号紧跟在声明或控制语句末尾。
+BreakBeforeBraces: Attach
+# 所有控制语句都使用大括号，包括只有一行的分支和循环。
+InsertBraces: true
+# 对所有命名空间的内容进行缩进。
+NamespaceIndentation: All
+# 访问修饰符相对成员缩进减少 4 个空格，使其与类体对齐。
+AccessModifierOffset: -4
+# switch 中的 case 和 default 标签相对 switch 体缩进一级。
+IndentCaseLabels: true
+# 预处理指令不增加额外缩进，保持在行首。
+IndentPPDirectives: None
+
+# 不从现有代码推断指针风格，始终使用下方的固定配置。
+DerivePointerAlignment: false
+# 星号靠近变量名，例如 `Type *value`。
+PointerAlignment: Right
+# 引用符号采用与指针相同的对齐方式，例如 `Type &value`。
+ReferenceAlignment: Pointer
+
+# 仅允许空代码块写在同一行，例如 `{}`。
+AllowShortBlocksOnASingleLine: Empty
+# 即使 case 标签后的语句很短，也不合并到同一行。
+AllowShortCaseLabelsOnASingleLine: false
+# 短枚举也保持多行布局。
+AllowShortEnumsOnASingleLine: false
+# 仅允许函数体为空的函数写成单行。
+AllowShortFunctionsOnASingleLine: Empty
+# 短 if 语句也不合并到同一行。
+AllowShortIfStatementsOnASingleLine: Never
+# 短循环语句也不合并到同一行。
+AllowShortLoopsOnASingleLine: false
+
+# 圆括号、方括号换行后，与左括号后的首个元素对齐。
+AlignAfterOpenBracket: true
+# 不纵向对齐连续多行中的赋值运算符。
+AlignConsecutiveAssignments: None
+# 不纵向对齐连续多行中的变量声明。
+AlignConsecutiveDeclarations: None
+# 表达式换行后对齐运算数。
+AlignOperands: Align
+# 构造函数初始化列表需要换行时，在冒号之前断行。
+BreakConstructorInitializers: BeforeColon
+# 在当前行空间允许时，将多个构造函数初始化项放在同一行。
+PackConstructorInitializers: CurrentLine
+
+# 按区分大小写的字典序排列 include 指令。
+SortIncludes: CaseSensitive
+# 保留原有 include 分组，不合并相邻分组。
+IncludeBlocks: Regroup
+# 按字典序排列 using 声明。
+SortUsingDeclarations: Lexicographic
+
+# 删除代码块开头多余的空行。
+KeepEmptyLinesAtTheStartOfBlocks: true
+# 连续空行最多保留一行。
+MaxEmptyLinesToKeep: 1
+# 始终按列宽重新排版普通注释文本。
+ReflowComments: Always
+# 模板尖括号内部不添加空格，例如 `vector<int>`。
+SpacesInAngles: Never
+# 仅在 if、for、while 等控制语句的左括号前添加空格。
+SpaceBeforeParens: ControlStatements
+# 范围 for 的冒号前保留空格，例如 `for (auto value : values)`。
+SpaceBeforeRangeBasedForLoopColon: true
+# 空代码块内部不添加空格，写作 `{}`。
+SpaceInEmptyBlock: false
+
+PenaltyBreakAssignment: 1000
+
+BinPackArguments: true
+AllowAllArgumentsOnNextLine: false
+  
+AlignConsecutiveMacros: Consecutive
+
+SeparateDefinitionBlocks: Always
