@@ -1,0 +1,571 @@
+/* Light with Light Header 的选中配色统一由 ApplicationStyle::polish 设置。
+   菜单和自绘行共用 Highlight / HighlightedText，颜色来源见 colors.h。 */
+
+/* =================== QTreeView Begin =================== */
+QTreeView {
+    border: none;
+    outline: none;
+    background-color: palette(base);
+    /* 整行选中背景已由 TreeView 绘制，展开箭头不再单独填充选中背景。 */
+    show-decoration-selected: 0;
+}
+
+QTreeView::item {
+    height: 20px;
+    padding: 0px 4px;
+}
+
+QTreeView::branch:has-children:!has-siblings:closed,
+QTreeView::branch:closed:has-children:has-siblings {
+    image: url(:/icons/chevronRight.svg);
+}
+
+QTreeView::branch:open:has-children:!has-siblings,
+QTreeView::branch:open:has-children:has-siblings {
+    image: url(:/icons/chevronDown.svg);
+}
+
+/* IDEA's 16px checkbox, scoped to the local changes tree. */
+QTreeView::indicator {
+    width: 12px;
+    height: 12px;
+    border: 1px solid #A8ADBD;
+    border-radius: 3px;
+    background-color: #FFFFFF;
+    image: none;
+}
+
+QTreeView::indicator:checked,
+QTreeView::indicator:indeterminate {
+    background-color: #3574F0;
+    border-color: #3574F0;
+}
+
+QTreeView::indicator:checked {
+    image: url(:/icons/checked-white.svg);
+}
+
+QTreeView::indicator:indeterminate {
+    image: url(:/icons/indeterminate-white.svg);
+}
+
+QTreeView::indicator:disabled {
+    background-color: #F7F8FA;
+    border-color: #DFE1E5;
+}
+
+QTreeView::indicator:checked:disabled {
+    image: url(:/icons/checked-disabled.svg);
+}
+
+QTreeView::indicator:indeterminate:disabled {
+    image: url(:/icons/indeterminate-disabled.svg);
+}
+/* =================== QTreeView  End  =================== */
+
+
+
+
+/* =================== QPlainTextEdit Begin =================== */
+QPlainTextEdit {
+    border: none;
+    outline: none;
+}
+/* =================== QPlainTextEdit  End  =================== */
+
+
+
+
+/* =================== QTableView Begin =================== */
+QTableView {
+    border: none;
+    background-color: palette(base);
+}
+
+QTableView::item {
+    border: none;
+    padding: 0px 4px;
+}
+/* =================== QTableView  End  =================== */
+
+
+
+
+/* =================== QMenu Begin =================== */
+QMenu {
+    padding: 4px;
+    background-color: white;
+    border-radius: 4px;
+    border: 1px solid palette(mid);
+    icon-size: 16px;
+}
+
+/* 普通、悬停和键盘选中共用文字颜色，只改变背景。 */
+QMenu::item,
+QMenu::item:enabled:hover,
+QMenu::item:enabled:selected {
+    color: #333333;
+}
+
+QMenu::item {
+	margin: 1px 0;
+	/* 保持紧凑的左右留白，快捷键在右侧列内对齐。 */
+	padding: 0 12px 0 8px;
+	height: 22px;
+	min-width: 110px;
+	icon-size: 16px;
+	border-radius: 4px;
+	background-color: transparent;
+}
+
+/* 与 TreeView 的活动选中样式一致，悬停和键盘导航使用同一颜色。 */
+QMenu::item:enabled:hover,
+QMenu::item:enabled:selected {
+    background-color: palette(highlight);
+}
+
+QMenu::item:disabled {
+    color: #BDBDBD;
+}
+
+/* 分隔线 */
+QMenu::separator {
+    height: 1px;
+    background-color: palette(midlight);
+    margin: 2px 4px;
+}
+
+/* 子菜单箭头 */
+QMenu::right-arrow {
+    image: url(:/icons/chevronRight.svg);
+    padding-right: 4px;
+}
+
+/* 可勾选项的勾选标记 */
+QMenu::indicator {
+    left: 6px;
+    width: 16px;
+    height: 16px;
+}
+
+QMenu::icon {
+    left: 6px;
+}
+
+QMenu::indicator:non-exclusive:unchecked,
+QMenu::indicator:exclusive:unchecked {
+    image: none;
+}
+/* =================== QMenu  End  =================== */
+
+
+
+
+/* =================== QListView Begin =================== */
+QListView,
+QComboBox QAbstractItemView {
+	outline: none;
+    background-color: white;
+    border-radius: 6px;
+    border: 1px solid palette(mid);
+	padding: 4px;
+}
+
+QListView::item,
+QComboBox QAbstractItemView::item {
+	height: 22px;
+	border-radius: 4px;
+	padding: 0px 2px;
+	color: palette(window-text);
+}
+
+QListView::item:hover,
+QComboBox QAbstractItemView::item:hover {
+    background-color: transparent;
+}
+
+QListView::item:selected,
+QComboBox QAbstractItemView::item:selected {
+	background-color: palette(highlight);
+}
+/* =================== QListView  End  =================== */
+
+
+
+
+/* =================== QSplitter Begin =================== */
+QSplitter::handle {
+    background-color: palette(midlight);
+    margin: 0px;
+    width: 1px;
+    height: 1px;
+}
+
+QSplitter[collapsed="true"]::handle {
+    background-color: palette(base);
+    border: none;
+    outline: none;
+    image: none;
+}
+
+QSplitter[collapsed="true"]::handle:hover {
+    background-color: palette(link);
+}
+
+/* =================== QSplitter  End  =================== */
+
+
+
+
+/* =================== App Begin =================== */
+MainWindow {
+    background-color: #F3F3F3;
+}
+
+QSplitter#RootSplitter {
+    border-top: 1px solid palette(midlight);
+    border-bottom: 1px solid palette(midlight);
+}
+
+/* =================== App  End  =================== */
+
+
+
+
+/* =================== QToolTip Begin =================== */
+QToolTip {
+    color: palette(window-text);
+    padding: 2px;
+    background-color: white;
+    border: 1px solid palette(mid);
+    outline: none;
+    border-radius: 4px;
+}
+/* =================== QToolTip  End  =================== */
+
+
+
+
+/* =================== QComboBox Begin =================== */
+QComboBox {
+    height: 20px;
+    border: 1px solid palette(mid);
+    border-radius: 4px;
+    padding: 0px 6px;
+    combobox-popup: 0;
+	color: palette(window-text);
+}
+
+QComboBox[focused="true"], QComboBox:on {
+    border-color: palette(shadow);
+}
+
+/* 右侧下拉按钮 */
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: right center;
+    width: 20px;
+    border: none;
+    border-left: 1px solid palette(mid);
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
+QComboBox::drop-down:hover {
+    /* background-color: #EDEDED; */
+}
+
+/* 下拉箭头图标，复用已有的 chevronDown */
+QComboBox::down-arrow {
+    image: url(:/icons/chevronDown.svg);
+}
+
+QComboBox::down-arrow:disabled {
+    opacity: 0.4;
+}
+
+QComboBox QAbstractItemView {
+    border: none;
+}
+/* =================== QComboBox  End  =================== */
+
+
+
+
+/* =================== QTextBrowser Begin =================== */
+QTextBrowser {
+    border: none;
+}
+/* =================== QTextBrowser  End  =================== */
+
+
+
+
+/* =================== QToolBar Begin =================== */
+QToolBar {
+	padding: 2px;
+	margin: 0;
+	border: none;
+	outline: none;
+	spacing: 4px;
+}
+
+QToolButton {
+    border: none;
+    outline: none;
+    border-radius: 4px;
+    background-color: transparent;
+}
+
+/* IntelliJ Light ActionButton overlays: RGBA #00000012 / #0000001D. */
+QToolButton:enabled:hover {
+    background-color: rgba(0, 0, 0, 18);
+}
+
+QToolButton:enabled:pressed,
+QToolButton:enabled:checked {
+    background-color: rgba(0, 0, 0, 29);
+}
+/* =================== QToolBar  End  =================== */
+
+
+
+
+/* =================== MainToolBar Begin =================== */
+QWidget#MainTitleBar {
+    background-color: palette(window);
+}
+
+QWidget#MainTitleBar QWK--WindowBar {
+    background-color: transparent;
+}
+
+QMenuBar {
+    background-color: transparent;
+    border: none;
+}
+
+QMenuBar > QToolButton#qt_menubar_ext_button {
+    qproperty-icon: url(:/window-bar/more-line.svg);
+}
+
+QMenuBar > QToolButton#qt_menubar_ext_button:hover,
+QMenuBar > QToolButton#qt_menubar_ext_button:pressed {
+    background-color: rgba(255, 255, 255, 10%);
+}
+
+/* Bind system-button geometry directly, including before title-bar parenting. */
+QWK--WindowBar > QAbstractButton#IconButton {
+    qproperty-iconNormal: url(:/app/example.png);
+    qproperty-iconSize: 18px 18px;
+    min-width: 40px;
+    border: none;
+    padding: 0;
+    background-color: transparent;
+}
+
+QAbstractButton#MinButton[system-button=true],
+QAbstractButton#MaxButton[system-button=true],
+QAbstractButton#CloseButton[system-button=true] {
+    qproperty-iconSize: 16px 16px;
+    min-width: 45px;
+    border: none;
+    border-radius: 0px;
+    margin: 0px;
+    padding: 0;
+    background-color: transparent;
+}
+
+QAbstractButton#MinButton[system-button=true] {
+    qproperty-iconNormal: url(:/icons/minimizeInactive.svg);
+}
+
+QAbstractButton#MinButton[system-button=true][window-active=false] {
+    qproperty-iconNormal: url(:/icons/minimize.svg);
+}
+
+/* IDEA Light header: hover alpha 0x0D; JBR Windows 11 pressed alpha 0x06. */
+QAbstractButton#MinButton[system-button=true]:hover {
+    background-color: rgba(0, 0, 0, 13);
+}
+
+QAbstractButton#MinButton[system-button=true]:pressed {
+    background-color: rgba(0, 0, 0, 6);
+}
+
+QAbstractButton#MaxButton[system-button=true] {
+    qproperty-iconNormal: url(:/icons/maximizeInactive.svg);
+    qproperty-iconChecked: url(:/icons/restoreInactive.svg);
+}
+
+QAbstractButton#MaxButton[system-button=true]:hover {
+    background-color: rgba(0, 0, 0, 13);
+}
+
+QAbstractButton#MaxButton[system-button=true]:pressed {
+    background-color: rgba(0, 0, 0, 6);
+}
+
+QAbstractButton#MaxButton[system-button=true][window-active=false] {
+    qproperty-iconNormal: url(:/icons/maximize.svg);
+    qproperty-iconChecked: url(:/icons/restore.svg);
+}
+
+QAbstractButton#CloseButton[system-button=true] {
+    qproperty-iconNormal: url(:/icons/closeInactive.svg);
+}
+
+QAbstractButton#CloseButton[system-button=true]:hover {
+    background-color: #C42B1C;
+}
+
+QAbstractButton#CloseButton[system-button=true]:pressed {
+    background-color: #C84031;
+}
+
+QAbstractButton#CloseButton[system-button=true][window-active=false] {
+    qproperty-iconNormal: url(:/icons/close.svg);
+}
+
+QAbstractButton#CloseButton[system-button=true][hovered=true] {
+    qproperty-iconNormal: url(:/icons/closePressed.svg);
+}
+
+MainToolBar {
+    background-color: transparent;
+}
+/* =================== MainToolBar  End  =================== */
+
+
+
+
+/* =================== QPushButton Begin =================== */
+/* IntelliJ IDEA 2026 Light: 72x28 minimum size and 4px corner radius. */
+QPushButton {
+    min-width: 46px;
+    min-height: 16px;
+    padding: 3px 6px;
+    border: 1px solid #C9CCD6;
+    border-radius: 4px;
+    background-color: #FFFFFF;
+    color: #27282E;
+    outline: none;
+}
+
+QPushButton:enabled:hover {
+    background-color: #F7F8FA;
+    border-color: #A8ADBD;
+}
+
+QPushButton:enabled:pressed {
+    background-color: #EBECF0;
+    border-color: #818594;
+}
+
+QPushButton:enabled:checked {
+    background-color: #EDF3FF;
+    border-color: #3574F0;
+}
+
+/* Focus changes only the border color, keeping its width at 1px. */
+QPushButton:enabled:focus {
+    border-color: #3574F0;
+}
+
+/* Use primary=true for main actions without changing Enter-key behavior. */
+QPushButton:default,
+QPushButton[primary="true"] {
+    background-color: #3574F0;
+    border-color: #3574F0;
+    color: #FFFFFF;
+}
+
+QPushButton:default:enabled:hover,
+QPushButton[primary="true"]:enabled:hover {
+    background-color: #3369D6;
+    border-color: #3369D6;
+}
+
+QPushButton:default:enabled:pressed,
+QPushButton:default:enabled:checked,
+QPushButton[primary="true"]:enabled:pressed,
+QPushButton[primary="true"]:enabled:checked {
+    background-color: #315FBD;
+    border-color: #315FBD;
+}
+
+QPushButton:default:enabled:focus,
+QPushButton[primary="true"]:enabled:focus {
+    border-color: #2E55A3;
+}
+
+QPushButton:disabled,
+QPushButton:default:disabled,
+QPushButton[primary="true"]:disabled {
+    background-color: #F7F8FA;
+    border-color: #DFE1E5;
+    color: #A8ADBD;
+}
+/* =================== QPushButton  End  =================== */
+
+
+
+
+/* =================== QCheckBox Begin =================== */
+QCheckBox {
+    spacing: 2px;
+    background: transparent;
+    outline: none;
+}
+
+QCheckBox::indicator {
+    width: 12px;
+    height: 12px;
+    border: 1px solid palette(mid);
+    border-radius: 3px;
+    background-color: #FFFFFF;
+    image: none;
+}
+
+QCheckBox::indicator:checked {
+    background-color: #3574F0;
+    border-color: #3574F0;
+    image: url(:/icons/checked-white.svg);
+}
+/* =================== QCheckBox  End  =================== */
+
+
+/* =================== QRadioButton Begin =================== */
+QRadioButton {
+    spacing: 6px;
+    background: transparent;
+}
+
+/* 圆环和圆点由 RadioButton 抗锯齿绘制，QSS 统一控制尺寸与文字间距。 */
+QRadioButton::indicator {
+    width: 16px;
+    height: 16px;
+    border: none;
+    background: transparent;
+}
+/* =================== QRadioButton  End  =================== */
+
+
+
+
+/* =================== QTextEdit Begin =================== */
+QTextEdit {
+	border: none;
+}
+/* =================== QTextEdit  End  =================== */
+
+
+
+
+
+/* =================== QLineEdit Begin =================== */
+QLineEdit {
+    min-height: 20px;
+    max-height: 20px;
+}
+/* =================== QLineEdit  End  =================== */

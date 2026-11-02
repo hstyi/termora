@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>styles/app.qss</file>
+        <file>styles/app.osx.qss</file>
+        <file>styles/app.win.qss</file>
+    </qresource>
+</RCC>

@@ -1,0 +1,25 @@
+/* =================== QMenu Begin =================== */
+QMenu {
+    border: none;                 
+    background-color: white;    
+    menu-scrollable: 1;
+}
+/* =================== QMenu  End  =================== */
+
+
+
+
+/* =================== QListView Begin =================== */
+QListView {
+    border: none;
+}
+/* =================== QListView  End  =================== */
+
+
+
+
+/* =================== QToolTip Begin =================== */
+QToolTip {
+    border: none;
+}
+/* =================== QToolTip  End  =================== */

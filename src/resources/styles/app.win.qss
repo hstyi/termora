@@ -1,0 +1,9 @@
+/* =================== QMenu Begin =================== */
+/* 子菜单箭头 */
+QMenu::right-arrow {
+    image: url(:/icons/chevronRight.png);
+    width: 16px;
+    height: 16px;
+    padding-right: 4px;
+}
+/* =================== QMenu  End  =================== */
