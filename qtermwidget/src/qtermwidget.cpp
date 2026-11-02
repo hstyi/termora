@@ -3,7 +3,11 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QFontDatabase>
+#include <QInputMethod>
 #include <QPainter>
+#include <QScrollBar>
+#include <QSignalBlocker>
+#include <QStyle>
 #include <QStyleHints>
 #include <QWheelEvent>
 #include <algorithm>
@@ -14,9 +18,12 @@
 namespace {
     constexpr GhosttyColorRgb kForeground = {.r = 220, .g = 220, .b = 220};
     constexpr GhosttyColorRgb kBackground = {.r = 30, .g = 30, .b = 30};
-    constexpr bool kTrackCell = true; // 合并同一字符格内的重复移动，SGR 像素模式由编码器另行处理。
+    constexpr bool kTrackCell = true;              // 合并同一字符格内的重复移动，SGR 像素模式由编码器另行处理。
+    constexpr int kSelectionScrollInterval = 50;   // 靠近边缘时每 50 毫秒滚动一行，方向由 Ghostty 决定。
+    constexpr int kMinSelectionScrollInterval = 5; // 拉远后最多每 5 毫秒滚动一行，避免无上限占用事件循环。
+    constexpr int kDefaultScrollbackLines = 10000; // 默认按历史行数限制容量，替代内核的默认字节上限。
 
-    /** 检查 result；operation 标明失败的内核操作，便于定位初始化错误。 */
+    /** 检查 result；operation 标明失败的内核操作，便于定位初始化或配置错误。 */
     void requireSuccess(const GhosttyResult result, const char *operation) {
         if (result != GHOSTTY_SUCCESS) {
             throw std::runtime_error(operation);
@@ -142,6 +149,7 @@ namespace {
 QTermWidgetPrivate::QTermWidgetPrivate(QTermWidget *owner) : q(owner) {}
 
 QTermWidgetPrivate::~QTermWidgetPrivate() {
+    selectionScrollTimer.stop();
     for (const auto event : selectionEvents) {
         ghostty_selection_gesture_event_free(event);
     }
@@ -159,6 +167,31 @@ QTermWidgetPrivate::~QTermWidgetPrivate() {
 void QTermWidgetPrivate::initialize() {
     requireSuccess(ghostty_terminal_new(nullptr, &terminal, gridSize.width(), gridSize.height()),
                    "Create Ghostty terminal");
+    verticalScrollBar = new QScrollBar(Qt::Vertical, q);
+    verticalScrollBar->setFocusPolicy(Qt::NoFocus);
+    verticalScrollBar->setCursor(Qt::ArrowCursor);
+    verticalScrollBar->setSingleStep(1);
+    // value 是滚动条请求的位置；交给内核移动视口后再读回实际位置。
+    QObject::connect(verticalScrollBar, &QScrollBar::valueChanged, q, [this](const int value) {
+        GhosttyTerminalScrollbar state = {};
+        if (ghostty_terminal_get(terminal, GHOSTTY_TERMINAL_DATA_SCROLLBAR, &state) != GHOSTTY_SUCCESS) {
+            return;
+        }
+        resetSelectionGesture();
+        GhosttyTerminalScrollViewport scroll = {};
+        if (value == verticalScrollBar->maximum()) {
+            scroll.tag = GHOSTTY_SCROLL_VIEWPORT_BOTTOM;
+        } else {
+            scroll.tag = GHOSTTY_SCROLL_VIEWPORT_ROW;
+            const uint64_t lastRow = state.total > state.len ? state.total - state.len : 0;
+            // Qt 滚动条使用 int；极大的历史范围按比例映射，通常每个刻度就是一行。
+            scroll.value.row = static_cast<size_t>(static_cast<long double>(value) * lastRow /
+                                                   std::max(1, verticalScrollBar->maximum()));
+        }
+        ghostty_terminal_scroll_viewport(terminal, scroll);
+        syncScrollBar();
+        q->update();
+    });
     requireSuccess(ghostty_render_state_new(nullptr, &render), "Create Ghostty render state");
     requireSuccess(ghostty_render_state_row_iterator_new(nullptr, &rows), "Create Ghostty row iterator");
     requireSuccess(ghostty_render_state_row_cells_new(nullptr, &cells), "Create Ghostty cell iterator");
@@ -194,13 +227,25 @@ void QTermWidgetPrivate::initialize() {
         }
     });
     blinkTimer.start();
+    selectionScrollTimer.setInterval(kSelectionScrollInterval);
+    selectionScrollTimer.setTimerType(Qt::PreciseTimer);
+    QObject::connect(&selectionScrollTimer, &QTimer::timeout, q, [this] {
+        if (!q->isVisible() || !q->isEnabled() || mouseReporting()) {
+            resetSelectionGesture();
+            return;
+        }
+        applySelectionGesture(GHOSTTY_SELECTION_GESTURE_EVENT_TYPE_AUTOSCROLL_TICK);
+    });
 }
 
 void QTermWidgetPrivate::resizeTerminal() {
     const QFontMetrics metrics(q->font());
     cellSize = {std::max(1, metrics.horizontalAdvance(QLatin1Char('M'))), std::max(1, metrics.height())};
     ascent = metrics.ascent();
-    const QSize available = q->contentsRect().size();
+    const QRect area = q->contentsRect();
+    const int barWidth = std::min(scrollBarWidth(), area.width());
+    verticalScrollBar->setGeometry(area.right() - barWidth + 1, area.top(), barWidth, area.height());
+    const QSize available = terminalRect().size();
     const QSize next(std::clamp(available.width() / cellSize.width(), 1, 65535),
                      std::clamp(available.height() / cellSize.height(), 1, 65535));
     if (!terminal) {
@@ -220,12 +265,36 @@ void QTermWidgetPrivate::resizeTerminal() {
     mouseSize.screen_width = gridSize.width() * mouseSize.cell_width;
     mouseSize.screen_height = gridSize.height() * mouseSize.cell_height;
     ghostty_mouse_encoder_setopt(mouseEncoder, GHOSTTY_MOUSE_ENCODER_OPT_SIZE, &mouseSize);
+    syncScrollBar();
     q->updateGeometry();
     q->update();
     notifySelection();
     if (changed) {
         Q_EMIT q->terminalSizeChanged(next);
     }
+}
+
+int QTermWidgetPrivate::scrollBarWidth() const {
+    return std::max(0, q->style()->pixelMetric(QStyle::PM_ScrollBarExtent, nullptr, q));
+}
+
+QRect QTermWidgetPrivate::terminalRect() const {
+    const QRect area = q->contentsRect();
+    return {area.topLeft(), QSize(std::max(0, area.width() - scrollBarWidth()), area.height())};
+}
+
+void QTermWidgetPrivate::syncScrollBar() {
+    GhosttyTerminalScrollbar state = {};
+    if (ghostty_terminal_get(terminal, GHOSTTY_TERMINAL_DATA_SCROLLBAR, &state) != GHOSTTY_SUCCESS) {
+        return;
+    }
+    const uint64_t lastRow = state.total > state.len ? state.total - state.len : 0;
+    const int maximum = static_cast<int>(std::min<uint64_t>(lastRow, INT_MAX));
+    const long double scale = lastRow > INT_MAX ? static_cast<long double>(INT_MAX) / lastRow : 1;
+    const auto blocker = QSignalBlocker(verticalScrollBar);
+    verticalScrollBar->setRange(0, maximum);
+    verticalScrollBar->setPageStep(std::max(1, static_cast<int>(std::min<long double>(state.len * scale, INT_MAX))));
+    verticalScrollBar->setValue(static_cast<int>(std::min(state.offset, lastRow) * scale));
 }
 
 void QTermWidgetPrivate::notifySelection() {
@@ -240,27 +309,49 @@ void QTermWidgetPrivate::notifySelection() {
 }
 
 GhosttyPoint QTermWidgetPrivate::viewportPoint(const QPoint &position) const {
-    const QPoint local = position - q->contentsRect().topLeft();
+    const QPoint local = position - terminalRect().topLeft();
     return gridPoint({std::clamp(local.x() / cellSize.width(), 0, gridSize.width() - 1),
                       std::clamp(local.y() / cellSize.height(), 0, gridSize.height() - 1)},
                      GHOSTTY_POINT_TAG_VIEWPORT);
 }
 
 void QTermWidgetPrivate::selectMouse(QMouseEvent *event, const GhosttySelectionGestureEventType type) {
+    selectionPosition = event->localPos();
+    selectionModifiers = event->modifiers();
+    applySelectionGesture(type, event->timestamp());
+}
+
+void QTermWidgetPrivate::resetSelectionGesture() {
+    selectionScrollTimer.stop();
+    ghostty_selection_gesture_reset(selectionGesture, terminal);
+}
+
+void QTermWidgetPrivate::applySelectionGesture(const GhosttySelectionGestureEventType type, const ulong timestamp) {
     const auto gestureEvent = selectionEvents[type];
-    GhosttyGridRef ref = {};
-    if (ghostty_terminal_grid_ref(terminal, viewportPoint(event->pos()), &ref) != GHOSTTY_SUCCESS) {
-        return;
+    const auto point = viewportPoint(selectionPosition.toPoint());
+    if (type == GHOSTTY_SELECTION_GESTURE_EVENT_TYPE_AUTOSCROLL_TICK) {
+        // tick 会先滚动再解析视口坐标，不能复用滚动前的单元格引用。
+        ghostty_selection_gesture_event_set(gestureEvent, GHOSTTY_SELECTION_GESTURE_EVENT_OPT_VIEWPORT,
+                                            &point.value.coordinate);
+    } else {
+        if (type != GHOSTTY_SELECTION_GESTURE_EVENT_TYPE_DRAG) {
+            selectionScrollTimer.stop();
+        }
+        GhosttyGridRef ref = GHOSTTY_INIT_SIZED(GhosttyGridRef);
+        if (ghostty_terminal_grid_ref(terminal, point, &ref) != GHOSTTY_SUCCESS) {
+            resetSelectionGesture();
+            return;
+        }
+        ghostty_selection_gesture_event_set(gestureEvent, GHOSTTY_SELECTION_GESTURE_EVENT_OPT_REF, &ref);
     }
-    ghostty_selection_gesture_event_set(gestureEvent, GHOSTTY_SELECTION_GESTURE_EVENT_OPT_REF, &ref);
     if (type != GHOSTTY_SELECTION_GESTURE_EVENT_TYPE_RELEASE) {
         // 手势位置和几何统一使用 Qt 逻辑像素；这里不涉及发给应用的鼠标协议坐标。
-        const QPointF local = event->localPos() - q->contentsRect().topLeft();
+        const QPointF local = selectionPosition - terminalRect().topLeft();
         const GhosttySurfacePosition position = {.x = local.x(), .y = local.y()};
         ghostty_selection_gesture_event_set(gestureEvent, GHOSTTY_SELECTION_GESTURE_EVENT_OPT_POSITION, &position);
     }
     if (type == GHOSTTY_SELECTION_GESTURE_EVENT_TYPE_PRESS) {
-        const uint64_t time = static_cast<uint64_t>(event->timestamp()) * 1000000;
+        const uint64_t time = static_cast<uint64_t>(timestamp) * 1000000;
         const uint64_t interval = static_cast<uint64_t>(QApplication::doubleClickInterval()) * 1000000;
         const double distance = QApplication::styleHints()->mouseDoubleClickDistance();
         // Qt 将第二次按下改发为 DoubleClick；仍交给内核按时间和距离识别双击、三击。
@@ -271,19 +362,43 @@ void QTermWidgetPrivate::selectMouse(QMouseEvent *event, const GhosttySelectionG
                                             &interval);
         ghostty_selection_gesture_event_set(gestureEvent, GHOSTTY_SELECTION_GESTURE_EVENT_OPT_REPEAT_DISTANCE,
                                             &distance);
-    } else if (type == GHOSTTY_SELECTION_GESTURE_EVENT_TYPE_DRAG) {
+    } else if (type == GHOSTTY_SELECTION_GESTURE_EVENT_TYPE_DRAG ||
+               type == GHOSTTY_SELECTION_GESTURE_EVENT_TYPE_AUTOSCROLL_TICK) {
         const GhosttySelectionGestureGeometry geometry = {
             .columns = static_cast<uint32_t>(gridSize.width()),
             .cell_width = static_cast<uint32_t>(cellSize.width()),
             .padding_left = 0,
-            .screen_height = static_cast<uint32_t>(q->contentsRect().height())};
-        const bool rectangle = event->modifiers().testFlag(Qt::AltModifier);
+            .screen_height = static_cast<uint32_t>(terminalRect().height())};
+        const bool rectangle = selectionModifiers.testFlag(Qt::AltModifier);
         ghostty_selection_gesture_event_set(gestureEvent, GHOSTTY_SELECTION_GESTURE_EVENT_OPT_GEOMETRY, &geometry);
         ghostty_selection_gesture_event_set(gestureEvent, GHOSTTY_SELECTION_GESTURE_EVENT_OPT_RECTANGLE, &rectangle);
     }
 
     GhosttySelection value = GHOSTTY_INIT_SIZED(GhosttySelection);
     auto result = ghostty_selection_gesture_event(selectionGesture, terminal, gestureEvent, &value);
+    if (type == GHOSTTY_SELECTION_GESTURE_EVENT_TYPE_DRAG ||
+        type == GHOSTTY_SELECTION_GESTURE_EVENT_TYPE_AUTOSCROLL_TICK) {
+        auto direction = GHOSTTY_SELECTION_GESTURE_AUTOSCROLL_NONE;
+        ghostty_selection_gesture_get(selectionGesture, terminal, GHOSTTY_SELECTION_GESTURE_DATA_AUTOSCROLL,
+                                      &direction);
+        if ((result != GHOSTTY_SUCCESS && result != GHOSTTY_NO_VALUE) ||
+            direction == GHOSTTY_SELECTION_GESTURE_AUTOSCROLL_NONE) {
+            selectionScrollTimer.stop();
+        } else {
+            const QRect area = terminalRect();
+            const qreal distance = std::max(
+                {qreal(0), area.top() - selectionPosition.y(), selectionPosition.y() - (area.top() + area.height())});
+            // 超出边缘越远，tick 间隔越短；以行高归一化，字号或 DPI 改变后手感保持一致。
+            const int interval = std::clamp(qRound(kSelectionScrollInterval / (1 + distance / cellSize.height())),
+                                            kMinSelectionScrollInterval, kSelectionScrollInterval);
+            if (selectionScrollTimer.interval() != interval) {
+                selectionScrollTimer.setInterval(interval);
+            }
+            if (!selectionScrollTimer.isActive()) {
+                selectionScrollTimer.start();
+            }
+        }
+    }
     if (type != GHOSTTY_SELECTION_GESTURE_EVENT_TYPE_RELEASE &&
         (result == GHOSTTY_SUCCESS || result == GHOSTTY_NO_VALUE)) {
         auto behavior = GHOSTTY_SELECTION_GESTURE_BEHAVIOR_CELL;
@@ -291,15 +406,14 @@ void QTermWidgetPrivate::selectMouse(QMouseEvent *event, const GhosttySelectionG
                                           &behavior) == GHOSTTY_SUCCESS) {
             // 内核的选词不会覆盖未写入的空格；双击空白时补齐本行范围，仍安装为内核选区。
             if (behavior == GHOSTTY_SELECTION_GESTURE_BEHAVIOR_WORD &&
-                type == GHOSTTY_SELECTION_GESTURE_EVENT_TYPE_PRESS &&
-                blankSelection(viewportPoint(event->pos()), &value)) {
+                type == GHOSTTY_SELECTION_GESTURE_EVENT_TYPE_PRESS && blankSelection(point, &value)) {
                 result = GHOSTTY_SUCCESS;
             } else if (behavior == GHOSTTY_SELECTION_GESTURE_BEHAVIOR_LINE) {
                 // 空行没有可供内核选行的文字，此时用内核跟踪的锚点和当前格确定范围。
                 if (result == GHOSTTY_NO_VALUE &&
                     ghostty_selection_gesture_get(selectionGesture, terminal, GHOSTTY_SELECTION_GESTURE_DATA_ANCHOR,
-                                                  &value.start) == GHOSTTY_SUCCESS) {
-                    value.end = ref;
+                                                  &value.start) == GHOSTTY_SUCCESS &&
+                    ghostty_terminal_grid_ref(terminal, point, &value.end) == GHOSTTY_SUCCESS) {
                     result = GHOSTTY_SUCCESS;
                 }
                 // 三击及其后续拖动均保留行尾空白；有文字时沿用内核选出的软换行范围。
@@ -314,9 +428,11 @@ void QTermWidgetPrivate::selectMouse(QMouseEvent *event, const GhosttySelectionG
     } else if (result == GHOSTTY_NO_VALUE && type == GHOSTTY_SELECTION_GESTURE_EVENT_TYPE_PRESS) {
         // 单击清除旧选区；未越过拖选阈值或锚点失效时则保留当前选区。
         ghostty_terminal_set(terminal, GHOSTTY_TERMINAL_OPT_SELECTION, nullptr);
-    } else {
+    } else if (type != GHOSTTY_SELECTION_GESTURE_EVENT_TYPE_AUTOSCROLL_TICK) {
         return;
     }
+    // 即使空白区域没有产生新选区，tick 也可能已改变视口，仍需重绘。
+    syncScrollBar();
     q->update();
     notifySelection();
 }
@@ -384,7 +500,7 @@ QRect QTermWidgetPrivate::cursorRect() const {
         !cursor.viewport_has_value) {
         return {};
     }
-    return {q->contentsRect().topLeft() +
+    return {terminalRect().topLeft() +
                 QPoint(cursor.viewport_x * cellSize.width(), cursor.viewport_y * cellSize.height()),
             cellSize};
 }
@@ -443,7 +559,7 @@ QByteArray QTermWidgetPrivate::encodeMouse(const GhosttyMouseAction action, cons
     }
     ghostty_mouse_event_set_mods(mouseEvent, terminalModifiers(modifiers));
     // 与 terminal_resize 的物理单元格保持一致，兼容高 DPI 和 SGR 像素坐标报告。
-    const QPointF local = position - q->contentsRect().topLeft();
+    const QPointF local = position - terminalRect().topLeft();
     const GhosttyMousePosition pixels = {
         .x = static_cast<float>(local.x() * physicalCell.width() / cellSize.width()),
         .y = static_cast<float>(local.y() * physicalCell.height() / cellSize.height())};
@@ -561,6 +677,7 @@ QTermWidget::QTermWidget(QWidget *parent) : QWidget(parent), d_ptr(new QTermWidg
     setCursor(Qt::IBeamCursor);
     setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
     d->resizeTerminal();
+    setScrollbackLines(kDefaultScrollbackLines);
 }
 
 QTermWidget::~QTermWidget() = default;
@@ -612,17 +729,29 @@ QSize QTermWidget::terminalSize() const {
     return d->gridSize;
 }
 
+int QTermWidget::scrollbackLines() const {
+    Q_D(const QTermWidget);
+    size_t lines = 0;
+    const GhosttyResult result = ghostty_terminal_get(d->terminal, GHOSTTY_TERMINAL_DATA_SCROLLBACK_MAX_LINES, &lines);
+    if (result == GHOSTTY_NO_VALUE) {
+        return -1;
+    }
+    requireSuccess(result, "Get Ghostty scrollback line limit");
+    return static_cast<int>(lines);
+}
+
 QSize QTermWidget::sizeHint() const {
     Q_D(const QTermWidget);
     const QMargins margins = contentsMargins();
-    return {80 * d->cellSize.width() + margins.left() + margins.right(),
+    return {80 * d->cellSize.width() + margins.left() + margins.right() + d->scrollBarWidth(),
             24 * d->cellSize.height() + margins.top() + margins.bottom()};
 }
 
 QSize QTermWidget::minimumSizeHint() const {
     Q_D(const QTermWidget);
     const QMargins margins = contentsMargins();
-    return d->cellSize + QSize(margins.left() + margins.right(), margins.top() + margins.bottom());
+    return d->cellSize +
+           QSize(margins.left() + margins.right() + d->scrollBarWidth(), margins.top() + margins.bottom());
 }
 
 void QTermWidget::write(const QByteArray &data) {
@@ -634,10 +763,11 @@ void QTermWidget::write(const QByteArray &data) {
     ghostty_terminal_vt_write(d->terminal, reinterpret_cast<const uint8_t *>(data.constData()), data.size());
     ghostty_mouse_encoder_setopt_from_terminal(d->mouseEncoder, d->terminal);
     if (wasReporting != d->mouseReporting()) {
-        ghostty_selection_gesture_reset(d->selectionGesture, d->terminal);
+        d->resetSelectionGesture();
         d->wheelRemainder = {};
         d->pixelScrollRemainder = {};
     }
+    d->syncScrollBar();
     update();
     d->notifySelection();
 }
@@ -681,7 +811,7 @@ void QTermWidget::copy() const {
 
 void QTermWidget::selectAll() {
     Q_D(QTermWidget);
-    ghostty_selection_gesture_reset(d->selectionGesture, d->terminal);
+    d->resetSelectionGesture();
     GhosttySelection value = GHOSTTY_INIT_SIZED(GhosttySelection);
     // select_all 会裁掉首尾空白；直接指定完整网格边界，让空终端也能全选。
     // SCREEN 起点包含历史，ACTIVE 终点始终指向最新屏幕右下角，不受当前滚动位置影响。
@@ -714,7 +844,7 @@ bool QTermWidget::setSelection(const Selection &selection) {
     if (ghostty_terminal_set(d->terminal, GHOSTTY_TERMINAL_OPT_SELECTION, &value) != GHOSTTY_SUCCESS) {
         return false;
     }
-    ghostty_selection_gesture_reset(d->selectionGesture, d->terminal);
+    d->resetSelectionGesture();
     update();
     d->notifySelection();
     return true;
@@ -722,7 +852,29 @@ bool QTermWidget::setSelection(const Selection &selection) {
 
 void QTermWidget::clearSelection() {
     Q_D(QTermWidget);
+    d->resetSelectionGesture();
     ghostty_terminal_set(d->terminal, GHOSTTY_TERMINAL_OPT_SELECTION, nullptr);
+    update();
+    d->notifySelection();
+}
+
+void QTermWidget::setScrollbackLines(const int lines) {
+    Q_D(QTermWidget);
+    if (lines < -1) {
+        return;
+    }
+    // 裁剪可能移除拖选锚点，先结束手势；选区是否仍有效由内核判断。
+    d->resetSelectionGesture();
+    const size_t limit = lines < 0 ? 0 : static_cast<size_t>(lines);
+    requireSuccess(
+        ghostty_terminal_set(d->terminal, GHOSTTY_TERMINAL_OPT_SCROLLBACK_MAX_LINES, lines < 0 ? nullptr : &limit),
+        "Set Ghostty scrollback line limit");
+    // 行数为零仍可能因内核分页保留历史，字节上限为零才会彻底关闭历史。
+    // 其余情况取消字节上限，防止它先于调用方指定的行数触发裁剪。
+    requireSuccess(
+        ghostty_terminal_set(d->terminal, GHOSTTY_TERMINAL_OPT_SCROLLBACK_MAX_BYTES, lines == 0 ? &limit : nullptr),
+        "Set Ghostty scrollback byte limit");
+    d->syncScrollBar();
     update();
     d->notifySelection();
 }
@@ -733,6 +885,7 @@ void QTermWidget::scrollLines(const int lines) {
     scroll.tag = GHOSTTY_SCROLL_VIEWPORT_DELTA;
     scroll.value.delta = lines;
     ghostty_terminal_scroll_viewport(d->terminal, scroll);
+    d->syncScrollBar();
     update();
 }
 
@@ -741,23 +894,33 @@ void QTermWidget::scrollToBottom() {
     GhosttyTerminalScrollViewport scroll = {};
     scroll.tag = GHOSTTY_SCROLL_VIEWPORT_BOTTOM;
     ghostty_terminal_scroll_viewport(d->terminal, scroll);
+    d->syncScrollBar();
     update();
 }
 
 void QTermWidget::reset() {
     Q_D(QTermWidget);
-    ghostty_selection_gesture_reset(d->selectionGesture, d->terminal);
+    d->resetSelectionGesture();
     d->preedit.clear();
     d->shortcutKeys.clear();
     d->wheelRemainder = {};
     d->pixelScrollRemainder = {};
     ghostty_terminal_reset(d->terminal);
     ghostty_mouse_encoder_setopt_from_terminal(d->mouseEncoder, d->terminal);
+    d->syncScrollBar();
     update();
     d->notifySelection();
 }
 
 bool QTermWidget::event(QEvent *event) {
+    Q_D(QTermWidget);
+    // 自动鼠标捕获丢失、窗口失焦或隐藏后停止定时拖选，避免留在后台持续滚动。
+    if (d->selectionScrollTimer.isActive() &&
+        (event->type() == QEvent::UngrabMouse || event->type() == QEvent::WindowDeactivate ||
+         event->type() == QEvent::FocusOut || event->type() == QEvent::Hide ||
+         (event->type() == QEvent::EnabledChange && !isEnabled()))) {
+        d->resetSelectionGesture();
+    }
     if (event->type() == QEvent::ShortcutOverride) {
         event->accept();
         return true;
@@ -777,7 +940,8 @@ void QTermWidget::resizeEvent(QResizeEvent *event) {
 
 void QTermWidget::changeEvent(QEvent *event) {
     QWidget::changeEvent(event);
-    if (event->type() == QEvent::FontChange || event->type() == QEvent::ContentsRectChange) {
+    if (event->type() == QEvent::FontChange || event->type() == QEvent::ContentsRectChange ||
+        event->type() == QEvent::StyleChange) {
         Q_D(QTermWidget);
         d->resizeTerminal();
     }
@@ -852,6 +1016,9 @@ void QTermWidget::mouseMoveEvent(QMouseEvent *event) {
         return;
     }
     if (!event->buttons().testFlag(Qt::LeftButton)) {
+        if (d->selectionScrollTimer.isActive()) {
+            d->resetSelectionGesture();
+        }
         QWidget::mouseMoveEvent(event);
         return;
     }
@@ -916,6 +1083,16 @@ void QTermWidget::inputMethodEvent(QInputMethodEvent *event) {
     Q_D(QTermWidget);
     d->preedit = event->preeditString();
     event->accept();
+
+    // 预编辑尚未向 PTY 发送字节，也应回到输入位置并清除选区；空的取消事件保持视口不变。
+    if (!d->preedit.isEmpty() || !event->commitString().isEmpty()) {
+        d->blinkOn = true;
+        scrollToBottom();
+        clearSelection();
+        // 视口变化后通知输入法重新查询光标矩形，使候选框跟随当前输入位置。
+        QApplication::inputMethod()->update(Qt::ImCursorRectangle);
+    }
+
     update();
     sendText(event->commitString());
 }
@@ -952,7 +1129,8 @@ void QTermWidget::paintEvent(QPaintEvent *event) {
     GhosttyRenderStateColors colors = GHOSTTY_INIT_SIZED(GhosttyRenderStateColors);
     ghostty_render_state_get(d->render, GHOSTTY_RENDER_STATE_DATA_COLORS, &colors);
     painter.fillRect(rect(), qtColor(colors.background));
-    painter.setClipRect(contentsRect(), Qt::IntersectClip);
+    const QRect terminalArea = d->terminalRect();
+    painter.setClipRect(terminalArea, Qt::IntersectClip);
     GhosttyRenderStateCursor cursor = GHOSTTY_INIT_SIZED(GhosttyRenderStateCursor);
     ghostty_render_state_get(d->render, GHOSTTY_RENDER_STATE_DATA_CURSOR, &cursor);
     // 查看历史时光标可能不在视口内；失焦时保留静态轮廓，避免光标继续闪烁。
@@ -981,7 +1159,7 @@ void QTermWidget::paintEvent(QPaintEvent *event) {
             }
 
             const int columns = wide == GHOSTTY_CELL_WIDE_WIDE ? 2 : 1;
-            const QRect cell(contentsRect().topLeft() + QPoint(x * d->cellSize.width(), y * d->cellSize.height()),
+            const QRect cell(terminalArea.topLeft() + QPoint(x * d->cellSize.width(), y * d->cellSize.height()),
                              QSize(columns * d->cellSize.width(), d->cellSize.height()));
             if (!event->region().intersects(cell)) {
                 ++x;

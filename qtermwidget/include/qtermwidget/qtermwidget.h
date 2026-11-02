@@ -41,9 +41,13 @@ public:
     QString selectedText() const;
     /** 返回终端字符网格尺寸，width 为列数，height 为行数。 */
     QSize terminalSize() const;
-    /** 返回可容纳默认 80 列、24 行的建议像素尺寸。 */
+    /** 返回配置的历史物理行数上限（不含当前屏幕），默认 10000；0 表示关闭，-1 表示不限。
+     * Ghostty 按内存页裁剪，实际保留行数可能超过此值；此接口不返回当前历史行数。
+     */
+    int scrollbackLines() const;
+    /** 返回可容纳默认 80 列、24 行及右侧垂直滚动条的建议像素尺寸。 */
     QSize sizeHint() const override;
-    /** 返回至少容纳一个字符单元格的像素尺寸。 */
+    /** 返回至少容纳一个字符单元格及垂直滚动条的像素尺寸。 */
     QSize minimumSizeHint() const override;
     /** 查询 query 指定的输入法信息，包括候选框应跟随的光标矩形。 */
     QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
@@ -65,6 +69,11 @@ public Q_SLOTS:
     bool setSelection(const QTermWidget::Selection &selection);
     /** 清除活动屏幕的选区。 */
     void clearSelection();
+    /** 设置历史物理行数上限 lines，0 立即清除并关闭历史，-1 不限，小于 -1 时忽略。
+     * 使用行数限制并取消字节限制；缩小上限由 Ghostty 按页裁剪，已丢弃的历史无法恢复。
+     * 设置适用于主屏幕，在备用屏幕中调用也有效；reset() 保留此设置。
+     */
+    void setScrollbackLines(int lines);
     /** 将视口滚动 lines 行；负数向历史方向滚动，正数向最新输出滚动。 */
     void scrollLines(int lines);
     /** 将视口移动到最新输出。 */
