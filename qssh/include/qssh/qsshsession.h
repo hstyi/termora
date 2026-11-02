@@ -14,6 +14,8 @@ class QSshExecChannel;
 class QSshTunnel;
 class QSshTunnelPrivate;
 class QSshForwardStream;
+class QSshSftpSession;
+class QSshSftpSessionPrivate;
 
 /** 一条 SSH 连接，通过 Client 创建；所有公共接口均在所属 Qt 线程调用。 */
 class QSshSession : public QObject {
@@ -139,7 +141,7 @@ public:
         HostKeyStatus status = UnknownHost; ///< known_hosts 比较结果。
     };
 
-    /** 关闭连接并释放所属 Channel；由 Client 管理所有权。 */
+    /** 关闭连接并释放所属 Channel、SFTP 和隧道；由 Client 管理所有权。 */
     ~QSshSession() override;
     /** 返回前端已观察到的状态。 */
     State state() const;
@@ -153,6 +155,8 @@ public:
     QSshExecChannel *createExecChannel();
     /** 创建未启动的 local／remote／dynamic 隧道，所有权归 Session。 */
     QSshTunnel *createTunnel();
+    /** 创建未打开的 SFTP 子系统，复用当前 SSH 连接，所有权归 Session。 */
+    QSshSftpSession *createSftpSession();
 
 public Q_SLOTS:
     /** 使用 options 异步连接，仅 Idle 接受调用；校验和认证完成后发 ready()。 */
@@ -163,11 +167,11 @@ public Q_SLOTS:
     void answerAuthentication(quint64 requestId, const QStringList &answers);
     /** 取消 requestId 对应的交互并关闭连接；空答案不表示取消。 */
     void cancelAuthentication(quint64 requestId);
-    /** 异步关闭连接及所有 Channel，可以重复调用。 */
+    /** 异步关闭连接及所有 Channel、SFTP 和隧道，可以重复调用。 */
     void close();
 
 Q_SIGNALS:
-    /** 主机校验和全部认证已完成，可以打开 Channel。 */
+    /** 主机校验和全部认证已完成，可以打开 Channel、SFTP 和隧道。 */
     void ready();
     /** 生命周期变为 state，通知在所属 Qt 线程发出。 */
     void stateChanged(QSshSession::State state);
@@ -194,6 +198,7 @@ private:
     friend class QSshChannelPrivate;
     friend class QSshTunnelPrivate;
     friend class QSshForwardStream;
+    friend class QSshSftpSessionPrivate;
 };
 
 Q_DECLARE_METATYPE(QSshSession::State)

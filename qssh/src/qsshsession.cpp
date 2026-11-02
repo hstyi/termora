@@ -1,12 +1,14 @@
 #include "qsshchannel_p.h"
 #include "qsshclient_p.h"
 #include "qsshsession_p.h"
+#include "qsshsftpsession_p.h"
 
 #include <QFile>
 #include <QPointer>
 #include <QThread>
 #include <algorithm>
 #include <qssh/qsshexecchannel.h>
+#include <qssh/qsshsftpsession.h>
 #include <qssh/qsshshellchannel.h>
 #include <qssh/qsshtunnel.h>
 
@@ -333,6 +335,9 @@ void QSshSessionPrivate::drive() {
                 return;
             }
         }
+        for (auto *sftp : sftpSessions) {
+            progress = sftp->advance() || progress;
+        }
         if (progress) {
             schedule();
         }
@@ -601,6 +606,9 @@ void QSshSessionPrivate::shutdown() {
     deadline.cancel();
     progressEvent.cancel();
     shutdownForwarding();
+    for (auto *sftp : sftpSessions) {
+        sftp->shutdown(QSshSftpSession::SessionClosed, QStringLiteral("SSH session closed"));
+    }
     for (auto *channel : channels) {
         if (channel->phase != QSshChannel::Closed) {
             channel->fail(QSshChannel::SessionClosed, QStringLiteral("SSH session closed"));
@@ -640,6 +648,9 @@ QSshSession::~QSshSession() {
     Q_ASSERT(thread() == QThread::currentThread());
     Q_D(QSshSession);
     d->frontClosing = true;
+    while (const auto *sftp = findChild<QSshSftpSession *>(QString(), Qt::FindDirectChildrenOnly)) {
+        delete sftp;
+    }
     while (const auto *tunnel = findChild<QSshTunnel *>(QString(), Qt::FindDirectChildrenOnly)) {
         delete tunnel;
     }
@@ -679,6 +690,12 @@ QSshTunnel *QSshSession::createTunnel() {
     Q_ASSERT(thread() == QThread::currentThread());
     Q_D(QSshSession);
     return d->frontClosing || d->frontState == Closed ? nullptr : new QSshTunnel(this);
+}
+
+QSshSftpSession *QSshSession::createSftpSession() {
+    Q_ASSERT(thread() == QThread::currentThread());
+    Q_D(QSshSession);
+    return d->frontClosing || d->frontState == Closed ? nullptr : new QSshSftpSession(this);
 }
 
 void QSshSession::connectToHost(const Options &options) {

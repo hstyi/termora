@@ -18,6 +18,8 @@ add_library(
     include/qssh/qsshexecchannel.h
     include/qssh/qsshshellchannel.h
     include/qssh/qsshtunnel.h
+    include/qssh/qsshsftpsession.h
+    include/qssh/qsshsftptransfer.h
     src/qsshclient.cpp
     src/qsshchannel.cpp
     src/qsshexecchannel.cpp
@@ -32,6 +34,11 @@ add_library(
     src/qsshtunnel_p.h
     src/qsshforwardstream.cpp
     src/qsshforwardstream_p.h
+    src/qsshsftpsession.cpp
+    src/qsshsftpsession_p.h
+    src/qsshsftptransfer.cpp
+    src/qsshsftptransfer_p.h
+    src/qsshsftppermissions_p.h
 )
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(

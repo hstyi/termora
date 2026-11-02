@@ -12,6 +12,7 @@
 class QSshClientPrivate;
 class QSshTunnelPrivate;
 class QSshForwardStream;
+class QSshSftpSessionPrivate;
 
 /** Session 的 Qt 私有实现；除明确标注的前端字段外，状态仅由 worker 访问。 */
 class QSshSessionPrivate {
@@ -121,6 +122,7 @@ public:
     int promptCount = -1;                                    ///< -1 表示主机确认，否则表示认证问题数量。
     std::vector<QSshChannelPrivate *> channels;              ///< worker 独占的 Channel 列表，析构通过屏障移除。
     std::vector<QSshTunnelPrivate *> tunnels;                ///< worker 独占的隧道列表。
+    std::vector<QSshSftpSessionPrivate *> sftpSessions;      ///< worker 独占的独立 SFTP 子系统列表。
     std::vector<std::shared_ptr<QSshForwardStream>> streams; ///< 转发流的存活集合，关闭后由驱动器移除。
 
     /** 单个串行远端监听操作，独立于前端隧道对象生命周期。 */

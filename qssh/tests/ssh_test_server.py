@@ -8,7 +8,11 @@ import sys
 import threading
 import struct
 
+# 测试模块来自源码目录，禁止运行测试时在仓库生成 __pycache__。
+sys.dont_write_bytecode = True
+
 import paramiko
+from sftp_test_server import FragmentedSftpServer, TestSftpInterface
 
 
 class TestServer(paramiko.ServerInterface):
@@ -230,7 +234,7 @@ def run_channel(server, channel, command):
         pass
 
 
-def run_connection(sock, host_key, user_key):
+def run_connection(sock, host_key, user_key, sftp_root):
     """在 sock 上处理一条连接，使用显式 host_key 和 user_key。"""
     transport = paramiko.Transport(sock)
     server = TestServer(user_key)
@@ -238,6 +242,9 @@ def run_connection(sock, host_key, user_key):
     channels = []  # Transport 只保留弱引用；应用持有所有已接受的 Channel。
     try:
         transport.add_server_key(host_key)
+        # 性能测试关闭分片／故障注入，避免把额外 SSH write 和人为等待测进吞吐。
+        sftp_handler = paramiko.SFTPServer if os.environ.get("QSSH_TEST_SFTP_BENCHMARK") == "1" else FragmentedSftpServer
+        transport.set_subsystem_handler("sftp", sftp_handler, TestSftpInterface, root=sftp_root)
         transport.start_server(server=server)
         while transport.is_active():
             channel = transport.accept(0.01)
@@ -317,6 +324,8 @@ def main(directory):
     host_key = paramiko.RSAKey.generate(2048)
     user_key = paramiko.RSAKey.generate(2048)
     user_key.write_private_key_file(os.path.join(directory, "user_key"), password="key-passphrase")
+    sftp_root = os.path.join(directory, "sftp-root")
+    os.mkdir(sftp_root)
     with open(os.path.join(directory, "user_key.pub"), "w", encoding="ascii") as public_file:
         public_file.write(f"{user_key.get_name()} {user_key.get_base64()}\n")
     listener = socket.socket()
@@ -325,7 +334,7 @@ def main(directory):
     print(listener.getsockname()[1], flush=True)
     while True:
         sock, _ = listener.accept()
-        threading.Thread(target=run_connection, args=(sock, host_key, user_key), daemon=True).start()
+        threading.Thread(target=run_connection, args=(sock, host_key, user_key, sftp_root), daemon=True).start()
 
 
 if __name__ == "__main__":
