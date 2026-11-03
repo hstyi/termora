@@ -19,6 +19,8 @@ add_executable(
     applicationstyle.cpp
     windowsmenu.cpp
     windowsmenu.h
+    tablewidget.h
+    tablewidget.cpp
     tabwidget.h
     tabwidget.cpp
     tabwidgetmodel.h

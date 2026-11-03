@@ -1,5 +1,4 @@
-/* Light with Light Header 的选中配色统一由 ApplicationStyle::polish 设置。
-   菜单和自绘行共用 Highlight / HighlightedText，颜色来源见 colors.h。 */
+/* Termora Light / FlatLaf Light；主题配色由 main.cpp 中的 palette 提供。 */
 
 /* =================== QTreeView Begin =================== */
 QTreeView {
@@ -29,16 +28,16 @@ QTreeView::branch:open:has-children:has-siblings {
 QTreeView::indicator {
     width: 12px;
     height: 12px;
-    border: 1px solid #A8ADBD;
+    border: 1px solid palette(dark);
     border-radius: 3px;
-    background-color: #FFFFFF;
+    background-color: palette(base);
     image: none;
 }
 
 QTreeView::indicator:checked,
 QTreeView::indicator:indeterminate {
-    background-color: #3574F0;
-    border-color: #3574F0;
+    background-color: palette(highlight);
+    border-color: palette(highlight);
 }
 
 QTreeView::indicator:checked {
@@ -50,8 +49,8 @@ QTreeView::indicator:indeterminate {
 }
 
 QTreeView::indicator:disabled {
-    background-color: #F7F8FA;
-    border-color: #DFE1E5;
+    background-color: palette(light);
+    border-color: palette(midlight);
 }
 
 QTreeView::indicator:checked:disabled {
@@ -78,13 +77,70 @@ QPlainTextEdit {
 
 /* =================== QTableView Begin =================== */
 QTableView {
-    border: none;
+    border: 1px solid palette(mid);
+    outline: none;
     background-color: palette(base);
+    color: palette(text);
+    qproperty-showGrid: false;
+    border-radius: 4px;
+    selection-background-color: palette(highlight);
+    selection-color: palette(highlighted-text);
 }
 
 QTableView::item {
     border: none;
+    border-right: 1px solid #ECECEC;
+    border-bottom: 1px solid #ECECEC;
     padding: 0px 4px;
+}
+
+/* 左侧没有 cell 边框；最后一列也不再叠加右边框，只保留 Table 外框。 */
+QTableView::item:last,
+QTableView::item:only-one {
+    border-right: none;
+}
+
+QTableView::item:selected {
+    background-color: palette(highlight);
+    color: palette(highlighted-text);
+    border-color: rgba(255, 255, 255, 30);
+}
+
+QTableView::item:selected:!active {
+    background-color: palette(midlight);
+    color: palette(text);
+}
+
+QTableView QHeaderView {
+    background-color: transparent;
+    color: palette(window-text);
+}
+
+QTableView QHeaderView::section {
+    padding: 0px 6px;
+    border: none;
+    border-right: 1px solid #E4E4E4;
+    border-bottom: 1px solid #E4E4E4;
+    background-color: palette(window);
+    color: palette(window-text);
+}
+
+QTableView QHeaderView::section:last,
+QTableView QHeaderView::section:only-one {
+    border-right: none;
+    border-top-right-radius: 3px;
+}
+
+QTableView QHeaderView::section:first,
+QTableView QHeaderView::section:only-one {
+    border-top-left-radius: 3px;
+}
+
+QTableView QTableCornerButton::section {
+    border: none;
+    border-right: 1px solid #E4E4E4;
+    border-bottom: 1px solid #E4E4E4;
+    background-color: palette(window);
 }
 /* =================== QTableView  End  =================== */
 
@@ -100,18 +156,15 @@ QMenu {
     icon-size: 16px;
 }
 
-/* 普通、悬停和键盘选中共用文字颜色，只改变背景。 */
-QMenu::item,
-QMenu::item:enabled:hover,
-QMenu::item:enabled:selected {
-    color: #333333;
+QMenu::item {
+    color: palette(window-text);
 }
 
 QMenu::item {
 	margin: 1px 0;
 	/* 保持紧凑的左右留白，快捷键在右侧列内对齐。 */
 	padding: 0 12px 0 8px;
-	height: 22px;
+	height: 20px;
 	min-width: 110px;
 	icon-size: 16px;
 	border-radius: 4px;
@@ -122,10 +175,11 @@ QMenu::item {
 QMenu::item:enabled:hover,
 QMenu::item:enabled:selected {
     background-color: palette(highlight);
+    color: palette(highlighted-text);
 }
 
 QMenu::item:disabled {
-    color: #BDBDBD;
+    color: palette(dark);
 }
 
 /* 分隔线 */
@@ -173,7 +227,7 @@ QComboBox QAbstractItemView {
 
 QListView::item,
 QComboBox QAbstractItemView::item {
-	height: 22px;
+	height: 20px;
 	border-radius: 4px;
 	padding: 0px 2px;
 	color: palette(window-text);
@@ -187,6 +241,7 @@ QComboBox QAbstractItemView::item:hover {
 QListView::item:selected,
 QComboBox QAbstractItemView::item:selected {
 	background-color: palette(highlight);
+    color: palette(highlighted-text);
 }
 /* =================== QListView  End  =================== */
 
@@ -219,14 +274,13 @@ QSplitter[collapsed="true"]::handle:hover {
 
 /* =================== App Begin =================== */
 MainWindow {
-    background-color: #F3F3F3;
+    background-color: palette(window);
 }
 
 QSplitter#RootSplitter {
     border-top: 1px solid palette(midlight);
     border-bottom: 1px solid palette(midlight);
 }
-
 /* =================== App  End  =================== */
 
 
@@ -263,7 +317,7 @@ QTabBar::tab:selected {
 }
 
 QTabBar::tab:disabled {
-    color: palette(mid);
+    color: palette(dark);
 }
 /* =================== QTabWidget End =================== */
 
@@ -285,14 +339,14 @@ QToolTip {
 
 
 /* =================== QComboBox Begin =================== */
-/* 输入控件共用边框和焦点高亮，聚焦时不改变边框宽度。 */
+/* 输入控件共用主题颜色；禁用时 Light / Midlight / Dark 分别提供背景、边框和文字。 */
 QComboBox,
 QLineEdit,
 QTextEdit {
     border: 1px solid palette(mid);
     border-radius: 4px;
     background-color: palette(base);
-    color: palette(window-text);
+    color: palette(text);
 }
 
 QComboBox:enabled:focus,
@@ -300,14 +354,21 @@ QComboBox:enabled:on,
 QLineEdit:enabled:focus,
 QSpinBox:enabled:focus,
 QTextEdit:enabled:focus {
-    border-color: #3574F0;
+    border-color: palette(link-visited);
+}
+
+QComboBox:disabled,
+QLineEdit:disabled,
+QTextEdit:disabled {
+    background-color: palette(light);
+    border-color: palette(midlight);
+    color: palette(dark);
 }
 
 QComboBox {
     height: 20px;
     padding: 0px 6px;
     combobox-popup: 0;
-	color: palette(window-text);
 }
 
 /* 右侧下拉按钮 */
@@ -323,6 +384,10 @@ QComboBox::drop-down {
 
 QComboBox::drop-down:hover {
     /* background-color: #EDEDED; */
+}
+
+QComboBox::drop-down:disabled {
+    border-left-color: palette(midlight);
 }
 
 /* 下拉箭头图标，复用已有的 chevronDown */
@@ -367,7 +432,7 @@ QToolButton {
     background-color: transparent;
 }
 
-/* IntelliJ Light ActionButton overlays: RGBA #00000012 / #0000001D. */
+/* 浅灰工具按钮反馈，叠加在主题背景上。 */
 QToolButton:enabled:hover {
     background-color: rgba(0, 0, 0, 18);
 }
@@ -381,180 +446,72 @@ QToolButton:enabled:checked {
 
 
 
-/* =================== MainToolBar Begin =================== */
-QWidget#MainTitleBar {
-    background-color: palette(window);
-}
-
-QWidget#MainTitleBar QWK--WindowBar {
-    background-color: transparent;
-}
-
-QMenuBar {
-    background-color: transparent;
-    border: none;
-}
-
-QMenuBar > QToolButton#qt_menubar_ext_button {
-    qproperty-icon: url(:/window-bar/more-line.svg);
-}
-
-QMenuBar > QToolButton#qt_menubar_ext_button:hover,
-QMenuBar > QToolButton#qt_menubar_ext_button:pressed {
-    background-color: rgba(255, 255, 255, 10%);
-}
-
-/* Bind system-button geometry directly, including before title-bar parenting. */
-QWK--WindowBar > QAbstractButton#IconButton {
-    qproperty-iconNormal: url(:/app/example.png);
-    qproperty-iconSize: 18px 18px;
-    min-width: 40px;
-    border: none;
-    padding: 0;
-    background-color: transparent;
-}
-
-QAbstractButton#MinButton[system-button=true],
-QAbstractButton#MaxButton[system-button=true],
-QAbstractButton#CloseButton[system-button=true] {
-    qproperty-iconSize: 16px 16px;
-    min-width: 45px;
-    border: none;
-    border-radius: 0px;
-    margin: 0px;
-    padding: 0;
-    background-color: transparent;
-}
-
-QAbstractButton#MinButton[system-button=true] {
-    qproperty-iconNormal: url(:/icons/minimizeInactive.svg);
-}
-
-QAbstractButton#MinButton[system-button=true][window-active=false] {
-    qproperty-iconNormal: url(:/icons/minimize.svg);
-}
-
-/* IDEA Light header: hover alpha 0x0D; JBR Windows 11 pressed alpha 0x06. */
-QAbstractButton#MinButton[system-button=true]:hover {
-    background-color: rgba(0, 0, 0, 13);
-}
-
-QAbstractButton#MinButton[system-button=true]:pressed {
-    background-color: rgba(0, 0, 0, 6);
-}
-
-QAbstractButton#MaxButton[system-button=true] {
-    qproperty-iconNormal: url(:/icons/maximizeInactive.svg);
-    qproperty-iconChecked: url(:/icons/restoreInactive.svg);
-}
-
-QAbstractButton#MaxButton[system-button=true]:hover {
-    background-color: rgba(0, 0, 0, 13);
-}
-
-QAbstractButton#MaxButton[system-button=true]:pressed {
-    background-color: rgba(0, 0, 0, 6);
-}
-
-QAbstractButton#MaxButton[system-button=true][window-active=false] {
-    qproperty-iconNormal: url(:/icons/maximize.svg);
-    qproperty-iconChecked: url(:/icons/restore.svg);
-}
-
-QAbstractButton#CloseButton[system-button=true] {
-    qproperty-iconNormal: url(:/icons/closeInactive.svg);
-}
-
-QAbstractButton#CloseButton[system-button=true]:hover {
-    background-color: #C42B1C;
-}
-
-QAbstractButton#CloseButton[system-button=true]:pressed {
-    background-color: #C84031;
-}
-
-QAbstractButton#CloseButton[system-button=true][window-active=false] {
-    qproperty-iconNormal: url(:/icons/close.svg);
-}
-
-QAbstractButton#CloseButton[system-button=true][hovered=true] {
-    qproperty-iconNormal: url(:/icons/closePressed.svg);
-}
-
-MainToolBar {
-    background-color: transparent;
-}
-/* =================== MainToolBar  End  =================== */
-
-
-
-
 /* =================== QPushButton Begin =================== */
-/* IntelliJ IDEA 2026 Light: 72x28 minimum size and 4px corner radius. */
+/* FlatLaf Light 的白底按钮、浅灰反馈和蓝色默认按钮边框。 */
 QPushButton {
     min-width: 46px;
-    min-height: 16px;
-    padding: 3px 6px;
-    border: 1px solid #C9CCD6;
+    height: 16px;
+    padding: 2px 4px;
+    border: 1px solid palette(mid);
     border-radius: 4px;
-    background-color: #FFFFFF;
-    color: #27282E;
+    background-color: palette(button);
+    color: palette(button-text);
     outline: none;
 }
 
 QPushButton:enabled:hover {
-    background-color: #F7F8FA;
-    border-color: #A8ADBD;
+    background-color: #F7F7F7;
+    border-color: palette(link-visited);
 }
 
 QPushButton:enabled:pressed {
-    background-color: #EBECF0;
-    border-color: #818594;
+    background-color: palette(alternate-base);
+    border-color: palette(shadow);
 }
 
 QPushButton:enabled:checked {
-    background-color: #EDF3FF;
-    border-color: #3574F0;
+    background-color: palette(midlight);
+    border-color: palette(link-visited);
 }
 
 /* Focus changes only the border color, keeping its width at 1px. */
 QPushButton:enabled:focus {
-    border-color: #3574F0;
+    border-color: palette(link-visited);
 }
 
-/* Use primary=true for main actions without changing Enter-key behavior. */
+/* 默认按钮和 primary=true 使用强调边框，保持按钮整体尺寸一致。 */
 QPushButton:default,
 QPushButton[primary="true"] {
-    background-color: #3574F0;
-    border-color: #3574F0;
-    color: #FFFFFF;
+    background-color: palette(button);
+    border: 1px solid palette(link);
+    color: palette(button-text);
 }
 
 QPushButton:default:enabled:hover,
 QPushButton[primary="true"]:enabled:hover {
-    background-color: #3369D6;
-    border-color: #3369D6;
+    background-color: #F7F7F7;
+    border-color: palette(link-visited);
 }
 
 QPushButton:default:enabled:pressed,
 QPushButton:default:enabled:checked,
 QPushButton[primary="true"]:enabled:pressed,
 QPushButton[primary="true"]:enabled:checked {
-    background-color: #315FBD;
-    border-color: #315FBD;
+    background-color: palette(alternate-base);
+    border-color: palette(link-visited);
 }
 
 QPushButton:default:enabled:focus,
 QPushButton[primary="true"]:enabled:focus {
-    border-color: #2E55A3;
+    border-color: palette(link-visited);
 }
 
 QPushButton:disabled,
 QPushButton:default:disabled,
 QPushButton[primary="true"]:disabled {
-    background-color: #F7F8FA;
-    border-color: #DFE1E5;
-    color: #A8ADBD;
+    background-color: palette(light);
+    border-color: palette(midlight);
+    color: palette(dark);
 }
 /* =================== QPushButton  End  =================== */
 
@@ -563,24 +520,40 @@ QPushButton[primary="true"]:disabled {
 
 /* =================== QCheckBox Begin =================== */
 QCheckBox {
-    spacing: 2px;
+    spacing: 3px;
     background: transparent;
     outline: none;
 }
 
 QCheckBox::indicator {
-    width: 12px;
-    height: 12px;
-    border: 1px solid palette(mid);
+    width: 13px;
+    height: 13px;
+    border: 1px solid palette(mid); 
     border-radius: 3px;
-    background-color: #FFFFFF;
+    background-color: palette(base);
     image: none;
+	subcontrol-origin: content;
+	subcontrol-position: center left;
+	top: 0px;
 }
 
 QCheckBox::indicator:checked {
-    background-color: #3574F0;
-    border-color: #3574F0;
+    background-color: palette(highlight);
+    border-color: palette(highlight);
     image: url(:/icons/checked-white.svg);
+}
+
+QCheckBox:disabled {
+    color: palette(dark);
+}
+
+QCheckBox::indicator:disabled {
+    background-color: palette(light);
+    border-color: palette(midlight);
+}
+
+QCheckBox::indicator:checked:disabled {
+    image: url(:/icons/checked-disabled.svg);
 }
 /* =================== QCheckBox  End  =================== */
 
@@ -622,7 +595,9 @@ QLineEdit {
 
 /* 组合控件内部的编辑框共用外层边框，避免出现双层边框。 */
 QComboBox QLineEdit,
-QAbstractSpinBox QLineEdit {
+QAbstractSpinBox QLineEdit,
+QComboBox QLineEdit:disabled,
+QAbstractSpinBox QLineEdit:disabled {
     border: none;
     border-radius: 0px;
     padding: 0px;
@@ -643,13 +618,13 @@ QSpinBox {
     border: 1px solid palette(mid);
     border-radius: 4px;
     background-color: palette(base);
-    color: palette(window-text);
+    color: palette(text);
 }
 
 QSpinBox:disabled {
-    background-color: #F7F8FA;
-    border-color: #DFE1E5;
-    color: #A8ADBD;
+    background-color: palette(light);
+    border-color: palette(midlight);
+    color: palette(dark);
 }
 
 QSpinBox::up-button,
@@ -690,7 +665,7 @@ QSpinBox::down-button:disabled {
 
 QSpinBox::up-button:disabled,
 QSpinBox::down-button:disabled {
-    border-left-color: #DFE1E5;
+    border-left-color: palette(midlight);
 }
 
 QSpinBox::up-arrow,
@@ -730,14 +705,14 @@ QGroupBox {
     border: 1px solid palette(mid);
     border-radius: 4px;
     margin-top: 0.5em;
-    padding: 0px;
+    padding: 10px 4px 4px 4px;
 }
 
 QGroupBox::title {
     subcontrol-origin: margin;
     subcontrol-position: top left;
     left: 8px;
-    padding: 0px 2px;
+    padding: 0px 4px;
     background-color: palette(window);
     color: palette(window-text);
 }

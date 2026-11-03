@@ -1,7 +1,7 @@
 /* =================== QMenu Begin =================== */
 QMenu {
     border: none;                 
-    background-color: white;    
+    background-color: palette(base);
     menu-scrollable: 1;
 }
 /* =================== QMenu  End  =================== */

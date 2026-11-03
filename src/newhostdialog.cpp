@@ -3,6 +3,7 @@
 #include "hosttreemodel.h"
 #include "macscrollstyle.h"
 #include "stores/hoststore.h"
+#include "tablewidget.h"
 #include "treeview.h"
 
 #include <QButtonGroup>
@@ -24,6 +25,7 @@
 #include <QSortFilterProxyModel>
 #include <QSpinBox>
 #include <QStyle>
+#include <QStyleOptionViewItem>
 #include <QStyledItemDelegate>
 #include <QTabBar>
 #include <QTabWidget>
@@ -69,16 +71,9 @@ namespace {
     }
 
     QTableWidget *createTable(QWidget *parent, const QStringList &headers) {
-        auto *table = new QTableWidget(0, headers.size(), parent);
+        auto *table = new TableWidget(parent);
+        table->setColumnCount(headers.size());
         table->setHorizontalHeaderLabels(headers);
-        table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-        table->verticalHeader()->hide();
-        table->setSelectionBehavior(QAbstractItemView::SelectRows);
-        table->setSelectionMode(QAbstractItemView::ExtendedSelection);
-        table->setEditTriggers(QAbstractItemView::NoEditTriggers);
-        table->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
-        table->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
-        MacScrollStyle::use(table);
         return table;
     }
 
@@ -403,7 +398,7 @@ namespace {
         void initViews() {
             m_list_widget = new QListWidget(this);
             m_list_widget->setIconSize(QSize(16, 16));
-            m_list_widget->setFixedWidth(200);
+            m_list_widget->setFixedWidth(190);
             m_list_widget->setStyleSheet(
                 QString("QListWidget { background-color: %1; border-right: 1px solid %2; border-radius: 0; } ")
                     .arg(palette().window().color().name())
@@ -599,6 +594,8 @@ namespace {
             m_x11_server_edit->setEnabled(false);
 
             auto *x11Layout = new QHBoxLayout(x11);
+            x11Layout->setContentsMargins(0, 0, 0, 0);
+            x11Layout->setSpacing(0);
             x11Layout->addWidget(m_x11_forwarding_checkbox);
             x11Layout->addWidget(m_x11_server_edit, 1);
 
@@ -606,6 +603,8 @@ namespace {
             m_forward_agent_checkbox = new QCheckBox(tr("Enable ForwardAgent"), agent);
 
             auto *agentLayout = new QHBoxLayout(agent);
+            agentLayout->setContentsMargins(0, 0, 0, 0);
+            agentLayout->setSpacing(0);
             agentLayout->addWidget(m_forward_agent_checkbox);
 
             auto *forwarding = new QHBoxLayout;

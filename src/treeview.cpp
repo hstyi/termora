@@ -105,9 +105,11 @@ void TreeView::scrollTo(const QModelIndex &index, ScrollHint hint) {
 void TreeView::TreeItemDelegate::initStyleOption(QStyleOptionViewItem *option, const QModelIndex &index) const {
     QStyledItemDelegate::initStyleOption(option, index);
     option->state &= ~QStyle::State_HasFocus;
-    // ForegroundRole 已写入 Text；选中时继续使用文件状态等原有文字颜色。
-    for (const auto group : {QPalette::Active, QPalette::Inactive, QPalette::Disabled}) {
-        option->palette.setBrush(group, QPalette::HighlightedText, option->palette.brush(group, QPalette::Text));
+    // 显式指定的状态色继续保留，其余选中文字遵循主题的 HighlightedText。
+    if (index.data(Qt::ForegroundRole).isValid()) {
+        for (const auto group : {QPalette::Active, QPalette::Inactive, QPalette::Disabled}) {
+            option->palette.setBrush(group, QPalette::HighlightedText, option->palette.brush(group, QPalette::Text));
+        }
     }
 }
 
