@@ -25,6 +25,7 @@
 #include <QSpinBox>
 #include <QStyle>
 #include <QStyledItemDelegate>
+#include <QTabBar>
 #include <QTabWidget>
 #include <QTableWidget>
 #include <QTextDocument>
@@ -47,6 +48,10 @@ namespace {
 
     public:
         virtual std::optional<store::Host> host() = 0;
+
+        virtual bool canTest() const {
+            return false;
+        }
     };
 
     QComboBox *createComboBox(QWidget *parent) {
@@ -58,6 +63,8 @@ namespace {
         // 默认的 QItemDelegate 不使用 QListView::item 的 QSS 绘制规则。
         combo->setItemDelegate(new QStyledItemDelegate(view));
         MacScrollStyle::use(view);
+        // macOS 默认会跳过非编辑下拉框；显式允许 Tab 和鼠标聚焦。
+        combo->setFocusPolicy(Qt::StrongFocus);
         return combo;
     }
 
@@ -323,6 +330,7 @@ namespace {
 
         explicit NewHostOptionsWidget(Mode mode) : m_mode(mode) {
             initViews();
+            initTabOrder();
             initEvents();
             if (m_mode == Mode::Host) {
                 updateAuthentication();
@@ -335,8 +343,8 @@ namespace {
             store::Host host = {};
             host.name = m_name_edit->text().trimmed();
             host.proxy.type = static_cast<store::ProxyType>(m_proxy_type_combobox->currentData().toInt());
-            if (host.name.isEmpty() ||
-                (host.proxy.type != store::ProxyType::No && m_proxy_host_edit->text().trimmed().isEmpty())) {
+            if (!requireField(m_name_edit) || (m_mode == Mode::Host && !requireField(m_host_edit)) ||
+                (host.proxy.type != store::ProxyType::No && !requireField(m_proxy_host_edit))) {
                 return std::nullopt;
             }
 
@@ -344,9 +352,6 @@ namespace {
             host.protocol = m_mode == Mode::Folder ? QStringLiteral("folder") : QStringLiteral("ssh");
             if (m_mode == Mode::Host) {
                 host.host = m_host_edit->text().trimmed();
-                if (host.host.isEmpty()) {
-                    return std::nullopt;
-                }
                 host.port = m_port_spinbox->value();
                 host.username = m_username_edit->text().trimmed();
                 host.authentication.type = static_cast<store::AuthenticationType>(
@@ -397,17 +402,24 @@ namespace {
     private:
         void initViews() {
             m_list_widget = new QListWidget(this);
+            m_list_widget->setIconSize(QSize(16, 16));
+            m_list_widget->setFixedWidth(200);
+            m_list_widget->setStyleSheet(
+                QString("QListWidget { background-color: %1; border-right: 1px solid %2; border-radius: 0; } ")
+                    .arg(palette().window().color().name())
+                    .arg(palette().mid().color().name()));
+
             const auto icon = m_mode == Mode::Folder ? QStyle::SP_DirIcon : QStyle::SP_ComputerIcon;
             m_list_widget->addItem(new QListWidgetItem(style()->standardIcon(icon), tr("Properties")));
-            m_list_widget->addItem(tr("Proxy"));
+            m_list_widget->addItem(new QListWidgetItem(style()->standardIcon(icon), tr("Proxy")));
             if (m_mode == Mode::Host) {
-                m_list_widget->addItem(tr("Tunnel"));
+                m_list_widget->addItem(new QListWidgetItem(style()->standardIcon(icon), tr("Tunnel")));
             }
-            m_list_widget->addItems({tr("Jump Hosts"), tr("Terminal")});
+            m_list_widget->addItem(new QListWidgetItem(style()->standardIcon(icon), tr("Jump Hosts")));
+            m_list_widget->addItem(new QListWidgetItem(style()->standardIcon(icon), tr("Terminal")));
             if (m_mode == Mode::Host) {
-                m_list_widget->addItem(tr("Transfer"));
+                m_list_widget->addItem(new QListWidgetItem(style()->standardIcon(icon), tr("Transfer")));
             }
-            m_list_widget->setFixedWidth(m_list_widget->sizeHintForColumn(0) + 2 * m_list_widget->frameWidth() + 24);
 
             m_stacked_widget = new QStackedWidget(this);
 
@@ -415,6 +427,7 @@ namespace {
             initProxy();
             initJumpHosts();
             initTerminal();
+
             if (m_mode == Mode::Host) {
                 initTunnel();
                 initTransfer();
@@ -433,9 +446,41 @@ namespace {
             m_list_widget->setCurrentRow(0);
 
             auto *layout = new QHBoxLayout(this);
+            layout->setContentsMargins(0, 0, 0, 0);
+            layout->setSpacing(0);
             layout->addWidget(m_list_widget);
             layout->addWidget(m_stacked_widget, 1);
             setFocusProxy(m_name_edit);
+        }
+
+        bool requireField(QLineEdit *field) {
+            if (!field->text().trimmed().isEmpty()) {
+                return true;
+            }
+            for (int row = 0; row < m_stacked_widget->count(); ++row) {
+                if (m_stacked_widget->widget(row)->isAncestorOf(field)) {
+                    m_list_widget->setCurrentRow(row);
+                    break;
+                }
+            }
+            field->setFocus(Qt::OtherFocusReason);
+            return false;
+        }
+
+        void initTabOrder() {
+            setTabOrder(m_list_widget, m_name_edit);
+            if (m_mode == Mode::Folder) {
+                setTabOrder(m_name_edit, m_remark_edit);
+                return;
+            }
+
+            // 显式使用表单顺序，避免提前创建的备注框打乱焦点链。
+            setTabOrder(m_name_edit, m_host_edit);
+            setTabOrder(m_host_edit, m_port_spinbox);
+            setTabOrder(m_port_spinbox, m_username_edit);
+            setTabOrder(m_username_edit, m_authentication_type_combobox);
+            setTabOrder(m_authentication_type_combobox, m_password_edit);
+            setTabOrder(m_password_edit, m_remark_edit);
         }
 
         void initProperties() {
@@ -444,6 +489,7 @@ namespace {
             m_remark_edit = new QTextEdit(m_properties_widget);
             MacScrollStyle::use(m_remark_edit);
             setTextEditRows(m_remark_edit, 8);
+
             if (m_mode == Mode::Folder) {
                 auto *layout = new QGridLayout(m_properties_widget);
                 layout->setColumnStretch(1, 1);
@@ -454,6 +500,7 @@ namespace {
                 layout->setRowStretch(2, 1);
                 return;
             }
+
             m_host_edit = new QLineEdit(m_properties_widget);
             m_port_spinbox = new QSpinBox(m_properties_widget);
             m_port_spinbox->setRange(1, 65535);
@@ -550,13 +597,17 @@ namespace {
             m_x11_forwarding_checkbox = new QCheckBox(tr("X DISPLAY:"), x11);
             m_x11_server_edit = new QLineEdit(QStringLiteral("localhost:0"), x11);
             m_x11_server_edit->setEnabled(false);
+
             auto *x11Layout = new QHBoxLayout(x11);
             x11Layout->addWidget(m_x11_forwarding_checkbox);
             x11Layout->addWidget(m_x11_server_edit, 1);
+
             auto *agent = new QGroupBox(tr("Agent Forwarding"), m_tunnel_widget);
             m_forward_agent_checkbox = new QCheckBox(tr("Enable ForwardAgent"), agent);
+
             auto *agentLayout = new QHBoxLayout(agent);
             agentLayout->addWidget(m_forward_agent_checkbox);
+
             auto *forwarding = new QHBoxLayout;
             forwarding->addWidget(x11, 1);
             forwarding->addWidget(agent);
@@ -592,6 +643,9 @@ namespace {
         void initTerminal() {
             m_terminal_widget = new QWidget(m_stacked_widget);
             m_terminal_tabs = new QTabWidget(m_terminal_widget);
+            m_terminal_tabs->tabBar()->setDrawBase(false);
+            m_terminal_tabs->tabBar()->setExpanding(false);
+            m_terminal_tabs->setUsesScrollButtons(true);
             auto *general = new QWidget(m_terminal_tabs);
             auto *scroll = new QScrollArea(m_terminal_tabs);
             scroll->setWidgetResizable(true);
@@ -954,6 +1008,10 @@ namespace {
     class NewHostWidget : public NewHostOptionsWidget {
     public:
         explicit NewHostWidget() : NewHostOptionsWidget(Mode::Host) {}
+
+        bool canTest() const override {
+            return true;
+        }
     };
 
     class NewFolderWidget : public NewHostOptionsWidget {
@@ -962,26 +1020,29 @@ namespace {
     };
 } // namespace
 
-NewHostDialog::NewHostDialog(QWidget *parent) : HeadlessDialog(false, parent) {
+NewHostDialog::NewHostDialog(QWidget *parent) : HeadlessDialog(true, parent) {
     initViews();
     initEvents();
 }
 
 void NewHostDialog::initViews() {
-    m_folder_button = new QToolButton();
+    m_protocol_bar = new QWidget(this);
+    m_protocol_bar->setAttribute(Qt::WA_StyledBackground);
+    m_protocol_bar->setObjectName("ToolBar");
+    m_protocol_bar->setStyleSheet(
+        QString("QWidget#ToolBar { border-top: 1px solid %1; }").arg(palette().mid().color().name()));
+
+    m_folder_button = new QToolButton(m_protocol_bar);
     m_folder_button->setText(tr("Folder"));
-    m_folder_button->setIcon(style()->standardIcon(QStyle::SP_DirIcon));
-    m_folder_button->setToolButtonStyle(Qt::ToolButtonStyle::ToolButtonTextUnderIcon);
+    m_folder_button->setIcon(style()->standardIcon(QStyle::SP_DesktopIcon));
+    m_folder_button->setIconSize(QSize(24, 24));
+    m_folder_button->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
-    m_ssh2_button = new QToolButton();
-    m_ssh2_button->setIcon(style()->standardIcon(QStyle::SP_ComputerIcon));
-    m_ssh2_button->setText("SSH");
-    m_ssh2_button->setToolButtonStyle(Qt::ToolButtonStyle::ToolButtonTextUnderIcon);
-
-    m_stacked_widget = new QStackedWidget();
-    m_stacked_widget->addWidget(new NewHostWidget());
-    m_stacked_widget->addWidget(new NewFolderWidget());
-    m_stacked_widget->setCurrentIndex(0);
+    m_ssh2_button = new QToolButton(m_protocol_bar);
+    m_ssh2_button->setText(tr("SSH"));
+    m_ssh2_button->setIcon(style()->standardIcon(QStyle::SP_DesktopIcon));
+    m_ssh2_button->setIconSize(QSize(24, 24));
+    m_ssh2_button->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
     auto *type_buttons = new QButtonGroup(this);
     type_buttons->addButton(m_ssh2_button);
@@ -990,29 +1051,55 @@ void NewHostDialog::initViews() {
     m_ssh2_button->setCheckable(true);
     m_ssh2_button->setChecked(true);
 
-    auto *layout = new QVBoxLayout;
-    layout->setSpacing(0);
-    layout->setContentsMargins(0, 0, 0, 0);
-
-    auto *buttons_layout = new QHBoxLayout;
-    buttons_layout->setSpacing(4);
-    buttons_layout->setContentsMargins(0, 0, 0, 0);
-
-    auto *bottom_layout = new QHBoxLayout;
-    bottom_layout->setSpacing(0);
-    bottom_layout->setContentsMargins(0, 0, 0, 0);
+    auto *buttons_layout = new QHBoxLayout(m_protocol_bar);
+    buttons_layout->setSpacing(8);
+    buttons_layout->setContentsMargins(0, 4, 0, 4);
     buttons_layout->addStretch();
-    buttons_layout->addWidget(m_folder_button);
     buttons_layout->addWidget(m_ssh2_button);
+    buttons_layout->addWidget(m_folder_button);
     buttons_layout->addStretch();
 
-    layout->addLayout(buttons_layout);
-    layout->addWidget(m_stacked_widget, 1);
-    layout->addLayout(bottom_layout);
+    m_stacked_widget = new QStackedWidget(this);
+    m_stacked_widget->setObjectName("RootStackedWidget");
+    m_stacked_widget->addWidget(new NewHostWidget());
+    m_stacked_widget->addWidget(new NewFolderWidget());
+    m_stacked_widget->setStyleSheet(QString(R"(
+    QStackedWidget#RootStackedWidget {
+        border-top: 1px solid %1;
+        border-bottom: 1px solid %1;
+    }
+)")
+                                        .arg(palette().mid().color().name()));
+    m_stacked_widget->setCurrentIndex(0);
 
-    setLayout(layout);
-    resize(860, 600);
-    setWindowTitle(tr("New"));
+    m_footer_widget = new QWidget(this);
+    m_footer_widget->setAttribute(Qt::WA_StyledBackground);
+    m_message_label = new QLabel(m_footer_widget);
+    m_message_label->setWordWrap(true);
+    m_message_label->hide();
+    m_cancel_button = new QPushButton(tr("Cancel"), m_footer_widget);
+    m_test_connection_button = new QPushButton(tr("Test Connection"), m_footer_widget);
+    m_ok_button = new QPushButton(tr("OK"), m_footer_widget);
+    m_ok_button->setDefault(true);
+    m_cancel_button->setAutoDefault(false);
+    m_test_connection_button->setAutoDefault(false);
+
+    auto *footer_layout = new QHBoxLayout(m_footer_widget);
+    footer_layout->setContentsMargins(12, 8, 12, 8);
+    footer_layout->setSpacing(8);
+    footer_layout->addWidget(m_message_label, 1);
+    footer_layout->addStretch(1);
+    footer_layout->addWidget(m_cancel_button);
+    footer_layout->addWidget(m_test_connection_button);
+    footer_layout->addWidget(m_ok_button);
+
+    auto *root_layout = qobject_cast<QVBoxLayout *>(layout());
+    root_layout->addWidget(m_protocol_bar);
+    root_layout->addWidget(m_stacked_widget, 1);
+    root_layout->addWidget(m_footer_widget);
+    updateFooter();
+
+    resize(660, 560);
 }
 
 void NewHostDialog::initEvents() {
@@ -1021,11 +1108,56 @@ void NewHostDialog::initEvents() {
     connect(m_stacked_widget, &QStackedWidget::currentChanged, this, [this](int index) {
         m_ssh2_button->setChecked(index == 0);
         m_folder_button->setChecked(index == 1);
+        updateFooter();
         m_stacked_widget->currentWidget()->setFocus();
+    });
+    connect(m_cancel_button, &QPushButton::clicked, this, &QDialog::reject);
+    connect(m_ok_button, &QPushButton::clicked, this, &NewHostDialog::accept);
+    connect(m_test_connection_button, &QPushButton::clicked, this, [this] {
+        auto *widget = dynamic_cast<NewWidget *>(m_stacked_widget->currentWidget());
+        if (!widget || !widget->canTest()) {
+            return;
+        }
+        const auto host = widget->host();
+        if (!host) {
+            showValidationError();
+            return;
+        }
+        m_message_label->hide();
+        Q_EMIT testConnectionRequested(*host);
     });
 }
 
+void NewHostDialog::updateFooter() {
+    const auto *widget = dynamic_cast<const NewWidget *>(m_stacked_widget->currentWidget());
+    m_test_connection_button->setVisible(widget && widget->canTest());
+    m_message_label->hide();
+    setWindowTitle(m_stacked_widget->currentIndex() == 1 ? tr("New Folder") : tr("New Host"));
+}
+
+void NewHostDialog::showValidationError() {
+    m_message_label->setText(tr("Complete the required fields."));
+    m_message_label->show();
+}
+
+void NewHostDialog::accept() {
+    auto *widget = dynamic_cast<NewWidget *>(m_stacked_widget->currentWidget());
+    if (!widget) {
+        return;
+    }
+    auto host = widget->host();
+    if (!host) {
+        showValidationError();
+        return;
+    }
+    m_host = std::move(host);
+    QDialog::accept();
+}
+
 std::optional<store::Host> NewHostDialog::host() {
+    if (m_host) {
+        return m_host;
+    }
     if (auto *widget = dynamic_cast<NewWidget *>(m_stacked_widget->currentWidget())) {
         return widget->host();
     }

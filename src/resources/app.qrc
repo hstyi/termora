@@ -3,5 +3,17 @@
         <file>styles/app.qss</file>
         <file>styles/app.osx.qss</file>
         <file>styles/app.win.qss</file>
+
+        <file>icons/checked.svg</file>
+        <file>icons/checked-disabled.svg</file>
+        <file>icons/checked-white.svg</file>
+        <file>icons/checked_dark.svg</file>
+        <file>icons/chevronDown.svg</file>
+        <file>icons/chevronDown-disabled.svg</file>
+        <file>icons/chevronDown_dark.svg</file>
+        <file>icons/chevronRight.svg</file>
+        <file>icons/chevronRight_dark.svg</file>
+        <file>icons/chevronUp.svg</file>
+        <file>icons/chevronUp-disabled.svg</file>
     </qresource>
 </RCC>

@@ -7,9 +7,6 @@
 #include <QWKWidgets/widgetwindowagent.h>
 
 Dialog::Dialog(QWidget *parent) : QDialog(parent) {
-    auto p = palette();
-    p.setColor(QPalette::Window, Qt::white);
-    setPalette(p);
     setAutoFillBackground(true);
 }
 
@@ -43,15 +40,16 @@ HeadlessDialog::HeadlessDialog(const bool has_title, QWidget *parent) : Dialog(p
         layout->setSpacing(0);
         layout->setContentsMargins(0, 0, 0, 0);
         layout->addWidget(titleLabel);
-        layout->addStretch();
     }
 }
 
 void HeadlessDialog::showEvent(QShowEvent *event) {
     Dialog::showEvent(event);
+
     if (!m_widget_window_agent) {
         return;
     }
+
     QTimer::singleShot(0, this, [this] {
         if (const int height = m_widget_window_agent->windowAttribute("title-bar-height").toInt(); height > 0) {
             if (const auto title_bar = m_widget_window_agent->titleBar()) {

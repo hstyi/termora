@@ -15,6 +15,10 @@ TabWidgetModel *TabWidget::model() {
 
 void TabWidget::initViews() {
     setTabsClosable(true);
+    setUsesScrollButtons(true);
+    setElideMode(Qt::ElideRight);
+    tabBar()->setDrawBase(false);
+    tabBar()->setExpanding(false);
     m_model = new TabWidgetModel(this);
 }
 

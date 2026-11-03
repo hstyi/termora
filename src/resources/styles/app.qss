@@ -94,7 +94,7 @@ QTableView::item {
 /* =================== QMenu Begin =================== */
 QMenu {
     padding: 4px;
-    background-color: white;
+    background-color: palette(base);
     border-radius: 4px;
     border: 1px solid palette(mid);
     icon-size: 16px;
@@ -165,7 +165,7 @@ QMenu::indicator:exclusive:unchecked {
 QListView,
 QComboBox QAbstractItemView {
 	outline: none;
-    background-color: white;
+	background-color: palette(base);
     border-radius: 6px;
     border: 1px solid palette(mid);
 	padding: 4px;
@@ -232,11 +232,49 @@ QSplitter#RootSplitter {
 
 
 
+/* =================== Dialog Begin =================== */
+QDialog {
+    background-color: palette(window);
+}
+/* =================== Dialog End =================== */
+
+
+
+
+/* =================== QTabWidget Begin =================== */
+QTabWidget::pane {
+    border: none;
+    border-top: 1px solid palette(mid);
+    top: -1px;
+}
+
+QTabBar::tab {
+    height: 20px;
+    padding: 3px 4px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background-color: palette(window);
+    color: palette(window-text);
+    background-clip: padding;
+}
+
+QTabBar::tab:selected {
+    border-bottom-color: palette(highlight);
+}
+
+QTabBar::tab:disabled {
+    color: palette(mid);
+}
+/* =================== QTabWidget End =================== */
+
+
+
+
 /* =================== QToolTip Begin =================== */
 QToolTip {
     color: palette(window-text);
     padding: 2px;
-    background-color: white;
+    background-color: palette(base);
     border: 1px solid palette(mid);
     outline: none;
     border-radius: 4px;
@@ -247,17 +285,29 @@ QToolTip {
 
 
 /* =================== QComboBox Begin =================== */
-QComboBox {
-    height: 20px;
+/* 输入控件共用边框和焦点高亮，聚焦时不改变边框宽度。 */
+QComboBox,
+QLineEdit,
+QTextEdit {
     border: 1px solid palette(mid);
     border-radius: 4px;
+    background-color: palette(base);
+    color: palette(window-text);
+}
+
+QComboBox:enabled:focus,
+QComboBox:enabled:on,
+QLineEdit:enabled:focus,
+QSpinBox:enabled:focus,
+QTextEdit:enabled:focus {
+    border-color: #3574F0;
+}
+
+QComboBox {
+    height: 20px;
     padding: 0px 6px;
     combobox-popup: 0;
 	color: palette(window-text);
-}
-
-QComboBox[focused="true"], QComboBox:on {
-    border-color: palette(shadow);
 }
 
 /* 右侧下拉按钮 */
@@ -555,7 +605,7 @@ QRadioButton::indicator {
 
 /* =================== QTextEdit Begin =================== */
 QTextEdit {
-	border: none;
+    padding: 0px;
 }
 /* =================== QTextEdit  End  =================== */
 
@@ -565,7 +615,130 @@ QTextEdit {
 
 /* =================== QLineEdit Begin =================== */
 QLineEdit {
+    padding: 0px 6px;
     min-height: 20px;
     max-height: 20px;
 }
+
+/* 组合控件内部的编辑框共用外层边框，避免出现双层边框。 */
+QComboBox QLineEdit,
+QAbstractSpinBox QLineEdit {
+    border: none;
+    border-radius: 0px;
+    padding: 0px;
+    background-color: transparent;
+    min-height: 0px;
+    max-height: 16777215px;
+}
 /* =================== QLineEdit  End  =================== */
+
+
+
+
+/* =================== QSpinBox Begin =================== */
+QSpinBox {
+    min-height: 20px;
+    max-height: 20px;
+    padding: 0px 26px 0px 6px;
+    border: 1px solid palette(mid);
+    border-radius: 4px;
+    background-color: palette(base);
+    color: palette(window-text);
+}
+
+QSpinBox:disabled {
+    background-color: #F7F8FA;
+    border-color: #DFE1E5;
+    color: #A8ADBD;
+}
+
+QSpinBox::up-button,
+QSpinBox::down-button {
+    subcontrol-origin: padding;
+    width: 20px;
+    border: none;
+    border-left: 1px solid palette(mid);
+    background-color: transparent;
+}
+
+QSpinBox::up-button {
+    subcontrol-position: top right;
+    border-top-right-radius: 3px;
+}
+
+QSpinBox::down-button {
+    subcontrol-position: bottom right;
+    border-bottom-right-radius: 3px;
+}
+
+QSpinBox::up-button:hover,
+QSpinBox::down-button:hover {
+    background-color: transparent;
+}
+
+QSpinBox::up-button:pressed,
+QSpinBox::down-button:pressed {
+    background-color: rgba(0, 0, 0, 29);
+}
+
+QSpinBox::up-button:off,
+QSpinBox::down-button:off,
+QSpinBox::up-button:disabled,
+QSpinBox::down-button:disabled {
+    background-color: transparent;
+}
+
+QSpinBox::up-button:disabled,
+QSpinBox::down-button:disabled {
+    border-left-color: #DFE1E5;
+}
+
+QSpinBox::up-arrow,
+QSpinBox::down-arrow {
+    width: 16px;
+    height: 16px;
+}
+
+QSpinBox::up-arrow {
+    position: relative;
+    top: 1px;
+    image: url(:/icons/chevronUp.svg);
+}
+
+QSpinBox::down-arrow {
+    position: relative;
+    bottom: 1px;
+    image: url(:/icons/chevronDown.svg);
+}
+
+QSpinBox::up-arrow:disabled,
+QSpinBox::up-arrow:off {
+    image: url(:/icons/chevronUp-disabled.svg);
+}
+
+QSpinBox::down-arrow:disabled,
+QSpinBox::down-arrow:off {
+    image: url(:/icons/chevronDown-disabled.svg);
+}
+/* =================== QSpinBox  End  =================== */
+
+
+
+
+/* =================== QGroupBox  End  =================== */
+QGroupBox {
+    border: 1px solid palette(mid);
+    border-radius: 4px;
+    margin-top: 0.5em;
+    padding: 0px;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    left: 8px;
+    padding: 0px 2px;
+    background-color: palette(window);
+    color: palette(window-text);
+}
+/* =================== QGroupBox  End  =================== */
