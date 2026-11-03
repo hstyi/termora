@@ -15,5 +15,21 @@
         <file>icons/chevronRight_dark.svg</file>
         <file>icons/chevronUp.svg</file>
         <file>icons/chevronUp-disabled.svg</file>
+        <file>icons/terminal.svg</file>
+        <file>icons/terminal_dark.svg</file>
+        <file>icons/settings.svg</file>
+        <file>icons/settings_dark.svg</file>
+        <file>icons/network.svg</file>
+        <file>icons/network_dark.svg</file>
+        <file>icons/showWriteAccess.svg</file>
+        <file>icons/showWriteAccess_dark.svg</file>
+        <file>icons/server.svg</file>
+        <file>icons/server_dark.svg</file>
+        <file>icons/folder.svg</file>
+        <file>icons/folder_dark.svg</file>
+        <file>icons/regex.svg</file>
+        <file>icons/regex_dark.svg</file>
+        <file>icons/matchCase.svg</file>
+        <file>icons/matchCase_dark.svg</file>
     </qresource>
 </RCC>

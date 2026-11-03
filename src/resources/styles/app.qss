@@ -10,7 +10,7 @@ QTreeView {
 }
 
 QTreeView::item {
-    height: 20px;
+    height: 21px;
     padding: 0px 4px;
 }
 
@@ -162,9 +162,8 @@ QMenu::item {
 
 QMenu::item {
 	margin: 1px 0;
-	/* 保持紧凑的左右留白，快捷键在右侧列内对齐。 */
 	padding: 0 12px 0 8px;
-	height: 20px;
+	height: 21px;
 	min-width: 110px;
 	icon-size: 16px;
 	border-radius: 4px;
@@ -227,7 +226,7 @@ QComboBox QAbstractItemView {
 
 QListView::item,
 QComboBox QAbstractItemView::item {
-	height: 20px;
+	height: 21px;
 	border-radius: 4px;
 	padding: 0px 2px;
 	color: palette(window-text);
@@ -242,6 +241,11 @@ QListView::item:selected,
 QComboBox QAbstractItemView::item:selected {
 	background-color: palette(highlight);
     color: palette(highlighted-text);
+}
+
+QListView::item:selected:!active {
+    background-color: palette(midlight);
+    color: palette(text);
 }
 /* =================== QListView  End  =================== */
 
@@ -367,6 +371,8 @@ QTextEdit:disabled {
 
 QComboBox {
     height: 20px;
+    min-height: 20px;
+    max-height: 20px;
     padding: 0px 6px;
     combobox-popup: 0;
 }
@@ -447,11 +453,10 @@ QToolButton:enabled:checked {
 
 
 /* =================== QPushButton Begin =================== */
-/* FlatLaf Light 的白底按钮、浅灰反馈和蓝色默认按钮边框。 */
 QPushButton {
     min-width: 46px;
     height: 16px;
-    padding: 2px 4px;
+    padding: 2px 6px;
     border: 1px solid palette(mid);
     border-radius: 4px;
     background-color: palette(button);
@@ -588,7 +593,7 @@ QTextEdit {
 
 /* =================== QLineEdit Begin =================== */
 QLineEdit {
-    padding: 0px 6px;
+    padding: 0px 4px;
     min-height: 20px;
     max-height: 20px;
 }
@@ -614,7 +619,7 @@ QAbstractSpinBox QLineEdit:disabled {
 QSpinBox {
     min-height: 20px;
     max-height: 20px;
-    padding: 0px 26px 0px 6px;
+    padding: 0px 24px 0px 4px;
     border: 1px solid palette(mid);
     border-radius: 4px;
     background-color: palette(base);

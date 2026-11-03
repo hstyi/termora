@@ -1,6 +1,8 @@
 #include "newhostdialog.h"
 
 #include "hosttreemodel.h"
+#include "icons.h"
+#include "itemdelegate.h"
 #include "macscrollstyle.h"
 #include "stores/hoststore.h"
 #include "tablewidget.h"
@@ -63,7 +65,7 @@ namespace {
         view->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
         combo->setView(view);
         // 默认的 QItemDelegate 不使用 QListView::item 的 QSS 绘制规则。
-        combo->setItemDelegate(new QStyledItemDelegate(view));
+        combo->setItemDelegate(new ItemDelegate(view));
         MacScrollStyle::use(view);
         // macOS 默认会跳过非编辑下拉框；显式允许 Tab 和鼠标聚焦。
         combo->setFocusPolicy(Qt::StrongFocus);
@@ -258,26 +260,35 @@ namespace {
             m_regex_button->setToolTip(tr("Regular expression"));
             m_regex_button->setCheckable(true);
             m_regex_button->setChecked(script.regex);
+            m_regex_button->setIconSize(QSize(16, 16));
+            m_regex_button->setIcon(icons::regex());
+
             m_match_case_button = new QToolButton(this);
             m_match_case_button->setText("Aa");
             m_match_case_button->setToolTip(tr("Match case"));
             m_match_case_button->setCheckable(true);
             m_match_case_button->setChecked(script.matchCase);
+            m_match_case_button->setIconSize(QSize(16, 16));
+            m_match_case_button->setIcon(icons::matchCase());
+
             m_error_label = new QLabel(this);
             m_error_label->setWordWrap(true);
             m_error_label->hide();
+
             m_buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
             auto *expect = new QHBoxLayout;
-            expect->setSpacing(4);
+            expect->setSpacing(6);
             expect->addWidget(m_expect_edit, 1);
             expect->addWidget(m_regex_button);
             expect->addWidget(m_match_case_button);
+
             auto *form = new QGridLayout;
             form->setColumnStretch(1, 1);
             form->addWidget(new QLabel(tr("Expect:"), this), 0, 0);
             form->addLayout(expect, 0, 1);
             form->addWidget(new QLabel(tr("Send:"), this), 1, 0);
             form->addWidget(m_send_edit, 1, 1);
+
             auto *layout = new QVBoxLayout(this);
             layout->addLayout(form);
             layout->addWidget(m_error_label);
@@ -290,8 +301,8 @@ namespace {
                     m_send_edit->setFocus();
                     return;
                 }
-                const QRegularExpression expression(m_expect_edit->text());
-                if (m_regex_button->isChecked() && !expression.isValid()) {
+                if (const QRegularExpression expression(m_expect_edit->text());
+                    m_regex_button->isChecked() && !expression.isValid()) {
                     m_error_label->setText(expression.errorString());
                     m_error_label->show();
                     m_expect_edit->setFocus();
@@ -299,12 +310,14 @@ namespace {
                 }
                 accept();
             });
-            resize(480, sizeHint().height());
+            resize(480, QDialog::sizeHint().height());
         }
 
         store::LoginScript script() const {
-            return {m_expect_edit->text(), m_send_edit->text(), m_regex_button->isChecked(),
-                    m_match_case_button->isChecked()};
+            return {.expect = m_expect_edit->text(),
+                    .send = m_send_edit->text(),
+                    .regex = m_regex_button->isChecked(),
+                    .matchCase = m_match_case_button->isChecked()};
         }
 
     private:
@@ -397,23 +410,23 @@ namespace {
     private:
         void initViews() {
             m_list_widget = new QListWidget(this);
+            m_list_widget->setItemDelegate(new ItemDelegate(m_list_widget));
             m_list_widget->setIconSize(QSize(16, 16));
-            m_list_widget->setFixedWidth(190);
-            m_list_widget->setStyleSheet(
-                QString("QListWidget { background-color: %1; border-right: 1px solid %2; border-radius: 0; } ")
-                    .arg(palette().window().color().name())
-                    .arg(palette().mid().color().name()));
+            m_list_widget->setFixedWidth(180);
+            m_list_widget->setStyleSheet(QString("QListWidget { background-color: %1; border-right: 1px solid %2; "
+                                                 "border-radius: 0; } QListView::item { margin: 1px 0; } ")
+                                             .arg(palette().window().color().name())
+                                             .arg(palette().mid().color().name()));
 
-            const auto icon = m_mode == Mode::Folder ? QStyle::SP_DirIcon : QStyle::SP_ComputerIcon;
-            m_list_widget->addItem(new QListWidgetItem(style()->standardIcon(icon), tr("Properties")));
-            m_list_widget->addItem(new QListWidgetItem(style()->standardIcon(icon), tr("Proxy")));
+            m_list_widget->addItem(new QListWidgetItem(icons::settings(), tr("Properties")));
+            m_list_widget->addItem(new QListWidgetItem(icons::network(), tr("Proxy")));
             if (m_mode == Mode::Host) {
-                m_list_widget->addItem(new QListWidgetItem(style()->standardIcon(icon), tr("Tunnel")));
+                m_list_widget->addItem(new QListWidgetItem(icons::show_write_access(), tr("Tunnel")));
             }
-            m_list_widget->addItem(new QListWidgetItem(style()->standardIcon(icon), tr("Jump Hosts")));
-            m_list_widget->addItem(new QListWidgetItem(style()->standardIcon(icon), tr("Terminal")));
+            m_list_widget->addItem(new QListWidgetItem(icons::server(), tr("Jump Hosts")));
+            m_list_widget->addItem(new QListWidgetItem(icons::terminal(), tr("Terminal")));
             if (m_mode == Mode::Host) {
-                m_list_widget->addItem(new QListWidgetItem(style()->standardIcon(icon), tr("Transfer")));
+                m_list_widget->addItem(new QListWidgetItem(icons::folder(), tr("Transfer")));
             }
 
             m_stacked_widget = new QStackedWidget(this);
@@ -517,6 +530,7 @@ namespace {
             m_password_edit->setEchoMode(QLineEdit::Password);
 
             auto *layout = new QGridLayout(m_properties_widget);
+            layout->setSpacing(6);
             layout->setColumnStretch(1, 2);
             layout->setColumnStretch(3, 1);
             layout->addWidget(createLabel(tr("Name:"), m_name_edit), 0, 0);
@@ -556,6 +570,7 @@ namespace {
             m_proxy_password_edit->setEchoMode(QLineEdit::Password);
 
             auto *layout = new QGridLayout(m_proxy_widget);
+            layout->setSpacing(6);
             layout->setColumnStretch(1, 2);
             layout->setColumnStretch(3, 1);
             layout->addWidget(createLabel(tr("Proxy Type:"), m_proxy_type_combobox), 0, 0);
@@ -582,7 +597,7 @@ namespace {
             m_edit_tunnel_button->setEnabled(false);
             m_remove_tunnel_button->setEnabled(false);
             auto *buttons = new QHBoxLayout;
-            buttons->setSpacing(4);
+            buttons->setSpacing(6);
             buttons->addWidget(m_add_tunnel_button);
             buttons->addWidget(m_edit_tunnel_button);
             buttons->addWidget(m_remove_tunnel_button);
@@ -626,7 +641,7 @@ namespace {
             m_move_jump_host_up_button = new QPushButton(tr("Move Up"), m_jump_hosts_widget);
             m_move_jump_host_down_button = new QPushButton(tr("Move Down"), m_jump_hosts_widget);
             auto *buttons = new QHBoxLayout;
-            buttons->setSpacing(4);
+            buttons->setSpacing(6);
             buttons->addWidget(m_add_jump_host_button);
             buttons->addWidget(m_remove_jump_host_button);
             buttons->addWidget(m_move_jump_host_up_button);
@@ -692,6 +707,7 @@ namespace {
             m_environment_edit->setPlaceholderText(QStringLiteral("NAME=value"));
 
             auto *form = new QGridLayout(general);
+            form->setSpacing(6);
             form->setColumnStretch(1, 1);
             form->addWidget(createLabel(tr("Encoding:"), m_encoding_combobox), 0, 0);
             form->addWidget(m_encoding_combobox, 0, 1);
@@ -719,7 +735,7 @@ namespace {
             m_edit_login_script_button->setEnabled(false);
             m_remove_login_script_button->setEnabled(false);
             auto *buttons = new QHBoxLayout;
-            buttons->setSpacing(4);
+            buttons->setSpacing(6);
             buttons->addWidget(m_add_login_script_button);
             buttons->addWidget(m_edit_login_script_button);
             buttons->addWidget(m_remove_login_script_button);
@@ -738,6 +754,7 @@ namespace {
             m_transfer_widget = new QWidget(m_stacked_widget);
             m_sftp_default_directory_edit = new QLineEdit(m_transfer_widget);
             auto *layout = new QGridLayout(m_transfer_widget);
+            layout->setSpacing(6);
             layout->setColumnStretch(1, 1);
             layout->addWidget(createLabel(tr("Default Directory:"), m_sftp_default_directory_edit), 0, 0);
             layout->addWidget(m_sftp_default_directory_edit, 0, 1);
@@ -1033,19 +1050,20 @@ void NewHostDialog::initViews() {
 
     m_folder_button = new QToolButton(m_protocol_bar);
     m_folder_button->setText(tr("Folder"));
-    m_folder_button->setIcon(style()->standardIcon(QStyle::SP_DesktopIcon));
-    m_folder_button->setIconSize(QSize(24, 24));
+    m_folder_button->setIcon(icons::folder());
+    m_folder_button->setIconSize(QSize(22, 22));
     m_folder_button->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
     m_ssh2_button = new QToolButton(m_protocol_bar);
     m_ssh2_button->setText(tr("SSH"));
-    m_ssh2_button->setIcon(style()->standardIcon(QStyle::SP_DesktopIcon));
-    m_ssh2_button->setIconSize(QSize(24, 24));
+    m_ssh2_button->setIcon(icons::terminal());
+    m_ssh2_button->setIconSize(QSize(22, 22));
     m_ssh2_button->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
     auto *type_buttons = new QButtonGroup(this);
     type_buttons->addButton(m_ssh2_button);
     type_buttons->addButton(m_folder_button);
+
     m_folder_button->setCheckable(true);
     m_ssh2_button->setCheckable(true);
     m_ssh2_button->setChecked(true);

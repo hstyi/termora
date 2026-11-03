@@ -1,6 +1,7 @@
 #include "hosttreemodel.h"
 
 #include "QStyle"
+#include "icons.h"
 #include "stores/hoststore.h"
 
 #include <QApplication>
@@ -67,7 +68,7 @@ QVariant HostTreeModel::data(const QModelIndex &index, int role) const {
             if (item->host.protocol == "folder") {
                 return QApplication::style()->standardIcon(QStyle::SP_DirIcon);
             }
-            break;
+            return icons::terminal();
         case Qt::ToolTipRole:
             return item->host.remark;
         case Qt::UserRole:

@@ -1,6 +1,7 @@
 #pragma once
 
-#include <QStyledItemDelegate>
+#include "itemdelegate.h"
+
 #include <QTreeView>
 
 class TreeView : public QTreeView {
@@ -14,9 +15,9 @@ public:
     void scrollTo(const QModelIndex &index, ScrollHint hint = EnsureVisible) override;
 
 public:
-    class TreeItemDelegate : public QStyledItemDelegate {
+    class TreeItemDelegate : public ItemDelegate {
     public:
-        using QStyledItemDelegate::QStyledItemDelegate;
+        using ItemDelegate::ItemDelegate;
         QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
 
     protected:

@@ -21,6 +21,7 @@ add_executable(
     windowsmenu.h
     tablewidget.h
     tablewidget.cpp
+    icons.h
     tabwidget.h
     tabwidget.cpp
     tabwidgetmodel.h
@@ -36,6 +37,7 @@ add_executable(
     macscrollstyle.h
     macscrollstyle.cpp
     itemviewpadding.h
+    itemdelegate.h
     hosttreeview.cpp
     hosttreeview.h
     hosttreemodel.h
