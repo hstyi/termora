@@ -1,6 +1,7 @@
 #include "qsshclient_p.h"
 
 #include <QThread>
+#include <algorithm>
 #include <libssh/libssh.h>
 #include <qssh/qsshsession.h>
 #include <stdexcept>
@@ -22,12 +23,17 @@ namespace {
     };
 } // namespace
 
-QSshClientPrivate::QSshClientPrivate(QSshClient *owner) : q(owner), work(asio::make_work_guard(io)) {
+QSshClientPrivate::QSshClientPrivate(QSshClient *owner)
+    : q(owner),
+      work(asio::make_work_guard(io)),
+      pool(std::max(1u, std::thread::hardware_concurrency() / 2)) {
     static LibsshRuntime runtime;
     worker = std::thread([this] { io.run(); });
 }
 
 QSshClientPrivate::~QSshClientPrivate() {
+    // Session 已取消后台任务；文件清理与在途结果必须在线程池排空后才结束 io。
+    pool.join();
     // 不调用 io.stop()：取消完成回调仍须执行，直到不再持有任何异步操作。
     work.reset();
     worker.join();

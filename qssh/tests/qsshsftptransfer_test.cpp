@@ -10,10 +10,52 @@
 #include <qssh/qsshexecchannel.h>
 #include <qssh/qsshsftpsession.h>
 
+#ifndef Q_OS_WIN
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
+
 using qssh_test::waitUntil;
 using Transfer = QSshSftpTransfer;
 
 namespace {
+#ifndef Q_OS_WIN
+    /** 无写端的 FIFO 令本地打开阻塞，写端保留到 Client 清理完线程池之后。 */
+    class LocalFileGate {
+    public:
+        explicit LocalFileGate(QString path) : path(std::move(path)) {}
+
+        ~LocalFileGate() {
+            if (writer >= 0) {
+                ::close(writer);
+            }
+        }
+
+        bool create() const {
+            return ::mkfifo(QFile::encodeName(path).constData(), 0600) == 0;
+        }
+
+        void release() {
+            if (writer < 0) {
+                writer = ::open(QFile::encodeName(path).constData(), O_RDWR | O_NONBLOCK);
+            }
+        }
+
+    private:
+        const QString path;
+        int writer = -1;
+    };
+
+    struct ReleaseLocalFile {
+        LocalFileGate &file;
+
+        ~ReleaseLocalFile() {
+            file.release();
+        }
+    };
+#endif
+
     /** 等待终态，不把进度达到 100% 当作传输成功。 */
     bool done(Transfer *transfer) {
         return waitUntil([&] { return transfer->state() >= Transfer::Succeeded; });
@@ -150,7 +192,69 @@ namespace {
 
 } // namespace
 
-/** 路径上传和下载完整往返，保持单 worker，进度仅在写入已确认／落入目标后累计。 */
+#ifndef Q_OS_WIN
+/** 慢本地文件打开期间，其他 Session、Channel 创建及传输空闲超时仍能正常推进。 */
+TEST_F(QSshIntegration, SftpBlockedLocalFileDoesNotBlockOtherSessionsOrTimeout) {
+    const auto source = directory.path() + QStringLiteral("/blocked-source");
+    LocalFileGate file(source);
+    ASSERT_TRUE(file.create());
+    QSshClient client;
+    ReleaseLocalFile release{file};
+    auto *ssh = client.createSession();
+    login(ssh);
+    auto *sftp = ssh->createSftpSession();
+    sftp->open();
+    ASSERT_TRUE(waitUntil([&] { return sftp->state() == QSshSftpSession::Ready; }));
+    Transfer::Options options;
+    options.idleTimeoutMs = 200;
+    auto *upload = sftp->upload(source, "/blocked-upload", options);
+
+    auto *other = client.createSession();
+    login(other);
+    ASSERT_EQ(other->state(), QSshSession::Ready);
+    auto *exec = other->createExecChannel();
+    exec->open("report");
+    ASSERT_TRUE(waitUntil([&] { return exec->state() == QSshChannel::Closed; }));
+    EXPECT_EQ(exec->exitCode(), 7);
+    ASSERT_TRUE(done(upload));
+    EXPECT_EQ(upload->error(), Transfer::TimeoutError);
+    delete upload;
+}
+
+/** 文件打开尚未返回时取消、销毁传输和关闭 Session，不允许迟到文件结果访问旧对象。 */
+TEST_F(QSshIntegration, SftpBlockedLocalFileCancellationAndClientDestruction) {
+    const auto source = directory.path() + QStringLiteral("/blocked-source");
+    LocalFileGate file(source);
+    ASSERT_TRUE(file.create());
+    auto client = std::make_unique<QSshClient>();
+    ReleaseLocalFile release{file};
+    auto *ssh = client->createSession();
+    login(ssh);
+    auto *sftp = ssh->createSftpSession();
+    sftp->open();
+    ASSERT_TRUE(waitUntil([&] { return sftp->state() == QSshSftpSession::Ready; }));
+    auto *cancelled = sftp->upload(source, "/cancelled-file");
+    auto *deleted = sftp->upload(source, "/deleted-file");
+    auto *closed = sftp->upload(source, "/closed-file");
+    Observation observation(cancelled);
+    auto *exec = ssh->createExecChannel();
+    exec->open("report");
+    ASSERT_TRUE(waitUntil([&] { return exec->state() == QSshChannel::Closed; }));
+    EXPECT_EQ(exec->exitCode(), 7);
+    cancelled->cancel();
+    ASSERT_TRUE(done(cancelled));
+    EXPECT_EQ(cancelled->state(), Transfer::Cancelled);
+    EXPECT_EQ(observation.finishes, 1);
+    delete deleted;
+    ssh->close();
+    ASSERT_TRUE(done(closed));
+    EXPECT_EQ(closed->error(), Transfer::SessionClosed);
+    file.release();
+    client.reset();
+}
+#endif
+
+/** 路径上传和下载完整往返，进度仅在写入已确认／落入目标后累计。 */
 TEST_F(QSshIntegration, SftpTransferPathsProgressAndOverwrite) {
     const auto bytes = binary(1024 * 1024 + 31);
     const auto source = directory.path() + "/source";

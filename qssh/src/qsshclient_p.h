@@ -19,6 +19,7 @@ public:
     QSshClient *q;                                                   ///< 所属前端对象。
     asio::io_context io;                                             ///< 全部连接共享的事件循环。
     asio::executor_work_guard<asio::io_context::executor_type> work; ///< 防止空闲时 run() 退出。
+    asio::thread_pool pool;                                          ///< 按 CPU 逻辑核心数执行私钥加载和本地文件 I/O。
     std::thread worker;                                              ///< 唯一执行 SSH 协议和 socket 调度的线程。
     bool closing = false;                                            ///< Qt 线程独占，close() 后拒绝创建连接。
 };

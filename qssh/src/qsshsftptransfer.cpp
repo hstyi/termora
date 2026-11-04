@@ -3,9 +3,6 @@
 #include "qsshsftppermissions_p.h"
 #include "qsshsftptransfer_p.h"
 
-#include <QFile>
-#include <QSaveFile>
-#include <QTemporaryFile>
 #include <QThread>
 #include <algorithm>
 #include <limits>
@@ -374,6 +371,12 @@ asio::awaitable<QSshSftpDeviceBridge::Result> QSshSftpTransferPrivate::doDevice(
     co_return wait->device;
 }
 
+asio::awaitable<QSshSftpLocalFile::Result> QSshSftpTransferPrivate::doFile(QSshSftpLocalFile::Operation operation,
+                                                                           QByteArray data) {
+    return asio::co_spawn(file->executor, QSshSftpLocalFile::run(file, operation, std::move(data)),
+                          asio::use_awaitable);
+}
+
 void QSshSftpTransferPrivate::finish(Transfer::State state, Transfer::Error error, const QString &message) {
     if (stopped) {
         return;
@@ -391,7 +394,10 @@ void QSshSftpTransferPrivate::finish(Transfer::State state, Transfer::Error erro
         bridge->stop();
         bridge = nullptr;
     }
-    file.reset();
+    if (file) {
+        file->stop();
+        file.reset();
+    }
     ready.clear();
     if (handle && !sftp->terminated) {
         cleanup(sftp, handle, remotePath, upload && state != Transfer::Succeeded && options.removePartialOnFailure);
@@ -506,27 +512,18 @@ asio::awaitable<void> QSshSftpTransferPrivate::doStart() {
         if (upload) {
             total = device.total;
         }
-    } else if (upload) {
-        auto source = std::make_unique<QFile>(localPath);
-        if (!source->open(QIODevice::ReadOnly)) {
-            finish(Transfer::Failed, Transfer::LocalIoError, source->errorString());
-            co_return;
-        }
-        total = source->size();
-        file = std::move(source);
     } else {
-        if (!options.overwrite && QFile::exists(localPath)) {
-            finish(Transfer::Failed, Transfer::LocalIoError, QStringLiteral("Download destination already exists"));
+        file = std::make_shared<QSshSftpLocalFile>(sftp->session->client->pool, localPath, upload, options.overwrite);
+        const auto result = co_await doFile(QSshSftpLocalFile::Prepare);
+        if (!*token || stopped) {
             co_return;
         }
-        if (options.overwrite) {
-            file = std::make_unique<QSaveFile>(localPath);
-        } else {
-            file = std::make_unique<QTemporaryFile>(localPath + QStringLiteral(".qssh-XXXXXX"));
-        }
-        if (!file->open(QIODevice::WriteOnly)) {
-            finish(Transfer::Failed, Transfer::LocalIoError, file->errorString());
+        if (!result.error.isEmpty()) {
+            finish(Transfer::Failed, Transfer::LocalIoError, result.error);
             co_return;
+        }
+        if (upload) {
+            total = result.total;
         }
     }
     if (!upload) {
@@ -577,14 +574,16 @@ asio::awaitable<void> QSshSftpTransferPrivate::doStart() {
                     data = std::move(result.data);
                     eof = result.eof;
                 } else {
-                    data.resize(ChunkSize);
-                    const auto count = file->read(data.data(), data.size());
-                    if (count < 0) {
-                        finish(Transfer::Failed, Transfer::LocalIoError, file->errorString());
+                    auto result = co_await doFile(QSshSftpLocalFile::Read);
+                    if (!*token || stopped) {
                         co_return;
                     }
-                    data.resize(static_cast<int>(count));
-                    eof = count == 0;
+                    if (!result.error.isEmpty()) {
+                        finish(Transfer::Failed, Transfer::LocalIoError, result.error);
+                        co_return;
+                    }
+                    data = std::move(result.data);
+                    eof = result.eof;
                 }
                 if (!data.isEmpty()) {
                     if (nextOffset > std::numeric_limits<qint64>::max() - data.size() ||
@@ -637,14 +636,13 @@ asio::awaitable<void> QSshSftpTransferPrivate::doStart() {
                         co_return;
                     }
                 } else {
-                    qsizetype written = 0;
-                    while (written < data.size()) {
-                        const auto count = file->write(data.constData() + written, data.size() - written);
-                        if (count <= 0) {
-                            finish(Transfer::Failed, Transfer::LocalIoError, file->errorString());
-                            co_return;
-                        }
-                        written += count;
+                    const auto result = co_await doFile(QSshSftpLocalFile::Write, data);
+                    if (!*token || stopped) {
+                        co_return;
+                    }
+                    if (!result.error.isEmpty()) {
+                        finish(Transfer::Failed, Transfer::LocalIoError, result.error);
+                        co_return;
                     }
                 }
                 writeOffset += data.size();
@@ -677,24 +675,14 @@ asio::awaitable<void> QSshSftpTransferPrivate::doStart() {
         co_return;
     }
     handle = 0; // 收到 CLOSE 成功后才放弃所有权；等待关闭时取消仍需安排回收。
-    if (!upload && file) {
-        if (auto *saved = dynamic_cast<QSaveFile *>(file.get())) {
-            if (!saved->commit()) {
-                finish(Transfer::Failed, Transfer::LocalIoError, saved->errorString());
-                co_return;
-            }
-        } else {
-            auto *temporary = static_cast<QTemporaryFile *>(file.get());
-            if (!temporary->flush()) {
-                finish(Transfer::Failed, Transfer::LocalIoError, temporary->errorString());
-                co_return;
-            }
-            temporary->close();
-            if (!temporary->rename(localPath)) {
-                finish(Transfer::Failed, Transfer::LocalIoError, temporary->errorString());
-                co_return;
-            }
-            temporary->setAutoRemove(false);
+    if (file) {
+        const auto result = co_await doFile(upload ? QSshSftpLocalFile::Close : QSshSftpLocalFile::Commit);
+        if (!*token || stopped) {
+            co_return;
+        }
+        if (!result.error.isEmpty()) {
+            finish(Transfer::Failed, Transfer::LocalIoError, result.error);
+            co_return;
         }
     }
     finish(Transfer::Succeeded, Transfer::NoError, {});

@@ -38,6 +38,8 @@ add_library(
     src/qsshsftpsession_p.h
     src/qsshsftptransfer.cpp
     src/qsshsftptransfer_p.h
+    src/qsshsftplocalfile.cpp
+    src/qsshsftplocalfile_p.h
     src/qsshsftppermissions_p.h
 )
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

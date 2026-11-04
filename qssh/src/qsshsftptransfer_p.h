@@ -1,5 +1,6 @@
 #pragma once
 
+#include "qsshsftplocalfile_p.h"
 #include "qsshsftpsession_p.h"
 
 #include <QFileDevice>
@@ -76,6 +77,8 @@ public:
     asio::awaitable<RemoteResult> doRemote(Request request);
     /** 等待桥接器的 prepare/read/write 操作，kind 分别为 0/1/2。 */
     asio::awaitable<QSshSftpDeviceBridge::Result> doDevice(int kind, QByteArray data = {});
+    /** 在线程池串行操作本地文件，结果回到 SSH worker。 */
+    asio::awaitable<QSshSftpLocalFile::Result> doFile(QSshSftpLocalFile::Operation operation, QByteArray data = {});
     /** 读取 offset 开始的 length 字节，短读继续补齐，结果按偏移等待写出。 */
     asio::awaitable<void> doRead(qint64 offset, qint64 length);
     /** 上传 offset 对应的 data，只在服务器确认后累计进度。 */
@@ -102,7 +105,7 @@ public:
     QString remotePath, localPath;                                  ///< 远端及可选本地文件路径。
     QSshSftpTransfer::Options options;                              ///< 本传输的行为和缓冲配置。
     QSshSftpDeviceBridge *bridge = nullptr;                         ///< 可选设备线程桥接器，stop 后自行释放。
-    std::unique_ptr<QFileDevice> file;                              ///< worker 创建并独占的本地文件。
+    std::shared_ptr<QSshSftpLocalFile> file;                        ///< 在线程池操作，取消后的清理可晚于 Transfer。
     asio::steady_timer event, idle;                                 ///< 无到期唤醒事件和空闲时限。
     bool stopped = false, sourceEnded = false;                      ///< 终结和上传 EOF 状态。
     bool downloadSizeKnown = false;         ///< true 时提前 EOF 是源文件变化，未知大小则由最早 EOF 确定长度。

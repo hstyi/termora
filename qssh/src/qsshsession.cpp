@@ -13,6 +13,31 @@
 #include <qssh/qsshtunnel.h>
 
 namespace {
+    /** 私钥可从线程池移交给 worker；取消或迟到返回时也自动释放。 */
+    struct PrivateKeyDeleter {
+        void operator()(ssh_key key) const {
+            ssh_key_free(key);
+        }
+    };
+
+    using PrivateKey = std::unique_ptr<ssh_key_struct, PrivateKeyDeleter>;
+
+    /** 仅在线程池执行，参数和取消标志独立于 Session 生命周期。 */
+    asio::awaitable<PrivateKey> loadPrivateKey(QByteArray path, QByteArray passphrase,
+                                               std::shared_ptr<std::atomic_bool> cancelled) {
+        if (cancelled->load(std::memory_order_relaxed)) {
+            co_return PrivateKey();
+        }
+        ssh_key key = nullptr;
+        const int result = ssh_pki_import_privkey_file(path.constData(), passphrase.constData(), nullptr, nullptr,
+                                                       &key);
+        PrivateKey owned(key);
+        if (result != SSH_OK) {
+            co_return PrivateKey();
+        }
+        co_return std::move(owned);
+    }
+
     /** 在首次调度时检查 token，再启动 operation；即使私有对象已销毁也能安全丢弃未启动的协程帧。 */
     asio::awaitable<void> runIfAlive(const std::shared_ptr<bool> token, asio::awaitable<void> operation) {
         if (*token) {
@@ -261,8 +286,8 @@ asio::awaitable<void> QSshSessionPrivate::doAuthenticate() {
             }
             continue;
         }
-        const bool advanced = advanceAuthentication();
-        if (terminated || phase != QSshSession::Authenticating) {
+        const bool advanced = co_await advanceAuthentication();
+        if (!*token || terminated || phase != QSshSession::Authenticating) {
             co_return;
         }
         if (advanced) {
@@ -463,17 +488,18 @@ void QSshSessionPrivate::answerAuth(const quint64 requestId, const QStringList &
     schedule();
 }
 
-bool QSshSessionPrivate::advanceAuthentication() {
+asio::awaitable<bool> QSshSessionPrivate::advanceAuthentication() {
+    const auto token = alive;
     if (!authProbed) {
         const int result = ssh_userauth_none(handle, nullptr);
         if (result == SSH_AUTH_AGAIN) {
-            return false;
+            co_return false;
         }
         authProbed = true;
         if (result == SSH_AUTH_SUCCESS || result == SSH_AUTH_ERROR) {
-            return authResult(result);
+            co_return authResult(result);
         }
-        return true;
+        co_return true;
     }
     if (authIndex < 0) {
         const int available = ssh_userauth_list(handle, nullptr);
@@ -490,25 +516,33 @@ bool QSshSessionPrivate::advanceAuthentication() {
         }
         if (authIndex < 0) {
             fail(QSshSession::AuthenticationError, QStringLiteral("No configured authentication method succeeded"));
-            return false;
+            co_return false;
         }
         if (++authRounds > 128) {
             fail(QSshSession::AuthenticationError, QStringLiteral("Too many authentication rounds"));
-            return false;
+            co_return false;
         }
     }
     int result = SSH_AUTH_ERROR;
     switch (options.authenticationMethods[authIndex]) {
         case QSshSession::PublicKey: {
             if (!privateKey) {
-                const auto path = QFile::encodeName(options.privateKeyFile);
-                // 显式传入口令且不注册同步询问回调，worker 不会等待 UI 输入。
-                if (const auto passphrase = options.privateKeyPassphrase.toUtf8();
-                    ssh_pki_import_privkey_file(path.constData(), passphrase.constData(), nullptr, nullptr,
-                                                &privateKey) != SSH_OK) {
-                    fail(QSshSession::AuthenticationError, QStringLiteral("Unable to load or decrypt private key"));
-                    return false;
+                keyLoadCancelled = std::make_shared<std::atomic_bool>(false);
+                // co_spawn 在 pool 执行解密，use_awaitable 将结果送回原 worker。
+                auto key = co_await asio::co_spawn(client->pool,
+                                                   loadPrivateKey(QFile::encodeName(options.privateKeyFile),
+                                                                  options.privateKeyPassphrase.toUtf8(),
+                                                                  keyLoadCancelled),
+                                                   asio::use_awaitable);
+                if (!*token || terminated) {
+                    co_return false;
                 }
+                keyLoadCancelled.reset();
+                if (!key) {
+                    fail(QSshSession::AuthenticationError, QStringLiteral("Unable to load or decrypt private key"));
+                    co_return false;
+                }
+                privateKey = key.release();
             }
             result = ssh_userauth_publickey(handle, nullptr, privateKey);
             break;
@@ -522,7 +556,7 @@ bool QSshSessionPrivate::advanceAuthentication() {
             result = ssh_userauth_kbdint(handle, nullptr, nullptr);
             break;
     }
-    return authResult(result);
+    co_return authResult(result);
 }
 
 bool QSshSessionPrivate::authResult(const int result) {
@@ -600,6 +634,10 @@ void QSshSessionPrivate::shutdown() {
         return;
     }
     terminated = true;
+    if (keyLoadCancelled) {
+        keyLoadCancelled->store(true, std::memory_order_relaxed);
+        keyLoadCancelled.reset();
+    }
     setState(QSshSession::Closing);
     finishInteraction();
     resolver.cancel();

@@ -11,7 +11,7 @@ class QSshSftpTransferPrivate;
 /**
  * 单次 SFTP 文件传输，由 SFTP 子系统拥有；公开方法及信号均在所属 Qt 线程使用。
  * 外部 QIODevice 保留原线程归属及所有权，所属 Qt 事件循环须运行到 finished；期间不得移动设备或并发读写。
- * 路径下载先写同目录临时文件再提交，普通本地文件 I/O 在唯一 worker 分块执行。
+ * 路径下载先写同目录临时文件再提交，普通本地文件 I/O 在 Client 线程池分块执行。
  */
 class QSshSftpTransfer : public QObject {
     Q_OBJECT
@@ -23,7 +23,7 @@ public:
         Finishing, ///< 正在关闭远端文件及提交本地文件。
         Succeeded, ///< 文件完整传输并完成关闭。
         Failed,    ///< 失败，详见 errorString()。
-        Cancelled  ///< 应用取消，已发往服务器的操作仍可能完成。
+        Cancelled  ///< 应用取消，已开始的远端操作或本地文件提交仍可能完成。
     };
     Q_ENUM(State)
 

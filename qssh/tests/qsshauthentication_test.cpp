@@ -4,8 +4,60 @@
 #include <QFile>
 #include <QPointer>
 #include <QThread>
+#include <algorithm>
 #include <qssh/qsshclient.h>
 #include <qssh/qsshexecchannel.h>
+
+#ifndef Q_OS_WIN
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <vector>
+
+namespace {
+    /** 无写端的 FIFO 令私钥 fopen 确定性阻塞；所有路径都在测试隔离目录中。 */
+    class BlockedKeyFiles {
+    public:
+        ~BlockedKeyFiles() {
+            for (const auto descriptor : writers) {
+                ::close(descriptor);
+            }
+        }
+
+        bool add(const QString &path) {
+            const auto encoded = QFile::encodeName(path);
+            if (::mkfifo(encoded.constData(), 0600) != 0) {
+                return false;
+            }
+            paths.push_back(encoded);
+            return true;
+        }
+
+        /** 写端保持到 Client 析构之后，保证迟到的 fopen 也不会再次阻塞。 */
+        void release() {
+            if (!writers.empty()) {
+                return;
+            }
+            for (const auto &path : paths) {
+                writers.push_back(::open(path.constData(), O_RDWR | O_NONBLOCK));
+            }
+        }
+
+    private:
+        std::vector<QByteArray> paths;
+        std::vector<int> writers;
+    };
+
+    /** 即使 ASSERT 提前返回，也先解除文件阻塞，再允许 Client 析构等待线程池。 */
+    struct ReleaseKeyFiles {
+        BlockedKeyFiles &files;
+
+        ~ReleaseKeyFiles() {
+            files.release();
+        }
+    };
+} // namespace
+#endif
 
 using qssh_test::waitUntil;
 
@@ -87,6 +139,84 @@ TEST_F(QSshIntegration, PublicKeyAndPartialAuthentication) {
         delete session;
     }
 }
+
+/** 私钥加载失败仍通过认证错误结束，不影响同一 Client 的其他连接。 */
+TEST_F(QSshIntegration, PrivateKeyLoadFailureIsIsolated) {
+    QSshClient client;
+    for (const bool missing : {false, true}) {
+        auto *session = client.createSession();
+        acceptHost(session);
+        auto configuration = options(QStringLiteral("publickey"));
+        configuration.privateKeyFile = directory.path() + (missing ? "/missing-key" : "/user_key");
+        configuration.privateKeyPassphrase = QStringLiteral("wrong-passphrase");
+        session->connectToHost(configuration);
+        ASSERT_TRUE(waitUntil([&] { return session->state() == QSshSession::Closed; }));
+        EXPECT_EQ(session->error(), QSshSession::AuthenticationError);
+        EXPECT_FALSE(session->errorString().contains(configuration.privateKeyPassphrase));
+    }
+    auto *other = client.createSession();
+    login(other);
+    EXPECT_EQ(other->state(), QSshSession::Ready);
+}
+
+#ifndef Q_OS_WIN
+/** 慢私钥文件不能阻塞其他 Session、认证超时或 Channel 创建。 */
+TEST_F(QSshIntegration, BlockedPrivateKeyLoadDoesNotBlockProtocolWorker) {
+    BlockedKeyFiles files;
+    const auto path = directory.path() + QStringLiteral("/blocked-key");
+    ASSERT_TRUE(files.add(path));
+    QSshClient client;
+    ReleaseKeyFiles release{files};
+    auto *blocked = client.createSession();
+    acceptHost(blocked);
+    auto configuration = options(QStringLiteral("publickey"));
+    configuration.privateKeyFile = path;
+    configuration.authenticationTimeoutMs = 200;
+    blocked->connectToHost(configuration);
+    ASSERT_TRUE(waitUntil([&] { return blocked->state() == QSshSession::Authenticating; }));
+
+    auto *other = client.createSession();
+    login(other);
+    ASSERT_EQ(other->state(), QSshSession::Ready);
+    auto *exec = other->createExecChannel();
+    exec->open(QStringLiteral("report"));
+    ASSERT_TRUE(waitUntil([&] { return exec->state() == QSshChannel::Closed; }));
+    EXPECT_EQ(exec->exitCode(), 7);
+    ASSERT_TRUE(waitUntil([&] { return blocked->state() == QSshSession::Closed; }));
+    EXPECT_EQ(blocked->error(), QSshSession::TimeoutError);
+    delete blocked;
+}
+
+/** 在途及排队的私钥任务取消后，迟到结果不能访问已释放的 Session。 */
+TEST_F(QSshIntegration, DeleteSessionsWithPendingPrivateKeyLoads) {
+    BlockedKeyFiles files;
+    QSshClient client;
+    ReleaseKeyFiles release{files};
+    QList<QSshSession *> sessions;
+    for (int i = 0; i < 4; ++i) {
+        const auto path = directory.path() + QStringLiteral("/blocked-key-%1").arg(i);
+        ASSERT_TRUE(files.add(path));
+        auto *session = client.createSession();
+        acceptHost(session);
+        auto configuration = options(QStringLiteral("publickey"));
+        configuration.privateKeyFile = path;
+        session->connectToHost(configuration);
+        sessions.append(session);
+    }
+    ASSERT_TRUE(waitUntil([&] {
+        return std::all_of(sessions.cbegin(), sessions.cend(),
+                           [](const auto *session) { return session->state() == QSshSession::Authenticating; });
+    }));
+    for (auto *session : sessions) {
+        delete session;
+    }
+    auto *other = client.createSession();
+    login(other);
+    ASSERT_EQ(other->state(), QSshSession::Ready);
+    // Client 析构时必须排空回投；files 的写端晚于 Client 关闭。
+    files.release();
+}
+#endif
 
 /** 验证不要求输入的通知轮次自动继续，应用无需提交空答案。 */
 TEST_F(QSshIntegration, ZeroPromptChallenge) {

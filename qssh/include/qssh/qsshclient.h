@@ -9,10 +9,10 @@ class QSshSessionPrivate;
 class QSshChannelPrivate;
 
 /**
- * SSH 运行环境；一个 Client 的全部 Session 共用一个 Asio worker。
+ * SSH 运行环境；全部 Session 共用一个 Asio worker，私钥加载和本地文件 I/O 由 Client 内部线程池执行。
  * 公共接口与对象销毁均在所属 Qt 线程执行，该线程必须运行事件循环。
  * Session 归 Client 所有；不要移动 Client、Session、Channel 到其他线程或更换父对象。
- * 析构取消连接并回收 worker；公共接口不依赖 Asio 或 libssh。
+ * 析构取消连接，等待在途后台任务结束并回收线程；公共接口不依赖 Asio 或 libssh。
  */
 class QSshClient : public QObject {
     Q_OBJECT

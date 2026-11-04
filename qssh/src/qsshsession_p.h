@@ -1,6 +1,7 @@
 #pragma once
 
 #include <asio.hpp>
+#include <atomic>
 #include <deque>
 #include <functional>
 #include <libssh/callbacks.h>
@@ -80,8 +81,8 @@ public:
     void answerAuth(quint64 requestId, const QStringList &answers);
     /** 令当前交互请求失效，通知 UI 清理对应界面。 */
     void finishInteraction();
-    /** 推进一次认证操作，返回是否能够立即继续下一阶段。 */
-    bool advanceAuthentication();
+    /** 推进一次认证操作；私钥在线程池加载，返回后继续在 worker 执行。 */
+    asio::awaitable<bool> advanceAuthentication();
     /** 处理认证返回值 result，包括部分成功和多轮问题。 */
     bool authResult(int result);
     /** 报告 error/message 并关闭连接，message 不应包含凭据。 */
@@ -109,6 +110,7 @@ public:
     ssh_session handle = nullptr;                            ///< worker 独占的 libssh Session。
     ssh_event event = nullptr;                               ///< 当前 Session 的零超时协议事件驱动器。
     ssh_key privateKey = nullptr;                            ///< 当前公钥认证使用的解密后私钥。
+    std::shared_ptr<std::atomic_bool> keyLoadCancelled;      ///< 跨线程取消标志；线程池不访问 Session 或协议句柄。
     bool terminated = false;                                 ///< shutdown() 已执行，后续驱动均忽略。
     bool scheduled = false;                                  ///< 已排队驱动，合并重复唤醒。
     bool readWaiting = false;                                ///< 已注册一次 socket 可读等待。
