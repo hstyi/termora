@@ -99,15 +99,18 @@ public:
     QSshSftpTransfer::State frontState = QSshSftpTransfer::Pending; ///< Qt 生命周期快照。
     QSshSftpTransfer::Error frontError = QSshSftpTransfer::NoError; ///< Qt 错误快照。
     QString frontErrorText;                                         ///< Qt 错误说明。
-    qint64 frontCompleted = 0, frontTotal = -1;                     ///< Qt 字节进度快照。
-    std::shared_ptr<bool> alive = std::make_shared<bool>(true);     ///< worker 存活令牌。
-    bool upload;                                                    ///< true 上传，false 下载。
-    QString remotePath, localPath;                                  ///< 远端及可选本地文件路径。
-    QSshSftpTransfer::Options options;                              ///< 本传输的行为和缓冲配置。
-    QSshSftpDeviceBridge *bridge = nullptr;                         ///< 可选设备线程桥接器，stop 后自行释放。
-    std::shared_ptr<QSshSftpLocalFile> file;                        ///< 在线程池操作，取消后的清理可晚于 Transfer。
-    asio::steady_timer event, idle;                                 ///< 无到期唤醒事件和空闲时限。
-    bool stopped = false, sourceEnded = false;                      ///< 终结和上传 EOF 状态。
+    QSshSftpSession::Error
+        frontRemoteError = QSshSftpSession::NoError; ///< Qt 线程的具体远端错误，供 VFS 区分拒绝与未知结果。
+    QSshSftpSession::Error remoteError = QSshSftpSession::NoError; ///< worker 最近确认的请求错误。
+    qint64 frontCompleted = 0, frontTotal = -1;                    ///< Qt 字节进度快照。
+    std::shared_ptr<bool> alive = std::make_shared<bool>(true);    ///< worker 存活令牌。
+    bool upload;                                                   ///< true 上传，false 下载。
+    QString remotePath, localPath;                                 ///< 远端及可选本地文件路径。
+    QSshSftpTransfer::Options options;                             ///< 本传输的行为和缓冲配置。
+    QSshSftpDeviceBridge *bridge = nullptr;                        ///< 可选设备线程桥接器，stop 后自行释放。
+    std::shared_ptr<QSshSftpLocalFile> file;                       ///< 在线程池操作，取消后的清理可晚于 Transfer。
+    asio::steady_timer event, idle;                                ///< 无到期唤醒事件和空闲时限。
+    bool stopped = false, sourceEnded = false;                     ///< 终结和上传 EOF 状态。
     bool downloadSizeKnown = false;         ///< true 时提前 EOF 是源文件变化，未知大小则由最早 EOF 确定长度。
     quint64 handle = 0;                     ///< 远端文件句柄。
     qint64 total = -1, completed = 0;       ///< worker 总量和已完成内容字节数。

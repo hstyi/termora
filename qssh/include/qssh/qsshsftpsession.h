@@ -207,6 +207,7 @@ private:
     Q_DISABLE_COPY(QSshSftpSession)
     friend class QSshSession;
     friend class QSshSftpTransferPrivate;
+    friend class QSftpFileSystem;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QSshSftpSession::OpenFlags)

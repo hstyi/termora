@@ -20,6 +20,7 @@ add_library(
     include/qssh/qsshtunnel.h
     include/qssh/qsshsftpsession.h
     include/qssh/qsshsftptransfer.h
+    include/qssh/qsftpfilesystem.h
     src/qsshclient.cpp
     src/qsshchannel.cpp
     src/qsshexecchannel.cpp
@@ -41,11 +42,14 @@ add_library(
     src/qsshsftplocalfile.cpp
     src/qsshsftplocalfile_p.h
     src/qsshsftppermissions_p.h
+    src/qsftpfilesystem.cpp
+    src/qsftpfilebackend.cpp
+    src/qsftpfilebackend_p.h
 )
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(
     ${PROJECT_NAME}
-    PUBLIC Qt${QT_MAJOR}::Core
+    PUBLIC Qt${QT_MAJOR}::Core qvfs
     PRIVATE asio::asio ssh Threads::Threads
 )
 

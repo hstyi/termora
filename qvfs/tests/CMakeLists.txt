@@ -1,0 +1,5 @@
+find_package(GTest CONFIG REQUIRED)
+add_executable(qvfs_tests test_main.cpp qlocalfilesystem_test.cpp qvirtualoperations_test.cpp)
+target_link_libraries(qvfs_tests PRIVATE qvfs GTest::gtest)
+add_test(NAME qvfs.local COMMAND qvfs_tests)
+set_tests_properties(qvfs.local PROPERTIES TIMEOUT 30)

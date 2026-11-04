@@ -18,8 +18,11 @@
 #include <iomanip>
 #include <iostream>
 #include <libssh/libssh.h>
+#include <qssh/qsftpfilesystem.h>
 #include <qssh/qsshclient.h>
 #include <qssh/qsshsftpsession.h>
+#include <qvfs/qlocalfilesystem.h>
+#include <qvfs/qvirtualfile.h>
 
 namespace {
     constexpr qint64 MiB = 1024 * 1024; ///< 所有速率统一使用二进制 MiB/s。
@@ -56,6 +59,36 @@ namespace {
         if (sample.error.isEmpty() && (transfer->bytesTransferred() != expectedBytes ||
                                        transfer->totalBytes() != expectedBytes || sample.seconds <= 0)) {
             sample.error = QStringLiteral("Incorrect byte counts or elapsed time");
+        }
+        return sample;
+    }
+
+    /** 与原生路径入口使用同样的完整传输计时，Qt 事件循环不插入固定 sleep。 */
+    Sample measureVirtual(const std::function<QVirtualTransferJob *()> &create, qint64 expectedBytes) {
+        QEventLoop loop;
+        QTimer timeout;
+        timeout.setSingleShot(true);
+        QElapsedTimer elapsed;
+        elapsed.start();
+        auto job = std::unique_ptr<QVirtualTransferJob>(create());
+        Sample sample;
+        QObject::connect(job.get(), &QVirtualJob::finished, &loop, [&] {
+            sample.seconds = elapsed.nsecsElapsed() / 1e9;
+            loop.quit();
+        });
+        QObject::connect(&timeout, &QTimer::timeout, &loop, [&] {
+            sample.error = QStringLiteral("VFS benchmark exceeded 120 seconds");
+            job->cancel();
+            loop.quit();
+        });
+        timeout.start(120000);
+        loop.exec();
+        if (sample.error.isEmpty() && job->state() != QVirtualJob::Succeeded) {
+            sample.error = job->errorString();
+        }
+        if (sample.error.isEmpty() &&
+            (job->bytesTransferred() != expectedBytes || job->totalBytes() != expectedBytes || sample.seconds <= 0)) {
+            sample.error = QStringLiteral("Incorrect VFS byte counts or elapsed time");
         }
         return sample;
     }
@@ -193,30 +226,49 @@ TEST_F(QSshSftpBenchmark, UploadAndDownload) {
         transferOptions.overwrite = true;
         transferOptions.bufferSize = window;
         transferOptions.idleTimeoutMs = 120000;
-        for (const auto mode : {QStringLiteral("path"), QStringLiteral("QBuffer")}) {
+        QSftpFileSystem remote(sftp);
+        QLocalFileSystem local;
+        auto *virtualSource = local.file(sourcePath);
+        auto *virtualRemote = remote.file("/benchmark.bin");
+        auto *virtualTarget = local.file(targetPath);
+        QVirtualTransferOptions virtualOptions;
+        virtualOptions.overwrite = true;
+        virtualOptions.bufferSize = window;
+        virtualOptions.idleTimeoutMs = 120000;
+        for (const auto mode : {QStringLiteral("path"), QStringLiteral("vfs"), QStringLiteral("QBuffer")}) {
             QList<double> uploads, downloads;
             for (int round = -static_cast<int>(warmups); round < rounds; ++round) {
                 QBuffer input(&payload);
                 ASSERT_TRUE(input.open(QIODevice::ReadOnly));
-                const auto sent = measure(
-                    [&] {
-                        return mode == "path" ? sftp->upload(sourcePath, "/benchmark.bin", transferOptions)
-                                              : sftp->upload(&input, "/benchmark.bin", transferOptions);
-                    },
-                    size);
+                const auto sent = mode == "vfs"
+                                      ? measureVirtual(
+                                            [&] { return virtualSource->copyTo(virtualRemote, virtualOptions); }, size)
+                                      : measure(
+                                            [&] {
+                                                return mode == "path"
+                                                           ? sftp->upload(sourcePath, "/benchmark.bin", transferOptions)
+                                                           : sftp->upload(&input, "/benchmark.bin", transferOptions);
+                                            },
+                                            size);
                 ASSERT_TRUE(sent.error.isEmpty()) << sent.error.toStdString();
                 ASSERT_EQ(hashFile(serverPath), expected) << "Uploaded bytes differ from source";
                 QBuffer output;
                 ASSERT_TRUE(output.open(QIODevice::ReadWrite));
-                const auto received = measure(
-                    [&] {
-                        return mode == "path" ? sftp->download("/benchmark.bin", targetPath, transferOptions)
-                                              : sftp->download("/benchmark.bin", &output, transferOptions);
-                    },
-                    size);
+                const auto received = mode == "vfs"
+                                          ? measureVirtual(
+                                                [&] { return virtualRemote->copyTo(virtualTarget, virtualOptions); },
+                                                size)
+                                          : measure(
+                                                [&] {
+                                                    return mode == "path" ? sftp->download("/benchmark.bin", targetPath,
+                                                                                           transferOptions)
+                                                                          : sftp->download("/benchmark.bin", &output,
+                                                                                           transferOptions);
+                                                },
+                                                size);
                 ASSERT_TRUE(received.error.isEmpty()) << received.error.toStdString();
-                ASSERT_EQ(mode == "path" ? hashFile(targetPath)
-                                         : QCryptographicHash::hash(output.data(), QCryptographicHash::Sha256),
+                ASSERT_EQ(mode != "QBuffer" ? hashFile(targetPath)
+                                            : QCryptographicHash::hash(output.data(), QCryptographicHash::Sha256),
                           expected)
                     << "Downloaded bytes differ from source";
                 if (round >= 0) {

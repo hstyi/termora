@@ -336,6 +336,9 @@ asio::awaitable<QSshSftpTransferPrivate::RemoteResult> QSshSftpTransferPrivate::
             co_return RemoteResult{.error = Sftp::Cancelled};
         }
     }
+    if (wait->remote.error != Sftp::NoError) {
+        remoteError = wait->remote.error;
+    }
     waits.erase(wait);
     co_return wait->remote;
 }
@@ -406,8 +409,9 @@ void QSshSftpTransferPrivate::finish(Transfer::State state, Transfer::Error erro
     reportProgress(true);
     QMetaObject::invokeMethod(
         q,
-        [this, state, error, message] {
+        [this, state, error, message, remoteError = remoteError] {
             frontError = error;
+            frontRemoteError = remoteError;
             frontErrorText = message;
             frontState = state;
             const QPointer guard(q);

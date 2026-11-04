@@ -209,10 +209,14 @@ QSshSftpSessionPrivate::QSshSftpSessionPrivate(QSshSftpSession *owner, QSshSessi
       session(session->d_func()),
       progressEvent(this->session->client->io),
       deadline(this->session->client->io) {
+    dispatcher->post = [this, token = alive](std::function<void(QSshSftpSessionPrivate *)> task) {
+        asio::post(this->session->client->io, [this, token, task = std::move(task)] { task(*token ? this : nullptr); });
+    };
     this->session->client->synchronize([this] { this->session->sftpSessions.push_back(this); });
 }
 
 QSshSftpSessionPrivate::~QSshSftpSessionPrivate() {
+    dispatcher->stop();
     session->client->synchronize([this] {
         shutdown();
         *alive = false;
@@ -744,6 +748,7 @@ asio::awaitable<bool> QSshSftpSessionPrivate::doRequest(const Request request) {
             }
             break;
     }
+    request.result->dispatched = true;
     auto packet = co_await doExchange(type, payload);
     if (!*token || terminated) {
         co_return false;
@@ -754,6 +759,7 @@ asio::awaitable<bool> QSshSftpSessionPrivate::doRequest(const Request request) {
         QString message;
         readStatus(packet, code, message);
         if (code == Sftp::EndOfFile && request.kind == Read) {
+            request.result->eof = true;
             if (!request.completed) {
                 notify([this, id] { Q_EMIT q->dataRead(id, {}); });
             }
@@ -836,6 +842,14 @@ asio::awaitable<bool> QSshSftpSessionPrivate::doRequest(const Request request) {
                 const auto entries = readNames(packet);
                 if (entries.isEmpty()) {
                     throw std::runtime_error("Empty SFTP directory response without EOF");
+                }
+                if (request.entries) {
+                    if (!request.entries(entries)) {
+                        result = Sftp::Cancelled;
+                        message = QStringLiteral("Directory traversal stopped");
+                        break;
+                    }
+                    continue;
                 }
                 batchPending = true;
                 notify([this, id, entries] {

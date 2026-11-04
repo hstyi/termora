@@ -33,6 +33,7 @@ add_executable(
     qsshsftppipeline_test.cpp
     qsshsftptransfer_test.cpp
     qsshsftppermissions_test.cpp
+    qsftpfilesystem_test.cpp
 )
 target_link_libraries(qssh_tests PRIVATE qssh GTest::gtest Qt${QT_MAJOR}::Network)
 target_compile_definitions(

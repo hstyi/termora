@@ -85,6 +85,7 @@ private:
     Q_DECLARE_PRIVATE(QSshSftpTransfer)
     Q_DISABLE_COPY(QSshSftpTransfer)
     friend class QSshSftpSession;
+    friend class QSftpFileSystem;
 };
 Q_DECLARE_METATYPE(QSshSftpTransfer::State)
 Q_DECLARE_METATYPE(QSshSftpTransfer::Error)

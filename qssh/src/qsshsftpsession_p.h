@@ -6,6 +6,7 @@
 #include <libssh/libssh.h>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <qssh/qsshsftpsession.h>
 #include <vector>
@@ -42,6 +43,8 @@ public:
         QSshSftpSession::FileInfo info;                          ///< STAT 返回的属性。
         quint64 handle = 0;                                      ///< OPEN 返回的本地句柄编号。
         bool finished = false;                                   ///< 保证每个请求只完成一次。
+        bool dispatched = false;                                 ///< 请求已开始协议交换；丢失响应时修改效果可能未知。
+        bool eof = false;                                        ///< READ 收到明确的 EOF 状态。
     };
 
     /** 一项已接受请求；同时用来记录前端背压预算。 */
@@ -59,6 +62,8 @@ public:
         std::shared_ptr<Result> result = std::make_shared<Result>(); ///< 协程副本共享结果与终结标志。
         std::function<bool()> cancelled;                             ///< 内部传输已取消时，尚未发送的请求直接结束。
         bool reserved = false;                                       ///< 已占用流水线字节预算。
+        std::function<bool(const QList<QSshSftpSession::FileInfo> &)>
+            entries; ///< 内部目录批次回调，false 停止遍历并关闭目录。
     };
 
     /** 绑定 owner 与 session，注册到连接驱动器。 */
@@ -99,6 +104,30 @@ public:
     void finishRequest(const Request &request, bool success, QSshSftpSession::Error error, const QString &message);
     /** 关闭 channel，终止全部请求并可选报告子系统级 error/message。 */
     void shutdown(QSshSftpSession::Error error = QSshSftpSession::Cancelled, const QString &message = {});
+
+    /** 后台 VFS 的安全投递入口；stop 后拒绝新任务，已投递任务以 nullptr 表示 Private 已销毁。 */
+    struct Dispatcher {
+        /** 将 task 排到原 Asio worker；返回 false 时调用方必须自行完成错误回调。 */
+        bool enqueue(std::function<void(QSshSftpSessionPrivate *)> task) {
+            std::lock_guard lock(mutex);
+            if (!post) {
+                return false;
+            }
+            post(std::move(task));
+            return true;
+        }
+
+        /** 原生子系统析构前禁止新投递，不依赖外部 QObject 生命周期。 */
+        void stop() {
+            std::lock_guard lock(mutex);
+            post = {};
+        }
+
+        std::mutex mutex; ///< 保护 post 与 Client 执行器的生命周期边界。
+        std::function<void(std::function<void(QSshSftpSessionPrivate *)>)> post; ///< 只在 mutex 内调用/释放。
+    };
+
+    std::shared_ptr<Dispatcher> dispatcher = std::make_shared<Dispatcher>(); ///< VFS 可持有的安全入口，不拥有子系统。
 
     QSshSftpSession *q;                                           ///< 所属 QObject，生命周期覆盖本对象。
     QSshSessionPrivate *session;                                  ///< 所属连接的 Private，晚于本实例销毁。

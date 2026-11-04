@@ -115,7 +115,13 @@ class TestSftpInterface(paramiko.SFTPServerInterface):
         """遵守 SFTP v3 无覆盖语义，将 oldpath 重命名为 newpath。"""
         if os.path.lexists(self.local_path(newpath, False)):
             return paramiko.SFTP_FAILURE
-        return self.change(os.rename, self.local_path(oldpath, False), self.local_path(newpath, False))
+        status = self.change(os.rename, self.local_path(oldpath, False), self.local_path(newpath, False))
+        if status == paramiko.SFTP_OK and newpath == "/rename-slow-reply":
+            print("SFTP_RENAME_APPLIED", flush=True)
+            time.sleep(0.3)
+        if status == paramiko.SFTP_OK and newpath == "/rename-drop-reply":
+            self.fault = "drop-reply"
+        return status
 
     def chattr(self, path, attr):
         """为 path 设置测试覆盖的 POSIX 权限。"""
@@ -169,6 +175,9 @@ class FragmentedSftpServer(paramiko.SFTPServer):
         """分片发送 packet_type/packet，并按虚拟路径注入不合法的响应。"""
         body = bytes((packet_type,)) + packet.asbytes()
         fault, self.server.fault = self.server.fault, None
+        if fault == "drop-reply":
+            self.sock.close()
+            return
         if fault == "bad-id":
             body = body[:1] + struct.pack(">I", 0xFFFFFFFE) + body[5:]
         elif fault == "truncated":
