@@ -73,6 +73,8 @@ public:
     void setState(QSshSession::State value);
     /** 设置时限 milliseconds，到期终止连接；替换上一阶段的时限。 */
     void setDeadline(int milliseconds);
+    /** 在 Ready 阶段定时发送 SSH_MSG_IGNORE，不请求应答，不占用全局请求状态。 */
+    void armKeepAlive();
     /** 验证服务器主机密钥，必要时向应用发出确认请求。 */
     void verifyHost();
     /** 根据 decision 处理 requestId 对应的主机确认。 */
@@ -105,6 +107,7 @@ public:
     asio::ip::tcp::socket socket;                            ///< TCP 句柄唯一所有者；交给 libssh 后仅做就绪等待。
     asio::steady_timer deadline;                             ///< 建连或认证阶段的整体时限。
     asio::steady_timer progressEvent;                        ///< 无到期时间的协程唤醒事件，以 cancel_one() 通知进展。
+    asio::steady_timer keepAliveTimer;                       ///< SSH 定时保活，关闭和析构时取消。
     QSshSession::Options options;                            ///< worker 独占的连接配置。
     QSshSession::State phase = QSshSession::Idle;            ///< worker 独占的协议阶段。
     ssh_session handle = nullptr;                            ///< worker 独占的 libssh Session。

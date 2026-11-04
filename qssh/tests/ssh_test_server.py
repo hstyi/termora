@@ -239,6 +239,19 @@ def run_connection(sock, host_key, user_key, sftp_root):
     transport = paramiko.Transport(sock)
     server = TestServer(user_key)
     server.transport = transport
+    read_message = transport.packetizer.read_message
+    keepalive_seen = False
+
+    def observe_message():
+        """记录客户端的空 SSH_MSG_IGNORE；不发送应答，由 Paramiko 正常忽略。"""
+        nonlocal keepalive_seen
+        kind, message = read_message()
+        if kind == paramiko.common.MSG_IGNORE and message.get_string() == b"":
+            keepalive_seen = True
+            print("SSH_KEEPALIVE", flush=True)
+        return kind, message
+
+    transport.packetizer.read_message = observe_message
     channels = []  # Transport 只保留弱引用；应用持有所有已接受的 Channel。
     try:
         transport.add_server_key(host_key)
@@ -265,6 +278,8 @@ def run_connection(sock, host_key, user_key, sftp_root):
         for listener in list(server.listeners.values()):
             listener.close()
         transport.close()
+        if keepalive_seen:
+            print("SSH_KEEPALIVE_CLOSED", flush=True)
 
 
 def bridge(channel, sock):

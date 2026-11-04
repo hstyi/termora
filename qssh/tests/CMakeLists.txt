@@ -23,6 +23,7 @@ add_executable(
     qssh_test_support.cpp
     qsshclient_test.cpp
     qsshsession_test.cpp
+    qsshkeepalive_test.cpp
     qsshauthentication_test.cpp
     qsshchannel_test.cpp
     qsshproxy_test.cpp

@@ -115,6 +115,8 @@ public:
         X11Options x11;                       ///< X11 显示及认证配置。
         bool agentForwarding = false;         ///< 为 shell／exec 请求 SSH Agent 转发。
         QString agentSocketPath;              ///< Unix agent socket 或 Windows 命名管道，空值使用系统默认。
+        bool tcpKeepAlive = true;             ///< 开启系统 TCP 保活；探测时间使用操作系统配置。
+        int serverAliveIntervalMs = 0;        ///< Ready 后定时发送无需应答的 SSH 保活包；0 关闭，不检测失联。
     };
 
     /** 服务器提出的一项问题。 */

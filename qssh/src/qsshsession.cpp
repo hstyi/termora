@@ -65,7 +65,8 @@ QSshSessionPrivate::QSshSessionPrivate(QSshSession *owner, QSshClient *client)
       resolver(this->client->io),
       socket(this->client->io),
       deadline(this->client->io),
-      progressEvent(this->client->io) {}
+      progressEvent(this->client->io),
+      keepAliveTimer(this->client->io) {}
 
 QSshSessionPrivate::~QSshSessionPrivate() {
     client->synchronize([this] {
@@ -113,6 +114,25 @@ void QSshSessionPrivate::setDeadline(const int milliseconds) {
         if (*token && !error && !terminated) {
             fail(QSshSession::TimeoutError, QStringLiteral("SSH operation timed out"));
         }
+    });
+}
+
+void QSshSessionPrivate::armKeepAlive() {
+    if (terminated || phase != QSshSession::Ready || options.serverAliveIntervalMs == 0) {
+        return;
+    }
+    keepAliveTimer.expires_after(std::chrono::milliseconds(options.serverAliveIntervalMs));
+    keepAliveTimer.async_wait([this, token = alive](const asio::error_code &error) {
+        if (!*token || error || terminated) {
+            return;
+        }
+        // 无需应答的 SSH_MSG_IGNORE 不占用全局请求状态，可与远端转发并行。
+        if (ssh_send_ignore(handle, "") != SSH_OK) {
+            fail(QSshSession::NetworkError, sshError());
+            return;
+        }
+        schedule(); // 驱动本次调用处理的协议进展，以及尚未排空的发送缓冲。
+        armKeepAlive();
     });
 }
 
@@ -211,6 +231,11 @@ bool QSshSessionPrivate::initializeSession() {
     // 交接后 Asio 只等待就绪，SSH 读写完全由非阻塞 libssh 完成。
     asio::error_code socketError;
     socketError = socket.native_non_blocking(true, socketError);
+    if (socketError) {
+        fail(QSshSession::NetworkError, QString::fromStdString(socketError.message()));
+        return false;
+    }
+    socket.set_option(asio::socket_base::keep_alive(options.tcpKeepAlive), socketError);
     if (socketError) {
         fail(QSshSession::NetworkError, QString::fromStdString(socketError.message()));
         return false;
@@ -570,6 +595,7 @@ bool QSshSessionPrivate::authResult(const int result) {
             ssh_key_free(privateKey);
             privateKey = nullptr;
             setState(QSshSession::Ready);
+            armKeepAlive();
             return false;
         case SSH_AUTH_PARTIAL:
             // 已完成的因素属于当前连接；只刷新后续方法，绝不重新建连或做 none 探测。
@@ -643,6 +669,7 @@ void QSshSessionPrivate::shutdown() {
     resolver.cancel();
     deadline.cancel();
     progressEvent.cancel();
+    keepAliveTimer.cancel();
     shutdownForwarding();
     for (auto *sftp : sftpSessions) {
         sftp->shutdown(QSshSftpSession::SessionClosed, QStringLiteral("SSH session closed"));
@@ -745,7 +772,7 @@ void QSshSession::connectToHost(const Options &options) {
     d->started = true;
     if (options.host.isEmpty() || options.host.contains(QChar::Null) || options.username.isEmpty() ||
         options.username.contains(QChar::Null) || !options.port || options.connectTimeoutMs <= 0 ||
-        options.authenticationTimeoutMs <= 0 || options.channelTimeoutMs <= 0 ||
+        options.authenticationTimeoutMs <= 0 || options.channelTimeoutMs <= 0 || options.serverAliveIntervalMs < 0 ||
         options.authenticationMethods.isEmpty() || options.password.contains(QChar::Null) ||
         options.privateKeyFile.contains(QChar::Null) || options.privateKeyPassphrase.contains(QChar::Null) ||
         options.knownHostsFile.contains(QChar::Null) || options.host.contains('\r') || options.host.contains('\n') ||
